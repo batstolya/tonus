@@ -136,6 +136,8 @@ export default function App() {
   async function handleDone(daily: DailyMetrics[], samples: HeartRateSample[], filename = 'export') {
     setDaily(daily, samples)
     if (!user) return
+    // Restore calendar events from DB after new file upload
+    loadCalendarEvents(user.id).then(calEvents => { if (calEvents.length > 0) setEvents(calEvents) })
     setSyncMsg('Синхронизируем…')
     try {
       const [result, hrOk] = await Promise.all([
