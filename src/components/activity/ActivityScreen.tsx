@@ -118,7 +118,7 @@ export function ActivityScreen({ daily }: Props) {
       </div>
 
       <ResponsiveContainer width="100%" height={260}>
-        <BarChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+        <BarChart data={data} margin={{ top: 8, right: 40, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
           <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
           <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v/1000).toFixed(0)}к`} />
