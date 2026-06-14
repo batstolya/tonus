@@ -7,11 +7,12 @@ export function AuthScreen() {
   const [mode, setMode] = useState<Mode>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  function switchMode(m: Mode) { setMode(m); setError(null) }
+  function switchMode(m: Mode) { setMode(m); setError(null); setConfirm('') }
 
   async function handleGoogle() {
     setGoogleLoading(true)
@@ -29,6 +30,7 @@ export function AuthScreen() {
     setLoading(true)
 
     if (mode === 'signup') {
+      if (password !== confirm) { setError('Пароли не совпадают'); setLoading(false); return }
       const { error } = await supabase.auth.signUp({ email, password })
       setLoading(false)
       if (error) setError(error.message)
@@ -138,6 +140,13 @@ export function AuthScreen() {
             <input type="password" value={password} onChange={e => setPassword(e.target.value)}
               placeholder={mode === 'signup' ? 'Минимум 6 символов' : '••••••••'} required minLength={6} />
           </label>
+          {mode === 'signup' && (
+            <label>
+              Повтори пароль
+              <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)}
+                placeholder="••••••••" required minLength={6} />
+            </label>
+          )}
           {error && <p className="auth-error">{error}</p>}
           <button type="submit" className="btn-primary" disabled={loading}>
             {loading ? '…' : mode === 'signup' ? 'Создать аккаунт' : 'Войти'}
