@@ -219,7 +219,7 @@ export default function App() {
             {/* Calendar sync dropdown */}
             <div className="sync-menu-wrap">
               <button className="theme-toggle" onClick={() => setSyncMenuOpen(o => !o)} title="Синхронизация календаря">
-                🗓
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
               </button>
               {syncMenuOpen && (
                 <div className="sync-dropdown">
@@ -227,7 +227,7 @@ export default function App() {
                   <CalJSONUploadButton onEvents={e => { handleEvents(e, 'calcom'); closeSyncMenu() }} />
                   {isGoogleCalendarAvailable() && (
                     <button className="nav-btn sync-google-btn" onClick={() => { closeSyncMenu(); handleGoogleCalendar() }} disabled={googleLoading}>
-                      <img src="https://www.gstatic.com/images/branding/product/1x/calendar_48dp.png" width={16} height={16} alt="" />
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                       {googleLoading ? 'Загрузка…' : googleConnected ? 'Google ✓' : 'Google Calendar'}
                     </button>
                   )}
