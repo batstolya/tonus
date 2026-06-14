@@ -567,7 +567,7 @@ body {
   display: none;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 960px) {
   /* Show bottom nav, hide topbar nav */
   .topbar-nav { display: none; }
   .sync-label { display: none; }
