@@ -127,6 +127,10 @@ export async function runAnalysis(
   return res.json()
 }
 
+export async function deleteAnalysis(id: string): Promise<void> {
+  await supabase.from('ai_analyses').delete().eq('id', id)
+}
+
 export async function loadAnalyses(userId: string): Promise<AiAnalysis[]> {
   const { data } = await supabase
     .from('ai_analyses')
