@@ -121,7 +121,8 @@ export async function loadMetricsFromSupabase(userId: string): Promise<DailyMetr
     const d = byDate.get(row.date)!
     switch (row.metric) {
       case 'heartRate':
-        d.heartRate = { avg: row.avg_val ?? 0, min: row.min_val ?? 0, max: row.max_val ?? 0 }
+        if (row.avg_val != null)
+          d.heartRate = { avg: row.avg_val, min: row.min_val ?? row.avg_val, max: row.max_val ?? row.avg_val }
         break
       case 'restingHeartRate': d.restingHeartRate = row.avg_val ?? undefined; break
       case 'hrv': d.hrv = row.avg_val ?? undefined; break

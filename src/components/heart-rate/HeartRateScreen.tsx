@@ -11,9 +11,10 @@ interface Props {
 type Preset = '7d' | '30d' | '90d' | 'all'
 
 function filterDays(daily: DailyMetrics[], preset: Preset): DailyMetrics[] {
-  if (preset === 'all') return daily
+  const withData = daily.filter(d => d.heartRate || d.restingHeartRate)
+  if (preset === 'all') return withData
   const days = preset === '7d' ? 7 : preset === '30d' ? 30 : 90
-  return daily.slice(-days)
+  return withData.slice(-days)
 }
 
 export function HeartRateScreen({ daily }: Props) {

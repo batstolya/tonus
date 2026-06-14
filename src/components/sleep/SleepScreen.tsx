@@ -45,7 +45,7 @@ export function SleepScreen({ daily }: Props) {
   const [preset, setPreset] = useState<Preset>('30d')
 
   const days = preset === '14d' ? 14 : preset === '30d' ? 30 : 90
-  const slice = useMemo(() => daily.slice(-days).filter(d => d.sleepHours), [daily, days])
+  const slice = useMemo(() => daily.filter(d => d.sleepHours).slice(-days), [daily, days])
 
   const data = useMemo(() => slice.map(d => ({
     date: d.date.slice(5),

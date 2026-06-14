@@ -45,7 +45,7 @@ export function MetricsScreen({ daily }: Props) {
   const [primary, setPrimary] = useState<MetricKey>(available[0] ?? 'heartRate')
   const [secondary, setSecondary] = useState<MetricKey | ''>('')
 
-  const data = daily.slice(-90).map(d => ({
+  const data = daily.filter(d => getValue(d, primary) !== null).slice(-90).map(d => ({
     date: d.date.slice(5),
     primary: getValue(d, primary),
     ...(secondary ? { secondary: getValue(d, secondary as MetricKey) } : {}),

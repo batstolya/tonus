@@ -8,6 +8,7 @@ import { InsightsScreen } from './components/insights/InsightsScreen'
 import { SleepScreen } from './components/sleep/SleepScreen'
 import { AuthScreen } from './components/auth/AuthScreen'
 import { QuickLog } from './components/intake/QuickLog'
+import { AppLoader, DashboardSkeleton } from './components/ui/Spinner'
 import type { AppView } from './store/appStore'
 import type { CalendarEvent, DailyMetrics, HeartRateSample } from './types'
 import { parseICS } from './parsers/icsParser'
@@ -69,6 +70,7 @@ export default function App() {
   const [syncMsg, setSyncMsg] = useState<string | null>(null)
   const [lastSync, setLastSync] = useState<string | null>(null)
   const [intakeEvents, setIntakeEvents] = useState<Parameters<typeof QuickLog>[0]['events']>([])
+  const [dbLoading, setDbLoading] = useState(false)
 
   const hasData = state.daily.length > 0
 
@@ -78,6 +80,7 @@ export default function App() {
     let cancelled = false
 
     async function init() {
+      setDbLoading(true)
       const [stored, syncInfo, intakeRes] = await Promise.all([
         loadMetricsFromSupabase(user!.id),
         getLastSyncInfo(user!.id),
@@ -86,6 +89,7 @@ export default function App() {
       ])
 
       if (cancelled) return
+      setDbLoading(false)
 
       if (stored.length > 0) {
         setDaily(stored, [])
@@ -122,8 +126,9 @@ export default function App() {
     setTimeout(() => setSyncMsg(null), 4000)
   }
 
-  if (loading) return <div className="auth-loading">Загрузка…</div>
+  if (loading) return <AppLoader />
   if (!user) return <AuthScreen />
+  if (dbLoading) return <AppLoader label="Загружаем данные…" />
 
   return (
     <div className="app">
