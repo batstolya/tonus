@@ -110,11 +110,37 @@ export async function syncMetricsToSupabase(
   return { daysAdded: trulyNewCount, periodStart, periodEnd }
 }
 
+async function fetchAllRows<T>(
+  table: string,
+  userId: string,
+  orderCol: string,
+): Promise<T[]> {
+  const pageSize = 1000
+  const rows: T[] = []
+  let from = 0
+  while (true) {
+    const { data, error } = await supabase
+      .from(table)
+      .select('*')
+      .eq('user_id', userId)
+      .order(orderCol)
+      .range(from, from + pageSize - 1)
+    if (error) { console.warn(`${table} load error:`, error.message); break }
+    if (!data || data.length === 0) break
+    rows.push(...(data as T[]))
+    if (data.length < pageSize) break
+    from += pageSize
+  }
+  return rows
+}
+
 export async function loadMetricsFromSupabase(userId: string): Promise<DailyMetrics[]> {
-  const [metricsRes, sleepRes] = await Promise.all([
-    supabase.from('metrics_daily').select('*').eq('user_id', userId).order('date'),
-    supabase.from('sleep_sessions').select('*').eq('user_id', userId).order('date'),
+  const [metricsData, sleepData] = await Promise.all([
+    fetchAllRows<any>('metrics_daily', userId, 'date'),
+    fetchAllRows<any>('sleep_sessions', userId, 'date'),
   ])
+  const metricsRes = { data: metricsData }
+  const sleepRes = { data: sleepData }
 
   const byDate = new Map<string, DailyMetrics>()
 
@@ -188,16 +214,25 @@ export async function loadHRSamples(userId: string): Promise<HeartRateSample[]> 
   const cutoff = new Date()
   cutoff.setDate(cutoff.getDate() - 90)
 
-  const { data, error } = await supabase
-    .from('heart_rate_samples')
-    .select('ts,bpm,source')
-    .eq('user_id', userId)
-    .gte('ts', cutoff.toISOString())
-    .order('ts')
+  const pageSize = 1000
+  const allData: any[] = []
+  let from = 0
+  while (true) {
+    const { data, error } = await supabase
+      .from('heart_rate_samples')
+      .select('ts,bpm,source')
+      .eq('user_id', userId)
+      .gte('ts', cutoff.toISOString())
+      .order('ts')
+      .range(from, from + pageSize - 1)
+    if (error) { console.warn('hr_samples load error:', error.message); break }
+    if (!data || data.length === 0) break
+    allData.push(...data)
+    if (data.length < pageSize) break
+    from += pageSize
+  }
 
-  if (error) { console.warn('hr_samples load error:', error.message); return [] }
-
-  return (data ?? []).map(r => ({
+  return allData.map(r => ({
     time: new Date(r.ts),
     value: r.bpm,
     sourceName: r.source ?? '',
