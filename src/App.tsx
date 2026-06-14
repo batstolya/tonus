@@ -76,6 +76,17 @@ export default function App() {
 
   const closeSyncMenu = useCallback(() => setSyncMenuOpen(false), [])
 
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!syncMenuOpen) return
+    const handler = (e: MouseEvent) => {
+      const wrap = document.querySelector('.sync-menu-wrap')
+      if (wrap && !wrap.contains(e.target as Node)) setSyncMenuOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [syncMenuOpen])
+
   const hasData = state.daily.length > 0
 
   // Load stored data on login
@@ -187,7 +198,7 @@ export default function App() {
             {lastSync && <span className="sync-label">Синхр: {lastSync}</span>}
 
             {/* Calendar sync dropdown */}
-            <div className="sync-menu-wrap" onMouseLeave={closeSyncMenu}>
+            <div className="sync-menu-wrap">
               <button className="theme-toggle" onClick={() => setSyncMenuOpen(o => !o)} title="Синхронизация календаря">
                 🗓
               </button>
@@ -196,7 +207,7 @@ export default function App() {
                   <ICSUploadButton onEvents={e => { handleEvents(e, 'ics'); closeSyncMenu() }} />
                   <CalJSONUploadButton onEvents={e => { handleEvents(e, 'calcom'); closeSyncMenu() }} />
                   {isGoogleCalendarAvailable() && (
-                    <button className="nav-btn" onClick={() => { handleGoogleCalendar(); closeSyncMenu() }} disabled={googleLoading}>
+                    <button className="nav-btn" onClick={() => { closeSyncMenu(); handleGoogleCalendar() }} disabled={googleLoading}>
                       {googleLoading ? '…' : '🗓 Google'}
                     </button>
                   )}
