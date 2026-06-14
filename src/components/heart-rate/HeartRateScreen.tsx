@@ -125,7 +125,7 @@ export function HeartRateScreen({ daily, intakeEvents = [] }: Props) {
       </div>
 
       <ResponsiveContainer width="100%" height={340}>
-        <LineChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+        <LineChart data={data} margin={{ top: 32, right: 16, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
           <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
           <YAxis domain={['auto', 'auto']} tick={{ fontSize: 11 }} />
