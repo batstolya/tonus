@@ -13,8 +13,8 @@ export function parseICS(text: string): CalendarEvent[] {
       title: ev.summary ?? '(без названия)',
       start: ev.startDate.toJSDate(),
       end: ev.endDate.toJSDate(),
-      description: vevent.getFirstPropertyValue('description') ?? undefined,
-      location: vevent.getFirstPropertyValue('location') ?? undefined,
+      description: String(vevent.getFirstPropertyValue('description') ?? '') || undefined,
+      location: String(vevent.getFirstPropertyValue('location') ?? '') || undefined,
     }
   })
 }

@@ -121,7 +121,7 @@ export function SleepScreen({ daily }: Props) {
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
               <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
               <YAxis tick={{ fontSize: 11 }} unit="ч" />
-              <Tooltip formatter={(v: number) => fmtHours(v)} />
+              <Tooltip formatter={(v: number | string) => fmtHours(Number(v))} />
               <Legend />
               <Bar dataKey="deep" name="Глубокий" stackId="a" fill="#6c8fff" />
               <Bar dataKey="rem" name="REM" stackId="a" fill="#5bc896" />
@@ -132,7 +132,7 @@ export function SleepScreen({ daily }: Props) {
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
               <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
               <YAxis tick={{ fontSize: 11 }} unit="ч" />
-              <Tooltip formatter={(v: number) => fmtHours(v)} />
+              <Tooltip formatter={(v: number | string) => fmtHours(Number(v))} />
               <Bar dataKey="total" name="Сон" fill="var(--accent)" radius={[3, 3, 0, 0]} />
             </BarChart>
           )}
