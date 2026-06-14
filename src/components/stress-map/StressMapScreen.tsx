@@ -8,13 +8,14 @@ interface Props {
   heartRateSamples: HeartRateSample[]
   events: CalendarEvent[]
   onEvents: (e: CalendarEvent[]) => void
+  onGoogleCalendar?: () => void
 }
 
 function fmtDate(d: Date): string {
   return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
-export function StressMapScreen({ heartRateSamples, events, onEvents }: Props) {
+export function StressMapScreen({ heartRateSamples, events, onEvents, onGoogleCalendar }: Props) {
   const entries = useMemo(() => buildStressMap(events, heartRateSamples), [events, heartRateSamples])
   const icsRef = useRef<HTMLInputElement>(null)
   const calRef = useRef<HTMLInputElement>(null)
@@ -46,9 +47,14 @@ export function StressMapScreen({ heartRateSamples, events, onEvents }: Props) {
             📅 Загрузить .ics
           </button>
           <input ref={calRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleCal} />
-          <button className="btn-primary" style={{ maxWidth: 220, background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text)' }} onClick={() => calRef.current?.click()}>
+          <button className="btn-secondary" onClick={() => calRef.current?.click()}>
             📋 cal_bookings.json
           </button>
+          {onGoogleCalendar && (
+            <button className="btn-secondary" onClick={onGoogleCalendar}>
+              🗓 Google Calendar
+            </button>
+          )}
         </div>
       </div>
     )

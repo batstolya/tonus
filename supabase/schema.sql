@@ -83,3 +83,20 @@ create table if not exists public.intake_events (
 alter table public.intake_events enable row level security;
 create policy "own intake" on public.intake_events using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create index if not exists intake_events_user_ts on public.intake_events(user_id, ts);
+
+-- Calendar events (from .ics, cal.com, Google Calendar)
+create table if not exists public.calendar_events (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  uid text not null,
+  title text not null,
+  start_ts timestamptz not null,
+  end_ts timestamptz not null,
+  description text,
+  location text,
+  source text default 'ics',
+  constraint calendar_events_unique unique (user_id, uid)
+);
+alter table public.calendar_events enable row level security;
+create policy "own calendar" on public.calendar_events using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create index if not exists calendar_events_user_ts on public.calendar_events(user_id, start_ts);

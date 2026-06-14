@@ -15,11 +15,14 @@ import { parseICS } from './parsers/icsParser'
 import { parseCalBookings } from './parsers/calBookingsParser'
 import { useRef, useEffect, useState } from 'react'
 import { useAuth } from './hooks/useAuth'
+import { useTheme } from './hooks/useTheme'
 import { supabase } from './lib/supabase'
 import { syncMetricsToSupabase, loadMetricsFromSupabase, getLastSyncInfo } from './lib/sync'
+import { saveCalendarEvents, loadCalendarEvents } from './lib/calendarSync'
+import { connectGoogleCalendar, isGoogleCalendarAvailable } from './lib/googleCalendar'
 import './index.css'
 
-function CalJSONUploadButton({ onEvents, hasEvents }: { onEvents: (e: CalendarEvent[]) => void; hasEvents: boolean }) {
+function CalJSONUploadButton({ onEvents }: { onEvents: (e: CalendarEvent[]) => void }) {
   const ref = useRef<HTMLInputElement>(null)
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -30,14 +33,12 @@ function CalJSONUploadButton({ onEvents, hasEvents }: { onEvents: (e: CalendarEv
   return (
     <>
       <input ref={ref} type="file" accept=".json" style={{ display: 'none' }} onChange={handleChange} />
-      <button className={`nav-btn ics-btn${hasEvents ? ' ics-loaded' : ''}`} onClick={() => ref.current?.click()}>
-        {hasEvents ? '📅 Cal.com ✓' : '📅 cal_bookings.json'}
-      </button>
+      <button className="nav-btn" onClick={() => ref.current?.click()}>📋 Cal.com</button>
     </>
   )
 }
 
-function ICSUploadButton({ onEvents, hasEvents }: { onEvents: (e: CalendarEvent[]) => void; hasEvents: boolean }) {
+function ICSUploadButton({ onEvents }: { onEvents: (e: CalendarEvent[]) => void }) {
   const ref = useRef<HTMLInputElement>(null)
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -48,9 +49,7 @@ function ICSUploadButton({ onEvents, hasEvents }: { onEvents: (e: CalendarEvent[
   return (
     <>
       <input ref={ref} type="file" accept=".ics" style={{ display: 'none' }} onChange={handleChange} />
-      <button className={`nav-btn ics-btn${hasEvents ? ' ics-loaded' : ''}`} onClick={() => ref.current?.click()}>
-        {hasEvents ? '📅 Календарь ✓' : '📅 Загрузить календарь'}
-      </button>
+      <button className="nav-btn" onClick={() => ref.current?.click()}>📅 .ics</button>
     </>
   )
 }
@@ -67,58 +66,57 @@ const NAV_ITEMS: { view: AppView; label: string }[] = [
 export default function App() {
   const { state, setView, setDaily, setEvents, setProgress, setError, reset } = useAppStore()
   const { user, loading } = useAuth()
+  const { theme, toggle: toggleTheme } = useTheme()
   const [syncMsg, setSyncMsg] = useState<string | null>(null)
   const [lastSync, setLastSync] = useState<string | null>(null)
   const [intakeEvents, setIntakeEvents] = useState<Parameters<typeof QuickLog>[0]['events']>([])
   const [dbLoading, setDbLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
 
   const hasData = state.daily.length > 0
 
-  // Load stored data and intake events on login
+  // Load stored data on login
   useEffect(() => {
     if (!user) return
     let cancelled = false
+    setDbLoading(true)
 
     async function init() {
-      setDbLoading(true)
-      const [stored, syncInfo, intakeRes] = await Promise.all([
+      const [stored, syncInfo, intakeRes, calEvents] = await Promise.all([
         loadMetricsFromSupabase(user!.id),
         getLastSyncInfo(user!.id),
         supabase.from('intake_events').select('*').eq('user_id', user!.id)
           .order('ts', { ascending: false }).limit(100),
+        loadCalendarEvents(user!.id),
       ])
 
       if (cancelled) return
       setDbLoading(false)
 
-      if (stored.length > 0) {
-        setDaily(stored, [])
-      }
+      if (stored.length > 0) setDaily(stored, [])
       if (syncInfo?.imported_at) {
         const d = new Date(syncInfo.imported_at)
         setLastSync(d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))
       }
-      if (intakeRes.data) {
-        setIntakeEvents(intakeRes.data as typeof intakeEvents)
-      }
+      if (intakeRes.data) setIntakeEvents(intakeRes.data as typeof intakeEvents)
+      if (calEvents.length > 0) setEvents(calEvents)
     }
 
     init()
     return () => { cancelled = true }
   }, [user])
 
-  // After parsing — sync to Supabase
   async function handleDone(daily: DailyMetrics[], samples: HeartRateSample[], filename = 'export') {
     setDaily(daily, samples)
     if (!user) return
-    setSyncMsg('Синхронизируем с базой…')
+    setSyncMsg('Синхронизируем…')
     try {
       const result = await syncMetricsToSupabase(user.id, daily, filename)
       if (result.daysAdded > 0) {
         setSyncMsg(`Добавлено ${result.daysAdded} новых дней`)
         setLastSync(new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))
       } else {
-        setSyncMsg('Новых данных нет — всё уже сохранено')
+        setSyncMsg('Данные актуальны')
       }
     } catch {
       setSyncMsg('Ошибка синхронизации')
@@ -126,9 +124,30 @@ export default function App() {
     setTimeout(() => setSyncMsg(null), 4000)
   }
 
-  if (loading) return <AppLoader />
+  async function handleEvents(events: CalendarEvent[], source = 'ics') {
+    setEvents(events)
+    if (!user) return
+    try {
+      await saveCalendarEvents(user.id, events, source)
+    } catch { /* non-critical */ }
+  }
+
+  async function handleGoogleCalendar() {
+    setGoogleLoading(true)
+    try {
+      const events = await connectGoogleCalendar()
+      await handleEvents(events, 'google')
+      setSyncMsg(`Загружено ${events.length} событий из Google`)
+      setTimeout(() => setSyncMsg(null), 4000)
+    } catch (e: any) {
+      setSyncMsg('Ошибка Google Calendar')
+      setTimeout(() => setSyncMsg(null), 3000)
+    }
+    setGoogleLoading(false)
+  }
+
+  if (loading || dbLoading) return <AppLoader label={dbLoading ? 'Загружаем данные…' : undefined} />
   if (!user) return <AuthScreen />
-  if (dbLoading) return <AppLoader label="Загружаем данные…" />
 
   return (
     <div className="app">
@@ -146,12 +165,23 @@ export default function App() {
               </button>
             ))}
           </nav>
-          <ICSUploadButton onEvents={setEvents} hasEvents={state.events.length > 0} />
-          <CalJSONUploadButton onEvents={setEvents} hasEvents={state.events.length > 0} />
-          {lastSync && <span className="sync-label">Синхр: {lastSync}</span>}
-          <button className="nav-btn signout-btn" onClick={() => supabase.auth.signOut()} title={user.email}>
-            Выйти
-          </button>
+
+          <div className="topbar-right">
+            <ICSUploadButton onEvents={e => handleEvents(e, 'ics')} />
+            <CalJSONUploadButton onEvents={e => handleEvents(e, 'calcom')} />
+            {isGoogleCalendarAvailable() && (
+              <button className="nav-btn" onClick={handleGoogleCalendar} disabled={googleLoading}>
+                {googleLoading ? '…' : '🗓 Google'}
+              </button>
+            )}
+            {lastSync && <span className="sync-label">Синхр: {lastSync}</span>}
+            <button className="theme-toggle" onClick={toggleTheme} title="Сменить тему">
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
+            <button className="nav-btn signout-btn" onClick={() => supabase.auth.signOut()}>
+              Выйти
+            </button>
+          </div>
         </header>
       )}
 
@@ -161,8 +191,8 @@ export default function App() {
         {!hasData ? (
           <UploadScreen
             onProgress={setProgress}
-            onDone={(daily, samples) => handleDone(daily, samples)}
-            onEvents={setEvents}
+            onDone={(daily, samples, filename) => handleDone(daily, samples, filename)}
+            onEvents={e => handleEvents(e, 'ics')}
             onError={setError}
             progress={state.parseProgress}
             error={state.error}
@@ -184,7 +214,12 @@ export default function App() {
         ) : state.view === 'metrics' ? (
           <MetricsScreen daily={state.daily} />
         ) : state.view === 'stress-map' ? (
-          <StressMapScreen heartRateSamples={state.heartRateSamples} events={state.events} onEvents={setEvents} />
+          <StressMapScreen
+            heartRateSamples={state.heartRateSamples}
+            events={state.events}
+            onEvents={e => handleEvents(e, 'ics')}
+            onGoogleCalendar={isGoogleCalendarAvailable() ? handleGoogleCalendar : undefined}
+          />
         ) : state.view === 'sleep' ? (
           <SleepScreen daily={state.daily} />
         ) : state.view === 'insights' ? (

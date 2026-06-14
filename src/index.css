@@ -11,6 +11,23 @@
   --yellow: #ffd166;
   --radius: 12px;
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --topbar-bg: rgba(15,15,18,0.92);
+  --shadow: 0 1px 0 rgba(255,255,255,0.04);
+}
+
+[data-theme="light"] {
+  --bg: #f2f2f7;
+  --surface: #ffffff;
+  --surface2: #f2f2f7;
+  --border: #e0e0e8;
+  --text: #111118;
+  --text-muted: #6e6e80;
+  --accent: #4a6fff;
+  --green: #34c678;
+  --red: #e53935;
+  --yellow: #f59e0b;
+  --topbar-bg: rgba(255,255,255,0.92);
+  --shadow: 0 1px 0 rgba(0,0,0,0.08);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -28,14 +45,46 @@ body {
 .topbar {
   display: flex;
   align-items: center;
-  gap: 24px;
-  padding: 12px 24px;
-  background: var(--surface);
+  gap: 16px;
+  padding: 0 24px;
+  height: 56px;
+  background: var(--topbar-bg);
   border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow);
   position: sticky;
   top: 0;
   z-index: 10;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+.theme-toggle {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.theme-toggle:hover { background: var(--border); }
+.btn-secondary {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 16px;
+  color: var(--text);
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.btn-secondary:hover { border-color: var(--accent); }
 .logo-btn {
   background: none;
   border: none;

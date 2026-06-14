@@ -45,11 +45,15 @@ export function MetricsScreen({ daily }: Props) {
   const [primary, setPrimary] = useState<MetricKey>(available[0] ?? 'heartRate')
   const [secondary, setSecondary] = useState<MetricKey | ''>('')
 
-  const data = daily.slice(-90).map(d => ({
-    date: d.date.slice(5),
-    primary: getValue(d, primary),
-    ...(secondary ? { secondary: getValue(d, secondary as MetricKey) } : {}),
-  }))
+  // Chart: only days where primary metric has data
+  const chartData = daily
+    .filter(d => getValue(d, primary) !== null)
+    .slice(-90)
+    .map(d => ({
+      date: d.date.slice(5),
+      primary: getValue(d, primary),
+      ...(secondary ? { secondary: getValue(d, secondary as MetricKey) } : {}),
+    }))
 
   return (
     <div className="screen">
@@ -72,7 +76,7 @@ export function MetricsScreen({ daily }: Props) {
       </div>
 
       <ResponsiveContainer width="100%" height={320}>
-        <LineChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+        <LineChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
           <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
           <YAxis yAxisId="left" domain={['auto', 'auto']} tick={{ fontSize: 11 }} />
