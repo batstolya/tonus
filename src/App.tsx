@@ -127,8 +127,8 @@ export default function App() {
       } else {
         setSyncMsg('Данные актуальны')
       }
-    } catch {
-      setSyncMsg('Ошибка синхронизации')
+    } catch (e: any) {
+      setSyncMsg(`Ошибка синхронизации: ${e?.message ?? 'unknown'}`)
     }
     setTimeout(() => setSyncMsg(null), 4000)
   }

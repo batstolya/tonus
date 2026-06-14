@@ -85,15 +85,17 @@ export async function syncMetricsToSupabase(
   // Batch upsert in chunks of 500
   const chunkSize = 500
   for (let i = 0; i < metricsRows.length; i += chunkSize) {
-    await supabase.from('metrics_daily').upsert(metricsRows.slice(i, i + chunkSize), {
+    const { error } = await supabase.from('metrics_daily').upsert(metricsRows.slice(i, i + chunkSize), {
       onConflict: 'user_id,date,metric',
     })
+    if (error) throw new Error(`metrics_daily upsert failed: ${error.message}`)
   }
 
   for (let i = 0; i < sleepRows.length; i += chunkSize) {
-    await supabase.from('sleep_sessions').upsert(sleepRows.slice(i, i + chunkSize), {
+    const { error } = await supabase.from('sleep_sessions').upsert(sleepRows.slice(i, i + chunkSize), {
       onConflict: 'user_id,date',
     })
+    if (error) throw new Error(`sleep_sessions upsert failed: ${error.message}`)
   }
 
   // Log the import
