@@ -104,10 +104,10 @@ export function Dashboard({ daily, events, onNavigate, user }: Props) {
     {
       label: 'SpO₂',
       sub: spo2Entry ? spo2Entry.date : undefined,
-      value: spo2Entry?.oxygenSaturation ? spo2Entry.oxygenSaturation.toFixed(1) : null,
+      value: spo2Entry?.oxygenSaturation ? (spo2Entry.oxygenSaturation * 100).toFixed(1) : null,
       unit: '%',
       view: 'metrics',
-      color: spo2Entry?.oxygenSaturation && spo2Entry.oxygenSaturation >= 98 ? 'var(--green)' : spo2Entry?.oxygenSaturation && spo2Entry.oxygenSaturation < 95 ? 'var(--red)' : undefined,
+      color: spo2Entry?.oxygenSaturation && spo2Entry.oxygenSaturation >= 0.98 ? 'var(--green)' : spo2Entry?.oxygenSaturation && spo2Entry.oxygenSaturation < 0.95 ? 'var(--red)' : undefined,
     },
     {
       label: 'Событий в календаре',
