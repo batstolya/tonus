@@ -127,7 +127,7 @@ export async function runAnalysis(
   return res.json()
 }
 
-export async function loadAnalyses(_userId: string): Promise<AiAnalysis[]> {
+export async function loadAnalyses(userId: string): Promise<AiAnalysis[]> {
   const { data } = await supabase
     .from('ai_analyses')
     .select('*')
