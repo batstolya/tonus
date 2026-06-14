@@ -25,12 +25,21 @@ export async function syncMetricsToSupabase(
 
   const lastSyncedDate = lastImport?.period_end ?? null
 
-  // Only process new days
+  // Always re-sync last 90 days to catch any metric updates, plus truly new days
+  const cutoff90 = new Date()
+  cutoff90.setDate(cutoff90.getDate() - 90)
+  const cutoff90str = cutoff90.toISOString().slice(0, 10)
+
   const newDays = lastSyncedDate
-    ? daily.filter(d => d.date > lastSyncedDate)
+    ? daily.filter(d => d.date > lastSyncedDate || d.date >= cutoff90str)
     : daily
 
   if (!newDays.length) return { daysAdded: 0, periodStart: null, periodEnd: null }
+
+  // Count truly new days for reporting
+  const trulyNewCount = lastSyncedDate
+    ? daily.filter(d => d.date > lastSyncedDate).length
+    : daily.length
 
   const periodStart = newDays[0].date
   const periodEnd = newDays[newDays.length - 1].date
@@ -105,7 +114,7 @@ export async function syncMetricsToSupabase(
     records_added: newDays.length,
   })
 
-  return { daysAdded: newDays.length, periodStart, periodEnd }
+  return { daysAdded: trulyNewCount, periodStart, periodEnd }
 }
 
 export async function loadMetricsFromSupabase(userId: string): Promise<DailyMetrics[]> {
