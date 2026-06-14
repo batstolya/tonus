@@ -1,0 +1,196 @@
+import { useMemo, useState } from 'react'
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer,
+  LineChart, Line, Legend,
+} from 'recharts'
+import type { DailyMetrics } from '../../types'
+
+interface Props {
+  daily: DailyMetrics[]
+}
+
+type Preset = '14d' | '30d' | '90d'
+
+function fmtTime(iso: string | undefined): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+}
+
+function fmtHours(h: number | undefined): string {
+  if (h === undefined) return '—'
+  const hrs = Math.floor(h)
+  const mins = Math.round((h - hrs) * 60)
+  return `${hrs}ч ${mins}м`
+}
+
+// Convert bedtime to comparable number for chart (hours from noon)
+function bedtimeToChartVal(iso: string | undefined): number | null {
+  if (!iso) return null
+  const d = new Date(iso)
+  let h = d.getHours() + d.getMinutes() / 60
+  // Shift so that e.g. 22:00 = 10, 23:00 = 11, 00:00 = 12, 01:00 = 13, 02:00 = 14
+  if (h < 12) h += 24
+  return Math.round((h - 12) * 10) / 10
+}
+
+function chartValToTime(val: number): string {
+  const h = (val + 12) % 24
+  const hrs = Math.floor(h)
+  const mins = Math.round((h - hrs) * 60)
+  return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}`
+}
+
+export function SleepScreen({ daily }: Props) {
+  const [preset, setPreset] = useState<Preset>('30d')
+
+  const days = preset === '14d' ? 14 : preset === '30d' ? 30 : 90
+  const slice = useMemo(() => daily.slice(-days).filter(d => d.sleepHours), [daily, days])
+
+  const data = useMemo(() => slice.map(d => ({
+    date: d.date.slice(5),
+    total: d.sleepHours ? Math.round(d.sleepHours * 10) / 10 : null,
+    deep: d.sleepDeep ? Math.round(d.sleepDeep * 10) / 10 : null,
+    rem: d.sleepREM ? Math.round(d.sleepREM * 10) / 10 : null,
+    core: d.sleepCore ? Math.round(d.sleepCore * 10) / 10 : null,
+    bedtime: bedtimeToChartVal(d.sleepBedtime),
+    wake: d.sleepWakeTime ? (() => {
+      const d2 = new Date(d.sleepWakeTime!)
+      return Math.round((d2.getHours() + d2.getMinutes() / 60) * 10) / 10
+    })() : null,
+  })), [slice])
+
+  const hasPhases = slice.some(d => d.sleepDeep || d.sleepREM)
+
+  const avgSleep = slice.length
+    ? slice.reduce((a, d) => a + (d.sleepHours ?? 0), 0) / slice.length
+    : null
+
+  const avgBed = slice.filter(d => d.sleepBedtime).length
+    ? slice.filter(d => d.sleepBedtime).reduce((a, d) => a + (bedtimeToChartVal(d.sleepBedtime) ?? 0), 0) / slice.filter(d => d.sleepBedtime).length
+    : null
+
+  const avgWake = slice.filter(d => d.sleepWakeTime).length
+    ? (() => {
+        const vals = slice.filter(d => d.sleepWakeTime).map(d => {
+          const dt = new Date(d.sleepWakeTime!)
+          return dt.getHours() + dt.getMinutes() / 60
+        })
+        return vals.reduce((a, b) => a + b, 0) / vals.length
+      })()
+    : null
+
+  const CustomBedtimeTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null
+    return (
+      <div className="custom-tooltip">
+        <p className="tooltip-date">{label}</p>
+        {payload.map((p: any) => (
+          <p key={p.name} style={{ color: p.color }}>
+            {p.name}: {chartValToTime(p.value)}
+          </p>
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <div className="screen">
+      <h2>Сон</h2>
+
+      <div className="presets">
+        {(['14d', '30d', '90d'] as Preset[]).map(p => (
+          <button key={p} className={preset === p ? 'preset active' : 'preset'} onClick={() => setPreset(p)}>
+            {p.replace('d', ' дн')}
+          </button>
+        ))}
+      </div>
+
+      <div className="stat-row">
+        {avgSleep && <div className="stat"><span>{fmtHours(avgSleep)}</span> средний сон</div>}
+        {avgBed !== null && <div className="stat"><span>{chartValToTime(avgBed)}</span> среднее засыпание</div>}
+        {avgWake !== null && <div className="stat"><span>{fmtHours(avgWake)}</span> среднее пробуждение</div>}
+      </div>
+
+      {/* Duration chart */}
+      <div className="chart-section">
+        <h3>Длительность сна</h3>
+        <ResponsiveContainer width="100%" height={220}>
+          {hasPhases ? (
+            <BarChart data={data} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
+              <YAxis tick={{ fontSize: 11 }} unit="ч" />
+              <Tooltip formatter={(v: number) => fmtHours(v)} />
+              <Legend />
+              <Bar dataKey="deep" name="Глубокий" stackId="a" fill="#6c8fff" />
+              <Bar dataKey="rem" name="REM" stackId="a" fill="#5bc896" />
+              <Bar dataKey="core" name="Основной" stackId="a" fill="#8888a0" />
+            </BarChart>
+          ) : (
+            <BarChart data={data} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
+              <YAxis tick={{ fontSize: 11 }} unit="ч" />
+              <Tooltip formatter={(v: number) => fmtHours(v)} />
+              <Bar dataKey="total" name="Сон" fill="var(--accent)" radius={[3, 3, 0, 0]} />
+            </BarChart>
+          )}
+        </ResponsiveContainer>
+      </div>
+
+      {/* Bedtime / Wake time chart */}
+      <div className="chart-section">
+        <h3>Время засыпания и пробуждения</h3>
+        <ResponsiveContainer width="100%" height={220}>
+          <LineChart data={data} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+            <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
+            <YAxis
+              tick={{ fontSize: 11 }}
+              tickFormatter={chartValToTime}
+              domain={['auto', 'auto']}
+            />
+            <Tooltip content={<CustomBedtimeTooltip />} />
+            <Legend />
+            <Line type="monotone" dataKey="bedtime" name="Засыпание" stroke="var(--accent)" dot={false} connectNulls />
+            <Line type="monotone" dataKey="wake" name="Пробуждение" stroke="var(--green)" dot={false} connectNulls />
+          </LineChart>
+        </ResponsiveContainer>
+        <p className="chart-hint">Ось Y — время суток</p>
+      </div>
+
+      {/* Table */}
+      <div className="metrics-table-wrap">
+        <table className="metrics-table">
+          <thead>
+            <tr>
+              <th>Дата</th>
+              <th>Засыпание</th>
+              <th>Пробуждение</th>
+              <th>Итого</th>
+              {hasPhases && <><th>Глубокий</th><th>REM</th><th>Основной</th></>}
+            </tr>
+          </thead>
+          <tbody>
+            {slice.slice().reverse().map(d => (
+              <tr key={d.date}>
+                <td>{d.date}</td>
+                <td>{fmtTime(d.sleepBedtime)}</td>
+                <td>{fmtTime(d.sleepWakeTime)}</td>
+                <td><strong>{fmtHours(d.sleepHours)}</strong></td>
+                {hasPhases && (
+                  <>
+                    <td>{d.sleepDeep ? fmtHours(d.sleepDeep) : '—'}</td>
+                    <td>{d.sleepREM ? fmtHours(d.sleepREM) : '—'}</td>
+                    <td>{d.sleepCore ? fmtHours(d.sleepCore) : '—'}</td>
+                  </>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
