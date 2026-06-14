@@ -141,8 +141,6 @@ export function Dashboard({ daily, events, onNavigate, user }: Props) {
         </div>
       )}
 
-      {user && <AiAnalysisBlock daily={daily} userId={user.id} />}
-
       <nav className="dash-nav">
         <button onClick={() => onNavigate('heart-rate')}>Пульс →</button>
         <button onClick={() => onNavigate('metrics')}>Показатели →</button>
@@ -150,6 +148,8 @@ export function Dashboard({ daily, events, onNavigate, user }: Props) {
         <button onClick={() => onNavigate('sleep')}>Сон →</button>
         <button onClick={() => onNavigate('insights')}>Инсайты →</button>
       </nav>
+
+      {user && <AiAnalysisBlock daily={daily} userId={user.id} />}
     </div>
   )
 }

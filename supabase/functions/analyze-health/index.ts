@@ -46,14 +46,14 @@ serve(async (req) => {
 
     // Call Gemini
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
           contents: [{ parts: [{ text: `Данные здоровья за период ${periodStart} — ${periodEnd}:\n\n${digest}` }] }],
-          generationConfig: { temperature: 0.4, maxOutputTokens: 800 },
+          generationConfig: { temperature: 0.4, maxOutputTokens: 2048, responseMimeType: 'application/json' },
         }),
       }
     )
@@ -71,7 +71,7 @@ serve(async (req) => {
     try {
       parsed = JSON.parse(rawText.replace(/```json|```/g, '').trim())
     } catch {
-      return new Response('Failed to parse Gemini response', { status: 502, headers: CORS })
+      return new Response(`Failed to parse Gemini response: ${rawText}`, { status: 502, headers: CORS })
     }
 
     // Save to DB
@@ -83,7 +83,7 @@ serve(async (req) => {
       good: parsed.good,
       improve: parsed.improve,
       focus: parsed.focus,
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.5-flash',
       tokens_used: tokensUsed,
     }).select().single()
 
