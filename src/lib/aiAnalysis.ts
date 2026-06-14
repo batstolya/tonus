@@ -91,7 +91,7 @@ function buildDigest(slice: DailyMetrics[], prevSlice: DailyMetrics[]): string {
 }
 
 export async function runAnalysis(
-  userId: string,
+  _userId: string,
   daily: DailyMetrics[],
   period: AnalysisPeriod
 ): Promise<AiAnalysis> {
