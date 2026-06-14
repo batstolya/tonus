@@ -2,6 +2,7 @@ import type { User } from '@supabase/supabase-js'
 import type { DailyMetrics, HeartRateSample, CalendarEvent } from '../../types'
 import type { AppView } from '../../store/appStore'
 import { generateInsights } from '../../utils/insights'
+import { AiAnalysisBlock } from './AiAnalysisBlock'
 
 interface Props {
   daily: DailyMetrics[]
@@ -139,6 +140,8 @@ export function Dashboard({ daily, events, onNavigate, user }: Props) {
           ))}
         </div>
       )}
+
+      {user && <AiAnalysisBlock daily={daily} userId={user.id} />}
 
       <nav className="dash-nav">
         <button onClick={() => onNavigate('heart-rate')}>Пульс →</button>
