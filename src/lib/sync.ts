@@ -14,7 +14,7 @@ export async function syncMetricsToSupabase(
 ): Promise<SyncResult> {
   if (!daily.length) return { daysAdded: 0, periodStart: null, periodEnd: null }
 
-  // Find what's already synced
+  // Find last known sync to count new days (for display only)
   const { data: lastImport } = await supabase
     .from('imports')
     .select('period_end')
@@ -25,18 +25,9 @@ export async function syncMetricsToSupabase(
 
   const lastSyncedDate = lastImport?.period_end ?? null
 
-  // Always re-sync last 90 days to catch any metric updates, plus truly new days
-  const cutoff90 = new Date()
-  cutoff90.setDate(cutoff90.getDate() - 90)
-  const cutoff90str = cutoff90.toISOString().slice(0, 10)
-
-  const newDays = lastSyncedDate
-    ? daily.filter(d => d.date > lastSyncedDate || d.date >= cutoff90str)
-    : daily
-
-  if (!newDays.length) return { daysAdded: 0, periodStart: null, periodEnd: null }
-
-  // Count truly new days for reporting
+  // Always sync all days — upsert handles deduplication at DB level
+  // This ensures Supabase always has complete, up-to-date data
+  const newDays = daily
   const trulyNewCount = lastSyncedDate
     ? daily.filter(d => d.date > lastSyncedDate).length
     : daily.length
