@@ -127,9 +127,14 @@ export default function App() {
   async function handleEvents(events: CalendarEvent[], source = 'ics') {
     setEvents(events)
     if (!user) return
-    try {
-      await saveCalendarEvents(user.id, events, source)
-    } catch { /* non-critical */ }
+    const ok = await saveCalendarEvents(user.id, events, source)
+    if (!ok) {
+      setSyncMsg('⚠️ Таблица calendar_events не создана — запусти SQL в Supabase')
+      setTimeout(() => setSyncMsg(null), 8000)
+    } else {
+      setSyncMsg(`Сохранено ${events.length} событий календаря`)
+      setTimeout(() => setSyncMsg(null), 3000)
+    }
   }
 
   async function handleGoogleCalendar() {

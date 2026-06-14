@@ -1,8 +1,8 @@
 import { supabase } from './supabase'
 import type { CalendarEvent } from '../types'
 
-export async function saveCalendarEvents(userId: string, events: CalendarEvent[], source: string) {
-  if (!events.length) return
+export async function saveCalendarEvents(userId: string, events: CalendarEvent[], source: string): Promise<boolean> {
+  if (!events.length) return true
 
   const rows = events.map(e => ({
     user_id: userId,
@@ -17,19 +17,29 @@ export async function saveCalendarEvents(userId: string, events: CalendarEvent[]
 
   const chunkSize = 200
   for (let i = 0; i < rows.length; i += chunkSize) {
-    await supabase.from('calendar_events').upsert(rows.slice(i, i + chunkSize), {
+    const { error } = await supabase.from('calendar_events').upsert(rows.slice(i, i + chunkSize), {
       onConflict: 'user_id,uid',
     })
+    if (error) {
+      console.warn('calendar_events save error:', error.message)
+      return false
+    }
   }
+  return true
 }
 
 export async function loadCalendarEvents(userId: string): Promise<CalendarEvent[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('calendar_events')
     .select('*')
     .eq('user_id', userId)
     .order('start_ts', { ascending: false })
     .limit(2000)
+
+  if (error) {
+    console.warn('calendar_events load error:', error.message)
+    return []
+  }
 
   return (data ?? []).map(row => ({
     uid: row.uid,
