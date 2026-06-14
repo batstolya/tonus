@@ -77,8 +77,10 @@ export default function App() {
   const [googleLoading, setGoogleLoading] = useState(false)
   const [showGoogleEvents, setShowGoogleEvents] = useState(true)
   const [syncMenuOpen, setSyncMenuOpen] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const closeSyncMenu = useCallback(() => setSyncMenuOpen(false), [])
+  const closeMobileMenu = useCallback(() => setMobileMenuOpen(false), [])
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -207,6 +209,11 @@ export default function App() {
           </nav>
 
           <div className="topbar-right">
+            <button className="burger-btn" onClick={() => setMobileMenuOpen(o => !o)} aria-label="Меню">
+              <span className={`burger-icon${mobileMenuOpen ? ' open' : ''}`}>
+                <span /><span /><span />
+              </span>
+            </button>
             {lastSync && <span className="sync-label">Синхр: {lastSync}</span>}
 
             {/* Calendar sync dropdown */}
@@ -236,6 +243,37 @@ export default function App() {
             </button>
           </div>
         </header>
+      )}
+
+      {mobileMenuOpen && (
+        <div className="mobile-menu-overlay" onClick={closeMobileMenu}>
+          <nav className="mobile-menu" onClick={e => e.stopPropagation()}>
+            <div className="mobile-menu-header">
+              <span className="mobile-menu-title">Tonus</span>
+              <button className="mobile-menu-close" onClick={closeMobileMenu}>✕</button>
+            </div>
+            {NAV_ITEMS.map(item => (
+              <button
+                key={item.view}
+                className={state.view === item.view ? 'mobile-nav-btn active' : 'mobile-nav-btn'}
+                onClick={() => { setView(item.view); closeMobileMenu() }}
+              >
+                <span>{item.icon}</span>
+                {item.label}
+              </button>
+            ))}
+            <div className="mobile-menu-footer">
+              <button className="mobile-nav-btn" onClick={() => { toggleTheme(); closeMobileMenu() }}>
+                <span>{theme === 'dark' ? '☀️' : '🌙'}</span>
+                {theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'}
+              </button>
+              <button className="mobile-nav-btn signout" onClick={() => supabase.auth.signOut()}>
+                <span>→</span>
+                Выйти
+              </button>
+            </div>
+          </nav>
+        </div>
       )}
 
       {syncMsg && <div className="sync-toast">{syncMsg}</div>}
@@ -285,20 +323,6 @@ export default function App() {
         ) : null}
       </main>
 
-      {hasData && (
-        <nav className="bottom-nav">
-          {NAV_ITEMS.map(item => (
-            <button
-              key={item.view}
-              className={state.view === item.view ? 'bottom-nav-btn active' : 'bottom-nav-btn'}
-              onClick={() => setView(item.view)}
-            >
-              <span className="bottom-nav-icon">{item.icon}</span>
-              <span className="bottom-nav-label">{item.label}</span>
-            </button>
-          ))}
-        </nav>
-      )}
     </div>
   )
 }
