@@ -17,7 +17,7 @@ import { useRef, useEffect, useState } from 'react'
 import { useAuth } from './hooks/useAuth'
 import { useTheme } from './hooks/useTheme'
 import { supabase } from './lib/supabase'
-import { syncMetricsToSupabase, loadMetricsFromSupabase, getLastSyncInfo } from './lib/sync'
+import { syncMetricsToSupabase, loadMetricsFromSupabase, getLastSyncInfo, syncHRSamples, loadHRSamples } from './lib/sync'
 import { saveCalendarEvents, loadCalendarEvents } from './lib/calendarSync'
 import { connectGoogleCalendar, isGoogleCalendarAvailable } from './lib/googleCalendar'
 import './index.css'
@@ -93,7 +93,8 @@ export default function App() {
       if (cancelled) return
       setDbLoading(false)
 
-      if (stored.length > 0) setDaily(stored, [])
+      const hrSamples = await loadHRSamples(user!.id)
+      if (stored.length > 0) setDaily(stored, hrSamples)
       if (syncInfo?.imported_at) {
         const d = new Date(syncInfo.imported_at)
         setLastSync(d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))
@@ -111,7 +112,10 @@ export default function App() {
     if (!user) return
     setSyncMsg('Синхронизируем…')
     try {
-      const result = await syncMetricsToSupabase(user.id, daily, filename)
+      const [result] = await Promise.all([
+        syncMetricsToSupabase(user.id, daily, filename),
+        syncHRSamples(user.id, samples),
+      ])
       if (result.daysAdded > 0) {
         setSyncMsg(`Добавлено ${result.daysAdded} новых дней`)
         setLastSync(new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))
@@ -216,7 +220,7 @@ export default function App() {
             </aside>
           </div>
         ) : state.view === 'heart-rate' ? (
-          <HeartRateScreen daily={state.daily} />
+          <HeartRateScreen daily={state.daily} intakeEvents={intakeEvents} />
         ) : state.view === 'metrics' ? (
           <MetricsScreen daily={state.daily} />
         ) : state.view === 'stress-map' ? (

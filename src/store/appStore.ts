@@ -1,7 +1,14 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import type { DailyMetrics, HeartRateSample, CalendarEvent, ParseProgress } from '../types'
 
 export type AppView = 'upload' | 'dashboard' | 'heart-rate' | 'metrics' | 'stress-map' | 'sleep' | 'insights'
+
+const VIEWS: AppView[] = ['dashboard', 'heart-rate', 'metrics', 'stress-map', 'sleep', 'insights']
+
+function hashToView(): AppView {
+  const hash = window.location.hash.slice(1) as AppView
+  return VIEWS.includes(hash) ? hash : 'dashboard'
+}
 
 export interface AppState {
   view: AppView
@@ -13,7 +20,7 @@ export interface AppState {
 }
 
 const initial: AppState = {
-  view: 'upload',
+  view: hashToView(),
   daily: [],
   heartRateSamples: [],
   events: [],
@@ -24,13 +31,30 @@ const initial: AppState = {
 export function useAppStore() {
   const [state, setState] = useState<AppState>(initial)
 
-  const setView = useCallback((view: AppView) => setState(s => ({ ...s, view })), [])
+  const setView = useCallback((view: AppView) => {
+    window.location.hash = view
+    setState(s => ({ ...s, view }))
+  }, [])
+
+  // Sync browser back/forward
+  useEffect(() => {
+    const handler = () => {
+      const view = hashToView()
+      setState(s => ({ ...s, view }))
+    }
+    window.addEventListener('hashchange', handler)
+    return () => window.removeEventListener('hashchange', handler)
+  }, [])
+
   const setDaily = useCallback((daily: DailyMetrics[], heartRateSamples: HeartRateSample[]) =>
     setState(s => ({ ...s, daily, heartRateSamples, view: 'dashboard', parseProgress: null, error: null })), [])
   const setEvents = useCallback((events: CalendarEvent[]) => setState(s => ({ ...s, events })), [])
   const setProgress = useCallback((p: ParseProgress) => setState(s => ({ ...s, parseProgress: p })), [])
   const setError = useCallback((error: string) => setState(s => ({ ...s, error, parseProgress: null })), [])
-  const reset = useCallback(() => setState(initial), [])
+  const reset = useCallback(() => {
+    window.location.hash = ''
+    setState(initial)
+  }, [])
 
   return { state, setView, setDaily, setEvents, setProgress, setError, reset }
 }

@@ -502,3 +502,20 @@ body {
   .dashboard-layout { flex-direction: column; }
   .dashboard-aside { width: 100%; }
 }
+
+/* HR overlays */
+.hr-controls { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; margin-bottom: 4px; }
+.overlay-toggles { display: flex; gap: 12px; }
+.overlay-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+}
+.overlay-toggle input[type="checkbox"] {
+  width: 16px; height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}

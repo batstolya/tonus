@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { DailyMetrics } from '../types'
+import type { DailyMetrics, HeartRateSample } from '../types'
 
 export interface SyncResult {
   daysAdded: number
@@ -151,6 +151,50 @@ export async function loadMetricsFromSupabase(userId: string): Promise<DailyMetr
   }
 
   return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date))
+}
+
+// Store last 90 days of HR samples (needed for stress map)
+export async function syncHRSamples(userId: string, samples: HeartRateSample[]) {
+  if (!samples.length) return
+
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() - 90)
+  const recent = samples.filter(s => s.time >= cutoff)
+  if (!recent.length) return
+
+  const rows = recent.map(s => ({
+    user_id: userId,
+    ts: s.time.toISOString(),
+    bpm: Math.round(s.value),
+    source: s.sourceName,
+  }))
+
+  const chunkSize = 500
+  for (let i = 0; i < rows.length; i += chunkSize) {
+    await supabase.from('heart_rate_samples').upsert(rows.slice(i, i + chunkSize), {
+      onConflict: 'user_id,ts',
+    })
+  }
+}
+
+export async function loadHRSamples(userId: string): Promise<HeartRateSample[]> {
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() - 90)
+
+  const { data, error } = await supabase
+    .from('heart_rate_samples')
+    .select('ts,bpm,source')
+    .eq('user_id', userId)
+    .gte('ts', cutoff.toISOString())
+    .order('ts')
+
+  if (error) { console.warn('hr_samples load error:', error.message); return [] }
+
+  return (data ?? []).map(r => ({
+    time: new Date(r.ts),
+    value: r.bpm,
+    sourceName: r.source ?? '',
+  }))
 }
 
 export async function getLastSyncInfo(userId: string) {

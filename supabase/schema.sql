@@ -100,3 +100,16 @@ create table if not exists public.calendar_events (
 alter table public.calendar_events enable row level security;
 create policy "own calendar" on public.calendar_events using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create index if not exists calendar_events_user_ts on public.calendar_events(user_id, start_ts);
+
+-- Heart rate samples (last 90 days, for stress map)
+create table if not exists public.heart_rate_samples (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  ts timestamptz not null,
+  bpm int not null,
+  source text,
+  constraint hr_samples_unique unique (user_id, ts)
+);
+alter table public.heart_rate_samples enable row level security;
+create policy "own hr" on public.heart_rate_samples using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create index if not exists hr_samples_user_ts on public.heart_rate_samples(user_id, ts);
