@@ -5,7 +5,7 @@ import type { ParseProgress, CalendarEvent } from '../../types'
 
 interface Props {
   onProgress: (p: ParseProgress) => void
-  onDone: (daily: import('../../types').DailyMetrics[], samples: import('../../types').HeartRateSample[]) => void
+  onDone: (daily: import('../../types').DailyMetrics[], samples: import('../../types').HeartRateSample[], filename?: string) => void
   onEvents: (events: CalendarEvent[]) => void
   onError: (msg: string) => void
   progress: ParseProgress | null
@@ -26,7 +26,7 @@ export function UploadScreen({ onProgress, onDone, onEvents, onError, progress, 
     worker.onmessage = (e) => {
       const msg = e.data
       if (msg.type === 'progress') onProgress(msg.payload)
-      else if (msg.type === 'done') { onDone(msg.payload.daily, msg.payload.heartRateSamples); worker.terminate() }
+      else if (msg.type === 'done') { onDone(msg.payload.daily, msg.payload.heartRateSamples, file.name); worker.terminate() }
       else if (msg.type === 'error') { onError(msg.payload); worker.terminate() }
     }
     worker.onerror = (e) => { onError(e.message); worker.terminate() }
