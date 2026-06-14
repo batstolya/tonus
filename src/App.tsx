@@ -13,7 +13,7 @@ import type { AppView } from './store/appStore'
 import type { CalendarEvent, DailyMetrics, HeartRateSample } from './types'
 import { parseICS } from './parsers/icsParser'
 import { parseCalBookings } from './parsers/calBookingsParser'
-import { useRef, useEffect, useState } from 'react'
+import { useRef, useEffect, useState, useCallback } from 'react'
 import { useAuth } from './hooks/useAuth'
 import { useTheme } from './hooks/useTheme'
 import { supabase } from './lib/supabase'
@@ -72,6 +72,9 @@ export default function App() {
   const [intakeEvents, setIntakeEvents] = useState<Parameters<typeof QuickLog>[0]['events']>([])
   const [dbLoading, setDbLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
+  const [syncMenuOpen, setSyncMenuOpen] = useState(false)
+
+  const closeSyncMenu = useCallback(() => setSyncMenuOpen(false), [])
 
   const hasData = state.daily.length > 0
 
@@ -181,14 +184,26 @@ export default function App() {
           </nav>
 
           <div className="topbar-right">
-            <ICSUploadButton onEvents={e => handleEvents(e, 'ics')} />
-            <CalJSONUploadButton onEvents={e => handleEvents(e, 'calcom')} />
-            {isGoogleCalendarAvailable() && (
-              <button className="nav-btn" onClick={handleGoogleCalendar} disabled={googleLoading}>
-                {googleLoading ? '…' : '🗓 Google'}
-              </button>
-            )}
             {lastSync && <span className="sync-label">Синхр: {lastSync}</span>}
+
+            {/* Calendar sync dropdown */}
+            <div className="sync-menu-wrap" onMouseLeave={closeSyncMenu}>
+              <button className="theme-toggle" onClick={() => setSyncMenuOpen(o => !o)} title="Синхронизация календаря">
+                🗓
+              </button>
+              {syncMenuOpen && (
+                <div className="sync-dropdown">
+                  <ICSUploadButton onEvents={e => { handleEvents(e, 'ics'); closeSyncMenu() }} />
+                  <CalJSONUploadButton onEvents={e => { handleEvents(e, 'calcom'); closeSyncMenu() }} />
+                  {isGoogleCalendarAvailable() && (
+                    <button className="nav-btn" onClick={() => { handleGoogleCalendar(); closeSyncMenu() }} disabled={googleLoading}>
+                      {googleLoading ? '…' : '🗓 Google'}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
             <button className="theme-toggle" onClick={toggleTheme} title="Сменить тему">
               {theme === 'dark' ? '☀️' : '🌙'}
             </button>
