@@ -1,9 +1,9 @@
 import { useState, useCallback, useEffect } from 'react'
 import type { DailyMetrics, HeartRateSample, CalendarEvent, ParseProgress } from '../types'
 
-export type AppView = 'upload' | 'dashboard' | 'heart-rate' | 'metrics' | 'stress-map' | 'sleep' | 'insights'
+export type AppView = 'upload' | 'dashboard' | 'heart-rate' | 'metrics' | 'stress-map' | 'sleep' | 'activity' | 'insights'
 
-const VIEWS: AppView[] = ['dashboard', 'heart-rate', 'metrics', 'stress-map', 'sleep', 'insights']
+const VIEWS: AppView[] = ['dashboard', 'heart-rate', 'metrics', 'stress-map', 'sleep', 'activity', 'insights']
 
 function hashToView(): AppView {
   const hash = window.location.hash.slice(1) as AppView

@@ -6,6 +6,7 @@ import { MetricsScreen } from './components/metrics/MetricsScreen'
 import { StressMapScreen } from './components/stress-map/StressMapScreen'
 import { InsightsScreen } from './components/insights/InsightsScreen'
 import { SleepScreen } from './components/sleep/SleepScreen'
+import { ActivityScreen } from './components/activity/ActivityScreen'
 import { AuthScreen } from './components/auth/AuthScreen'
 import { QuickLog } from './components/intake/QuickLog'
 import { AppLoader } from './components/ui/Spinner'
@@ -60,6 +61,7 @@ const NAV_ITEMS: { view: AppView; label: string }[] = [
   { view: 'metrics', label: 'Показатели' },
   { view: 'stress-map', label: 'Стресс' },
   { view: 'sleep', label: 'Сон' },
+  { view: 'activity', label: 'Активность' },
   { view: 'insights', label: 'Инсайты' },
 ]
 
@@ -278,6 +280,8 @@ export default function App() {
           />
         ) : state.view === 'sleep' ? (
           <SleepScreen daily={state.daily} />
+        ) : state.view === 'activity' ? (
+          <ActivityScreen daily={state.daily} />
         ) : state.view === 'insights' ? (
           <InsightsScreen daily={state.daily} />
         ) : null}

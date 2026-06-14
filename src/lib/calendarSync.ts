@@ -48,5 +48,6 @@ export async function loadCalendarEvents(userId: string): Promise<CalendarEvent[
     end: new Date(row.end_ts),
     description: row.description ?? undefined,
     location: row.location ?? undefined,
+    source: row.source ?? undefined,
   }))
 }
