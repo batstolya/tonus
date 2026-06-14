@@ -6,11 +6,14 @@ import { MetricsScreen } from './components/metrics/MetricsScreen'
 import { StressMapScreen } from './components/stress-map/StressMapScreen'
 import { InsightsScreen } from './components/insights/InsightsScreen'
 import { SleepScreen } from './components/sleep/SleepScreen'
+import { AuthScreen } from './components/auth/AuthScreen'
 import type { AppView } from './store/appStore'
 import type { CalendarEvent } from './types'
 import { parseICS } from './parsers/icsParser'
 import { parseCalBookings } from './parsers/calBookingsParser'
 import { useRef } from 'react'
+import { useAuth } from './hooks/useAuth'
+import { supabase } from './lib/supabase'
 import './index.css'
 
 function CalJSONUploadButton({ onEvents, hasEvents }: { onEvents: (e: CalendarEvent[]) => void; hasEvents: boolean }) {
@@ -60,8 +63,12 @@ const NAV_ITEMS: { view: AppView; label: string }[] = [
 
 export default function App() {
   const { state, setView, setDaily, setEvents, setProgress, setError, reset } = useAppStore()
+  const { user, loading } = useAuth()
 
   const hasData = state.daily.length > 0
+
+  if (loading) return <div className="auth-loading">Загрузка…</div>
+  if (!user) return <AuthScreen />
 
   return (
     <div className="app">
@@ -81,6 +88,9 @@ export default function App() {
           </nav>
           <ICSUploadButton onEvents={setEvents} hasEvents={state.events.length > 0} />
           <CalJSONUploadButton onEvents={setEvents} hasEvents={state.events.length > 0} />
+          <button className="nav-btn signout-btn" onClick={() => supabase.auth.signOut()} title={user.email}>
+            Выйти
+          </button>
         </header>
       )}
 

@@ -260,3 +260,60 @@ body {
   font-size: 13px;
 }
 .tooltip-date { color: var(--text-muted); margin-bottom: 4px; font-size: 12px; }
+
+/* Auth */
+.auth-loading { display: flex; align-items: center; justify-content: center; min-height: 100vh; color: var(--text-muted); }
+
+.auth-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--bg);
+}
+.auth-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 48px 40px;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+.auth-card h1 { font-size: 32px; font-weight: 700; color: var(--accent); margin-bottom: 8px; }
+.auth-subtitle { color: var(--text-muted); font-size: 15px; margin-bottom: 36px; }
+.auth-form { display: flex; flex-direction: column; gap: 16px; text-align: left; }
+.auth-form label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--text-muted); }
+.auth-form input {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  color: var(--text);
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.auth-form input:focus { border-color: var(--accent); }
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 13px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.btn-primary:disabled { opacity: 0.5; cursor: default; }
+.btn-primary:hover:not(:disabled) { opacity: 0.85; }
+.btn-ghost { background: none; border: none; color: var(--text-muted); font-size: 14px; cursor: pointer; text-decoration: underline; margin-top: 8px; }
+.auth-error { color: var(--red); font-size: 13px; }
+.auth-sent { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.auth-sent-icon { font-size: 48px; }
+.auth-sent h2 { font-size: 22px; }
+.auth-sent p { color: var(--text-muted); font-size: 14px; line-height: 1.5; }
+
+.signout-btn { font-size: 12px; opacity: 0.6; }
+.signout-btn:hover { opacity: 1; }
