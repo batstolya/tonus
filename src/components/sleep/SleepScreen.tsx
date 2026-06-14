@@ -80,6 +80,17 @@ export function SleepScreen({ daily }: Props) {
       })()
     : null
 
+  // Before-midnight compliance: bedtimeToChartVal < 12 means before midnight
+  const bedtimeDays = slice.filter(d => d.sleepBedtime)
+  const onTime = bedtimeDays.filter(d => (bedtimeToChartVal(d.sleepBedtime) ?? 99) < 12).length
+  const notOnTime = bedtimeDays.length - onTime
+
+  function fmtDecimalTime(h: number): string {
+    const hrs = Math.floor(h) % 24
+    const mins = Math.round((h - Math.floor(h)) * 60)
+    return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}`
+  }
+
   const CustomBedtimeTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null
     return (
@@ -107,9 +118,17 @@ export function SleepScreen({ daily }: Props) {
       </div>
 
       <div className="stat-row">
-        {avgSleep && <div className="stat"><span>{fmtHours(avgSleep)}</span> средний сон</div>}
+        {avgSleep && <div className="stat"><span>{fmtHours(avgSleep)}</span> средняя длительность</div>}
         {avgBed !== null && <div className="stat"><span>{chartValToTime(avgBed)}</span> среднее засыпание</div>}
-        {avgWake !== null && <div className="stat"><span>{fmtHours(avgWake)}</span> среднее пробуждение</div>}
+        {avgWake !== null && <div className="stat"><span>{fmtDecimalTime(avgWake)}</span> среднее пробуждение</div>}
+        {bedtimeDays.length > 0 && (
+          <div className="stat">
+            <span style={{ color: 'var(--green)' }}>{onTime}</span>
+            {' / '}
+            <span style={{ color: notOnTime > 0 ? 'var(--red)' : undefined }}>{notOnTime}</span>
+            {' '}до/после полуночи
+          </div>
+        )}
       </div>
 
       {/* Duration chart */}
