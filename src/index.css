@@ -402,6 +402,39 @@ body {
 .auth-sent-icon { font-size: 48px; }
 .auth-sent h2 { font-size: 22px; }
 .auth-sent p { color: var(--text-muted); font-size: 14px; line-height: 1.5; }
+.btn-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 13px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  margin-bottom: 4px;
+}
+.btn-google:hover:not(:disabled) { border-color: #4285F4; background: var(--surface); }
+.btn-google:disabled { opacity: 0.5; cursor: default; }
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.auth-divider::before, .auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
 
 .signout-btn { font-size: 12px; opacity: 0.6; }
 .signout-btn:hover { opacity: 1; }
