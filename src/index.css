@@ -445,7 +445,7 @@ body {
 /* Dashboard layout with aside */
 .dashboard-layout { display: flex; gap: 24px; align-items: flex-start; width: 100%; }
 .dashboard-layout > :first-child { flex: 1; min-width: 0; }
-.dashboard-aside { width: 300px; flex-shrink: 0; }
+.dashboard-aside { width: 300px; flex-shrink: 0; margin-top: 80px; }
 
 /* Quick log */
 .quick-log {
