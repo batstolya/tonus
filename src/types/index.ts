@@ -43,6 +43,7 @@ export interface CalendarEvent {
   end: Date
   description?: string
   location?: string
+  source?: string
 }
 
 export interface StressMapEntry {

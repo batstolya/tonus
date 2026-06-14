@@ -72,6 +72,8 @@ export default function App() {
   const [intakeEvents, setIntakeEvents] = useState<Parameters<typeof QuickLog>[0]['events']>([])
   const [dbLoading, setDbLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
+  const [googleConnected, setGoogleConnected] = useState(false)
+  const [showGoogleEvents, setShowGoogleEvents] = useState(true)
   const [syncMenuOpen, setSyncMenuOpen] = useState(false)
 
   const closeSyncMenu = useCallback(() => setSyncMenuOpen(false), [])
@@ -88,6 +90,9 @@ export default function App() {
   }, [syncMenuOpen])
 
   const hasData = state.daily.length > 0
+  const visibleEvents = showGoogleEvents
+    ? state.events
+    : state.events.filter(e => e.source !== 'google')
 
   // Load stored data on login
   useEffect(() => {
@@ -148,9 +153,10 @@ export default function App() {
   }
 
   async function handleEvents(events: CalendarEvent[], source = 'ics') {
-    setEvents(events)
+    const tagged = events.map(e => ({ ...e, source }))
+    setEvents(tagged, source)
     if (!user) return
-    const ok = await saveCalendarEvents(user.id, events, source)
+    const ok = await saveCalendarEvents(user.id, tagged, source)
     if (!ok) {
       setSyncMsg('⚠️ Таблица calendar_events не создана — запусти SQL в Supabase')
       setTimeout(() => setSyncMsg(null), 8000)
@@ -165,6 +171,7 @@ export default function App() {
     try {
       const events = await connectGoogleCalendar()
       await handleEvents(events, 'google')
+      setGoogleConnected(true)
       setSyncMsg(`Загружено ${events.length} событий из Google`)
       setTimeout(() => setSyncMsg(null), 4000)
     } catch (e: any) {
@@ -207,9 +214,18 @@ export default function App() {
                   <ICSUploadButton onEvents={e => { handleEvents(e, 'ics'); closeSyncMenu() }} />
                   <CalJSONUploadButton onEvents={e => { handleEvents(e, 'calcom'); closeSyncMenu() }} />
                   {isGoogleCalendarAvailable() && (
-                    <button className="nav-btn" onClick={() => { closeSyncMenu(); handleGoogleCalendar() }} disabled={googleLoading}>
-                      {googleLoading ? '…' : '🗓 Google'}
-                    </button>
+                    <div className="sync-google-row">
+                      <button className="nav-btn sync-google-btn" onClick={() => { closeSyncMenu(); handleGoogleCalendar() }} disabled={googleLoading}>
+                        <img src="https://www.gstatic.com/images/branding/product/1x/calendar_48dp.png" width={16} height={16} alt="" />
+                        {googleLoading ? 'Загрузка…' : googleConnected ? 'Google ✓' : 'Google Calendar'}
+                      </button>
+                      {googleConnected && (
+                        <label className="google-toggle" title="Показать/скрыть события Google">
+                          <input type="checkbox" checked={showGoogleEvents} onChange={e => setShowGoogleEvents(e.target.checked)} />
+                          <span>{showGoogleEvents ? '👁' : '🙈'}</span>
+                        </label>
+                      )}
+                    </div>
                   )}
                 </div>
               )}
@@ -242,7 +258,7 @@ export default function App() {
             <Dashboard
               daily={state.daily}
               heartRateSamples={state.heartRateSamples}
-              events={state.events}
+              events={visibleEvents}
               onNavigate={setView}
               user={user}
             />
@@ -257,7 +273,7 @@ export default function App() {
         ) : state.view === 'stress-map' ? (
           <StressMapScreen
             heartRateSamples={state.heartRateSamples}
-            events={state.events}
+            events={visibleEvents}
             onEvents={e => handleEvents(e, 'ics')}
             onGoogleCalendar={isGoogleCalendarAvailable() ? handleGoogleCalendar : undefined}
           />

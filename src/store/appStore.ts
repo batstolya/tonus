@@ -48,7 +48,12 @@ export function useAppStore() {
 
   const setDaily = useCallback((daily: DailyMetrics[], heartRateSamples: HeartRateSample[]) =>
     setState(s => ({ ...s, daily, heartRateSamples, view: 'dashboard', parseProgress: null, error: null })), [])
-  const setEvents = useCallback((events: CalendarEvent[]) => setState(s => ({ ...s, events })), [])
+  const setEvents = useCallback((events: CalendarEvent[], source?: string) =>
+    setState(s => {
+      if (!source) return { ...s, events }
+      const kept = s.events.filter(e => e.source !== source)
+      return { ...s, events: [...kept, ...events] }
+    }), [])
   const setProgress = useCallback((p: ParseProgress) => setState(s => ({ ...s, parseProgress: p })), [])
   const setError = useCallback((error: string) => setState(s => ({ ...s, error, parseProgress: null })), [])
   const reset = useCallback(() => {

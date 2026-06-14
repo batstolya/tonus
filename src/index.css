@@ -500,7 +500,12 @@ body {
   box-shadow: 0 8px 24px rgba(0,0,0,0.3);
   z-index: 100;
 }
-.sync-dropdown .nav-btn { text-align: left; width: 100%; }
+.sync-dropdown .nav-btn { text-align: left; width: 100%; display: flex; align-items: center; gap: 8px; }
+.sync-google-row { display: flex; align-items: center; gap: 4px; }
+.sync-google-btn { flex: 1; }
+.google-toggle { display: flex; align-items: center; cursor: pointer; padding: 4px; border-radius: 6px; }
+.google-toggle input { display: none; }
+.google-toggle span { font-size: 16px; }
 .sync-toast {
   position: fixed;
   bottom: 24px;
