@@ -232,7 +232,7 @@ body {
   transition: all 0.15s;
 }
 .preset:hover { border-color: var(--accent); color: var(--text); }
-.preset.active { border-color: var(--accent); background: #1e2235; color: var(--text); }
+.preset.active { border-color: var(--accent); background: var(--accent); color: #fff; }
 
 .stat-row { display: flex; gap: 32px; flex-wrap: wrap; margin-bottom: 8px; }
 .stat { font-size: 13px; color: var(--text-muted); display: flex; flex-direction: column; gap: 2px; }
