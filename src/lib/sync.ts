@@ -154,13 +154,13 @@ export async function loadMetricsFromSupabase(userId: string): Promise<DailyMetr
 }
 
 // Store last 90 days of HR samples (needed for stress map)
-export async function syncHRSamples(userId: string, samples: HeartRateSample[]) {
-  if (!samples.length) return
+export async function syncHRSamples(userId: string, samples: HeartRateSample[]): Promise<boolean> {
+  if (!samples.length) return true
 
   const cutoff = new Date()
   cutoff.setDate(cutoff.getDate() - 90)
   const recent = samples.filter(s => s.time >= cutoff)
-  if (!recent.length) return
+  if (!recent.length) return true
 
   const rows = recent.map(s => ({
     user_id: userId,
@@ -171,10 +171,15 @@ export async function syncHRSamples(userId: string, samples: HeartRateSample[]) 
 
   const chunkSize = 500
   for (let i = 0; i < rows.length; i += chunkSize) {
-    await supabase.from('heart_rate_samples').upsert(rows.slice(i, i + chunkSize), {
+    const { error } = await supabase.from('heart_rate_samples').upsert(rows.slice(i, i + chunkSize), {
       onConflict: 'user_id,ts',
     })
+    if (error) {
+      console.error('syncHRSamples error:', error.message)
+      return false
+    }
   }
+  return true
 }
 
 export async function loadHRSamples(userId: string): Promise<HeartRateSample[]> {

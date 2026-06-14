@@ -112,10 +112,15 @@ export default function App() {
     if (!user) return
     setSyncMsg('Синхронизируем…')
     try {
-      const [result] = await Promise.all([
+      const [result, hrOk] = await Promise.all([
         syncMetricsToSupabase(user.id, daily, filename),
         syncHRSamples(user.id, samples),
       ])
+      if (!hrOk) {
+        setSyncMsg('⚠️ Таблица heart_rate_samples не создана — запусти SQL в Supabase')
+        setTimeout(() => setSyncMsg(null), 10000)
+        return
+      }
       if (result.daysAdded > 0) {
         setSyncMsg(`Добавлено ${result.daysAdded} новых дней`)
         setLastSync(new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))
