@@ -9,13 +9,16 @@ interface Props {
   events: CalendarEvent[]
   onEvents: (e: CalendarEvent[]) => void
   onGoogleCalendar?: () => void
+  showGoogle?: boolean
+  onToggleGoogle?: (v: boolean) => void
 }
 
 function fmtDate(d: Date): string {
   return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
-export function StressMapScreen({ heartRateSamples, events, onEvents, onGoogleCalendar }: Props) {
+export function StressMapScreen({ heartRateSamples, events, onEvents, onGoogleCalendar, showGoogle = true, onToggleGoogle }: Props) {
+  const googleConnected = events.some(e => e.source === 'google')
   const entries = useMemo(() => buildStressMap(events, heartRateSamples), [events, heartRateSamples])
   const icsRef = useRef<HTMLInputElement>(null)
   const calRef = useRef<HTMLInputElement>(null)
@@ -62,11 +65,23 @@ export function StressMapScreen({ heartRateSamples, events, onEvents, onGoogleCa
 
   return (
     <div className="screen">
-      <h2>Карта стресса — пульс ↔ события</h2>
-      <p className="screen-hint">
-        События отсортированы по нагрузке на сердце (превышение над базовым уровнем).
-        Физическая активность помечена отдельно.
-      </p>
+      <div className="stress-header">
+        <div>
+          <h2>Карта стресса — пульс ↔ события</h2>
+          <p className="screen-hint">
+            События отсортированы по нагрузке на сердце (превышение над базовым уровнем).
+            Физическая активность помечена отдельно.
+          </p>
+        </div>
+        {googleConnected && onToggleGoogle && (
+          <label className="source-toggle">
+            <span className="source-toggle-label">Google Календарь</span>
+            <div className={`toggle-switch${showGoogle ? ' on' : ''}`} onClick={() => onToggleGoogle(!showGoogle)}>
+              <div className="toggle-thumb" />
+            </div>
+          </label>
+        )}
+      </div>
 
       <div className="stress-list">
         {entries.map(entry => (

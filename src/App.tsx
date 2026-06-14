@@ -219,18 +219,10 @@ export default function App() {
                   <ICSUploadButton onEvents={e => { handleEvents(e, 'ics'); closeSyncMenu() }} />
                   <CalJSONUploadButton onEvents={e => { handleEvents(e, 'calcom'); closeSyncMenu() }} />
                   {isGoogleCalendarAvailable() && (
-                    <div className="sync-google-row">
-                      <button className="nav-btn sync-google-btn" onClick={() => { closeSyncMenu(); handleGoogleCalendar() }} disabled={googleLoading}>
-                        <img src="https://www.gstatic.com/images/branding/product/1x/calendar_48dp.png" width={16} height={16} alt="" />
-                        {googleLoading ? 'Загрузка…' : googleConnected ? 'Google ✓' : 'Google Calendar'}
-                      </button>
-                      {googleConnected && (
-                        <label className="google-toggle" title="Показать/скрыть события Google">
-                          <input type="checkbox" checked={showGoogleEvents} onChange={e => setShowGoogleEvents(e.target.checked)} />
-                          <span>{showGoogleEvents ? '👁' : '🙈'}</span>
-                        </label>
-                      )}
-                    </div>
+                    <button className="nav-btn sync-google-btn" onClick={() => { closeSyncMenu(); handleGoogleCalendar() }} disabled={googleLoading}>
+                      <img src="https://www.gstatic.com/images/branding/product/1x/calendar_48dp.png" width={16} height={16} alt="" />
+                      {googleLoading ? 'Загрузка…' : googleConnected ? 'Google ✓' : 'Google Calendar'}
+                    </button>
                   )}
                 </div>
               )}
@@ -281,6 +273,8 @@ export default function App() {
             events={visibleEvents}
             onEvents={e => handleEvents(e, 'ics')}
             onGoogleCalendar={isGoogleCalendarAvailable() ? handleGoogleCalendar : undefined}
+            showGoogle={showGoogleEvents}
+            onToggleGoogle={setShowGoogleEvents}
           />
         ) : state.view === 'sleep' ? (
           <SleepScreen daily={state.daily} />

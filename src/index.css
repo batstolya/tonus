@@ -537,11 +537,17 @@ body {
   z-index: 100;
 }
 .sync-dropdown .nav-btn { text-align: left; width: 100%; display: flex; align-items: center; gap: 8px; }
-.sync-google-row { display: flex; align-items: center; gap: 4px; }
-.sync-google-btn { flex: 1; }
-.google-toggle { display: flex; align-items: center; cursor: pointer; padding: 4px; border-radius: 6px; }
-.google-toggle input { display: none; }
-.google-toggle span { font-size: 16px; }
+.sync-google-btn { width: 100%; }
+
+.stress-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 4px; }
+.stress-header h2 { margin-bottom: 4px; }
+
+.source-toggle { display: flex; align-items: center; gap: 10px; cursor: pointer; flex-shrink: 0; margin-top: 8px; }
+.source-toggle-label { font-size: 13px; color: var(--text-muted); white-space: nowrap; }
+.toggle-switch { width: 40px; height: 22px; border-radius: 11px; background: var(--border); position: relative; transition: background 0.2s; cursor: pointer; }
+.toggle-switch.on { background: var(--accent); }
+.toggle-thumb { width: 16px; height: 16px; border-radius: 50%; background: #fff; position: absolute; top: 3px; left: 3px; transition: left 0.2s; }
+.toggle-switch.on .toggle-thumb { left: 21px; }
 .sync-toast {
   position: fixed;
   bottom: 24px;
