@@ -97,7 +97,7 @@ export function Dashboard({ daily, events, onNavigate, user }: Props) {
       label: 'Шаги',
       sub: stepsEntry ? stepsEntry.date : undefined,
       value: recentSteps ? Math.round(recentSteps).toLocaleString('ru-RU') : null,
-      view: 'metrics',
+      view: 'activity',
     },
     {
       label: 'Событий в календаре',
