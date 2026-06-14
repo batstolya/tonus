@@ -402,6 +402,9 @@ body {
 .auth-sent-icon { font-size: 48px; }
 .auth-sent h2 { font-size: 22px; }
 .auth-sent p { color: var(--text-muted); font-size: 14px; line-height: 1.5; }
+.auth-tabs { display: flex; background: var(--surface2); border-radius: 10px; padding: 3px; gap: 3px; margin-bottom: 4px; }
+.auth-tab { flex: 1; background: none; border: none; color: var(--text-muted); font-size: 14px; font-weight: 500; padding: 8px; border-radius: 8px; cursor: pointer; transition: all 0.15s; }
+.auth-tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
 .btn-google {
   display: flex;
   align-items: center;

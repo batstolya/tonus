@@ -1,27 +1,15 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 
-type Mode = 'login' | 'sent'
+type Mode = 'login' | 'signup' | 'sent'
 
 export function AuthScreen() {
-  const [email, setEmail] = useState('')
   const [mode, setMode] = useState<Mode>('login')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setError(null)
-    setLoading(true)
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: window.location.origin },
-    })
-    setLoading(false)
-    if (error) setError(error.message)
-    else setMode('sent')
-  }
 
   async function handleGoogle() {
     setGoogleLoading(true)
@@ -31,6 +19,25 @@ export function AuthScreen() {
       options: { redirectTo: window.location.origin },
     })
     if (error) { setError(error.message); setGoogleLoading(false) }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    setLoading(true)
+
+    if (mode === 'signup') {
+      const { error } = await supabase.auth.signUp({ email, password })
+      setLoading(false)
+      if (error) setError(error.message)
+      else setMode('sent')
+    } else {
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      setLoading(false)
+      if (error) setError(error.message === 'Invalid login credentials'
+        ? 'Неверный email или пароль'
+        : error.message)
+    }
   }
 
   return (
@@ -43,10 +50,8 @@ export function AuthScreen() {
           <div className="auth-sent">
             <div className="auth-sent-icon">✉️</div>
             <h2>Проверь почту</h2>
-            <p>Мы отправили ссылку для входа на <strong>{email}</strong></p>
-            <button className="btn-ghost" onClick={() => setMode('login')}>
-              Изменить email
-            </button>
+            <p>Отправили письмо с подтверждением на <strong>{email}</strong>. После подтверждения войди с паролем.</p>
+            <button className="btn-ghost" onClick={() => setMode('login')}>Войти</button>
           </div>
         ) : (
           <>
@@ -62,21 +67,25 @@ export function AuthScreen() {
 
             <div className="auth-divider"><span>или</span></div>
 
+            <div className="auth-tabs">
+              <button className={mode === 'login' ? 'auth-tab active' : 'auth-tab'} onClick={() => { setMode('login'); setError(null) }}>Вход</button>
+              <button className={mode === 'signup' ? 'auth-tab active' : 'auth-tab'} onClick={() => { setMode('signup'); setError(null) }}>Регистрация</button>
+            </div>
+
             <form onSubmit={handleSubmit} className="auth-form">
               <label>
                 Email
-                <input
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  required
-                  autoFocus
-                />
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+                  placeholder="you@example.com" required autoFocus />
+              </label>
+              <label>
+                Пароль
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+                  placeholder={mode === 'signup' ? 'Минимум 6 символов' : '••••••••'} required minLength={6} />
               </label>
               {error && <p className="auth-error">{error}</p>}
               <button type="submit" className="btn-primary" disabled={loading}>
-                {loading ? 'Отправляем…' : 'Войти по ссылке на почту'}
+                {loading ? '…' : mode === 'signup' ? 'Создать аккаунт' : 'Войти'}
               </button>
             </form>
           </>
