@@ -704,6 +704,8 @@ body {
 .ai-consent-card p { font-size: 14px; line-height: 1.6; color: var(--text-muted); margin-bottom: 10px; }
 .ai-consent-btns { display: flex; gap: 10px; margin-top: 16px; }
 
+.quicklog-card { grid-column: span 2; padding: 0 !important; overflow: hidden; }
+
 .ai-feed { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
 .ai-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
 .ai-card-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; cursor: pointer; gap: 8px; }

@@ -289,18 +289,14 @@ export default function App() {
             error={state.error}
           />
         ) : state.view === 'dashboard' ? (
-          <div className="dashboard-layout">
-            <Dashboard
-              daily={state.daily}
-              heartRateSamples={state.heartRateSamples}
-              events={visibleEvents}
-              onNavigate={setView}
-              user={user}
-            />
-            <aside className="dashboard-aside">
-              <QuickLog user={user} events={intakeEvents} onEventsChange={setIntakeEvents} />
-            </aside>
-          </div>
+          <Dashboard
+            daily={state.daily}
+            heartRateSamples={state.heartRateSamples}
+            events={visibleEvents}
+            onNavigate={setView}
+            user={user}
+            quickLog={<QuickLog user={user} events={intakeEvents} onEventsChange={setIntakeEvents} />}
+          />
         ) : state.view === 'heart-rate' ? (
           <HeartRateScreen daily={state.daily} intakeEvents={intakeEvents} />
         ) : state.view === 'metrics' ? (
