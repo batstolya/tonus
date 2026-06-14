@@ -78,6 +78,9 @@ export default function App() {
   const [showGoogleEvents, setShowGoogleEvents] = useState(true)
   const [syncMenuOpen, setSyncMenuOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [calSyncTimes, setCalSyncTimes] = useState<Record<string, string>>(() => {
+    try { return JSON.parse(localStorage.getItem('cal_sync_times') ?? '{}') } catch { return {} }
+  })
 
   const closeSyncMenu = useCallback(() => setSyncMenuOpen(false), [])
   const closeMobileMenu = useCallback(() => setMobileMenuOpen(false), [])
@@ -164,6 +167,10 @@ export default function App() {
   async function handleEvents(events: CalendarEvent[], source = 'ics') {
     const tagged = events.map(e => ({ ...e, source }))
     setEvents(tagged, source)
+    const now = new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+    const updated = { ...calSyncTimes, [source]: now }
+    setCalSyncTimes(updated)
+    localStorage.setItem('cal_sync_times', JSON.stringify(updated))
     if (!user) return
     const ok = await saveCalendarEvents(user.id, tagged, source)
     if (!ok) {
@@ -225,8 +232,14 @@ export default function App() {
               </button>
               {syncMenuOpen && (
                 <div className="sync-dropdown">
-                  <ICSUploadButton onEvents={e => { handleEvents(e, 'ics'); closeSyncMenu() }} />
-                  <CalJSONUploadButton onEvents={e => { handleEvents(e, 'calcom'); closeSyncMenu() }} />
+                  <div className="sync-source-row">
+                    <ICSUploadButton onEvents={e => { handleEvents(e, 'ics'); closeSyncMenu() }} />
+                    {calSyncTimes['ics'] && <span className="sync-source-time">{calSyncTimes['ics']}</span>}
+                  </div>
+                  <div className="sync-source-row">
+                    <CalJSONUploadButton onEvents={e => { handleEvents(e, 'calcom'); closeSyncMenu() }} />
+                    {calSyncTimes['calcom'] && <span className="sync-source-time">{calSyncTimes['calcom']}</span>}
+                  </div>
                   {isGoogleCalendarAvailable() && (
                     <button className="nav-btn sync-google-btn" onClick={() => { closeSyncMenu(); handleGoogleCalendar() }} disabled={googleLoading}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
