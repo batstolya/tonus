@@ -564,7 +564,7 @@ body {
 
 /* Burger button (hidden on desktop) */
 .burger-btn {
-  display: none;
+  display: none !important;
   background: none;
   border: none;
   cursor: pointer;
@@ -629,7 +629,7 @@ body {
   .sync-label { display: none; }
   .signout-btn { display: none; }
   .theme-toggle { display: none; }
-  .burger-btn { display: flex; }
+  .burger-btn { display: flex !important; }
   .mobile-menu-overlay { display: block; }
 
   /* Topbar compact */
