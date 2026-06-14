@@ -45,7 +45,7 @@ export function MetricsScreen({ daily }: Props) {
   const [primary, setPrimary] = useState<MetricKey>(available[0] ?? 'heartRate')
   const [secondary, setSecondary] = useState<MetricKey | ''>('')
 
-  const data = daily.filter(d => getValue(d, primary) !== null).slice(-90).map(d => ({
+  const data = daily.slice(-90).map(d => ({
     date: d.date.slice(5),
     primary: getValue(d, primary),
     ...(secondary ? { secondary: getValue(d, secondary as MetricKey) } : {}),
@@ -78,9 +78,9 @@ export function MetricsScreen({ daily }: Props) {
           <YAxis yAxisId="left" domain={['auto', 'auto']} tick={{ fontSize: 11 }} />
           {secondary && <YAxis yAxisId="right" orientation="right" domain={['auto', 'auto']} tick={{ fontSize: 11 }} />}
           <Tooltip />
-          <Line yAxisId="left" type="monotone" dataKey="primary" name={METRIC_LABELS[primary]} stroke="var(--accent)" dot={false} connectNulls />
+          <Line yAxisId="left" type="monotone" dataKey="primary" name={METRIC_LABELS[primary]} stroke="#6c8fff" strokeWidth={2} dot={false} connectNulls />
           {secondary && (
-            <Line yAxisId="right" type="monotone" dataKey="secondary" name={METRIC_LABELS[secondary as MetricKey]} stroke="var(--green)" dot={false} connectNulls />
+            <Line yAxisId="right" type="monotone" dataKey="secondary" name={METRIC_LABELS[secondary as MetricKey]} stroke="#5bc896" strokeWidth={2} dot={false} connectNulls />
           )}
         </LineChart>
       </ResponsiveContainer>

@@ -184,7 +184,7 @@ export default function App() {
         ) : state.view === 'metrics' ? (
           <MetricsScreen daily={state.daily} />
         ) : state.view === 'stress-map' ? (
-          <StressMapScreen heartRateSamples={state.heartRateSamples} events={state.events} />
+          <StressMapScreen heartRateSamples={state.heartRateSamples} events={state.events} onEvents={setEvents} />
         ) : state.view === 'sleep' ? (
           <SleepScreen daily={state.daily} />
         ) : state.view === 'insights' ? (

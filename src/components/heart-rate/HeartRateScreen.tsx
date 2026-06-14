@@ -67,9 +67,9 @@ export function HeartRateScreen({ daily }: Props) {
           <YAxis domain={['auto', 'auto']} tick={{ fontSize: 11 }} />
           <Tooltip />
           <Legend />
-          <Line type="monotone" dataKey="avg" name="Средний" stroke="var(--accent)" dot={false} connectNulls />
-          <Line type="monotone" dataKey="resting" name="Покой" stroke="var(--green)" dot={false} connectNulls />
-          <Line type="monotone" dataKey="max" name="Макс" stroke="var(--red)" dot={false} connectNulls strokeDasharray="4 2" />
+          <Line type="monotone" dataKey="avg" name="Средний" stroke="#6c8fff" strokeWidth={2} dot={false} connectNulls />
+          <Line type="monotone" dataKey="resting" name="Покой" stroke="#5bc896" strokeWidth={2} dot={false} connectNulls />
+          <Line type="monotone" dataKey="max" name="Макс" stroke="#ff6b6b" strokeWidth={1.5} dot={false} connectNulls strokeDasharray="4 2" />
         </LineChart>
       </ResponsiveContainer>
     </div>

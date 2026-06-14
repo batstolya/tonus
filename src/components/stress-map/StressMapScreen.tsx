@@ -1,24 +1,55 @@
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import type { HeartRateSample, CalendarEvent } from '../../types'
 import { buildStressMap } from '../../utils/stressMap'
+import { parseICS } from '../../parsers/icsParser'
+import { parseCalBookings } from '../../parsers/calBookingsParser'
 
 interface Props {
   heartRateSamples: HeartRateSample[]
   events: CalendarEvent[]
+  onEvents: (e: CalendarEvent[]) => void
 }
 
 function fmtDate(d: Date): string {
   return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
-export function StressMapScreen({ heartRateSamples, events }: Props) {
+export function StressMapScreen({ heartRateSamples, events, onEvents }: Props) {
   const entries = useMemo(() => buildStressMap(events, heartRateSamples), [events, heartRateSamples])
+  const icsRef = useRef<HTMLInputElement>(null)
+  const calRef = useRef<HTMLInputElement>(null)
+
+  function handleICS(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    file.text().then(text => { try { onEvents(parseICS(text)) } catch { /* ignore */ } })
+    e.target.value = ''
+  }
+
+  function handleCal(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    file.text().then(text => { try { onEvents(parseCalBookings(text)) } catch { /* ignore */ } })
+    e.target.value = ''
+  }
 
   if (!events.length) {
     return (
       <div className="screen">
         <h2>Карта стресса</h2>
-        <p className="empty-hint">Загрузите файл календаря (.ics) на экране загрузки, чтобы увидеть карту стресса.</p>
+        <p className="empty-hint" style={{ marginBottom: 24 }}>
+          Нужны данные календаря. Загрузите один из форматов:
+        </p>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <input ref={icsRef} type="file" accept=".ics" style={{ display: 'none' }} onChange={handleICS} />
+          <button className="btn-primary" style={{ maxWidth: 200 }} onClick={() => icsRef.current?.click()}>
+            📅 Загрузить .ics
+          </button>
+          <input ref={calRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleCal} />
+          <button className="btn-primary" style={{ maxWidth: 220, background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text)' }} onClick={() => calRef.current?.click()}>
+            📋 cal_bookings.json
+          </button>
+        </div>
       </div>
     )
   }
