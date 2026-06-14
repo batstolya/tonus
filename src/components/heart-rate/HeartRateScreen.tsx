@@ -141,7 +141,7 @@ export function HeartRateScreen({ daily, intakeEvents = [] }: Props) {
               stroke={l.color}
               strokeWidth={2}
               strokeDasharray="4 3"
-              label={{ value: l.label, position: 'top', fontSize: 11, fill: l.color }}
+              label={{ value: l.label, position: 'top', fontSize: 18, fill: l.color }}
             />
           ))}
         </LineChart>
