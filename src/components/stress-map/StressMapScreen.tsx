@@ -9,6 +9,7 @@ interface Props {
   events: CalendarEvent[]
   onEvents: (e: CalendarEvent[]) => void
   onGoogleCalendar?: () => void
+  googleConnected?: boolean
   showGoogle?: boolean
   onToggleGoogle?: (v: boolean) => void
 }
@@ -17,8 +18,7 @@ function fmtDate(d: Date): string {
   return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
-export function StressMapScreen({ heartRateSamples, events, onEvents, onGoogleCalendar, showGoogle = true, onToggleGoogle }: Props) {
-  const googleConnected = events.some(e => e.source === 'google')
+export function StressMapScreen({ heartRateSamples, events, onEvents, onGoogleCalendar, googleConnected = false, showGoogle = true, onToggleGoogle }: Props) {
   const entries = useMemo(() => buildStressMap(events, heartRateSamples), [events, heartRateSamples])
   const icsRef = useRef<HTMLInputElement>(null)
   const calRef = useRef<HTMLInputElement>(null)

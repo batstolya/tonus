@@ -311,6 +311,7 @@ export default function App() {
             events={visibleEvents}
             onEvents={e => handleEvents(e, 'ics')}
             onGoogleCalendar={isGoogleCalendarAvailable() ? handleGoogleCalendar : undefined}
+            googleConnected={googleConnected}
             showGoogle={showGoogleEvents}
             onToggleGoogle={setShowGoogleEvents}
           />
