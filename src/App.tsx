@@ -204,6 +204,7 @@ export default function App() {
               heartRateSamples={state.heartRateSamples}
               events={state.events}
               onNavigate={setView}
+              user={user}
             />
             <aside className="dashboard-aside">
               <QuickLog user={user} events={intakeEvents} onEventsChange={setIntakeEvents} />
