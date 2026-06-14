@@ -26,8 +26,14 @@ function AnalysisCard({ item, onDelete }: { item: AiAnalysis; onDelete: (id: str
           <span className="ai-card-period">{fmtPeriod(item.period_start, item.period_end)}</span>
         </div>
         <div className="ai-card-actions">
-          <button className="ai-card-delete" onClick={e => { e.stopPropagation(); onDelete(item.id) }} title="Удалить">✕</button>
-          <span className="ai-card-chevron">{open ? '▲' : '▼'}</span>
+          <button className="ai-card-delete" onClick={e => { e.stopPropagation(); onDelete(item.id) }} title="Удалить">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          </button>
+          <span className="ai-card-chevron">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              {open ? <polyline points="18 15 12 9 6 15"/> : <polyline points="6 9 12 15 18 9"/>}
+            </svg>
+          </span>
         </div>
       </div>
       <p className="ai-card-preview">{item.summary.split('.')[0]}.</p>

@@ -714,9 +714,9 @@ body {
 .ai-card-date { font-size: 13px; font-weight: 500; }
 .ai-card-period { font-size: 11px; color: var(--text-muted); }
 .ai-card-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.ai-card-delete { background: none; border: none; color: var(--text-muted); font-size: 12px; cursor: pointer; padding: 4px 6px; border-radius: 4px; line-height: 1; }
+.ai-card-delete { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 6px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: color 0.15s, background 0.15s; }
 .ai-card-delete:hover { color: var(--red); background: rgba(255,107,107,0.1); }
-.ai-card-chevron { font-size: 10px; color: var(--text-muted); }
+.ai-card-chevron { color: var(--text-muted); display: flex; align-items: center; padding: 4px; }
 .ai-card-preview { font-size: 13px; color: var(--text-muted); padding: 0 14px 12px; line-height: 1.5; }
 .ai-card.open .ai-card-preview { display: none; }
 .ai-card-body { padding: 0 14px 14px; border-top: 1px solid var(--border); padding-top: 12px; }
