@@ -81,7 +81,7 @@ function buildDigest(slice: DailyMetrics[], prevSlice: DailyMetrics[]): string {
   }
 
   // VO2max
-  const vo2 = metric(slice, 'vo2Max')
+  const vo2 = metric(slice, 'vo2max')
   if (vo2.length) lines.push(`VO₂max: ${fmt(avg(vo2))} мл/кг/мин`)
 
   lines.push(`\nПериод анализа: ${slice.length} дней данных`)
@@ -127,7 +127,7 @@ export async function runAnalysis(
   return res.json()
 }
 
-export async function loadAnalyses(userId: string): Promise<AiAnalysis[]> {
+export async function loadAnalyses(_userId: string): Promise<AiAnalysis[]> {
   const { data } = await supabase
     .from('ai_analyses')
     .select('*')
