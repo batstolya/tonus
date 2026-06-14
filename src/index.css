@@ -261,6 +261,42 @@ body {
 }
 .tooltip-date { color: var(--text-muted); margin-bottom: 4px; font-size: 12px; }
 
+/* App loader */
+.app-loader {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f7;
+  z-index: 999;
+}
+.app-loader-inner { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+.app-loader-logo {
+  width: 56px; height: 56px;
+  background: #1a1a2e;
+  color: #fff;
+  font-size: 28px; font-weight: 800;
+  border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+}
+.app-loader-rings { position: relative; width: 48px; height: 48px; }
+.app-loader-ring {
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: #1a1a2e;
+  animation: spin 0.9s linear infinite;
+}
+.app-loader-ring--2 {
+  inset: 8px;
+  border-top-color: #6c8fff;
+  animation-duration: 0.6s;
+  animation-direction: reverse;
+}
+.app-loader-label { font-size: 14px; color: #555; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
 /* Auth */
 .auth-loading { display: flex; align-items: center; justify-content: center; min-height: 100vh; color: var(--text-muted); }
 
