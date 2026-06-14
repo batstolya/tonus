@@ -72,7 +72,6 @@ export default function App() {
   const [intakeEvents, setIntakeEvents] = useState<Parameters<typeof QuickLog>[0]['events']>([])
   const [dbLoading, setDbLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
-  const [googleConnected, setGoogleConnected] = useState(false)
   const [showGoogleEvents, setShowGoogleEvents] = useState(true)
   const [syncMenuOpen, setSyncMenuOpen] = useState(false)
 
@@ -90,6 +89,7 @@ export default function App() {
   }, [syncMenuOpen])
 
   const hasData = state.daily.length > 0
+  const googleConnected = state.events.some(e => e.source === 'google')
   const visibleEvents = showGoogleEvents
     ? state.events
     : state.events.filter(e => e.source !== 'google')
@@ -171,7 +171,6 @@ export default function App() {
     try {
       const events = await connectGoogleCalendar()
       await handleEvents(events, 'google')
-      setGoogleConnected(true)
       setSyncMsg(`Загружено ${events.length} событий из Google`)
       setTimeout(() => setSyncMsg(null), 4000)
     } catch (e: any) {
