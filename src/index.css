@@ -704,6 +704,21 @@ body {
 .ai-consent-card p { font-size: 14px; line-height: 1.6; color: var(--text-muted); margin-bottom: 10px; }
 .ai-consent-btns { display: flex; gap: 10px; margin-top: 16px; }
 
+.ai-feed { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.ai-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.ai-card-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; cursor: pointer; gap: 8px; }
+.ai-card-header:hover { background: rgba(255,255,255,0.03); }
+.ai-card-meta { display: flex; flex-direction: column; gap: 2px; }
+.ai-card-date { font-size: 13px; font-weight: 500; }
+.ai-card-period { font-size: 11px; color: var(--text-muted); }
+.ai-card-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.ai-card-delete { background: none; border: none; color: var(--text-muted); font-size: 12px; cursor: pointer; padding: 4px 6px; border-radius: 4px; line-height: 1; }
+.ai-card-delete:hover { color: var(--red); background: rgba(255,107,107,0.1); }
+.ai-card-chevron { font-size: 10px; color: var(--text-muted); }
+.ai-card-preview { font-size: 13px; color: var(--text-muted); padding: 0 14px 12px; line-height: 1.5; }
+.ai-card.open .ai-card-preview { display: none; }
+.ai-card-body { padding: 0 14px 14px; border-top: 1px solid var(--border); padding-top: 12px; }
+
 .activity-legend { display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
 .legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; }
 .activity-insights { margin-top: 24px; }

@@ -1,14 +1,65 @@
 import { useState, useEffect } from 'react'
 import type { DailyMetrics } from '../../types'
-import { runAnalysis, loadAnalyses, type AiAnalysis, type AnalysisPeriod } from '../../lib/aiAnalysis'
+import { runAnalysis, loadAnalyses, deleteAnalysis, type AiAnalysis, type AnalysisPeriod } from '../../lib/aiAnalysis'
 
 interface Props {
   daily: DailyMetrics[]
   userId: string
 }
 
+function fmtDate(s: string) {
+  return new Date(s).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+}
+function fmtPeriod(s: string, e: string) {
+  const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' }
+  return `${new Date(s).toLocaleDateString('ru-RU', opts)} — ${new Date(e).toLocaleDateString('ru-RU', opts)}`
+}
+
+function AnalysisCard({ item, onDelete }: { item: AiAnalysis; onDelete: (id: string) => void }) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div className={`ai-card${open ? ' open' : ''}`}>
+      <div className="ai-card-header" onClick={() => setOpen(o => !o)}>
+        <div className="ai-card-meta">
+          <span className="ai-card-date">{fmtDate(item.created_at)}</span>
+          <span className="ai-card-period">{fmtPeriod(item.period_start, item.period_end)}</span>
+        </div>
+        <div className="ai-card-actions">
+          <button className="ai-card-delete" onClick={e => { e.stopPropagation(); onDelete(item.id) }} title="Удалить">✕</button>
+          <span className="ai-card-chevron">{open ? '▲' : '▼'}</span>
+        </div>
+      </div>
+      <p className="ai-card-preview">{item.summary.split('.')[0]}.</p>
+      {open && (
+        <div className="ai-card-body">
+          <p className="ai-summary">{item.summary}</p>
+          {item.good.length > 0 && (
+            <div className="ai-section">
+              <span className="ai-section-label good">Что хорошо</span>
+              <ul>{item.good.map((t, i) => <li key={i}>{t}</li>)}</ul>
+            </div>
+          )}
+          {item.improve.length > 0 && (
+            <div className="ai-section">
+              <span className="ai-section-label improve">Что улучшить</span>
+              <ul>{item.improve.map((t, i) => <li key={i}>{t}</li>)}</ul>
+            </div>
+          )}
+          {item.focus.length > 0 && (
+            <div className="ai-section">
+              <span className="ai-section-label focus">Фокус</span>
+              <ul>{item.focus.map((t, i) => <li key={i}>{t}</li>)}</ul>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function AiAnalysisBlock({ daily, userId }: Props) {
-  const [analysis, setAnalysis] = useState<AiAnalysis | null>(null)
+  const [analyses, setAnalyses] = useState<AiAnalysis[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [period, setPeriod] = useState<AnalysisPeriod>('14d')
@@ -16,7 +67,7 @@ export function AiAnalysisBlock({ daily, userId }: Props) {
   const [showConsent, setShowConsent] = useState(false)
 
   useEffect(() => {
-    loadAnalyses(userId).then(list => { if (list[0]) setAnalysis(list[0]) })
+    loadAnalyses(userId).then(setAnalyses)
   }, [userId])
 
   async function handleRun() {
@@ -25,22 +76,24 @@ export function AiAnalysisBlock({ daily, userId }: Props) {
     setError(null)
     try {
       const result = await runAnalysis(userId, daily, period)
-      setAnalysis(result)
+      setAnalyses(prev => [result, ...prev])
     } catch (e: any) {
       setError(e.message ?? 'Ошибка анализа')
     }
     setLoading(false)
   }
 
+  async function handleDelete(id: string) {
+    await deleteAnalysis(id)
+    setAnalyses(prev => prev.filter(a => a.id !== id))
+  }
+
   function handleConsent() {
     localStorage.setItem('ai_consent', '1')
     setConsented(true)
     setShowConsent(false)
-    handleRun()
+    setTimeout(handleRun, 0)
   }
-
-  const fmtDate = (s: string) => new Date(s).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-  const fmtPeriod = (s: string, e: string) => `${new Date(s).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })} — ${new Date(e).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}`
 
   return (
     <div className="ai-block">
@@ -76,30 +129,11 @@ export function AiAnalysisBlock({ daily, userId }: Props) {
 
       {error && <p className="auth-error" style={{ marginTop: 8 }}>{error}</p>}
 
-      {analysis && (
-        <div className="ai-result">
-          <p className="ai-meta">
-            Анализ от {fmtDate(analysis.created_at)} · {fmtPeriod(analysis.period_start, analysis.period_end)}
-          </p>
-          <p className="ai-summary">{analysis.summary}</p>
-          {analysis.good.length > 0 && (
-            <div className="ai-section">
-              <span className="ai-section-label good">Что хорошо</span>
-              <ul>{analysis.good.map((t, i) => <li key={i}>{t}</li>)}</ul>
-            </div>
-          )}
-          {analysis.improve.length > 0 && (
-            <div className="ai-section">
-              <span className="ai-section-label improve">Что улучшить</span>
-              <ul>{analysis.improve.map((t, i) => <li key={i}>{t}</li>)}</ul>
-            </div>
-          )}
-          {analysis.focus.length > 0 && (
-            <div className="ai-section">
-              <span className="ai-section-label focus">Фокус</span>
-              <ul>{analysis.focus.map((t, i) => <li key={i}>{t}</li>)}</ul>
-            </div>
-          )}
+      {analyses.length > 0 && (
+        <div className="ai-feed">
+          {analyses.map(a => (
+            <AnalysisCard key={a.id} item={a} onDelete={handleDelete} />
+          ))}
         </div>
       )}
     </div>
