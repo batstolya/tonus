@@ -1,4 +1,5 @@
 import type { User } from '@supabase/supabase-js'
+import React from 'react'
 import type { DailyMetrics, HeartRateSample, CalendarEvent } from '../../types'
 import type { AppView } from '../../store/appStore'
 import { generateInsights } from '../../utils/insights'
@@ -10,6 +11,7 @@ interface Props {
   events: CalendarEvent[]
   onNavigate: (view: AppView) => void
   user?: User
+  quickLog?: React.ReactNode
 }
 
 // Find most recent day that has a value for given key
@@ -41,7 +43,7 @@ function greeting(user: User): string {
   return `${time}, ${name}`
 }
 
-export function Dashboard({ daily, events, onNavigate, user }: Props) {
+export function Dashboard({ daily, events, onNavigate, user, quickLog }: Props) {
   const insights = generateInsights(daily)
   const totalDays = daily.length
 
@@ -136,6 +138,7 @@ export function Dashboard({ daily, events, onNavigate, user }: Props) {
             </div>
           </button>
         ))}
+        {quickLog && <div className="metric-card quicklog-card" style={{ cursor: 'default' }}>{quickLog}</div>}
       </div>
 
       {insights.length > 0 && (
