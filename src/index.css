@@ -297,6 +297,19 @@ body {
 .insight-card p { font-size: 14px; color: var(--text); line-height: 1.6; }
 .caveat { font-size: 12px; color: var(--text-muted); font-style: italic; }
 
+.cmp-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+.cmp-table th { text-align: left; color: var(--text-muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; padding: 0 8px 8px 0; border-bottom: 1px solid var(--border); }
+.cmp-table td { padding: 10px 8px 10px 0; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.cmp-table tr:last-child td { border-bottom: none; }
+.cmp-label { font-weight: 500; color: var(--text); }
+.cmp-val { color: var(--text); font-weight: 600; }
+.cmp-val.muted { color: var(--text-muted); font-weight: 400; }
+.cmp-unit { font-size: 11px; color: var(--text-muted); font-weight: 400; }
+.cmp-delta { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 12px; }
+.cmp-delta.good { background: color-mix(in srgb, var(--green) 15%, transparent); color: var(--green); }
+.cmp-delta.bad { background: color-mix(in srgb, var(--red) 15%, transparent); color: var(--red); }
+.cmp-delta.neutral { color: var(--text-muted); font-weight: 400; }
+
 .ics-btn { margin-left: auto; }
 .ics-loaded { color: var(--green) !important; }
 
