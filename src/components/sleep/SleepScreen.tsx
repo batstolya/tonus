@@ -123,10 +123,12 @@ export function SleepScreen({ daily }: Props) {
         {avgWake !== null && <div className="stat"><span>{fmtDecimalTime(avgWake)}</span> среднее пробуждение</div>}
         {bedtimeDays.length > 0 && (
           <div className="stat">
-            <span style={{ color: 'var(--green)' }}>{onTime}</span>
-            {' / '}
-            <span style={{ color: notOnTime > 0 ? 'var(--red)' : undefined }}>{notOnTime}</span>
-            {' '}до/после полуночи
+            <span>
+              <span style={{ color: 'var(--green)' }}>{onTime}</span>
+              {' / '}
+              <span style={{ color: notOnTime > 0 ? 'var(--red)' : undefined }}>{notOnTime}</span>
+            </span>
+            до/после полуночи
           </div>
         )}
       </div>
