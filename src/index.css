@@ -538,8 +538,10 @@ body {
 }
 .sync-dropdown .nav-btn { text-align: left; width: 100%; display: flex; align-items: center; gap: 8px; }
 .sync-google-btn { width: 100%; }
-.sync-source-row { display: flex; flex-direction: column; gap: 2px; }
-.sync-source-time { font-size: 11px; color: var(--text-muted); padding: 0 8px 4px; }
+.sync-source-row { position: relative; }
+.sync-source-time { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-size: 11px; color: var(--text-muted); white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.15s; }
+.sync-source-row:hover .sync-source-time { opacity: 1; }
+.sync-source-row:hover .nav-btn { opacity: 0; }
 
 .stress-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 4px; }
 .stress-header h2 { margin-bottom: 4px; }
