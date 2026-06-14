@@ -46,8 +46,8 @@ export function useAppStore() {
     return () => window.removeEventListener('hashchange', handler)
   }, [])
 
-  const setDaily = useCallback((daily: DailyMetrics[], heartRateSamples: HeartRateSample[]) =>
-    setState(s => ({ ...s, daily, heartRateSamples, view: 'dashboard', parseProgress: null, error: null })), [])
+  const setDaily = useCallback((daily: DailyMetrics[], heartRateSamples: HeartRateSample[], keepView = false) =>
+    setState(s => ({ ...s, daily, heartRateSamples, view: keepView ? s.view : 'dashboard', parseProgress: null, error: null })), [])
   const setEvents = useCallback((events: CalendarEvent[], source?: string) =>
     setState(s => {
       if (!source) return { ...s, events }

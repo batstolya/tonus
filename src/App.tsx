@@ -8,6 +8,7 @@ import { InsightsScreen } from './components/insights/InsightsScreen'
 import { SleepScreen } from './components/sleep/SleepScreen'
 import { ActivityScreen } from './components/activity/ActivityScreen'
 import { AuthScreen } from './components/auth/AuthScreen'
+import { ResetPasswordScreen } from './components/auth/ResetPasswordScreen'
 import { QuickLog } from './components/intake/QuickLog'
 import { AppLoader } from './components/ui/Spinner'
 import type { AppView } from './store/appStore'
@@ -57,22 +58,22 @@ function ICSUploadButton({ onEvents }: { onEvents: (e: CalendarEvent[]) => void 
 
 const NAV_ITEMS: { view: AppView; label: string }[] = [
   { view: 'dashboard', label: 'Дашборд' },
+  { view: 'activity', label: 'Активность' },
+  { view: 'sleep', label: 'Сон' },
+  { view: 'stress-map', label: 'Стресс' },
   { view: 'heart-rate', label: 'Пульс' },
   { view: 'metrics', label: 'Показатели' },
-  { view: 'stress-map', label: 'Стресс' },
-  { view: 'sleep', label: 'Сон' },
-  { view: 'activity', label: 'Активность' },
   { view: 'insights', label: 'Инсайты' },
 ]
 
 export default function App() {
   const { state, setView, setDaily, setEvents, setProgress, setError, reset } = useAppStore()
-  const { user, loading } = useAuth()
+  const { user, loading, passwordRecovery, setPasswordRecovery } = useAuth()
   const { theme, toggle: toggleTheme } = useTheme()
   const [syncMsg, setSyncMsg] = useState<string | null>(null)
   const [lastSync, setLastSync] = useState<string | null>(null)
   const [intakeEvents, setIntakeEvents] = useState<Parameters<typeof QuickLog>[0]['events']>([])
-  const [dbLoading, setDbLoading] = useState(false)
+  const [dbLoading, setDbLoading] = useState(true)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [showGoogleEvents, setShowGoogleEvents] = useState(true)
   const [syncMenuOpen, setSyncMenuOpen] = useState(false)
@@ -98,7 +99,7 @@ export default function App() {
 
   // Load stored data on login
   useEffect(() => {
-    if (!user) return
+    if (!user) { setDbLoading(false); return }
     let cancelled = false
     setDbLoading(true)
 
@@ -112,16 +113,18 @@ export default function App() {
       ])
 
       if (cancelled) return
-      setDbLoading(false)
 
       const hrSamples = await loadHRSamples(user!.id)
-      if (stored.length > 0) setDaily(stored, hrSamples)
+      if (cancelled) return
+
+      if (stored.length > 0) setDaily(stored, hrSamples, true)
       if (syncInfo?.imported_at) {
         const d = new Date(syncInfo.imported_at)
         setLastSync(d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))
       }
       if (intakeRes.data) setIntakeEvents(intakeRes.data as typeof intakeEvents)
       if (calEvents.length > 0) setEvents(calEvents)
+      setDbLoading(false)
     }
 
     init()
@@ -184,6 +187,7 @@ export default function App() {
 
   if (loading || dbLoading) return <AppLoader label={dbLoading ? 'Загружаем данные…' : undefined} />
   if (!user) return <AuthScreen />
+  if (passwordRecovery) return <ResetPasswordScreen onDone={() => setPasswordRecovery(false)} />
 
   return (
     <div className="app">
