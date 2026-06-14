@@ -562,6 +562,82 @@ body {
 }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
+/* Bottom nav (mobile only) */
+.bottom-nav {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  /* Show bottom nav, hide topbar nav */
+  .topbar-nav { display: none; }
+  .sync-label { display: none; }
+  .signout-btn { display: none; }
+
+  .bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 60px;
+    background: var(--topbar-bg);
+    border-top: 1px solid var(--border);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    z-index: 100;
+    padding-bottom: env(safe-area-inset-bottom);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .bottom-nav::-webkit-scrollbar { display: none; }
+
+  .bottom-nav-btn {
+    flex: 1;
+    min-width: 52px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 6px 4px;
+    transition: color 0.15s;
+  }
+  .bottom-nav-btn.active { color: var(--accent); }
+  .bottom-nav-icon { font-size: 20px; line-height: 1; }
+  .bottom-nav-label { font-size: 10px; white-space: nowrap; }
+
+  /* Add padding so content isn't hidden behind bottom nav */
+  .main-content { padding-bottom: calc(60px + env(safe-area-inset-bottom) + 16px); }
+
+  /* Topbar compact */
+  .topbar { padding: 0 12px; gap: 8px; }
+  .logo-btn { font-size: 16px; }
+
+  /* Cards grid — 2 columns on mobile */
+  .cards-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px; }
+  .card-value { font-size: 24px !important; }
+
+  /* Upload zones stack */
+  .upload-zones { flex-direction: column; align-items: center; }
+  .upload-zone { width: 100%; max-width: 340px; }
+
+  /* Screen padding */
+  .screen { padding: 16px; }
+
+  /* Dashboard layout */
+  .dashboard-layout { flex-direction: column; }
+  .dashboard-aside { width: 100%; }
+
+  /* Stress header stacks */
+  .stress-header { flex-direction: column; gap: 8px; }
+
+  /* Auth card full width */
+  .auth-card { width: 100%; max-width: 100%; border-radius: 0; min-height: 100vh; justify-content: center; }
+  .auth-screen { padding: 0; }
+}
+
 @media (max-width: 900px) {
   .dashboard-layout { flex-direction: column; }
   .dashboard-aside { width: 100%; }

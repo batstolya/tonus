@@ -56,14 +56,14 @@ function ICSUploadButton({ onEvents }: { onEvents: (e: CalendarEvent[]) => void 
   )
 }
 
-const NAV_ITEMS: { view: AppView; label: string }[] = [
-  { view: 'dashboard', label: 'Дашборд' },
-  { view: 'activity', label: 'Активность' },
-  { view: 'sleep', label: 'Сон' },
-  { view: 'stress-map', label: 'Стресс' },
-  { view: 'heart-rate', label: 'Пульс' },
-  { view: 'metrics', label: 'Показатели' },
-  { view: 'insights', label: 'Инсайты' },
+const NAV_ITEMS: { view: AppView; label: string; icon: string }[] = [
+  { view: 'dashboard', label: 'Дашборд', icon: '⊞' },
+  { view: 'activity', label: 'Активность', icon: '👟' },
+  { view: 'sleep', label: 'Сон', icon: '🌙' },
+  { view: 'stress-map', label: 'Стресс', icon: '💓' },
+  { view: 'heart-rate', label: 'Пульс', icon: '📈' },
+  { view: 'metrics', label: 'Показатели', icon: '📊' },
+  { view: 'insights', label: 'Инсайты', icon: '💡' },
 ]
 
 export default function App() {
@@ -194,7 +194,7 @@ export default function App() {
       {hasData && (
         <header className="topbar">
           <button className="logo-btn" onClick={reset}>Tonus</button>
-          <nav>
+          <nav className="topbar-nav">
             {NAV_ITEMS.map(item => (
               <button
                 key={item.view}
@@ -284,6 +284,21 @@ export default function App() {
           <InsightsScreen daily={state.daily} />
         ) : null}
       </main>
+
+      {hasData && (
+        <nav className="bottom-nav">
+          {NAV_ITEMS.map(item => (
+            <button
+              key={item.view}
+              className={state.view === item.view ? 'bottom-nav-btn active' : 'bottom-nav-btn'}
+              onClick={() => setView(item.view)}
+            >
+              <span className="bottom-nav-icon">{item.icon}</span>
+              <span className="bottom-nav-label">{item.label}</span>
+            </button>
+          ))}
+        </nav>
+      )}
     </div>
   )
 }
