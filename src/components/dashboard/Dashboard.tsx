@@ -49,6 +49,7 @@ export function Dashboard({ daily, events, onNavigate, user }: Props) {
   const hrvToday = recentEntry(daily, 'hrv')
   const sleepEntry = recentEntry(daily, 'sleepHours')
   const stepsEntry = recentEntry(daily, 'steps')
+  const spo2Entry = recentEntry(daily, 'oxygenSaturation')
 
   const avgRHR = avg(daily, 'restingHeartRate')
   const avgHRV = avg(daily, 'hrv')
@@ -99,6 +100,14 @@ export function Dashboard({ daily, events, onNavigate, user }: Props) {
       sub: stepsEntry ? stepsEntry.date : undefined,
       value: recentSteps ? Math.round(recentSteps).toLocaleString('ru-RU') : null,
       view: 'activity',
+    },
+    {
+      label: 'SpO₂',
+      sub: spo2Entry ? spo2Entry.date : undefined,
+      value: spo2Entry?.oxygenSaturation ? spo2Entry.oxygenSaturation.toFixed(1) : null,
+      unit: '%',
+      view: 'metrics',
+      color: spo2Entry?.oxygenSaturation && spo2Entry.oxygenSaturation >= 98 ? 'var(--green)' : spo2Entry?.oxygenSaturation && spo2Entry.oxygenSaturation < 95 ? 'var(--red)' : undefined,
     },
     {
       label: 'Событий в календаре',
