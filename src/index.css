@@ -538,6 +538,8 @@ body {
 }
 .sync-dropdown .nav-btn { text-align: left; width: 100%; display: flex; align-items: center; gap: 8px; }
 .sync-google-btn { width: 100%; }
+.sync-source-row { display: flex; flex-direction: column; gap: 2px; }
+.sync-source-time { font-size: 11px; color: var(--text-muted); padding: 0 8px 4px; }
 
 .stress-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 4px; }
 .stress-header h2 { margin-bottom: 4px; }
