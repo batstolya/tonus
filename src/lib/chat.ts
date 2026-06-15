@@ -25,7 +25,10 @@ export function buildContextSnapshot(
   labSummary?: string,
 ): string {
   const sorted = [...daily].sort((a, b) => a.date.localeCompare(b.date))
-  const slice = sorted.slice(-periodDays)
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() - periodDays)
+  const cutoffStr = cutoff.toISOString().slice(0, 10)
+  const slice = sorted.filter(d => d.date >= cutoffStr)
   if (!slice.length) return 'Данных нет.'
 
   const lines: string[] = [`Период: ${slice[0].date} — ${slice[slice.length - 1].date} (${slice.length} дней)`]
