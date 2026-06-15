@@ -639,7 +639,7 @@ body {
   display: none;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 1100px) {
   /* Show burger, hide topbar nav + extra buttons */
   .topbar nav, .topbar-nav { display: none !important; }
   .sync-label { display: none !important; }
@@ -656,6 +656,11 @@ body {
   /* Cards grid — 2 columns on mobile */
   .cards-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px; }
   .card-value { font-size: 24px !important; }
+
+  /* Stat row — compact on mobile */
+  .stat-row { gap: 16px; }
+  .stat span { font-size: 20px; }
+  .stat { font-size: 12px; }
 
   /* Upload zones stack */
   .upload-zones { flex-direction: column; align-items: center; }
