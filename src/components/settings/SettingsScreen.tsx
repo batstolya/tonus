@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
 import type { User } from '@supabase/supabase-js'
+import type { CalendarEvent } from '../../types'
 import { loadMonthUsage, loadBudget, saveBudget } from '../../lib/aiUsage'
+import { supabase } from '../../lib/supabase'
+import { parseICS } from '../../parsers/icsParser'
 
 interface Props {
   user: User
@@ -8,6 +11,7 @@ interface Props {
   googleLoading?: boolean
   googleConnected?: boolean
   lastSync?: string | null
+  onCalEvents?: (events: CalendarEvent[]) => void
 }
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -16,7 +20,7 @@ const SOURCE_LABELS: Record<string, string> = {
   'extract-lab': '🔬 OCR анализов',
 }
 
-export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnected, lastSync }: Props) {
+export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnected, lastSync, onCalEvents }: Props) {
   const [cost, setCost] = useState<number | null>(null)
   const [tokens, setTokens] = useState(0)
   const [bySource, setBySource] = useState<Record<string, number>>({})
@@ -24,6 +28,38 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
   const [editVal, setEditVal] = useState('')
   const [editing, setEditing] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [icsUrl, setIcsUrl] = useState('')
+  const [icsLoading, setIcsLoading] = useState(false)
+  const [icsMsg, setIcsMsg] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Load saved ICS url
+    supabase.from('profiles').select('cal_ics_url').eq('id', user.id).single()
+      .then(({ data }) => { if (data?.cal_ics_url) setIcsUrl(data.cal_ics_url) })
+  }, [user.id])
+
+  async function handleIcsSync() {
+    if (!icsUrl.trim()) return
+    setIcsLoading(true)
+    setIcsMsg(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
+      const res = await fetch(`${supabaseUrl}/functions/v1/fetch-ics`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session!.access_token}` },
+        body: JSON.stringify({ url: icsUrl.trim() }),
+      })
+      if (!res.ok) throw new Error(await res.text())
+      const { ics } = await res.json()
+      const events = parseICS(ics)
+      onCalEvents?.(events)
+      setIcsMsg(`✓ Загружено ${events.length} событий`)
+    } catch (e: any) {
+      setIcsMsg(`Ошибка: ${e.message}`)
+    }
+    setIcsLoading(false)
+  }
 
   useEffect(() => {
     loadMonthUsage(user.id).then(u => {
@@ -73,6 +109,27 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
           </div>
         </section>
       )}
+
+      <section className="settings-section">
+        <h3 className="settings-section-title">📆 Cal.com / ICS фид</h3>
+        <div className="settings-label" style={{ marginBottom: 8 }}>
+          URL фида (.ics) — найди в cal.com: Settings → Calendars → Calendar Feed
+        </div>
+        <div className="settings-ics-row">
+          <input
+            className="log-input"
+            style={{ flex: 1 }}
+            type="url"
+            placeholder="https://cal.com/username/feed.ics?apiKey=..."
+            value={icsUrl}
+            onChange={e => setIcsUrl(e.target.value)}
+          />
+          <button className="btn-primary" onClick={handleIcsSync} disabled={icsLoading || !icsUrl.trim()} style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
+            {icsLoading ? 'Загрузка…' : 'Синхронизировать'}
+          </button>
+        </div>
+        {icsMsg && <div style={{ marginTop: 8, fontSize: 13, color: icsMsg.startsWith('✓') ? 'var(--green)' : 'var(--red)' }}>{icsMsg}</div>}
+      </section>
 
       <section className="settings-section">
         <h3 className="settings-section-title">🤖 AI расходы — {monthName}</h3>
