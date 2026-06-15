@@ -94,7 +94,7 @@ body {
   cursor: pointer;
   letter-spacing: -0.5px;
 }
-.topbar nav { display: flex; gap: 4px; }
+.topbar nav, .topbar-nav { display: flex; gap: 4px; }
 .nav-btn {
   background: none;
   border: none;
@@ -641,7 +641,7 @@ body {
 
 @media (max-width: 960px) {
   /* Show burger, hide topbar nav + extra buttons */
-  .topbar-nav { display: none; }
+  .topbar nav, .topbar-nav { display: none !important; }
   .sync-label { display: none; }
   .signout-btn { display: none; }
   .theme-toggle { display: none; }
