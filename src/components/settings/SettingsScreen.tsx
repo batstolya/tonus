@@ -11,6 +11,7 @@ interface Props {
   googleConnected?: boolean
   lastSync?: string | null
   onCalEvents?: (events: CalendarEvent[]) => void
+  onNavigate?: (view: any) => void
 }
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -19,7 +20,7 @@ const SOURCE_LABELS: Record<string, string> = {
   'extract-lab': '🔬 OCR анализов',
 }
 
-export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnected, lastSync, onCalEvents }: Props) {
+export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnected, lastSync, onCalEvents, onNavigate }: Props) {
   const [cost, setCost] = useState<number | null>(null)
   const [tokens, setTokens] = useState(0)
   const [bySource, setBySource] = useState<Record<string, number>>({})
@@ -46,7 +47,8 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
       if (!res.ok) throw new Error(await res.text())
       const { events, count } = await res.json()
       onCalEvents?.(events)
-      setCalMsg(`✓ Загружено ${count} событий из Cal.com`)
+      setCalMsg(`✓ Загружено ${count} событий — открываю карту стресса…`)
+      setTimeout(() => onNavigate?.('stress-map'), 1500)
     } catch (e: any) {
       setCalMsg(`Ошибка: ${e.message}`)
     }
