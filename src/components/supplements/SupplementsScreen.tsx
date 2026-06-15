@@ -175,7 +175,7 @@ export function SupplementsScreen({ user }: Props) {
               return (
                 <div key={sup.id} className={`supp-stock-item${low ? ' low' : ''}`}>
                   <div className="supp-stock-name">{sup.name}</div>
-                  {sup.default_dose && <div className="supp-stock-dose">{sup.default_dose}{sup.unit ? ` ${sup.unit}` : ''}</div>}
+                  <div className="supp-stock-dose">{sup.default_dose ? `${sup.default_dose}${sup.unit ? ` ${sup.unit}` : ''}` : ''}</div>
                   <div className="supp-stock-controls">
                     <button className="supp-stock-btn" onClick={() => handleStock(sup.id, -1)} disabled={!stock}>−</button>
                     {editingStock === sup.id ? (

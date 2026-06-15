@@ -956,12 +956,12 @@ body {
 /* ── Supplement stock panel ───────────────────────────────── */
 .supp-stock-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 20px; }
 .supp-stock-title { font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 14px; }
-.supp-stock-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
-.supp-stock-item { background: var(--bg); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; transition: border-color 0.2s, box-shadow 0.2s; }
+.supp-stock-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; align-items: stretch; }
+.supp-stock-item { background: var(--bg); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; justify-content: space-between; gap: 0; transition: border-color 0.2s, box-shadow 0.2s; min-height: 110px; }
 .supp-stock-item.low { border-color: var(--red); box-shadow: 0 0 0 1px var(--red); background: rgba(255,107,107,0.04); }
-.supp-stock-name { font-size: 13px; font-weight: 600; }
-.supp-stock-dose { font-size: 11px; color: var(--text-muted); }
-.supp-stock-controls { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+.supp-stock-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+.supp-stock-dose { font-size: 11px; color: var(--text-muted); min-height: 16px; }
+.supp-stock-controls { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
 .supp-stock-btn { width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 16px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
 .supp-stock-btn:hover:not(:disabled) { background: var(--border); }
 .supp-stock-btn:disabled { opacity: 0.35; cursor: default; }
