@@ -113,6 +113,44 @@ function ReadinessCard({ daily }: { daily: DailyMetrics[] }) {
   )
 }
 
+function StressDaysCard({ daily }: { daily: DailyMetrics[] }) {
+  const now = new Date()
+  const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+  const monthDays = daily.filter(d => d.date >= monthStart && d.hrv != null)
+  if (monthDays.length < 3) return null
+
+  const sorted = [...monthDays].sort((a, b) => (a.hrv ?? 0) - (b.hrv ?? 0))
+  const mostStressed = sorted[0]
+  const leastStressed = sorted[sorted.length - 1]
+
+  function fmtDate(d: string) {
+    const dt = new Date(d + 'T00:00:00')
+    return dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
+  }
+
+  return (
+    <div className="stress-days-card">
+      <div className="sd-item sd-bad">
+        <div className="sd-icon">😓</div>
+        <div className="sd-info">
+          <div className="sd-label">Самый стрессовый</div>
+          <div className="sd-date">{fmtDate(mostStressed.date)}</div>
+          <div className="sd-hrv">HRV {mostStressed.hrv} мс{mostStressed.restingHeartRate ? ` · ЧСС ${mostStressed.restingHeartRate}` : ''}</div>
+        </div>
+      </div>
+      <div className="sd-divider" />
+      <div className="sd-item sd-good">
+        <div className="sd-icon">😌</div>
+        <div className="sd-info">
+          <div className="sd-label">Самый спокойный</div>
+          <div className="sd-date">{fmtDate(leastStressed.date)}</div>
+          <div className="sd-hrv">HRV {leastStressed.hrv} мс{leastStressed.restingHeartRate ? ` · ЧСС ${leastStressed.restingHeartRate}` : ''}</div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function EarlyWarningBanner({ daily }: { daily: DailyMetrics[] }) {
   const w = computeEarlyWarning(daily)
   if (!w.active) return null
@@ -259,6 +297,7 @@ export function Dashboard({ daily, events, onNavigate, user, quickLog }: Props) 
 
       <EarlyWarningBanner daily={daily} />
       <ReadinessCard daily={daily} />
+      <StressDaysCard daily={daily} />
 
       <div className="cards-grid">
         {cards.map(c => (
