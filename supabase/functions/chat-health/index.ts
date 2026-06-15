@@ -39,10 +39,11 @@ serve(async (req) => {
       session = data
     }
     if (!session) {
-      const { data } = await supabase
+      const { data, error: insertErr } = await supabase
         .from('chat_sessions')
         .insert({ user_id: user.id, context_snapshot: contextSnapshot ?? null })
         .select().single()
+      if (insertErr) throw new Error(`Session insert failed: ${insertErr.message}`)
       session = data
     }
     if (!session) throw new Error('Failed to create session')
