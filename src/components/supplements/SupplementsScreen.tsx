@@ -185,35 +185,48 @@ export function SupplementsScreen({ user }: Props) {
               const low = stock !== null && stock <= 7
               return (
                 <div key={sup.id} className={`supp-stock-item${low ? ' low' : ''}`}>
-                  <div className="supp-stock-name">{sup.name}</div>
-                  <div className="supp-stock-dose">{sup.default_dose ? `${sup.default_dose}${sup.unit ? ` ${sup.unit}` : ''}` : ''}</div>
-                  <div className="supp-stock-controls">
-                    <button className="supp-stock-btn" onClick={() => handleStock(sup.id, -1)} disabled={(stock ?? 0) <= 0}>−</button>
-                    {editingStock === sup.id ? (
-                      <input
-                        className="supp-stock-input"
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        value={stockInput}
-                        autoFocus
-                        onChange={e => setStockInput(e.target.value.replace(/\D/g, ''))}
-                        onBlur={() => handleStockSet(sup.id)}
-                        onKeyDown={e => { if (e.key === 'Enter') handleStockSet(sup.id); if (e.key === 'Escape') { setEditingStock(null); setStockInput('') } }}
-                      />
-                    ) : (
-                      <button
-                        className="supp-stock-count"
-                        onClick={() => { setEditingStock(sup.id); setStockInput(String(stock ?? 0)) }}
-                        title="Нажми чтобы изменить"
-                      >
-                        {stock === null ? '—' : stock}
-                        <span className="supp-stock-unit">шт</span>
-                      </button>
-                    )}
-                    <button className="supp-stock-btn" onClick={() => handleStock(sup.id, +1)}>+</button>
+                  <div className="supp-stock-info">
+                    <div className="supp-stock-name">{sup.name}</div>
+                    <div className="supp-stock-dose">{sup.default_dose ? `${sup.default_dose}${sup.unit ? ` ${sup.unit}` : ''}` : ''}</div>
+                    {low && <div className="supp-stock-warn">⚠ Заканчивается</div>}
                   </div>
-                  {low && <div className="supp-stock-warn">⚠ Заканчивается</div>}
+                  <div className="supp-stock-split">
+                    <button
+                      className="supp-split-half supp-split-minus"
+                      onClick={() => handleStock(sup.id, -1)}
+                      disabled={(stock ?? 0) <= 0}
+                    >
+                      <span className="supp-split-sign">−</span>
+                    </button>
+                    <div
+                      className="supp-split-center"
+                      onClick={() => { setEditingStock(sup.id); setStockInput(String(stock ?? 0)) }}
+                      title="Нажми чтобы ввести вручную"
+                    >
+                      {editingStock === sup.id ? (
+                        <input
+                          className="supp-stock-input"
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={stockInput}
+                          autoFocus
+                          onChange={e => setStockInput(e.target.value.replace(/\D/g, ''))}
+                          onBlur={() => handleStockSet(sup.id)}
+                          onClick={e => e.stopPropagation()}
+                          onKeyDown={e => { if (e.key === 'Enter') handleStockSet(sup.id); if (e.key === 'Escape') { setEditingStock(null); setStockInput('') } }}
+                        />
+                      ) : (
+                        <span className="supp-split-count">{stock === null ? '—' : stock}<span className="supp-stock-unit">шт</span></span>
+                      )}
+                    </div>
+                    <button
+                      className="supp-split-half supp-split-plus"
+                      onClick={() => handleStock(sup.id, +1)}
+                    >
+                      <span className="supp-split-sign">+</span>
+                    </button>
+                  </div>
                 </div>
               )
             })}
