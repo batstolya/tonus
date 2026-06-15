@@ -13,6 +13,7 @@ import { QuickLog } from './components/intake/QuickLog'
 import { SupplementsScreen } from './components/supplements/SupplementsScreen'
 import { LabsScreen } from './components/labs/LabsScreen'
 import { SettingsScreen } from './components/settings/SettingsScreen'
+import { GoalsScreen } from './components/goals/GoalsScreen'
 import { ChatWidget } from './components/chat/ChatWidget'
 import { AppLoader } from './components/ui/Spinner'
 import type { AppView } from './store/appStore'
@@ -37,6 +38,7 @@ const NAV_ITEMS: { view: AppView; label: string; icon: string }[] = [
   { view: 'insights', label: 'Инсайты', icon: '💡' },
   { view: 'supplements', label: 'Препараты', icon: '💊' },
   { view: 'labs', label: 'Анализы', icon: '🔬' },
+  { view: 'goals', label: 'Цели', icon: '🎯' },
 ]
 
 export default function App() {
@@ -295,6 +297,8 @@ export default function App() {
           <SupplementsScreen user={user} />
         ) : state.view === 'labs' ? (
           <LabsScreen user={user} />
+        ) : state.view === 'goals' ? (
+          <GoalsScreen user={user} daily={state.daily} />
         ) : state.view === 'settings' ? (
           <SettingsScreen
             user={user}
