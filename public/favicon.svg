@@ -1,7 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#1a1a2e"/>
-  <path d="M8 32 h10 l4 -12 l6 24 l5 -18 l4 10 h19"
-    fill="none" stroke="#6c8fff" stroke-width="4"
+  <rect width="64" height="64" rx="14" fill="#0f1117"/>
+  <!-- ECG pulse line -->
+  <path d="M6 34 h12 l5 -14 l7 26 l5 -20 l4 8 h19"
+    fill="none" stroke="#4f8cff" stroke-width="4.5"
     stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="32" cy="32" r="5" fill="#5bc896"/>
+  <!-- Green dot highlight -->
+  <circle cx="32" cy="34" r="4" fill="#5bc896"/>
 </svg>

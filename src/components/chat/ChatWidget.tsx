@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import type { User } from '@supabase/supabase-js'
 import type { DailyMetrics } from '../../types'
-import { sendChatMessage, buildContextSnapshot, type ChatMessage } from '../../lib/chat'
+import { sendChatMessage, buildContextSnapshot, loadLabSummary, type ChatMessage } from '../../lib/chat'
 
 interface Props {
   user: User
@@ -25,7 +25,7 @@ function MsgBubble({ msg }: { msg: ChatMessage }) {
   )
 }
 
-export function ChatWidget({ daily }: Props) {
+export function ChatWidget({ user, daily }: Props) {
   const [open, setOpen] = useState(false)
   const [period, setPeriod] = useState<Period>('30d')
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -34,17 +34,23 @@ export function ChatWidget({ daily }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [snapshot, setSnapshot] = useState<string | null>(null)
+  const [labSummary, setLabSummary] = useState<string>('')
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
-  // Rebuild snapshot when period or data changes
+  // Load lab summary once on mount
+  useEffect(() => {
+    loadLabSummary(user.id).then(setLabSummary)
+  }, [user.id])
+
+  // Rebuild snapshot when period, data, or lab summary changes
   useEffect(() => {
     const days = period === '14d' ? 14 : period === '30d' ? 30 : 90
-    setSnapshot(daily.length ? buildContextSnapshot(daily, days) : null)
+    setSnapshot(daily.length ? buildContextSnapshot(daily, days, labSummary || undefined) : null)
     // Reset session when period changes so new context is sent
     setSessionId(null)
     setMessages([])
-  }, [period, daily])
+  }, [period, daily, labSummary])
 
   useEffect(() => {
     if (open) {
