@@ -43,7 +43,7 @@ export async function deleteLabFile(id: string): Promise<void> {
 }
 
 export async function uploadAndExtract(
-  userId: string,
+  _userId: string,
   file: File,
   date: string,
 ): Promise<LabFile | null> {
