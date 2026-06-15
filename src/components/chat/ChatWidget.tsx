@@ -25,7 +25,7 @@ function MsgBubble({ msg }: { msg: ChatMessage }) {
   )
 }
 
-export function ChatWidget({ user, daily }: Props) {
+export function ChatWidget({ daily }: Props) {
   const [open, setOpen] = useState(false)
   const [period, setPeriod] = useState<Period>('30d')
   const [messages, setMessages] = useState<ChatMessage[]>([])
