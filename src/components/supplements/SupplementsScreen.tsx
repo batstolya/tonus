@@ -79,15 +79,17 @@ export function SupplementsScreen({ user }: Props) {
   }
 
   async function handleStock(id: string, delta: number) {
-    const next = await updateStock(id, delta)
+    const sup = supplements.find(s => s.id === id)!
+    const next = Math.max(0, (sup.stock_count ?? 0) + delta)
     setSupplements(prev => prev.map(s => s.id === id ? { ...s, stock_count: next } : s))
+    await updateStock(id, next)
   }
 
   async function handleStockSet(id: string) {
     const val = parseInt(stockInput)
     if (!isNaN(val) && val >= 0) {
-      const next = await updateStock(id, 0, val)
-      setSupplements(prev => prev.map(s => s.id === id ? { ...s, stock_count: next } : s))
+      setSupplements(prev => prev.map(s => s.id === id ? { ...s, stock_count: val } : s))
+      await updateStock(id, val)
     }
     setEditingStock(null)
     setStockInput('')
@@ -107,6 +109,16 @@ export function SupplementsScreen({ user }: Props) {
       return filtered
     })
     await toggleLog(user.id, supplementId, date, nextTaken)
+
+    // Auto-decrement stock when marking as taken (only for today)
+    if (nextTaken && date === todayStr) {
+      const sup = supplements.find(s => s.id === supplementId)
+      if (sup && sup.stock_count !== null && sup.stock_count > 0) {
+        const next = sup.stock_count - 1
+        setSupplements(prev => prev.map(s => s.id === supplementId ? { ...s, stock_count: next } : s))
+        await updateStock(supplementId, next)
+      }
+    }
   }
 
   const monthName = new Date(year, month - 1).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })
