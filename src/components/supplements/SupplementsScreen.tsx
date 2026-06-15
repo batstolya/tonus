@@ -188,15 +188,16 @@ export function SupplementsScreen({ user }: Props) {
                   <div className="supp-stock-name">{sup.name}</div>
                   <div className="supp-stock-dose">{sup.default_dose ? `${sup.default_dose}${sup.unit ? ` ${sup.unit}` : ''}` : ''}</div>
                   <div className="supp-stock-controls">
-                    <button className="supp-stock-btn" onClick={() => handleStock(sup.id, -1)} disabled={!stock}>−</button>
+                    <button className="supp-stock-btn" onClick={() => handleStock(sup.id, -1)} disabled={(stock ?? 0) <= 0}>−</button>
                     {editingStock === sup.id ? (
                       <input
                         className="supp-stock-input"
-                        type="number"
-                        min="0"
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                         value={stockInput}
                         autoFocus
-                        onChange={e => setStockInput(e.target.value)}
+                        onChange={e => setStockInput(e.target.value.replace(/\D/g, ''))}
                         onBlur={() => handleStockSet(sup.id)}
                         onKeyDown={e => { if (e.key === 'Enter') handleStockSet(sup.id); if (e.key === 'Escape') { setEditingStock(null); setStockInput('') } }}
                       />
