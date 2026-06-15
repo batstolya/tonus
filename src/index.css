@@ -959,24 +959,30 @@ body {
 /* ── Supplement stock panel ───────────────────────────────── */
 .supp-stock-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 20px; }
 .supp-stock-title { font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 14px; }
-.supp-stock-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; align-items: stretch; }
-.supp-stock-item { background: var(--bg); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; justify-content: space-between; gap: 0; transition: border-color 0.2s, box-shadow 0.2s; min-height: 110px; }
-.supp-stock-item.low { border-color: var(--red); box-shadow: 0 0 0 1px var(--red); background: rgba(255,107,107,0.04); }
+.supp-stock-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+.supp-stock-item { background: var(--bg); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; transition: border-color 0.2s, box-shadow 0.2s; }
+.supp-stock-item.low { border-color: var(--red); box-shadow: 0 0 0 1px var(--red); }
+.supp-stock-info { padding: 12px 14px 10px; }
 .supp-stock-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
-.supp-stock-dose { font-size: 11px; color: var(--text-muted); min-height: 16px; }
-.supp-stock-controls { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
-.supp-stock-btn { width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 16px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
-.supp-stock-btn:hover:not(:disabled) { background: var(--border); }
-.supp-stock-btn:disabled { opacity: 0.35; cursor: default; }
-.supp-stock-count { background: none; border: none; cursor: pointer; font-size: 22px; font-weight: 700; color: var(--text); display: flex; align-items: baseline; gap: 3px; padding: 2px 6px; border-radius: 8px; transition: background 0.15s; min-width: 48px; justify-content: center; }
-.supp-stock-count:hover { background: var(--border); }
-.supp-stock-unit { font-size: 11px; font-weight: 400; color: var(--text-muted); }
-.supp-stock-input { width: 60px; font-size: 22px; font-weight: 700; text-align: center; border: none; border-bottom: 2px solid var(--accent); border-radius: 0; background: transparent; color: var(--text); padding: 2px 4px; outline: none; min-width: 48px; }
-/* hide native number spinners */
-.supp-stock-input::-webkit-outer-spin-button,
-.supp-stock-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-.supp-stock-input[type=number] { -moz-appearance: textfield; }
-.supp-stock-warn { font-size: 11px; color: var(--red); margin-top: 2px; }
+.supp-stock-dose { font-size: 11px; color: var(--text-muted); min-height: 15px; }
+.supp-stock-warn { font-size: 11px; color: var(--red); margin-top: 4px; }
+
+/* Split button */
+.supp-stock-split { display: flex; border-top: 1px solid var(--border); height: 52px; }
+.supp-split-half { flex: 1; border: none; background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.12s; -webkit-tap-highlight-color: transparent; }
+.supp-split-half:active { background: var(--border); transform: scale(0.96); }
+.supp-split-half:disabled { opacity: 0.3; cursor: default; }
+.supp-split-minus { border-right: 1px solid var(--border); border-radius: 0 0 0 16px; }
+.supp-split-plus { border-radius: 0 0 16px 0; }
+.supp-split-sign { font-size: 22px; font-weight: 300; color: var(--text-muted); line-height: 1; user-select: none; }
+.supp-split-half:not(:disabled):hover .supp-split-sign { color: var(--text); }
+.supp-split-minus:not(:disabled):active { background: rgba(255,107,107,0.12); }
+.supp-split-plus:not(:disabled):active { background: rgba(91,200,150,0.15); }
+.supp-split-center { flex: 0 0 64px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-right: 1px solid var(--border); }
+.supp-split-center:hover { background: var(--border); }
+.supp-split-count { font-size: 20px; font-weight: 700; display: flex; align-items: baseline; gap: 2px; }
+.supp-stock-unit { font-size: 10px; font-weight: 400; color: var(--text-muted); margin-left: 1px; }
+.supp-stock-input { width: 52px; font-size: 18px; font-weight: 700; text-align: center; border: none; background: transparent; color: var(--text); outline: none; border-bottom: 2px solid var(--accent); padding: 0 2px; }
 
 /* ── Labs ─────────────────────────────────────────────────── */
 .labs-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
