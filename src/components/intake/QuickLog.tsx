@@ -61,7 +61,19 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
   }
 
   const today = new Date().toISOString().slice(0, 10)
-  const todayEvents = events.filter(e => e.ts.slice(0, 10) === today)
+  const yesterday = new Date(Date.now() - 864e5).toISOString().slice(0, 10)
+
+  // Group events by date, show last 3 days
+  const recentDays = [today, yesterday, new Date(Date.now() - 2 * 864e5).toISOString().slice(0, 10)]
+  const grouped = recentDays
+    .map(date => ({ date, items: events.filter(e => e.ts.slice(0, 10) === date) }))
+    .filter(g => g.items.length > 0)
+
+  function dayLabel(date: string) {
+    if (date === today) return 'Сегодня'
+    if (date === yesterday) return 'Вчера'
+    return new Date(date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
+  }
 
   return (
     <div className="quick-log">
@@ -110,10 +122,10 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
         </div>
       )}
 
-      {todayEvents.length > 0 && (
-        <div className="log-today">
-          <p className="log-today-label">Сегодня</p>
-          {todayEvents.map(ev => {
+      {grouped.map(({ date, items }) => (
+        <div key={date} className="log-today">
+          <p className="log-today-label">{dayLabel(date)}</p>
+          {items.map(ev => {
             const et = EVENT_TYPES.find(t => t.type === ev.type)
             return (
               <div key={ev.id} className="log-item">
@@ -131,7 +143,7 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
             )
           })}
         </div>
-      )}
+      ))}
     </div>
   )
 }
