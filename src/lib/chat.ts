@@ -47,6 +47,15 @@ export function buildContextSnapshot(
     lines.push(`Сон: среднее ${a.toFixed(1)} ч, ночей с ≥7ч: ${good}/${sleep.length}`)
   }
 
+  const deep = pick(slice, 'sleepDeep')
+  if (deep.length) lines.push(`Глубокий сон: среднее ${avg(deep)!.toFixed(1)} ч/ночь`)
+
+  const rem = pick(slice, 'sleepREM')
+  if (rem.length) lines.push(`REM сон: среднее ${avg(rem)!.toFixed(1)} ч/ночь`)
+
+  const core = pick(slice, 'sleepCore')
+  if (core.length) lines.push(`Основной сон: среднее ${avg(core)!.toFixed(1)} ч/ночь`)
+
   const bedtimes = slice.filter(d => d.sleepBedtime).map(d => {
     const dt = new Date(d.sleepBedtime!)
     let h = dt.getHours() + dt.getMinutes() / 60
