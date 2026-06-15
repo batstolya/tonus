@@ -1,9 +1,11 @@
 import type { User } from '@supabase/supabase-js'
-import React from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import type { DailyMetrics, HeartRateSample, CalendarEvent } from '../../types'
 import type { AppView } from '../../store/appStore'
 import { generateInsights } from '../../utils/insights'
 import { AiAnalysisBlock } from './AiAnalysisBlock'
+import { computeReadiness, computeEarlyWarning } from '../../lib/readiness'
+import { loadTodayNote, saveNote } from '../../lib/contextNotes'
 
 interface Props {
   daily: DailyMetrics[]
@@ -14,7 +16,6 @@ interface Props {
   quickLog?: React.ReactNode
 }
 
-// Find most recent day that has a value for given key
 function recent<K extends keyof DailyMetrics>(daily: DailyMetrics[], key: K): DailyMetrics[K] | undefined {
   for (let i = daily.length - 1; i >= 0; i--) {
     const v = daily[i][key]
@@ -30,7 +31,7 @@ function recentEntry(daily: DailyMetrics[], key: keyof DailyMetrics): DailyMetri
   return undefined
 }
 
-function avg(daily: DailyMetrics[], key: 'restingHeartRate' | 'hrv', days = 30): number | null {
+function avgN(daily: DailyMetrics[], key: 'restingHeartRate' | 'hrv', days = 30): number | null {
   const slice = daily.slice(-days).filter(d => d[key] != null)
   if (!slice.length) return null
   return Math.round(slice.reduce((a, d) => a + (d[key] as number), 0) / slice.length)
@@ -43,6 +44,130 @@ function greeting(user: User): string {
   return `${time}, ${name}`
 }
 
+// Color helpers
+function rhrColor(v: number | null): string | undefined {
+  if (v == null) return undefined
+  if (v < 55) return 'var(--green)'
+  if (v > 80) return 'var(--red)'
+  return undefined
+}
+function hrvColor(v: number | null): string | undefined {
+  if (v == null) return undefined
+  if (v > 60) return 'var(--green)'
+  if (v < 35) return 'var(--red)'
+  return undefined
+}
+function stepsColor(v: number | null): string | undefined {
+  if (v == null) return undefined
+  if (v >= 8000) return 'var(--green)'
+  if (v < 4000) return 'var(--red)'
+  return undefined
+}
+function sleepColor(v: number | null): string | undefined {
+  if (v == null) return undefined
+  if (v >= 7) return 'var(--green)'
+  if (v < 6) return 'var(--red)'
+  return undefined
+}
+function spo2Color(v: number | null): string | undefined {
+  if (v == null) return undefined
+  if (v >= 98) return 'var(--green)'
+  if (v < 95) return 'var(--red)'
+  return undefined
+}
+
+function ReadinessCard({ daily }: { daily: DailyMetrics[] }) {
+  const r = computeReadiness(daily)
+  if (!r) return null
+
+  return (
+    <div className="readiness-card">
+      <div className="readiness-top">
+        <div className="readiness-left">
+          <div className="readiness-label">Готовность дня</div>
+          <div className="readiness-score" style={{ color: r.color }}>{r.score}</div>
+          <div className="readiness-sublabel" style={{ color: r.color }}>{r.label}</div>
+        </div>
+        <div className="readiness-bars">
+          {r.components.hrv != null && (
+            <div className="r-bar-row">
+              <span>HRV</span>
+              <div className="r-bar-track"><div className="r-bar-fill" style={{ width: `${(r.components.hrv / 40) * 100}%`, background: r.color }} /></div>
+            </div>
+          )}
+          {r.components.rhr != null && (
+            <div className="r-bar-row">
+              <span>ЧСС</span>
+              <div className="r-bar-track"><div className="r-bar-fill" style={{ width: `${(r.components.rhr / 30) * 100}%`, background: r.color }} /></div>
+            </div>
+          )}
+          {r.components.sleep != null && (
+            <div className="r-bar-row">
+              <span>Сон</span>
+              <div className="r-bar-track"><div className="r-bar-fill" style={{ width: `${(r.components.sleep / 30) * 100}%`, background: r.color }} /></div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function EarlyWarningBanner({ daily }: { daily: DailyMetrics[] }) {
+  const w = computeEarlyWarning(daily)
+  if (!w.active) return null
+  return (
+    <div className="early-warning">
+      <span className="ew-icon">⚠</span>
+      <div>
+        <strong>Организм под нагрузкой</strong>
+        <ul className="ew-list">
+          {w.signals.map((s, i) => <li key={i}>{s}</li>)}
+        </ul>
+        <span className="ew-hint">Возможно стоит снизить нагрузку или проверить самочувствие.</span>
+      </div>
+    </div>
+  )
+}
+
+function ContextJournal({ user }: { user: User }) {
+  const todayStr = new Date().toISOString().slice(0, 10)
+  const [note, setNote] = useState('')
+  const [saved, setSaved] = useState(false)
+  const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    loadTodayNote(user.id, todayStr).then(setNote)
+  }, [user.id, todayStr])
+
+  function handleChange(val: string) {
+    setNote(val)
+    setSaved(false)
+    if (saveTimeout.current) clearTimeout(saveTimeout.current)
+    saveTimeout.current = setTimeout(async () => {
+      await saveNote(user.id, todayStr, val)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    }, 800)
+  }
+
+  return (
+    <div className="context-journal">
+      <div className="cj-header">
+        <span className="cj-label">Заметка дня</span>
+        {saved && <span className="cj-saved">сохранено ✓</span>}
+      </div>
+      <textarea
+        className="cj-textarea"
+        placeholder="Как прошёл день? Важные события, самочувствие, стресс… (используется как контекст в ИИ-анализе)"
+        value={note}
+        onChange={e => handleChange(e.target.value)}
+        rows={3}
+      />
+    </div>
+  )
+}
+
 export function Dashboard({ daily, events, onNavigate, user, quickLog }: Props) {
   const insights = generateInsights(daily)
   const totalDays = daily.length
@@ -53,19 +178,20 @@ export function Dashboard({ daily, events, onNavigate, user, quickLog }: Props) 
   const stepsEntry = recentEntry(daily, 'steps')
   const spo2Entry = recentEntry(daily, 'oxygenSaturation')
 
-  const avgRHR = avg(daily, 'restingHeartRate')
-  const avgHRV = avg(daily, 'hrv')
+  const avgRHR = avgN(daily, 'restingHeartRate')
+  const avgHRV = avgN(daily, 'hrv')
 
-  const recentSleep = recent(daily, 'sleepHours')
-  const recentSteps = recent(daily, 'steps')
+  const recentSleep = recent(daily, 'sleepHours') as number | undefined
+  const recentSteps = recent(daily, 'steps') as number | undefined
 
   const cards: { label: string; sub?: string; value: string | number | null; unit?: string; view: AppView; color?: string }[] = [
     {
       label: 'Пульс покоя',
-      sub: rhrToday ? rhrToday.date : undefined,
+      sub: rhrToday?.date,
       value: rhrToday?.restingHeartRate ? Math.round(rhrToday.restingHeartRate) : null,
       unit: 'уд/мин',
       view: 'heart-rate',
+      color: rhrColor(rhrToday?.restingHeartRate ?? null),
     },
     {
       label: 'Средний ЧСС покоя',
@@ -73,13 +199,15 @@ export function Dashboard({ daily, events, onNavigate, user, quickLog }: Props) 
       value: avgRHR,
       unit: 'уд/мин',
       view: 'heart-rate',
+      color: rhrColor(avgRHR),
     },
     {
       label: 'HRV',
-      sub: hrvToday ? hrvToday.date : undefined,
+      sub: hrvToday?.date,
       value: hrvToday?.hrv ? Math.round(hrvToday.hrv) : null,
       unit: 'мс',
       view: 'metrics',
+      color: hrvColor(hrvToday?.hrv ?? null),
     },
     {
       label: 'Средний HRV',
@@ -87,29 +215,30 @@ export function Dashboard({ daily, events, onNavigate, user, quickLog }: Props) 
       value: avgHRV,
       unit: 'мс',
       view: 'metrics',
-      color: avgHRV && avgHRV > 50 ? 'var(--green)' : undefined,
+      color: hrvColor(avgHRV),
     },
     {
       label: 'Сон',
-      sub: sleepEntry ? sleepEntry.date : undefined,
-      value: recentSleep ? recentSleep.toFixed(1) : null,
+      sub: sleepEntry?.date,
+      value: recentSleep != null ? recentSleep.toFixed(1) : null,
       unit: 'ч',
       view: 'sleep',
-      color: recentSleep && recentSleep >= 7 ? 'var(--green)' : recentSleep && recentSleep < 6 ? 'var(--red)' : undefined,
+      color: sleepColor(recentSleep ?? null),
     },
     {
       label: 'Шаги',
-      sub: stepsEntry ? stepsEntry.date : undefined,
-      value: recentSteps ? Math.round(recentSteps).toLocaleString('ru-RU') : null,
+      sub: stepsEntry?.date,
+      value: recentSteps != null ? Math.round(recentSteps).toLocaleString('ru-RU') : null,
       view: 'activity',
+      color: stepsColor(recentSteps ?? null),
     },
     {
       label: 'SpO₂',
-      sub: spo2Entry ? spo2Entry.date : undefined,
+      sub: spo2Entry?.date,
       value: spo2Entry?.oxygenSaturation ? (spo2Entry.oxygenSaturation * 100).toFixed(1) : null,
       unit: '%',
       view: 'metrics',
-      color: spo2Entry?.oxygenSaturation && spo2Entry.oxygenSaturation >= 0.98 ? 'var(--green)' : spo2Entry?.oxygenSaturation && spo2Entry.oxygenSaturation < 0.95 ? 'var(--red)' : undefined,
+      color: spo2Color(spo2Entry?.oxygenSaturation ? spo2Entry.oxygenSaturation * 100 : null),
     },
     {
       label: 'Событий в календаре',
@@ -128,6 +257,9 @@ export function Dashboard({ daily, events, onNavigate, user, quickLog }: Props) 
       {user && <p className="dashboard-greeting">{greeting(user)}</p>}
       <h2>Дашборд</h2>
 
+      <EarlyWarningBanner daily={daily} />
+      <ReadinessCard daily={daily} />
+
       <div className="cards-grid">
         {cards.map(c => (
           <button key={c.label} className="metric-card" onClick={() => onNavigate(c.view)}>
@@ -140,6 +272,8 @@ export function Dashboard({ daily, events, onNavigate, user, quickLog }: Props) 
         ))}
         {quickLog && <div className="metric-card quicklog-card" style={{ cursor: 'default' }}>{quickLog}</div>}
       </div>
+
+      {user && <ContextJournal user={user} />}
 
       {insights.length > 0 && (
         <div className="insights-preview">
