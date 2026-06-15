@@ -956,9 +956,9 @@ body {
 /* ── Supplement stock panel ───────────────────────────────── */
 .supp-stock-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 20px; }
 .supp-stock-title { font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 14px; }
-.supp-stock-grid { display: flex; flex-wrap: wrap; gap: 12px; }
-.supp-stock-item { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; min-width: 130px; display: flex; flex-direction: column; gap: 4px; transition: border-color 0.2s; }
-.supp-stock-item.low { border-color: var(--red); background: rgba(255,107,107,0.04); }
+.supp-stock-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+.supp-stock-item { background: var(--bg); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; transition: border-color 0.2s, box-shadow 0.2s; }
+.supp-stock-item.low { border-color: var(--red); box-shadow: 0 0 0 1px var(--red); background: rgba(255,107,107,0.04); }
 .supp-stock-name { font-size: 13px; font-weight: 600; }
 .supp-stock-dose { font-size: 11px; color: var(--text-muted); }
 .supp-stock-controls { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
