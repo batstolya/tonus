@@ -873,6 +873,9 @@ body {
 .settings-budget-input { width: 72px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface2); color: var(--text); font-size: 15px; }
 .settings-cal-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .settings-ics-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.cal-account-row { margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+.cal-account-row:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+.cal-account-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .btn-success { background: var(--green) !important; }
 
 /* ── Context Journal ──────────────────────────────────────── */
