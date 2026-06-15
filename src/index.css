@@ -852,6 +852,26 @@ body {
 .ai-budget-footer { display: flex; justify-content: space-between; font-size: 12px; }
 .ai-budget-remain { color: var(--text-muted); }
 
+/* ── Settings Screen ─────────────────────────────────────── */
+.settings-screen { max-width: 600px; padding: 0 0 40px; }
+.settings-screen h2 { margin-bottom: 24px; }
+.settings-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+.settings-section-title { font-size: 15px; font-weight: 600; margin: 0 0 16px; }
+.settings-budget-bar-track { height: 10px; background: var(--border); border-radius: 5px; overflow: hidden; margin-bottom: 10px; }
+.settings-budget-bar-fill { height: 100%; border-radius: 5px; transition: width 0.4s ease; }
+.settings-budget-row { display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.settings-tokens-row { font-size: 12px; margin-bottom: 16px; }
+.settings-muted { color: var(--text-muted); font-weight: 400; }
+.settings-by-source { border-top: 1px solid var(--border); padding-top: 12px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px; }
+.settings-source-row { display: flex; justify-content: space-between; font-size: 13px; }
+.settings-budget-edit-row { border-top: 1px solid var(--border); padding-top: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.settings-label { font-size: 14px; font-weight: 500; }
+.settings-budget-display { display: flex; align-items: center; gap: 12px; }
+.settings-budget-val { font-size: 18px; font-weight: 700; }
+.settings-edit-btn { font-size: 12px; color: var(--accent); background: none; border: none; cursor: pointer; text-decoration: underline; padding: 0; }
+.settings-budget-edit { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.settings-budget-input { width: 72px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface2); color: var(--text); font-size: 15px; }
+
 /* ── Context Journal ──────────────────────────────────────── */
 .context-journal {
   background: var(--surface);
