@@ -501,6 +501,8 @@ body {
 .type-btn:hover { border-color: var(--accent); color: var(--text); }
 .type-btn.active { border-color: var(--accent); background: rgba(108,143,255,0.12); color: var(--accent); font-weight: 600; }
 .quick-log-inputs { display: flex; flex-direction: column; gap: 8px; }
+.log-row { display: flex; gap: 8px; }
+.log-time { width: 100px; flex-shrink: 0; }
 .log-input {
   background: var(--surface2);
   border: 1px solid var(--border);

@@ -26,20 +26,31 @@ interface Props {
   onEventsChange: (events: IntakeEvent[]) => void
 }
 
+function nowTimeStr() {
+  const d = new Date()
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
+}
+
 export function QuickLog({ user, events, onEventsChange }: Props) {
   const [open, setOpen] = useState(false)
   const [selectedType, setSelectedType] = useState('coffee')
   const [amount, setAmount] = useState<string>('')
   const [note, setNote] = useState('')
+  const [time, setTime] = useState(nowTimeStr)
   const [saving, setSaving] = useState(false)
 
   const preset = EVENT_TYPES.find(e => e.type === selectedType)!
+
+  function buildTs() {
+    const today = new Date().toISOString().slice(0, 10)
+    return new Date(`${today}T${time}:00`).toISOString()
+  }
 
   async function handleAdd() {
     setSaving(true)
     const { data, error } = await supabase.from('intake_events').insert({
       user_id: user.id,
-      ts: new Date().toISOString(),
+      ts: buildTs(),
       type: selectedType,
       amount: amount ? Number(amount) : preset.defaultAmount,
       unit: preset.unit,
@@ -50,6 +61,7 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
       onEventsChange([data as IntakeEvent, ...events])
       setNote('')
       setAmount('')
+      setTime(nowTimeStr())
       setOpen(false)
     }
     setSaving(false)
@@ -99,15 +111,24 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
           </div>
 
           <div className="quick-log-inputs">
-            {preset.unit && (
+            <div className="log-row">
+              {preset.unit && (
+                <input
+                  type="number"
+                  placeholder={`${preset.defaultAmount ?? ''} ${preset.unit}`}
+                  value={amount}
+                  onChange={e => setAmount(e.target.value)}
+                  className="log-input"
+                  style={{ flex: 1 }}
+                />
+              )}
               <input
-                type="number"
-                placeholder={`${preset.defaultAmount ?? ''} ${preset.unit}`}
-                value={amount}
-                onChange={e => setAmount(e.target.value)}
-                className="log-input"
+                type="time"
+                value={time}
+                onChange={e => setTime(e.target.value)}
+                className="log-input log-time"
               />
-            )}
+            </div>
             <input
               type="text"
               placeholder="Заметка (необязательно)"

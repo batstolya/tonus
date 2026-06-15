@@ -8,6 +8,20 @@ export interface ChatMessage {
   created_at: string
 }
 
+export interface IntakeEvent {
+  id: string
+  ts: string
+  type: string
+  amount: number | null
+  unit: string | null
+  note: string | null
+}
+
+const EVENT_LABELS: Record<string, string> = {
+  coffee: 'Кофе', alcohol: 'Алкоголь', meal: 'Еда',
+  water: 'Вода', meds: 'Лекарства', custom: 'Другое',
+}
+
 function avg(vals: number[]): number | null {
   return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null
 }
@@ -23,6 +37,7 @@ export function buildContextSnapshot(
   daily: DailyMetrics[],
   periodDays = 30,
   labSummary?: string,
+  intakeEvents: IntakeEvent[] = [],
 ): string {
   const sorted = [...daily].sort((a, b) => a.date.localeCompare(b.date))
   const cutoff = new Date()
@@ -104,6 +119,28 @@ export function buildContextSnapshot(
 
   const energy = pick(slice, 'activeEnergy')
   if (energy.length) lines.push(`Активные калории: среднее ${Math.round(avg(energy)!)} ккал/день`)
+
+  // Intake / quick log events for the period
+  const cutoffTs = new Date(cutoffStr + 'T00:00:00').getTime()
+  const periodEvents = intakeEvents.filter(e => new Date(e.ts).getTime() >= cutoffTs)
+  if (periodEvents.length) {
+    lines.push('\n=== БЫСТРЫЙ ЛОГ (питание, кофе, лекарства) ===')
+    // Group by type and count
+    const byType: Record<string, { count: number; entries: string[] }> = {}
+    for (const ev of periodEvents) {
+      if (!byType[ev.type]) byType[ev.type] = { count: 0, entries: [] }
+      byType[ev.type].count++
+      const time = new Date(ev.ts).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+      const detail = [ev.amount ? `${ev.amount}${ev.unit ?? ''}` : '', ev.note ?? ''].filter(Boolean).join(', ')
+      byType[ev.type].entries.push(`${time}${detail ? ` (${detail})` : ''}`)
+    }
+    for (const [type, { count, entries }] of Object.entries(byType)) {
+      const label = EVENT_LABELS[type] ?? type
+      lines.push(`${label}: ${count} раз за период`)
+      // Show last 5 entries
+      entries.slice(-5).forEach(e => lines.push(`  • ${e}`))
+    }
+  }
 
   // Lab results
   if (labSummary) {
