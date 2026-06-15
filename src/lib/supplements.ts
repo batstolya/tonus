@@ -40,8 +40,9 @@ export async function addSupplement(userId: string, name: string, defaultDose?: 
   return data as Supplement | null
 }
 
-export async function updateStock(id: string, next: number): Promise<void> {
-  await supabase.from('supplements').update({ stock_count: next }).eq('id', id)
+export async function updateStock(id: string, next: number): Promise<boolean> {
+  const { error } = await supabase.from('supplements').update({ stock_count: next }).eq('id', id)
+  return !error
 }
 
 export async function deleteSupplement(id: string): Promise<void> {
