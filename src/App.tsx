@@ -360,7 +360,12 @@ export default function App() {
             googleLoading={googleLoading}
             googleConnected={googleConnected}
             lastSync={lastSync}
-            onCalEvents={e => handleEvents(e, 'ics')}
+            onNavigate={setView}
+            onCalEvents={e => handleEvents(e.map(ev => ({
+              ...ev,
+              start: ev.start instanceof Date ? ev.start : new Date(ev.start),
+              end: ev.end instanceof Date ? ev.end : new Date(ev.end),
+            })), 'cal')}
           />
         ) : null}
       </main>
