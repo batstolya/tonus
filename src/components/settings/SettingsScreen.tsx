@@ -68,7 +68,7 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
               disabled={googleLoading}
               style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
             >
-              {googleLoading ? 'Загрузка…' : googleConnected ? '✓ Синхронизировать' : 'Подключить'}
+              {googleLoading ? 'Загрузка…' : googleConnected ? '✓ Синхронизировано' : 'Подключить'}
             </button>
           </div>
         </section>
