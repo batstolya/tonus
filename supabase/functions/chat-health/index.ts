@@ -1,0 +1,131 @@
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
+const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+const MAX_HISTORY = 6 // last N messages to include verbatim
+
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, content-type',
+}
+
+const SYSTEM_PROMPT = `Ты — персональный ассистент по здоровью. Отвечаешь на русском языке.
+Твоя роль: помогать пользователю понять его данные здоровья простым языком.
+Строгие правила:
+- Никаких медицинских диагнозов. Только наблюдения на основе данных.
+- Если в данных есть тревожные значения — мягко рекомендуй обратиться к врачу.
+- Не выдумывай данные, которых нет в контексте.
+- Отвечай кратко и конкретно (2-4 предложения, если не просят подробнее).
+- Опирайся на личные тренды пользователя, а не на абсолютные нормы.`
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
+
+  try {
+    const authHeader = req.headers.get('Authorization') ?? ''
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+    const { data: { user }, error: authErr } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
+    if (authErr || !user) return new Response('Unauthorized', { status: 401, headers: CORS })
+
+    const { sessionId, message, contextSnapshot, periodLabel } = await req.json()
+    if (!message) return new Response('Missing message', { status: 400, headers: CORS })
+
+    // Load or create session
+    let session: any = null
+    if (sessionId) {
+      const { data } = await supabase.from('chat_sessions').select('*').eq('id', sessionId).single()
+      session = data
+    }
+    if (!session) {
+      const { data } = await supabase
+        .from('chat_sessions')
+        .insert({ user_id: user.id, context_snapshot: contextSnapshot ?? null })
+        .select().single()
+      session = data
+    }
+    if (!session) throw new Error('Failed to create session')
+
+    // Load recent messages for rolling context
+    const { data: history } = await supabase
+      .from('chat_messages')
+      .select('role, content')
+      .eq('session_id', session.id)
+      .order('created_at', { ascending: false })
+      .limit(MAX_HISTORY)
+
+    const recentMessages = (history ?? []).reverse()
+
+    // Save user message
+    await supabase.from('chat_messages').insert({
+      user_id: user.id,
+      session_id: session.id,
+      role: 'user',
+      content: message,
+    })
+
+    // Build context for Gemini
+    const contextText = session.context_snapshot
+      ? `\n\n=== ДАННЫЕ ПОЛЬЗОВАТЕЛЯ (${periodLabel ?? 'последний период'}) ===\n${session.context_snapshot}`
+      : ''
+
+    const geminiContents = [
+      // System context as first user message (Gemini pattern)
+      {
+        role: 'user',
+        parts: [{ text: `${SYSTEM_PROMPT}${contextText}\n\nПользователь задаёт вопрос о своих данных здоровья.` }],
+      },
+      { role: 'model', parts: [{ text: 'Понял, буду отвечать на основе твоих данных.' }] },
+      // Recent conversation history
+      ...recentMessages.map(m => ({
+        role: m.role === 'user' ? 'user' : 'model',
+        parts: [{ text: m.content }],
+      })),
+      // New message
+      { role: 'user', parts: [{ text: message }] },
+    ]
+
+    const geminiRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: geminiContents,
+          generationConfig: {
+            maxOutputTokens: 512,
+            temperature: 0.5,
+          },
+        }),
+      }
+    )
+
+    if (!geminiRes.ok) {
+      const err = await geminiRes.text()
+      throw new Error(`Gemini error: ${err}`)
+    }
+
+    const geminiData = await geminiRes.json()
+    const reply = geminiData.candidates?.[0]?.content?.parts?.[0]?.text ?? 'Не удалось получить ответ.'
+    const tokensUsed = geminiData.usageMetadata?.totalTokenCount ?? null
+
+    // Save assistant reply
+    await supabase.from('chat_messages').insert({
+      user_id: user.id,
+      session_id: session.id,
+      role: 'assistant',
+      content: reply,
+      tokens_used: tokensUsed,
+    })
+
+    // Update session updated_at
+    await supabase.from('chat_sessions').update({ updated_at: new Date().toISOString() }).eq('id', session.id)
+
+    return new Response(JSON.stringify({ reply, sessionId: session.id }), {
+      headers: { ...CORS, 'Content-Type': 'application/json' },
+    })
+  } catch (e: any) {
+    return new Response(e.message ?? 'Error', { status: 500, headers: CORS })
+  }
+})

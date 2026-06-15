@@ -10,6 +10,9 @@ import { ActivityScreen } from './components/activity/ActivityScreen'
 import { AuthScreen } from './components/auth/AuthScreen'
 import { ResetPasswordScreen } from './components/auth/ResetPasswordScreen'
 import { QuickLog } from './components/intake/QuickLog'
+import { SupplementsScreen } from './components/supplements/SupplementsScreen'
+import { LabsScreen } from './components/labs/LabsScreen'
+import { ChatWidget } from './components/chat/ChatWidget'
 import { AppLoader } from './components/ui/Spinner'
 import type { AppView } from './store/appStore'
 import type { CalendarEvent, DailyMetrics, HeartRateSample } from './types'
@@ -64,6 +67,8 @@ const NAV_ITEMS: { view: AppView; label: string; icon: string }[] = [
   { view: 'heart-rate', label: 'Пульс', icon: '📈' },
   { view: 'metrics', label: 'Показатели', icon: '📊' },
   { view: 'insights', label: 'Инсайты', icon: '💡' },
+  { view: 'supplements', label: 'Препараты', icon: '💊' },
+  { view: 'labs', label: 'Анализы', icon: '🔬' },
 ]
 
 export default function App() {
@@ -85,7 +90,6 @@ export default function App() {
   const closeSyncMenu = useCallback(() => setSyncMenuOpen(false), [])
   const closeMobileMenu = useCallback(() => setMobileMenuOpen(false), [])
 
-  // Close dropdown on outside click
   useEffect(() => {
     if (!syncMenuOpen) return
     const handler = (e: MouseEvent) => {
@@ -102,7 +106,6 @@ export default function App() {
     ? state.events
     : state.events.filter(e => e.source !== 'google')
 
-  // Load stored data on login
   useEffect(() => {
     if (!user) { setDbLoading(false); return }
     let cancelled = false
@@ -139,7 +142,6 @@ export default function App() {
   async function handleDone(daily: DailyMetrics[], samples: HeartRateSample[], filename = 'export') {
     setDaily(daily, samples)
     if (!user) return
-    // Restore calendar events from DB after new file upload
     loadCalendarEvents(user.id).then(calEvents => { if (calEvents.length > 0) setEvents(calEvents) })
     setSyncMsg('Синхронизируем…')
     try {
@@ -189,7 +191,7 @@ export default function App() {
       await handleEvents(events, 'google')
       setSyncMsg(`Загружено ${events.length} событий из Google`)
       setTimeout(() => setSyncMsg(null), 4000)
-    } catch (e: any) {
+    } catch {
       setSyncMsg('Ошибка Google Calendar')
       setTimeout(() => setSyncMsg(null), 3000)
     }
@@ -225,7 +227,6 @@ export default function App() {
             </button>
             {lastSync && <span className="sync-label">Синхр: {lastSync}</span>}
 
-            {/* Calendar sync dropdown */}
             <div className="sync-menu-wrap">
               <button className="theme-toggle" onClick={() => setSyncMenuOpen(o => !o)} title="Синхронизация календаря">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -336,9 +337,14 @@ export default function App() {
           <ActivityScreen daily={state.daily} />
         ) : state.view === 'insights' ? (
           <InsightsScreen daily={state.daily} />
+        ) : state.view === 'supplements' ? (
+          <SupplementsScreen user={user} />
+        ) : state.view === 'labs' ? (
+          <LabsScreen user={user} />
         ) : null}
       </main>
 
+      {hasData && <ChatWidget user={user} daily={state.daily} />}
     </div>
   )
 }
