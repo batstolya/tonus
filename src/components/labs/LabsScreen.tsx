@@ -109,7 +109,8 @@ export function LabsScreen({ user }: Props) {
         <div className="labs-upload-row">
           <input
             type="date"
-            className="supp-input supp-input-sm"
+            className="supp-input"
+            style={{ minWidth: 140 }}
             value={uploadDate}
             onChange={e => setUploadDate(e.target.value)}
           />
