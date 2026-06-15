@@ -28,31 +28,37 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
   const [editVal, setEditVal] = useState('')
   const [editing, setEditing] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [calToken, setCalToken] = useState('')
-  const [calLoading, setCalLoading] = useState(false)
-  const [calMsg, setCalMsg] = useState<string | null>(null)
+  interface CalAccount { label: string; token: string; loading: boolean; msg: string | null }
+  const [calAccounts, setCalAccounts] = useState<CalAccount[]>([{ label: 'Аккаунт 1', token: '', loading: false, msg: null }])
 
-  async function handleCalSync() {
-    if (!calToken.trim()) return
-    setCalLoading(true)
-    setCalMsg(null)
+  async function handleCalSync(idx: number) {
+    const token = calAccounts[idx].token.trim()
+    if (!token) return
+    setCalAccounts(prev => prev.map((a, i) => i === idx ? { ...a, loading: true, msg: null } : a))
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
       const res = await fetch(`${supabaseUrl}/functions/v1/fetch-cal`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session!.access_token}` },
-        body: JSON.stringify({ sessionToken: calToken.trim() }),
+        body: JSON.stringify({ sessionToken: token }),
       })
       if (!res.ok) throw new Error(await res.text())
       const { events, count } = await res.json()
       onCalEvents?.(events)
-      setCalMsg(`✓ Загружено ${count} событий — открываю карту стресса…`)
+      setCalAccounts(prev => prev.map((a, i) => i === idx ? { ...a, loading: false, msg: `✓ Загружено ${count} событий` } : a))
       setTimeout(() => onNavigate?.('stress-map'), 1500)
     } catch (e: any) {
-      setCalMsg(`Ошибка: ${e.message}`)
+      setCalAccounts(prev => prev.map((a, i) => i === idx ? { ...a, loading: false, msg: `Ошибка: ${e.message}` } : a))
     }
-    setCalLoading(false)
+  }
+
+  function addCalAccount() {
+    setCalAccounts(prev => [...prev, { label: `Аккаунт ${prev.length + 1}`, token: '', loading: false, msg: null }])
+  }
+
+  function removeCalAccount(idx: number) {
+    setCalAccounts(prev => prev.filter((_, i) => i !== idx))
   }
 
   useEffect(() => {
@@ -105,24 +111,37 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
       )}
 
       <section className="settings-section">
-        <h3 className="settings-section-title">📆 Cal.beskarstaff.com</h3>
-        <div className="settings-muted" style={{ marginBottom: 12, fontSize: 13, lineHeight: 1.5 }}>
-          Как получить токен: зайди на cal.beskarstaff.com → F12 → Application → Cookies → скопируй значение <b>__Secure-next-auth.session-token</b>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <h3 className="settings-section-title" style={{ margin: 0 }}>📆 Cal.beskarstaff.com</h3>
+          <button className="settings-edit-btn" onClick={addCalAccount}>+ Добавить аккаунт</button>
         </div>
-        <div className="settings-ics-row">
-          <input
-            className="log-input"
-            style={{ flex: 1, fontFamily: 'monospace', fontSize: 12 }}
-            type="password"
-            placeholder="eyJhbGci..."
-            value={calToken}
-            onChange={e => setCalToken(e.target.value)}
-          />
-          <button className="btn-primary" onClick={handleCalSync} disabled={calLoading || !calToken.trim()} style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
-            {calLoading ? 'Загрузка…' : 'Синхронизировать'}
-          </button>
+        <div className="settings-muted" style={{ marginBottom: 16, fontSize: 12, lineHeight: 1.5 }}>
+          F12 → Application → Cookies → <b>__Secure-next-auth.session-token</b>
         </div>
-        {calMsg && <div style={{ marginTop: 8, fontSize: 13, color: calMsg.startsWith('✓') ? 'var(--green)' : 'var(--red)' }}>{calMsg}</div>}
+        {calAccounts.map((acc, idx) => (
+          <div key={idx} className="cal-account-row">
+            <div className="cal-account-header">
+              <span className="settings-label">{acc.label}</span>
+              {calAccounts.length > 1 && (
+                <button className="log-delete" onClick={() => removeCalAccount(idx)}>×</button>
+              )}
+            </div>
+            <div className="settings-ics-row">
+              <input
+                className="log-input"
+                style={{ flex: 1, fontFamily: 'monospace', fontSize: 12 }}
+                type="password"
+                placeholder="eyJhbGci..."
+                value={acc.token}
+                onChange={e => setCalAccounts(prev => prev.map((a, i) => i === idx ? { ...a, token: e.target.value } : a))}
+              />
+              <button className="btn-primary" onClick={() => handleCalSync(idx)} disabled={acc.loading || !acc.token.trim()} style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
+                {acc.loading ? 'Загрузка…' : 'Синхр.'}
+              </button>
+            </div>
+            {acc.msg && <div style={{ marginTop: 6, fontSize: 12, color: acc.msg.startsWith('✓') ? 'var(--green)' : 'var(--red)' }}>{acc.msg}</div>}
+          </div>
+        ))}
       </section>
 
       <section className="settings-section">
