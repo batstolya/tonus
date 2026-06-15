@@ -642,9 +642,10 @@ body {
 @media (max-width: 960px) {
   /* Show burger, hide topbar nav + extra buttons */
   .topbar nav, .topbar-nav { display: none !important; }
-  .sync-label { display: none; }
-  .signout-btn { display: none; }
-  .theme-toggle { display: none; }
+  .sync-label { display: none !important; }
+  .signout-btn { display: none !important; }
+  .theme-toggle { display: none !important; }
+  .sync-menu-wrap { display: none !important; }
   .burger-btn { display: flex !important; }
   .mobile-menu-overlay { display: block; }
 
