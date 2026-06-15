@@ -312,6 +312,14 @@ export function Dashboard({ daily, events, onNavigate, user, quickLog }: Props) 
         {quickLog && <div className="metric-card quicklog-card" style={{ cursor: 'default' }}>{quickLog}</div>}
       </div>
 
+      <nav className="dash-nav">
+        <button onClick={() => onNavigate('heart-rate')}>Пульс →</button>
+        <button onClick={() => onNavigate('metrics')}>Показатели →</button>
+        <button onClick={() => onNavigate('stress-map')}>Стресс →</button>
+        <button onClick={() => onNavigate('sleep')}>Сон →</button>
+        <button onClick={() => onNavigate('insights')}>Инсайты →</button>
+      </nav>
+
       {user && <ContextJournal user={user} />}
 
       {insights.length > 0 && (
@@ -325,14 +333,6 @@ export function Dashboard({ daily, events, onNavigate, user, quickLog }: Props) 
           ))}
         </div>
       )}
-
-      <nav className="dash-nav">
-        <button onClick={() => onNavigate('heart-rate')}>Пульс →</button>
-        <button onClick={() => onNavigate('metrics')}>Показатели →</button>
-        <button onClick={() => onNavigate('stress-map')}>Стресс →</button>
-        <button onClick={() => onNavigate('sleep')}>Сон →</button>
-        <button onClick={() => onNavigate('insights')}>Инсайты →</button>
-      </nav>
 
       {user && <AiAnalysisBlock daily={daily} userId={user.id} />}
     </div>
