@@ -143,6 +143,24 @@ export function buildContextSnapshot(
     }
   }
 
+  // Weekly breakdown for trend comparison
+  if (slice.length >= 14) {
+    lines.push('\n=== ПОНЕДЕЛЬНАЯ РАЗБИВКА ===')
+    const weeks: DailyMetrics[][] = []
+    for (let i = 0; i < slice.length; i += 7) weeks.push(slice.slice(i, i + 7))
+    weeks.forEach((wk, idx) => {
+      const label = idx === weeks.length - 1 ? 'Последняя неделя' : idx === weeks.length - 2 ? 'Предыдущая неделя' : `Неделя ${idx + 1}`
+      const wRhr = pick(wk, 'restingHeartRate'); const wHrv = pick(wk, 'hrv')
+      const wSlp = pick(wk, 'sleepHours'); const wStp = pick(wk, 'steps')
+      const parts: string[] = []
+      if (wRhr.length) parts.push(`ЧСС ${avg(wRhr)!.toFixed(0)}`)
+      if (wHrv.length) parts.push(`HRV ${avg(wHrv)!.toFixed(0)}мс`)
+      if (wSlp.length) parts.push(`сон ${avg(wSlp)!.toFixed(1)}ч`)
+      if (wStp.length) parts.push(`шаги ${Math.round(avg(wStp)!).toLocaleString()}`)
+      lines.push(`${label} (${wk[0].date}…${wk[wk.length-1].date}): ${parts.join(', ')}`)
+    })
+  }
+
   if (supplementSummary) {
     lines.push('\n=== ПРЕПАРАТЫ И ДОБАВКИ ===')
     lines.push(supplementSummary)
