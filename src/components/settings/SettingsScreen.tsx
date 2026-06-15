@@ -3,7 +3,6 @@ import type { User } from '@supabase/supabase-js'
 import type { CalendarEvent } from '../../types'
 import { loadMonthUsage, loadBudget, saveBudget } from '../../lib/aiUsage'
 import { supabase } from '../../lib/supabase'
-import { parseICS } from '../../parsers/icsParser'
 
 interface Props {
   user: User
@@ -28,37 +27,30 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
   const [editVal, setEditVal] = useState('')
   const [editing, setEditing] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [icsUrl, setIcsUrl] = useState('')
-  const [icsLoading, setIcsLoading] = useState(false)
-  const [icsMsg, setIcsMsg] = useState<string | null>(null)
+  const [calToken, setCalToken] = useState('')
+  const [calLoading, setCalLoading] = useState(false)
+  const [calMsg, setCalMsg] = useState<string | null>(null)
 
-  useEffect(() => {
-    // Load saved ICS url
-    supabase.from('profiles').select('cal_ics_url').eq('id', user.id).single()
-      .then(({ data }) => { if (data?.cal_ics_url) setIcsUrl(data.cal_ics_url) })
-  }, [user.id])
-
-  async function handleIcsSync() {
-    if (!icsUrl.trim()) return
-    setIcsLoading(true)
-    setIcsMsg(null)
+  async function handleCalSync() {
+    if (!calToken.trim()) return
+    setCalLoading(true)
+    setCalMsg(null)
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
-      const res = await fetch(`${supabaseUrl}/functions/v1/fetch-ics`, {
+      const res = await fetch(`${supabaseUrl}/functions/v1/fetch-cal`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session!.access_token}` },
-        body: JSON.stringify({ url: icsUrl.trim() }),
+        body: JSON.stringify({ sessionToken: calToken.trim() }),
       })
       if (!res.ok) throw new Error(await res.text())
-      const { ics } = await res.json()
-      const events = parseICS(ics)
+      const { events, count } = await res.json()
       onCalEvents?.(events)
-      setIcsMsg(`✓ Загружено ${events.length} событий`)
+      setCalMsg(`✓ Загружено ${count} событий из Cal.com`)
     } catch (e: any) {
-      setIcsMsg(`Ошибка: ${e.message}`)
+      setCalMsg(`Ошибка: ${e.message}`)
     }
-    setIcsLoading(false)
+    setCalLoading(false)
   }
 
   useEffect(() => {
@@ -111,24 +103,24 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
       )}
 
       <section className="settings-section">
-        <h3 className="settings-section-title">📆 Cal.com / ICS фид</h3>
-        <div className="settings-label" style={{ marginBottom: 8 }}>
-          URL фида (.ics) — найди в cal.com: Settings → Calendars → Calendar Feed
+        <h3 className="settings-section-title">📆 Cal.beskarstaff.com</h3>
+        <div className="settings-muted" style={{ marginBottom: 12, fontSize: 13, lineHeight: 1.5 }}>
+          Как получить токен: зайди на cal.beskarstaff.com → F12 → Application → Cookies → скопируй значение <b>__Secure-next-auth.session-token</b>
         </div>
         <div className="settings-ics-row">
           <input
             className="log-input"
-            style={{ flex: 1 }}
-            type="url"
-            placeholder="https://cal.com/username/feed.ics?apiKey=..."
-            value={icsUrl}
-            onChange={e => setIcsUrl(e.target.value)}
+            style={{ flex: 1, fontFamily: 'monospace', fontSize: 12 }}
+            type="password"
+            placeholder="eyJhbGci..."
+            value={calToken}
+            onChange={e => setCalToken(e.target.value)}
           />
-          <button className="btn-primary" onClick={handleIcsSync} disabled={icsLoading || !icsUrl.trim()} style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
-            {icsLoading ? 'Загрузка…' : 'Синхронизировать'}
+          <button className="btn-primary" onClick={handleCalSync} disabled={calLoading || !calToken.trim()} style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
+            {calLoading ? 'Загрузка…' : 'Синхронизировать'}
           </button>
         </div>
-        {icsMsg && <div style={{ marginTop: 8, fontSize: 13, color: icsMsg.startsWith('✓') ? 'var(--green)' : 'var(--red)' }}>{icsMsg}</div>}
+        {calMsg && <div style={{ marginTop: 8, fontSize: 13, color: calMsg.startsWith('✓') ? 'var(--green)' : 'var(--red)' }}>{calMsg}</div>}
       </section>
 
       <section className="settings-section">
