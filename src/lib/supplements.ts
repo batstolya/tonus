@@ -9,6 +9,7 @@ export interface Supplement {
   active: boolean
   sort_order: number
   created_at: string
+  stock_count: number | null
 }
 
 export interface SupplementLog {
@@ -37,6 +38,17 @@ export async function addSupplement(userId: string, name: string, defaultDose?: 
     .select()
     .single()
   return data as Supplement | null
+}
+
+export async function updateStock(id: string, delta: number, absolute?: number): Promise<number | null> {
+  if (absolute !== undefined) {
+    const { data } = await supabase.from('supplements').update({ stock_count: absolute }).eq('id', id).select('stock_count').single()
+    return (data as any)?.stock_count ?? null
+  }
+  const { data: cur } = await supabase.from('supplements').select('stock_count').eq('id', id).single()
+  const next = Math.max(0, ((cur as any)?.stock_count ?? 0) + delta)
+  await supabase.from('supplements').update({ stock_count: next }).eq('id', id)
+  return next
 }
 
 export async function deleteSupplement(id: string): Promise<void> {
