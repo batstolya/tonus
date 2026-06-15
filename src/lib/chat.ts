@@ -194,7 +194,7 @@ export async function sendChatMessage(
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) throw new Error('Не авторизован')
 
-  const supabaseUrl = (supabase as any).supabaseUrl as string
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
   const res = await fetch(`${supabaseUrl}/functions/v1/chat-health`, {
     method: 'POST',
     headers: {

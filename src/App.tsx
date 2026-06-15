@@ -350,6 +350,7 @@ export default function App() {
             googleLoading={googleLoading}
             googleConnected={googleConnected}
             lastSync={lastSync}
+            onCalEvents={e => handleEvents(e, 'ics')}
           />
         ) : null}
       </main>

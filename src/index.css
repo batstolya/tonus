@@ -872,6 +872,7 @@ body {
 .settings-budget-edit { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .settings-budget-input { width: 72px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface2); color: var(--text); font-size: 15px; }
 .settings-cal-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.settings-ics-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .btn-success { background: var(--green) !important; }
 
 /* ── Context Journal ──────────────────────────────────────── */
