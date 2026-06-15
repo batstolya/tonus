@@ -47,6 +47,7 @@ export function SupplementsScreen({ user }: Props) {
   const [showForm, setShowForm] = useState(false)
   const [editingStock, setEditingStock] = useState<string | null>(null)
   const [stockInput, setStockInput] = useState('')
+  const [stockError, setStockError] = useState<string | null>(null)
 
   const days = getDaysInMonth(year, month)
   const todayStr = toDateStr(now)
@@ -82,14 +83,16 @@ export function SupplementsScreen({ user }: Props) {
     const sup = supplements.find(s => s.id === id)!
     const next = Math.max(0, (sup.stock_count ?? 0) + delta)
     setSupplements(prev => prev.map(s => s.id === id ? { ...s, stock_count: next } : s))
-    await updateStock(id, next)
+    const ok = await updateStock(id, next)
+    if (!ok) setStockError('Запусти SQL: alter table supplements add column if not exists stock_count integer default null;')
   }
 
   async function handleStockSet(id: string) {
     const val = parseInt(stockInput)
     if (!isNaN(val) && val >= 0) {
       setSupplements(prev => prev.map(s => s.id === id ? { ...s, stock_count: val } : s))
-      await updateStock(id, val)
+      const ok = await updateStock(id, val)
+      if (!ok) setStockError('Запусти SQL: alter table supplements add column if not exists stock_count integer default null;')
     }
     setEditingStock(null)
     setStockInput('')
@@ -163,6 +166,14 @@ export function SupplementsScreen({ user }: Props) {
 
       {supplements.length === 0 && !showForm && (
         <p className="empty-hint">Нет препаратов. Нажми «+ Добавить» чтобы начать.</p>
+      )}
+
+      {stockError && (
+        <div className="auth-error" style={{ marginBottom: 12, fontSize: 13 }}>
+          ⚠️ Колонка не найдена в БД. Запусти в Supabase SQL Editor:<br/>
+          <code style={{ fontSize: 11 }}>alter table supplements add column if not exists stock_count integer default null;</code>
+          <button style={{ marginLeft: 8, fontSize: 11, cursor: 'pointer' }} onClick={() => setStockError(null)}>✕</button>
+        </div>
       )}
 
       {supplements.length > 0 && (
