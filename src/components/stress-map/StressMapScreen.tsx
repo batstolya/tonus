@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import type { HeartRateSample, CalendarEvent } from '../../types'
 import { buildStressMap } from '../../utils/stressMap'
 import { parseICS } from '../../parsers/icsParser'
@@ -18,8 +18,15 @@ function fmtDate(d: Date): string {
   return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
+type SortMode = 'stress' | 'date'
+
 export function StressMapScreen({ heartRateSamples, events, onEvents, onGoogleCalendar, googleConnected = false, showGoogle = true, onToggleGoogle }: Props) {
-  const entries = useMemo(() => buildStressMap(events, heartRateSamples), [events, heartRateSamples])
+  const [sortMode, setSortMode] = useState<SortMode>('stress')
+  const rawEntries = useMemo(() => buildStressMap(events, heartRateSamples), [events, heartRateSamples])
+  const entries = useMemo(() => {
+    if (sortMode === 'date') return [...rawEntries].sort((a, b) => b.event.start.getTime() - a.event.start.getTime())
+    return rawEntries
+  }, [rawEntries, sortMode])
   const icsRef = useRef<HTMLInputElement>(null)
   const calRef = useRef<HTMLInputElement>(null)
 
@@ -73,14 +80,24 @@ export function StressMapScreen({ heartRateSamples, events, onEvents, onGoogleCa
             Физическая активность помечена отдельно.
           </p>
         </div>
-        {googleConnected && onToggleGoogle && (
-          <label className="source-toggle">
-            <span className="source-toggle-label">Google Календарь</span>
-            <div className={`toggle-switch${showGoogle ? ' on' : ''}`} onClick={() => onToggleGoogle(!showGoogle)}>
-              <div className="toggle-thumb" />
-            </div>
-          </label>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+          <div className="stress-sort-tabs">
+            <button className={`stress-sort-btn${sortMode === 'stress' ? ' active' : ''}`} onClick={() => setSortMode('stress')}>
+              По стрессу
+            </button>
+            <button className={`stress-sort-btn${sortMode === 'date' ? ' active' : ''}`} onClick={() => setSortMode('date')}>
+              По дате
+            </button>
+          </div>
+          {googleConnected && onToggleGoogle && (
+            <label className="source-toggle">
+              <span className="source-toggle-label">Google Календарь</span>
+              <div className={`toggle-switch${showGoogle ? ' on' : ''}`} onClick={() => onToggleGoogle(!showGoogle)}>
+                <div className="toggle-thumb" />
+              </div>
+            </label>
+          )}
+        </div>
       </div>
 
       <div className="stress-list">

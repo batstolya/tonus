@@ -578,6 +578,9 @@ body {
 
 .stress-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 4px; }
 .stress-header h2 { margin-bottom: 4px; }
+.stress-sort-tabs { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 3px; gap: 2px; }
+.stress-sort-btn { background: none; border: none; padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--text-muted); cursor: pointer; transition: background 0.15s, color 0.15s; white-space: nowrap; }
+.stress-sort-btn.active { background: var(--accent); color: #fff; }
 
 .source-toggle { display: flex; align-items: center; gap: 10px; cursor: pointer; flex-shrink: 0; margin-top: 8px; }
 .source-toggle-label { font-size: 13px; color: var(--text-muted); white-space: nowrap; }
