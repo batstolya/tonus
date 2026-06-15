@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import type { User } from '@supabase/supabase-js'
 import type { DailyMetrics } from '../../types'
-import { sendChatMessage, buildContextSnapshot, loadLabSummary, type ChatMessage, type IntakeEvent } from '../../lib/chat'
+import { sendChatMessage, buildContextSnapshot, loadLabSummary, loadSupplementSummary, type ChatMessage, type IntakeEvent } from '../../lib/chat'
 
 interface Props {
   user: User
@@ -36,22 +36,26 @@ export function ChatWidget({ user, daily, intakeEvents = [] }: Props) {
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [snapshot, setSnapshot] = useState<string | null>(null)
   const [labSummary, setLabSummary] = useState<string>('')
+  const [supplementSummary, setSupplementSummary] = useState<string>('')
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
-  // Load lab summary once on mount
   useEffect(() => {
     loadLabSummary(user.id).then(setLabSummary)
   }, [user.id])
 
-  // Rebuild snapshot when period, data, lab summary, or intake events change
+  // Rebuild snapshot when period changes (also reloads supplement compliance for the new period)
   useEffect(() => {
     const days = period === '14d' ? 14 : period === '30d' ? 30 : 90
-    setSnapshot(daily.length ? buildContextSnapshot(daily, days, labSummary || undefined, intakeEvents) : null)
-    // Reset session when period changes so new context is sent
+    loadSupplementSummary(user.id, days).then(setSupplementSummary)
+  }, [user.id, period])
+
+  useEffect(() => {
+    const days = period === '14d' ? 14 : period === '30d' ? 30 : 90
+    setSnapshot(daily.length ? buildContextSnapshot(daily, days, labSummary || undefined, intakeEvents, supplementSummary || undefined) : null)
     setSessionId(null)
     setMessages([])
-  }, [period, daily, labSummary, intakeEvents])
+  }, [period, daily, labSummary, intakeEvents, supplementSummary])
 
   useEffect(() => {
     if (open) {

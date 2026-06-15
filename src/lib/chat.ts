@@ -38,6 +38,7 @@ export function buildContextSnapshot(
   periodDays = 30,
   labSummary?: string,
   intakeEvents: IntakeEvent[] = [],
+  supplementSummary?: string,
 ): string {
   const sorted = [...daily].sort((a, b) => a.date.localeCompare(b.date))
   const cutoff = new Date()
@@ -142,11 +143,55 @@ export function buildContextSnapshot(
     }
   }
 
+  if (supplementSummary) {
+    lines.push('\n=== ПРЕПАРАТЫ И ДОБАВКИ ===')
+    lines.push(supplementSummary)
+  }
+
   // Lab results
   if (labSummary) {
     lines.push('\n=== РЕЗУЛЬТАТЫ АНАЛИЗОВ ===')
     lines.push(labSummary)
   }
+
+  return lines.join('\n')
+}
+
+export async function loadSupplementSummary(userId: string, periodDays: number): Promise<string> {
+  const { data: sups } = await supabase
+    .from('supplements')
+    .select('id, name, default_dose, unit')
+    .eq('user_id', userId)
+    .eq('active', true)
+
+  if (!sups || !sups.length) return ''
+
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() - periodDays)
+  const start = cutoff.toISOString().slice(0, 10)
+  const end = new Date().toISOString().slice(0, 10)
+
+  const { data: logs } = await supabase
+    .from('supplement_logs')
+    .select('supplement_id, date, taken')
+    .eq('user_id', userId)
+    .gte('date', start)
+    .lte('date', end)
+    .eq('taken', true)
+
+  const logSet = new Set((logs ?? []).map((l: any) => `${l.supplement_id}:${l.date}`))
+
+  // count days in period
+  const days: string[] = []
+  const d = new Date(cutoff)
+  while (d <= new Date()) { days.push(d.toISOString().slice(0, 10)); d.setDate(d.getDate() + 1) }
+
+  const lines = sups.map((s: any) => {
+    const taken = days.filter(day => logSet.has(`${s.id}:${day}`)).length
+    const pct = days.length ? Math.round((taken / days.length) * 100) : 0
+    const dose = s.default_dose ? ` ${s.default_dose}${s.unit ? ' ' + s.unit : ''}` : ''
+    return `${s.name}${dose}: принято ${taken}/${days.length} дней (${pct}%)`
+  })
 
   return lines.join('\n')
 }
