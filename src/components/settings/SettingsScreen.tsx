@@ -2,7 +2,13 @@ import { useState, useEffect } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { loadMonthUsage, loadBudget, saveBudget } from '../../lib/aiUsage'
 
-interface Props { user: User }
+interface Props {
+  user: User
+  onGoogleSync?: () => void
+  googleLoading?: boolean
+  googleConnected?: boolean
+  lastSync?: string | null
+}
 
 const SOURCE_LABELS: Record<string, string> = {
   chat: '💬 Чат',
@@ -10,7 +16,7 @@ const SOURCE_LABELS: Record<string, string> = {
   'extract-lab': '🔬 OCR анализов',
 }
 
-export function SettingsScreen({ user }: Props) {
+export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnected, lastSync }: Props) {
   const [cost, setCost] = useState<number | null>(null)
   const [tokens, setTokens] = useState(0)
   const [bySource, setBySource] = useState<Record<string, number>>({})
@@ -47,6 +53,26 @@ export function SettingsScreen({ user }: Props) {
   return (
     <div className="settings-screen">
       <h2>Настройки</h2>
+
+      {onGoogleSync && (
+        <section className="settings-section">
+          <h3 className="settings-section-title">📅 Google Calendar</h3>
+          <div className="settings-cal-row">
+            <div>
+              <div className="settings-label">Загрузить события из Google Calendar</div>
+              {lastSync && <div className="settings-muted" style={{ fontSize: 12, marginTop: 4 }}>Последняя синхронизация: {lastSync}</div>}
+            </div>
+            <button
+              className={`btn-primary ${googleConnected ? 'btn-success' : ''}`}
+              onClick={onGoogleSync}
+              disabled={googleLoading}
+              style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+            >
+              {googleLoading ? 'Загрузка…' : googleConnected ? '✓ Синхронизировать' : 'Подключить'}
+            </button>
+          </div>
+        </section>
+      )}
 
       <section className="settings-section">
         <h3 className="settings-section-title">🤖 AI расходы — {monthName}</h3>

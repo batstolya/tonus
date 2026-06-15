@@ -344,7 +344,13 @@ export default function App() {
         ) : state.view === 'labs' ? (
           <LabsScreen user={user} />
         ) : state.view === 'settings' ? (
-          <SettingsScreen user={user} />
+          <SettingsScreen
+            user={user}
+            onGoogleSync={isGoogleCalendarAvailable() ? handleGoogleCalendar : undefined}
+            googleLoading={googleLoading}
+            googleConnected={googleConnected}
+            lastSync={lastSync}
+          />
         ) : null}
       </main>
 
