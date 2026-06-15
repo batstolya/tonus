@@ -95,7 +95,7 @@ serve(async (req) => {
         body: JSON.stringify({
           contents: geminiContents,
           generationConfig: {
-            maxOutputTokens: 512,
+            maxOutputTokens: 1024,
             temperature: 0.5,
           },
         }),
