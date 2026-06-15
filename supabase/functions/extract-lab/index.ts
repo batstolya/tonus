@@ -57,6 +57,10 @@ serve(async (req) => {
 
       const geminiData = await geminiRes.json()
       extractedText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+      const tokensUsed = geminiData.usageMetadata?.totalTokenCount ?? null
+      if (tokensUsed) {
+        await supabase.from('ai_usage').insert({ user_id: user.id, source: 'extract-lab', tokens_used: tokensUsed })
+      }
     }
 
     // Parse biomarkers from the response
