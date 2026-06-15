@@ -28,37 +28,6 @@ import { saveCalendarEvents, loadCalendarEvents } from './lib/calendarSync'
 import { connectGoogleCalendar, isGoogleCalendarAvailable } from './lib/googleCalendar'
 import './index.css'
 
-function CalJSONUploadButton({ onEvents }: { onEvents: (e: CalendarEvent[]) => void }) {
-  const ref = useRef<HTMLInputElement>(null)
-  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    file.text().then(text => { try { onEvents(parseCalBookings(text)) } catch { /* ignore */ } })
-    e.target.value = ''
-  }
-  return (
-    <>
-      <input ref={ref} type="file" accept=".json" style={{ display: 'none' }} onChange={handleChange} />
-      <button className="nav-btn" onClick={() => ref.current?.click()}>📋 Cal.com</button>
-    </>
-  )
-}
-
-function ICSUploadButton({ onEvents }: { onEvents: (e: CalendarEvent[]) => void }) {
-  const ref = useRef<HTMLInputElement>(null)
-  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    file.text().then(text => { try { onEvents(parseICS(text)) } catch { /* ignore */ } })
-    e.target.value = ''
-  }
-  return (
-    <>
-      <input ref={ref} type="file" accept=".ics" style={{ display: 'none' }} onChange={handleChange} />
-      <button className="nav-btn" onClick={() => ref.current?.click()}>📅 .ics</button>
-    </>
-  )
-}
 
 const NAV_ITEMS: { view: AppView; label: string; icon: string }[] = [
   { view: 'dashboard', label: 'Дашборд', icon: '⊞' },
@@ -88,7 +57,6 @@ export default function App() {
     try { return JSON.parse(localStorage.getItem('cal_sync_times') ?? '{}') } catch { return {} }
   })
 
-  const closeSyncMenu = useCallback(() => setSyncMenuOpen(false), [])
   const closeMobileMenu = useCallback(() => setMobileMenuOpen(false), [])
 
   useEffect(() => {
