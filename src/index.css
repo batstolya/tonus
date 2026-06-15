@@ -767,6 +767,33 @@ body {
 .r-bar-track { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
 .r-bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
 
+/* ── Stress Days Card ─────────────────────────────────────── */
+.stress-days-card {
+  display: flex;
+  align-items: stretch;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+.sd-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+}
+.sd-item.sd-bad { background: rgba(255, 107, 107, 0.05); }
+.sd-item.sd-good { background: rgba(91, 200, 150, 0.05); }
+.sd-icon { font-size: 24px; flex-shrink: 0; }
+.sd-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 2px; }
+.sd-date { font-size: 15px; font-weight: 700; color: var(--text); }
+.sd-hrv { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.sd-item.sd-bad .sd-date { color: var(--red); }
+.sd-item.sd-good .sd-date { color: var(--green); }
+.sd-divider { width: 1px; background: var(--border); flex-shrink: 0; }
+
 /* ── Early Warning ────────────────────────────────────────── */
 .early-warning {
   display: flex;

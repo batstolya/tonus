@@ -8,15 +8,22 @@ export interface ChatMessage {
   created_at: string
 }
 
-// Build compact context snapshot to send once per session
 function avg(vals: number[]): number | null {
   return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null
 }
 function pick(days: DailyMetrics[], key: keyof DailyMetrics): number[] {
   return days.map(d => d[key] as number | null).filter((v): v is number => v != null)
 }
+function fmtTime(iso: string): string {
+  const d = new Date(iso)
+  return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+}
 
-export function buildContextSnapshot(daily: DailyMetrics[], periodDays = 30): string {
+export function buildContextSnapshot(
+  daily: DailyMetrics[],
+  periodDays = 30,
+  labSummary?: string,
+): string {
   const sorted = [...daily].sort((a, b) => a.date.localeCompare(b.date))
   const slice = sorted.slice(-periodDays)
   if (!slice.length) return 'Данных нет.'
@@ -29,6 +36,7 @@ export function buildContextSnapshot(daily: DailyMetrics[], periodDays = 30): st
   const hrv = pick(slice, 'hrv')
   if (hrv.length) lines.push(`HRV: среднее ${avg(hrv)?.toFixed(0)} мс`)
 
+  // Sleep with bedtime and wake time
   const sleep = pick(slice, 'sleepHours')
   if (sleep.length) {
     const a = avg(sleep)!
@@ -36,11 +44,47 @@ export function buildContextSnapshot(daily: DailyMetrics[], periodDays = 30): st
     lines.push(`Сон: среднее ${a.toFixed(1)} ч, ночей с ≥7ч: ${good}/${sleep.length}`)
   }
 
+  const bedtimes = slice.filter(d => d.sleepBedtime).map(d => {
+    const dt = new Date(d.sleepBedtime!)
+    let h = dt.getHours() + dt.getMinutes() / 60
+    if (h < 12) h += 24 // normalize late night past midnight
+    return h
+  })
+  if (bedtimes.length) {
+    const avgBed = avg(bedtimes)!
+    const h = Math.floor(avgBed % 24)
+    const m = Math.round((avgBed % 1) * 60)
+    lines.push(`Среднее время засыпания: ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`)
+  }
+
+  const wakes = slice.filter(d => d.sleepWakeTime).map(d => {
+    const dt = new Date(d.sleepWakeTime!)
+    return dt.getHours() + dt.getMinutes() / 60
+  })
+  if (wakes.length) {
+    const avgWake = avg(wakes)!
+    const h = Math.floor(avgWake)
+    const m = Math.round((avgWake % 1) * 60)
+    lines.push(`Среднее время пробуждения: ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`)
+  }
+
+  // Last 5 bedtime/wake entries for detail
+  const recentSleep = slice.filter(d => d.sleepBedtime || d.sleepWakeTime).slice(-5)
+  if (recentSleep.length) {
+    lines.push('\nПоследние записи сна:')
+    recentSleep.forEach(d => {
+      const bed = d.sleepBedtime ? fmtTime(d.sleepBedtime) : '—'
+      const wake = d.sleepWakeTime ? fmtTime(d.sleepWakeTime) : '—'
+      const dur = d.sleepHours ? `${d.sleepHours.toFixed(1)}ч` : '—'
+      lines.push(`  ${d.date}: засыпание ${bed}, пробуждение ${wake}, длительность ${dur}`)
+    })
+  }
+
   const steps = pick(slice, 'steps')
   if (steps.length) {
     const a = avg(steps)!
     const goal = steps.filter(v => v >= 8000).length
-    lines.push(`Шаги: среднее ${Math.round(a).toLocaleString()}/день, дней с 8к+: ${goal}/${steps.length}`)
+    lines.push(`\nШаги: среднее ${Math.round(a).toLocaleString()}/день, дней с 8к+: ${goal}/${steps.length}`)
   }
 
   const spo2 = pick(slice, 'oxygenSaturation')
@@ -49,7 +93,47 @@ export function buildContextSnapshot(daily: DailyMetrics[], periodDays = 30): st
   const energy = pick(slice, 'activeEnergy')
   if (energy.length) lines.push(`Активные калории: среднее ${Math.round(avg(energy)!)} ккал/день`)
 
+  // Lab results
+  if (labSummary) {
+    lines.push('\n=== РЕЗУЛЬТАТЫ АНАЛИЗОВ ===')
+    lines.push(labSummary)
+  }
+
   return lines.join('\n')
+}
+
+export async function loadLabSummary(userId: string): Promise<string> {
+  const { data } = await supabase
+    .from('lab_results')
+    .select('marker, value, unit, date')
+    .eq('user_id', userId)
+    .order('date', { ascending: false })
+    .limit(50)
+
+  if (!data || !data.length) return ''
+
+  // Group by marker, show latest value + trend
+  const byMarker: Record<string, { date: string; value: number; unit: string | null }[]> = {}
+  for (const r of data) {
+    if (!byMarker[r.marker]) byMarker[r.marker] = []
+    byMarker[r.marker].push(r)
+  }
+
+  const summaryLines: string[] = []
+  for (const [marker, entries] of Object.entries(byMarker)) {
+    const latest = entries[0]
+    const unit = latest.unit ? ` ${latest.unit}` : ''
+    if (entries.length >= 2) {
+      const prev = entries[1]
+      const delta = latest.value - prev.value
+      const sign = delta > 0 ? '+' : ''
+      summaryLines.push(`${marker}: ${latest.value}${unit} (${latest.date}, ${sign}${delta.toFixed(1)} vs ${prev.date})`)
+    } else {
+      summaryLines.push(`${marker}: ${latest.value}${unit} (${latest.date})`)
+    }
+  }
+
+  return summaryLines.join('\n')
 }
 
 export async function sendChatMessage(
