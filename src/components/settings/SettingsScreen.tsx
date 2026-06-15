@@ -32,6 +32,48 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
   const [calToken, setCalToken] = useState('')
   const [calLoading, setCalLoading] = useState(false)
   const [calMsg, setCalMsg] = useState<string | null>(null)
+  const [tgLinked, setTgLinked] = useState(false)
+  const [tgUsername, setTgUsername] = useState<string | null>(null)
+  const [tgLinking, setTgLinking] = useState(false)
+  const [tgMsg, setTgMsg] = useState<string | null>(null)
+
+  useEffect(() => {
+    supabase.from('telegram_links').select('telegram_chat_id, telegram_username, status')
+      .eq('user_id', user.id).eq('status', 'active').maybeSingle()
+      .then(({ data }) => {
+        if (data) { setTgLinked(true); setTgUsername(data.telegram_username) }
+      })
+  }, [user.id])
+
+  async function handleTgConnect() {
+    setTgLinking(true)
+    setTgMsg(null)
+    try {
+      const token = crypto.randomUUID().replace(/-/g, '').slice(0, 16)
+      const expires = new Date(Date.now() + 10 * 60 * 1000).toISOString()
+      await supabase.from('telegram_link_tokens').insert({ token, user_id: user.id, expires_at: expires })
+      const botName = import.meta.env.VITE_TELEGRAM_BOT_NAME ?? 'tonus_health_bot'
+      const url = `https://t.me/${botName}?start=${token}`
+      window.open(url, '_blank')
+      setTgMsg('Открыли Telegram. После нажатия Start аккаунт привяжется автоматически.')
+      // Poll for 60s
+      const interval = setInterval(async () => {
+        const { data } = await supabase.from('telegram_links').select('telegram_username').eq('user_id', user.id).eq('status', 'active').maybeSingle()
+        if (data) { setTgLinked(true); setTgUsername(data.telegram_username); setTgMsg(null); clearInterval(interval) }
+      }, 3000)
+      setTimeout(() => clearInterval(interval), 60000)
+    } catch (e: any) {
+      setTgMsg(`Ошибка: ${e.message}`)
+    }
+    setTgLinking(false)
+  }
+
+  async function handleTgDisconnect() {
+    await supabase.from('telegram_links').update({ status: 'paused' }).eq('user_id', user.id)
+    setTgLinked(false)
+    setTgUsername(null)
+    setTgMsg('Telegram отключён.')
+  }
 
   async function handleCalSync() {
     const token = calToken.trim()
@@ -86,6 +128,34 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
   return (
     <div className="settings-screen">
       <h2>Настройки</h2>
+
+      <section className="settings-section">
+        <h3 className="settings-section-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: 8 }}><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          Telegram
+        </h3>
+        <div className="settings-cal-row">
+          <div>
+            {tgLinked
+              ? <div className="settings-label">✓ Подключён{tgUsername ? ` (@${tgUsername})` : ''}</div>
+              : <div className="settings-label">Получать двухнедельные отчёты в Telegram</div>
+            }
+            <div className="settings-muted" style={{ fontSize: 12, marginTop: 4 }}>
+              {tgLinked ? 'Команды: /report /last /status /pause' : 'Нажми — откроется бот, нажми Start'}
+            </div>
+          </div>
+          {tgLinked ? (
+            <button className="btn-secondary" onClick={handleTgDisconnect} style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
+              Отключить
+            </button>
+          ) : (
+            <button className="btn-primary" onClick={handleTgConnect} disabled={tgLinking} style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
+              {tgLinking ? 'Открываем…' : 'Подключить Telegram'}
+            </button>
+          )}
+        </div>
+        {tgMsg && <div style={{ marginTop: 8, fontSize: 13, color: tgMsg.startsWith('Ошибка') ? 'var(--red)' : 'var(--text-muted)' }}>{tgMsg}</div>}
+      </section>
 
       {onGoogleSync && (
         <section className="settings-section">
