@@ -6,7 +6,6 @@ import { generateInsights } from '../../utils/insights'
 import { AiAnalysisBlock } from './AiAnalysisBlock'
 import { computeReadiness, computeEarlyWarning } from '../../lib/readiness'
 import { loadTodayNote, saveNote } from '../../lib/contextNotes'
-import { loadMonthUsage, loadBudget, saveBudget } from '../../lib/aiUsage'
 
 interface Props {
   daily: DailyMetrics[]
@@ -169,70 +168,6 @@ function EarlyWarningBanner({ daily }: { daily: DailyMetrics[] }) {
   )
 }
 
-function AiBudgetWidget({ user }: { user: User }) {
-  const [cost, setCost] = useState<number | null>(null)
-  const [budget, setBudget] = useState<number>(5)
-  const [editing, setEditing] = useState(false)
-  const [editVal, setEditVal] = useState('')
-
-  useEffect(() => {
-    loadMonthUsage(user.id).then(u => setCost(u.costUsd))
-    loadBudget(user.id).then(setBudget)
-  }, [user.id])
-
-  async function handleSaveBudget() {
-    const val = parseFloat(editVal)
-    if (!isNaN(val) && val > 0) {
-      await saveBudget(user.id, val)
-      setBudget(val)
-    }
-    setEditing(false)
-  }
-
-  if (cost === null) return null
-
-  const pct = Math.min((cost / budget) * 100, 100)
-  const color = pct >= 90 ? 'var(--red)' : pct >= 60 ? 'var(--yellow, #f59e0b)' : 'var(--green)'
-  const now = new Date()
-  const monthName = now.toLocaleDateString('ru-RU', { month: 'long' })
-
-  return (
-    <div className="ai-budget-widget">
-      <div className="ai-budget-header">
-        <span className="ai-budget-label">🤖 AI расходы ({monthName})</span>
-        {editing ? (
-          <div className="ai-budget-edit">
-            <span>$</span>
-            <input
-              className="ai-budget-input"
-              type="number"
-              value={editVal}
-              onChange={e => setEditVal(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleSaveBudget()}
-              autoFocus
-              min="0.5"
-              step="0.5"
-            />
-            <button className="ai-budget-save" onClick={handleSaveBudget}>✓</button>
-            <button className="ai-budget-save" onClick={() => setEditing(false)}>✕</button>
-          </div>
-        ) : (
-          <button className="ai-budget-edit-btn" onClick={() => { setEditVal(String(budget)); setEditing(true) }}>
-            бюджет ${budget.toFixed(2)}
-          </button>
-        )}
-      </div>
-      <div className="ai-budget-bar-track">
-        <div className="ai-budget-bar-fill" style={{ width: `${pct}%`, background: color }} />
-      </div>
-      <div className="ai-budget-footer">
-        <span style={{ color }}>${cost.toFixed(3)} потрачено</span>
-        <span className="ai-budget-remain">${Math.max(budget - cost, 0).toFixed(2)} осталось</span>
-      </div>
-    </div>
-  )
-}
-
 function ContextJournal({ user }: { user: User }) {
   const todayStr = new Date().toISOString().slice(0, 10)
   const [note, setNote] = useState('')
@@ -377,7 +312,6 @@ export function Dashboard({ daily, events, onNavigate, user, quickLog }: Props) 
         {quickLog && <div className="metric-card quicklog-card" style={{ cursor: 'default' }}>{quickLog}</div>}
       </div>
 
-      {user && <AiBudgetWidget user={user} />}
       {user && <ContextJournal user={user} />}
 
       {insights.length > 0 && (
