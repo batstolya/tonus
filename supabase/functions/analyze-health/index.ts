@@ -89,6 +89,10 @@ serve(async (req) => {
 
     if (dbError) return new Response(`DB error: ${dbError.message}`, { status: 500, headers: CORS })
 
+    if (tokensUsed) {
+      await supabase.from('ai_usage').insert({ user_id: user.id, source: 'analyze', tokens_used: tokensUsed })
+    }
+
     return new Response(JSON.stringify(saved), {
       headers: { ...CORS, 'Content-Type': 'application/json' },
     })

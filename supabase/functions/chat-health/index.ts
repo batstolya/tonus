@@ -120,6 +120,11 @@ serve(async (req) => {
       tokens_used: tokensUsed,
     })
 
+    // Track usage
+    if (tokensUsed) {
+      await supabase.from('ai_usage').insert({ user_id: user.id, source: 'chat', tokens_used: tokensUsed })
+    }
+
     // Update session updated_at
     await supabase.from('chat_sessions').update({ updated_at: new Date().toISOString() }).eq('id', session.id)
 
