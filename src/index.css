@@ -501,8 +501,27 @@ body {
 .type-btn:hover { border-color: var(--accent); color: var(--text); }
 .type-btn.active { border-color: var(--accent); background: rgba(108,143,255,0.12); color: var(--accent); font-weight: 600; }
 .quick-log-inputs { display: flex; flex-direction: column; gap: 8px; }
-.log-row { display: flex; gap: 8px; }
-.log-time { width: 100px; flex-shrink: 0; }
+.time-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.time-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  line-height: 1.2;
+}
+.time-chip-sub { font-size: 10px; font-weight: 400; color: var(--text-muted); }
+.time-chip.active { border-color: var(--accent); background: rgba(99,102,241,0.1); color: var(--accent); }
+.time-chip.active .time-chip-sub { color: var(--accent); }
+.time-chip:hover:not(.active) { border-color: var(--text-muted); }
 .log-input {
   background: var(--surface2);
   border: 1px solid var(--border);

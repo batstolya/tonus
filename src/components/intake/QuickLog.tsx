@@ -111,23 +111,31 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
           </div>
 
           <div className="quick-log-inputs">
-            <div className="log-row">
-              {preset.unit && (
-                <input
-                  type="number"
-                  placeholder={`${preset.defaultAmount ?? ''} ${preset.unit}`}
-                  value={amount}
-                  onChange={e => setAmount(e.target.value)}
-                  className="log-input"
-                  style={{ flex: 1 }}
-                />
-              )}
+            {preset.unit && (
               <input
-                type="time"
-                value={time}
-                onChange={e => setTime(e.target.value)}
-                className="log-input log-time"
+                type="number"
+                placeholder={`${preset.defaultAmount ?? ''} ${preset.unit}`}
+                value={amount}
+                onChange={e => setAmount(e.target.value)}
+                className="log-input"
               />
+            )}
+            <div className="time-chips">
+              {[0, 30, 60, 120, 180].map(mins => {
+                const d = new Date(Date.now() - mins * 60000)
+                const val = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
+                const label = mins === 0 ? 'Сейчас' : mins < 60 ? `${mins}м` : `${mins/60}ч`
+                return (
+                  <button
+                    key={mins}
+                    className={`time-chip${time === val ? ' active' : ''}`}
+                    onClick={() => setTime(val)}
+                    type="button"
+                  >
+                    {label}<span className="time-chip-sub">{val}</span>
+                  </button>
+                )
+              })}
             </div>
             <input
               type="text"
