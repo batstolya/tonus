@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { User } from '@supabase/supabase-js'
 import {
-  loadSupplements, addSupplement, deleteSupplement,
+  loadSupplements, addSupplement, deleteSupplement, updateStock,
   loadLogsForMonth, toggleLog,
   type Supplement, type SupplementLog,
 } from '../../lib/supplements'
@@ -45,6 +45,8 @@ export function SupplementsScreen({ user }: Props) {
   const [newUnit, setNewUnit] = useState('')
   const [adding, setAdding] = useState(false)
   const [showForm, setShowForm] = useState(false)
+  const [editingStock, setEditingStock] = useState<string | null>(null)
+  const [stockInput, setStockInput] = useState('')
 
   const days = getDaysInMonth(year, month)
   const todayStr = toDateStr(now)
@@ -74,6 +76,21 @@ export function SupplementsScreen({ user }: Props) {
     if (sup) setSupplements(prev => [...prev, sup])
     setNewName(''); setNewDose(''); setNewUnit(''); setShowForm(false)
     setAdding(false)
+  }
+
+  async function handleStock(id: string, delta: number) {
+    const next = await updateStock(id, delta)
+    setSupplements(prev => prev.map(s => s.id === id ? { ...s, stock_count: next } : s))
+  }
+
+  async function handleStockSet(id: string) {
+    const val = parseInt(stockInput)
+    if (!isNaN(val) && val >= 0) {
+      const next = await updateStock(id, 0, val)
+      setSupplements(prev => prev.map(s => s.id === id ? { ...s, stock_count: next } : s))
+    }
+    setEditingStock(null)
+    setStockInput('')
   }
 
   async function handleDelete(id: string) {
@@ -134,6 +151,50 @@ export function SupplementsScreen({ user }: Props) {
 
       {supplements.length === 0 && !showForm && (
         <p className="empty-hint">Нет препаратов. Нажми «+ Добавить» чтобы начать.</p>
+      )}
+
+      {supplements.length > 0 && (
+        <div className="supp-stock-panel">
+          <div className="supp-stock-title">Запасы</div>
+          <div className="supp-stock-grid">
+            {supplements.map(sup => {
+              const stock = sup.stock_count
+              const low = stock !== null && stock <= 7
+              return (
+                <div key={sup.id} className={`supp-stock-item${low ? ' low' : ''}`}>
+                  <div className="supp-stock-name">{sup.name}</div>
+                  {sup.default_dose && <div className="supp-stock-dose">{sup.default_dose}{sup.unit ? ` ${sup.unit}` : ''}</div>}
+                  <div className="supp-stock-controls">
+                    <button className="supp-stock-btn" onClick={() => handleStock(sup.id, -1)} disabled={!stock}>−</button>
+                    {editingStock === sup.id ? (
+                      <input
+                        className="supp-stock-input"
+                        type="number"
+                        min="0"
+                        value={stockInput}
+                        autoFocus
+                        onChange={e => setStockInput(e.target.value)}
+                        onBlur={() => handleStockSet(sup.id)}
+                        onKeyDown={e => { if (e.key === 'Enter') handleStockSet(sup.id); if (e.key === 'Escape') { setEditingStock(null); setStockInput('') } }}
+                      />
+                    ) : (
+                      <button
+                        className="supp-stock-count"
+                        onClick={() => { setEditingStock(sup.id); setStockInput(String(stock ?? 0)) }}
+                        title="Нажми чтобы изменить"
+                      >
+                        {stock === null ? '—' : stock}
+                        <span className="supp-stock-unit">шт</span>
+                      </button>
+                    )}
+                    <button className="supp-stock-btn" onClick={() => handleStock(sup.id, +1)}>+</button>
+                  </div>
+                  {low && <div className="supp-stock-warn">⚠ Заканчивается</div>}
+                </div>
+              )
+            })}
+          </div>
+        </div>
       )}
 
       <div className="supp-month-nav">

@@ -953,6 +953,24 @@ body {
 .supp-cell.taken .supp-day-num { color: var(--green); }
 .supp-check { color: var(--green); }
 
+/* ── Supplement stock panel ───────────────────────────────── */
+.supp-stock-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 20px; }
+.supp-stock-title { font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 14px; }
+.supp-stock-grid { display: flex; flex-wrap: wrap; gap: 12px; }
+.supp-stock-item { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; min-width: 130px; display: flex; flex-direction: column; gap: 4px; transition: border-color 0.2s; }
+.supp-stock-item.low { border-color: var(--red); background: rgba(255,107,107,0.04); }
+.supp-stock-name { font-size: 13px; font-weight: 600; }
+.supp-stock-dose { font-size: 11px; color: var(--text-muted); }
+.supp-stock-controls { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+.supp-stock-btn { width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 16px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
+.supp-stock-btn:hover:not(:disabled) { background: var(--border); }
+.supp-stock-btn:disabled { opacity: 0.35; cursor: default; }
+.supp-stock-count { background: none; border: none; cursor: pointer; font-size: 20px; font-weight: 700; color: var(--text); display: flex; align-items: baseline; gap: 3px; padding: 0 4px; border-radius: 6px; transition: background 0.15s; }
+.supp-stock-count:hover { background: var(--border); }
+.supp-stock-unit { font-size: 11px; font-weight: 400; color: var(--text-muted); }
+.supp-stock-input { width: 56px; font-size: 18px; font-weight: 700; text-align: center; border: 1px solid var(--accent); border-radius: 6px; background: var(--bg); color: var(--text); padding: 2px 4px; }
+.supp-stock-warn { font-size: 11px; color: var(--red); margin-top: 2px; }
+
 /* ── Labs ─────────────────────────────────────────────────── */
 .labs-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
 .labs-header h2 { margin: 0; }
