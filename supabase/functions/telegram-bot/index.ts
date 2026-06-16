@@ -72,6 +72,7 @@ async function setupCommands() {
       { command: 'sync', description: '📲 Дата последней синхронизации' },
       { command: 'pause', description: '⏸ Приостановить отчёты' },
       { command: 'resume', description: '▶️ Возобновить отчёты' },
+      { command: 'usage', description: '🤖 Лимиты Claude' },
     ],
   })
 }
@@ -438,6 +439,58 @@ serve(async (req) => {
   if (text === '/resume') {
     await supabase.from('report_settings').upsert({ user_id: userId, paused: false }, { onConflict: 'user_id' })
     await tgSend(chatId, '▶️ Автоотчёты возобновлены.', { reply_markup: BACK_MENU })
+    return new Response('ok')
+  }
+
+  // /usage — Claude usage stats
+  if (text === '/usage') {
+    const usageUrl = Deno.env.get('CLAUDE_USAGE_URL')
+    const sessionKey = Deno.env.get('CLAUDE_SESSION_KEY')
+    const deviceId = Deno.env.get('CLAUDE_DEVICE_ID') ?? ''
+    if (!usageUrl || !sessionKey) {
+      await tgSend(chatId, '⚙️ CLAUDE_USAGE_URL или CLAUDE_SESSION_KEY не настроены в Supabase secrets.', { reply_markup: BACK_MENU })
+      return new Response('ok')
+    }
+    await tgTyping(chatId)
+    const res = await fetch(usageUrl, {
+      headers: {
+        'Cookie': `sessionKey=${sessionKey}; anthropic-device-id=${deviceId}`,
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'Accept': 'application/json',
+        'Referer': 'https://claude.ai/settings/usage',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'same-origin',
+      },
+    })
+    if (!res.ok) {
+      await tgSend(chatId, `❌ Не удалось получить данные (${res.status}). Возможно sessionKey устарел.`, { reply_markup: BACK_MENU })
+      return new Response('ok')
+    }
+    const data = await res.json()
+    const s = data.five_hour ?? {}
+    const w = data.seven_day ?? {}
+    const sPct: number = s.utilization ?? 0
+    const wPct: number = w.utilization ?? 0
+
+    function bar(pct: number, width = 10): string {
+      const filled = Math.round(pct / 100 * width)
+      return '█'.repeat(filled) + '░'.repeat(width - filled)
+    }
+    function fmtTime(iso: string): string {
+      const secs = Math.max(0, Math.floor((new Date(iso).getTime() - Date.now()) / 1000))
+      const h = Math.floor(secs / 3600)
+      const m = Math.floor((secs % 3600) / 60)
+      return h > 0 ? `${h}ч ${String(m).padStart(2, '0')}м` : `${m}м`
+    }
+
+    const sLine = s.resets_at ? `${bar(sPct)} ${sPct.toFixed(0)}% · сброс через *${fmtTime(s.resets_at)}*` : `${bar(sPct)} ${sPct.toFixed(0)}%`
+    const wLine = w.resets_at ? `${bar(wPct)} ${wPct.toFixed(0)}% · сброс через *${fmtTime(w.resets_at)}*` : `${bar(wPct)} ${wPct.toFixed(0)}%`
+
+    await tgSend(chatId,
+      `*Сессия (5ч)*\n${sLine}\n\n*Неделя*\n${wLine}`,
+      { parse_mode: 'Markdown', reply_markup: BACK_MENU }
+    )
     return new Response('ok')
   }
 
