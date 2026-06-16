@@ -325,7 +325,7 @@ export default function App() {
         ) : null}
       </main>
 
-      {hasData && <ChatWidget user={user} daily={state.daily} intakeEvents={intakeEvents} />}
+      {hasData && <ChatWidget user={user} daily={state.daily} intakeEvents={intakeEvents} heartRateSamples={state.heartRateSamples} />}
     </div>
   )
 }
