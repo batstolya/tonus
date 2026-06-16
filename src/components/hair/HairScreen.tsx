@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { loadHairEntries, saveHairEntry, uploadHairPhoto, getPhotoUrl, type HairEntry } from '../../lib/concerns'
 
-interface Props { user: User }
+interface Props { user: User; onBack?: () => void }
 
 const METRIC_LABELS: { key: keyof HairEntry; label: string; desc: string }[] = [
   { key: 'shedding_level', label: 'Выпадение', desc: '1 — минимальное, 5 — сильное' },
@@ -71,7 +71,7 @@ function PhotoSlot({ label, icon, onFile, url }: {
   )
 }
 
-export function HairScreen({ user }: Props) {
+export function HairScreen({ user, onBack }: Props) {
   const [entries, setEntries] = useState<HairEntry[]>([])
   const [mode, setMode] = useState<'list' | 'add' | 'compare'>('list')
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({})
@@ -151,6 +151,12 @@ export function HairScreen({ user }: Props) {
 
   return (
     <div className="screen">
+      {onBack && (
+        <div className="concerns-subtabs">
+          <button className="concerns-subtab" onClick={onBack}>Проблемы</button>
+          <button className="concerns-subtab active">Волосы</button>
+        </div>
+      )}
       <div className="goals-header">
         <h2>Волосы</h2>
         <div style={{ display: 'flex', gap: 8 }}>
