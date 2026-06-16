@@ -3,6 +3,8 @@ import type { DailyMetrics, HeartRateSample, CalendarEvent, ParseProgress } from
 
 export type AppView = 'upload' | 'dashboard' | 'heart-rate' | 'metrics' | 'stress-map' | 'sleep' | 'activity' | 'insights' | 'supplements' | 'labs' | 'settings' | 'goals' | 'concerns' | 'hair'
 
+export type DeviceType = 'apple_watch' | 'xiaomi'
+
 const VIEWS: AppView[] = ['dashboard', 'heart-rate', 'metrics', 'stress-map', 'sleep', 'activity', 'insights', 'supplements', 'labs', 'settings', 'goals', 'concerns', 'hair']
 
 function hashToView(): AppView {
@@ -17,6 +19,12 @@ export interface AppState {
   events: CalendarEvent[]
   parseProgress: ParseProgress | null
   error: string | null
+  deviceType: DeviceType | null
+}
+
+function loadDeviceType(): DeviceType | null {
+  const v = localStorage.getItem('deviceType')
+  return v === 'apple_watch' || v === 'xiaomi' ? v : null
 }
 
 const initial: AppState = {
@@ -26,6 +34,7 @@ const initial: AppState = {
   events: [],
   parseProgress: null,
   error: null,
+  deviceType: loadDeviceType(),
 }
 
 export function useAppStore() {
@@ -46,6 +55,11 @@ export function useAppStore() {
     return () => window.removeEventListener('hashchange', handler)
   }, [])
 
+  const setDeviceType = useCallback((deviceType: DeviceType) => {
+    localStorage.setItem('deviceType', deviceType)
+    setState(s => ({ ...s, deviceType }))
+  }, [])
+
   const setDaily = useCallback((daily: DailyMetrics[], heartRateSamples: HeartRateSample[], keepView = false) =>
     setState(s => ({ ...s, daily, heartRateSamples, view: keepView ? s.view : 'dashboard', parseProgress: null, error: null })), [])
   const setEvents = useCallback((events: CalendarEvent[], source?: string) =>
@@ -61,5 +75,5 @@ export function useAppStore() {
     setState(initial)
   }, [])
 
-  return { state, setView, setDaily, setEvents, setProgress, setError, reset }
+  return { state, setView, setDaily, setEvents, setProgress, setError, reset, setDeviceType }
 }

@@ -10,17 +10,43 @@ const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers
 
 function avg(vals: number[]) { return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null }
 
-function buildDigest(rows: any[], label: string): string {
+function fmtBedtime(iso: string): string {
+  const d = new Date(iso)
+  return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' })
+}
+
+function buildDigest(rows: any[], label: string, sleep: any[]): string {
   if (!rows.length) return `${label}: нет данных`
   const lines = [`=== ${label} (${rows[0].date} — ${rows[rows.length-1].date}) ===`]
   const rhr = rows.map((r: any) => r.resting_heart_rate).filter(Boolean)
   const hrv = rows.map((r: any) => r.hrv).filter(Boolean)
-  const sleep = rows.map((r: any) => r.sleep_hours).filter(Boolean)
+  const sleepHours = rows.map((r: any) => r.sleep_hours).filter(Boolean)
   const steps = rows.map((r: any) => r.steps).filter(Boolean)
   if (rhr.length) lines.push(`ЧСС покоя: ${avg(rhr)!.toFixed(0)} уд/мин`)
-  if (hrv.length) lines.push(`HRV: ${avg(hrv)!.toFixed(0)} мс`)
-  if (sleep.length) lines.push(`Сон: ${avg(sleep)!.toFixed(1)} ч, ночей ≥7ч: ${sleep.filter((v: number) => v >= 7).length}/${sleep.length}`)
+  if (hrv.length) {
+    lines.push(`HRV: среднее ${avg(hrv)!.toFixed(0)} мс`)
+    // Days with low HRV (stress) = below 75% of average
+    const avgHrv = avg(hrv)!
+    const lowHrvDays = rows.filter((r: any) => r.hrv && r.hrv < avgHrv * 0.8)
+    if (lowHrvDays.length) {
+      lines.push(`Высокий стресс (низкий HRV): ${lowHrvDays.map((r: any) => `${r.date} (${r.hrv.toFixed(0)}мс)`).join(', ')}`)
+    }
+  }
+  if (sleepHours.length) lines.push(`Сон: ${avg(sleepHours)!.toFixed(1)} ч, ночей ≥7ч: ${sleepHours.filter((v: number) => v >= 7).length}/${sleepHours.length}`)
   if (steps.length) lines.push(`Шаги: ${Math.round(avg(steps)!).toLocaleString()}/день`)
+
+  // Bedtime analysis
+  const lateBeds = sleep.filter((s: any) => {
+    if (!s.bedtime) return false
+    const d = new Date(s.bedtime)
+    const h = d.getUTCHours()
+    // Late = after 01:00 local (rough: UTC+3 → after 22:00 UTC)
+    return h >= 22 || h < 6
+  })
+  if (lateBeds.length) {
+    lines.push(`Позднее засыпание: ${lateBeds.map((s: any) => `${s.date} (${fmtBedtime(s.bedtime)})`).join(', ')}`)
+  }
+
   return lines.join('\n')
 }
 
@@ -29,7 +55,7 @@ async function sendTelegram(chatId: string, text: string) {
   await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' }),
+    body: JSON.stringify({ chat_id: chatId, text }),
   })
 }
 
@@ -62,28 +88,61 @@ serve(async (req) => {
 
     const fmt = (d: Date) => d.toISOString().slice(0, 10)
 
-    // Load data for both periods from daily_metrics flat view
-    const [r1, r2] = await Promise.all([
+    // Check data freshness
+    const { data: lastImport } = await supabase
+      .from('imports')
+      .select('imported_at')
+      .eq('user_id', user.id)
+      .order('imported_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    const daysSinceSync = lastImport
+      ? Math.floor((Date.now() - new Date(lastImport.imported_at).getTime()) / 86400000)
+      : null
+
+    const { data: tgLinkEarly } = await supabase
+      .from('telegram_links')
+      .select('telegram_chat_id')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .single()
+
+    if (daysSinceSync !== null && daysSinceSync >= 7 && tgLinkEarly?.telegram_chat_id) {
+      await sendTelegram(
+        tgLinkEarly.telegram_chat_id,
+        `⚠️ Данные с Apple Watch не обновлялись ${daysSinceSync} дн.\n\nДля точного отчёта:\n1. Открой Здоровье на iPhone\n2. Фото профиля → Экспорт данных\n3. Загрузи export.zip в Tonus\n\nОтчёт сформирован по имеющимся данным:`
+      )
+    }
+
+    // Load metrics + sleep sessions for both periods
+    const [r1, r2, s1, s2] = await Promise.all([
       supabase.from('daily_summary').select('*').eq('user_id', user.id).gte('date', fmt(p1Start)).lte('date', fmt(p1End)),
       supabase.from('daily_summary').select('*').eq('user_id', user.id).gte('date', fmt(p2Start)).lte('date', fmt(p2End)),
+      supabase.from('sleep_sessions').select('date, bedtime, wake_time, duration_hours').eq('user_id', user.id).gte('date', fmt(p1Start)).lte('date', fmt(p1End)).order('date'),
+      supabase.from('sleep_sessions').select('date, bedtime, wake_time, duration_hours').eq('user_id', user.id).gte('date', fmt(p2Start)).lte('date', fmt(p2End)).order('date'),
     ])
 
-    const digest1 = buildDigest(r1.data ?? [], 'Последние 2 недели')
-    const digest2 = buildDigest(r2.data ?? [], 'Предыдущие 2 недели')
+    const digest1 = buildDigest(r1.data ?? [], 'Последние 2 недели', s1.data ?? [])
+    const digest2 = buildDigest(r2.data ?? [], 'Предыдущие 2 недели', s2.data ?? [])
 
-    const prompt = `Сравни два периода здоровья пользователя и дай короткий отчёт в формате Telegram-сообщения.
+    const prompt = `Сравни два периода здоровья и напиши отчёт для Telegram.
 
 ${digest1}
 
 ${digest2}
 
-Формат ответа — компактный текст для Telegram с emoji, без длинных блоков:
-• Общий вывод (1-2 предложения)
-• ✅ Что улучшилось
-• 📉 Что просело  
-• 💡 1-2 совета на следующие 2 недели
-
-Без диагнозов. Конкретно по данным. На русском.`
+Требования:
+- Только plain text, никакого markdown, никаких звёздочек или решёток
+- Emoji разрешены
+- Максимум 800 символов итогового текста
+- Структура:
+  1 строка — общий вывод
+  ✅ что улучшилось (с конкретными цифрами)
+  📉 что просело — если есть данные о позднем засыпании или стрессовых днях, упомяни конкретные даты
+  💡 1-2 совета исходя из слабых мест
+- Конкретно по датам и цифрам из данных, без общих фраз
+- Без диагнозов, на русском`
 
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
@@ -92,7 +151,7 @@ ${digest2}
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.5, maxOutputTokens: 1024 },
+          generationConfig: { temperature: 0.5, maxOutputTokens: 8192 },
         }),
       }
     )
@@ -116,8 +175,9 @@ ${digest2}
     // Send to Telegram if linked
     const { data: tgLink } = await supabase.from('telegram_links').select('telegram_chat_id').eq('user_id', user.id).eq('status', 'active').single()
     if (tgLink?.telegram_chat_id) {
-      const header = `📊 <b>Двухнедельный отчёт</b>\n${fmt(p1Start)} — ${fmt(p1End)}\n\n`
-      await sendTelegram(tgLink.telegram_chat_id, header + report)
+      const tgReport = report.replace(/[*_`#]/g, '')
+      const header = `📊 Двухнедельный отчёт\n${fmt(p1Start)} — ${fmt(p1End)}\n\n`
+      await sendTelegram(tgLink.telegram_chat_id, (header + tgReport).slice(0, 4096))
       await supabase.from('scheduled_reports').update({ delivered_at: new Date().toISOString(), channel: 'telegram' }).eq('id', saved?.id)
     }
 
