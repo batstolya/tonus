@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import type { User } from '@supabase/supabase-js'
-import type { DailyMetrics } from '../../types'
+import type { DailyMetrics, HeartRateSample } from '../../types'
 import { sendChatMessage, buildContextSnapshot, loadLabSummary, loadSupplementSummary, type ChatMessage, type IntakeEvent } from '../../lib/chat'
 
 interface Props {
   user: User
   daily: DailyMetrics[]
   intakeEvents?: IntakeEvent[]
+  heartRateSamples?: HeartRateSample[]
 }
 
 type Period = '14d' | '30d' | '90d'
@@ -26,7 +27,7 @@ function MsgBubble({ msg }: { msg: ChatMessage }) {
   )
 }
 
-export function ChatWidget({ user, daily, intakeEvents = [] }: Props) {
+export function ChatWidget({ user, daily, intakeEvents = [], heartRateSamples = [] }: Props) {
   const [open, setOpen] = useState(false)
   const [period, setPeriod] = useState<Period>('30d')
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -52,10 +53,10 @@ export function ChatWidget({ user, daily, intakeEvents = [] }: Props) {
 
   useEffect(() => {
     const days = period === '14d' ? 14 : period === '30d' ? 30 : 90
-    setSnapshot(daily.length ? buildContextSnapshot(daily, days, labSummary || undefined, intakeEvents, supplementSummary || undefined) : null)
+    setSnapshot(daily.length ? buildContextSnapshot(daily, days, labSummary || undefined, intakeEvents, supplementSummary || undefined, heartRateSamples) : null)
     setSessionId(null)
     setMessages([])
-  }, [period, daily, labSummary, intakeEvents, supplementSummary])
+  }, [period, daily, labSummary, intakeEvents, supplementSummary, heartRateSamples])
 
   useEffect(() => {
     if (open) {

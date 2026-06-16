@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { DailyMetrics } from '../types'
+import type { DailyMetrics, HeartRateSample } from '../types'
 
 export interface ChatMessage {
   id: string
@@ -39,6 +39,7 @@ export function buildContextSnapshot(
   labSummary?: string,
   intakeEvents: IntakeEvent[] = [],
   supplementSummary?: string,
+  heartRateSamples: HeartRateSample[] = [],
 ): string {
   const sorted = [...daily].sort((a, b) => a.date.localeCompare(b.date))
   const cutoff = new Date()
@@ -140,6 +141,38 @@ export function buildContextSnapshot(
       lines.push(`${label}: ${count} раз за период`)
       // Show last 5 entries
       entries.slice(-5).forEach(e => lines.push(`  • ${e}`))
+    }
+  }
+
+  // Heart rate samples — last 7 days grouped by date
+  if (heartRateSamples.length) {
+    const hrCutoff = new Date(); hrCutoff.setDate(hrCutoff.getDate() - 7)
+    const recentHR = heartRateSamples
+      .filter(s => new Date(s.timestamp) >= hrCutoff)
+      .sort((a, b) => a.timestamp.localeCompare(b.timestamp))
+    if (recentHR.length) {
+      lines.push('\n=== ПУЛЬС ПО ВРЕМЕНИ (последние 7 дней) ===')
+      // Group by date
+      const byDate: Record<string, HeartRateSample[]> = {}
+      for (const s of recentHR) {
+        const d = s.timestamp.slice(0, 10)
+        if (!byDate[d]) byDate[d] = []
+        byDate[d].push(s)
+      }
+      for (const [date, samples] of Object.entries(byDate)) {
+        // Sample every ~30 min to keep context size reasonable
+        const thinned: HeartRateSample[] = []
+        let lastTs = 0
+        for (const s of samples) {
+          const ts = new Date(s.timestamp).getTime()
+          if (ts - lastTs >= 25 * 60 * 1000) { thinned.push(s); lastTs = ts }
+        }
+        const vals = thinned.map(s => {
+          const t = new Date(s.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+          return `${t}→${s.beatsPerMinute}`
+        }).join(', ')
+        lines.push(`${date}: ${vals}`)
+      }
     }
   }
 
