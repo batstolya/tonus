@@ -1,4 +1,5 @@
 import { useAppStore } from './store/appStore'
+import { DeviceSelectScreen } from './components/onboarding/DeviceSelectScreen'
 import { UploadScreen } from './components/upload/UploadScreen'
 import { Dashboard } from './components/dashboard/Dashboard'
 import { HeartRateScreen } from './components/heart-rate/HeartRateScreen'
@@ -27,17 +28,20 @@ import { supabase } from './lib/supabase'
 import { syncMetricsToSupabase, loadMetricsFromSupabase, getLastSyncInfo, syncHRSamples, loadHRSamples } from './lib/sync'
 import { saveCalendarEvents, loadCalendarEvents } from './lib/calendarSync'
 import { connectGoogleCalendar, isGoogleCalendarAvailable } from './lib/googleCalendar'
+import { detectAvailableMetrics } from './lib/availableMetrics'
 import './index.css'
 
 
 type GroupId = 'body' | 'journal' | 'coach'
+
+type NavView = { view: AppView; label: string; requiresMetric?: keyof import('./lib/availableMetrics').AvailableMetrics }
 
 const NAV_GROUPS: {
   id: GroupId
   label: string
   defaultView: AppView
   icon: React.ReactElement
-  views: { view: AppView; label: string }[]
+  views: NavView[]
 }[] = [
   {
     id: 'body',
@@ -46,10 +50,10 @@ const NAV_GROUPS: {
     icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>,
     views: [
       { view: 'metrics', label: 'Обзор' },
-      { view: 'heart-rate', label: 'Пульс' },
-      { view: 'sleep', label: 'Сон' },
-      { view: 'activity', label: 'Активность' },
-      { view: 'stress-map', label: 'Стресс' },
+      { view: 'heart-rate', label: 'Пульс', requiresMetric: 'hasHeartRate' },
+      { view: 'sleep', label: 'Сон', requiresMetric: 'hasSleep' },
+      { view: 'activity', label: 'Активность', requiresMetric: 'hasActivity' },
+      { view: 'stress-map', label: 'Стресс', requiresMetric: 'hasStress' },
     ],
   },
   {
@@ -89,7 +93,7 @@ function getActiveSubView(view: AppView): AppView {
 }
 
 export default function App() {
-  const { state, setView, setDaily, setEvents, setProgress, setError, reset } = useAppStore()
+  const { state, setView, setDaily, setEvents, setProgress, setError, reset, setDeviceType } = useAppStore()
   const { user, loading, passwordRecovery, setPasswordRecovery } = useAuth()
   const { theme, toggle: toggleTheme } = useTheme()
   const [syncMsg, setSyncMsg] = useState<string | null>(null)
@@ -103,6 +107,7 @@ export default function App() {
   })
 
   const hasData = state.daily.length > 0
+  const availableMetrics = React.useMemo(() => detectAvailableMetrics(state.daily), [state.daily])
   const googleConnected = state.events.some(e => e.source === 'google')
   const visibleEvents = showGoogleEvents
     ? state.events
@@ -206,7 +211,12 @@ export default function App() {
 
   const activeGroup = getActiveGroup(state.view)
   const activeSubView = getActiveSubView(state.view)
-  const activeGroupData = NAV_GROUPS.find(g => g.id === activeGroup) ?? null
+
+  const visibleNavGroups = NAV_GROUPS.map(g => ({
+    ...g,
+    views: g.views.filter(v => !v.requiresMetric || availableMetrics[v.requiresMetric]),
+  }))
+  const activeGroupData = visibleNavGroups.find(g => g.id === activeGroup) ?? null
 
   return (
     <div className="app">
@@ -221,7 +231,7 @@ export default function App() {
               >
                 Дашборд
               </button>
-              {NAV_GROUPS.map(g => (
+              {visibleNavGroups.map(g => (
                 <button
                   key={g.id}
                   className={`nav-btn${activeGroup === g.id ? ' active' : ''}`}
@@ -270,14 +280,19 @@ export default function App() {
 
       <main className="main-content">
         {!hasData ? (
-          <UploadScreen
-            onProgress={setProgress}
-            onDone={(daily, samples, filename) => handleDone(daily, samples, filename)}
-            onEvents={e => handleEvents(e, 'ics')}
-            onError={setError}
-            progress={state.parseProgress}
-            error={state.error}
-          />
+          state.deviceType == null ? (
+            <DeviceSelectScreen onSelect={setDeviceType} />
+          ) : (
+            <UploadScreen
+              onProgress={setProgress}
+              onDone={(daily, samples, filename) => handleDone(daily, samples, filename)}
+              onEvents={e => handleEvents(e, 'ics')}
+              onError={setError}
+              progress={state.parseProgress}
+              error={state.error}
+              deviceType={state.deviceType}
+            />
+          )
         ) : state.view === 'dashboard' ? (
           <div className="dashboard-layout">
             <Dashboard
@@ -335,6 +350,8 @@ export default function App() {
               start: ev.start instanceof Date ? ev.start : new Date(ev.start),
               end: ev.end instanceof Date ? ev.end : new Date(ev.end),
             })), 'cal')}
+            deviceType={state.deviceType}
+            onDeviceTypeChange={setDeviceType}
           />
         ) : null}
       </main>
@@ -350,7 +367,7 @@ export default function App() {
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
             <span>Дашборд</span>
           </button>
-          {NAV_GROUPS.map(g => (
+          {visibleNavGroups.map(g => (
             <button
               key={g.id}
               className={`bottom-nav-btn${activeGroup === g.id ? ' active' : ''}`}

@@ -3,6 +3,7 @@ import type { User } from '@supabase/supabase-js'
 import type { CalendarEvent } from '../../types'
 import { loadMonthUsage, loadBudget, saveBudget } from '../../lib/aiUsage'
 import { supabase } from '../../lib/supabase'
+import type { DeviceType } from '../../store/appStore'
 
 interface Props {
   user: User
@@ -13,6 +14,8 @@ interface Props {
   calLastSync?: string | null
   onCalEvents?: (events: CalendarEvent[]) => void
   onNavigate?: (view: any) => void
+  deviceType?: DeviceType | null
+  onDeviceTypeChange?: (d: DeviceType) => void
 }
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -21,7 +24,7 @@ const SOURCE_LABELS: Record<string, string> = {
   'extract-lab': '🔬 OCR анализов',
 }
 
-export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnected, lastSync, calLastSync, onCalEvents, onNavigate }: Props) {
+export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnected, lastSync, calLastSync, onCalEvents, onNavigate, deviceType, onDeviceTypeChange }: Props) {
   const [cost, setCost] = useState<number | null>(null)
   const [tokens, setTokens] = useState(0)
   const [bySource, setBySource] = useState<Record<string, number>>({})
@@ -274,6 +277,31 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
           )}
         </div>
       </section>
+
+      {onDeviceTypeChange && (
+        <section className="settings-section">
+          <h2 className="settings-section-title">Устройство</h2>
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>
+            Текущий источник данных: <strong>{deviceType === 'xiaomi' ? 'Xiaomi / Mi Band' : deviceType === 'apple_watch' ? 'Apple Watch' : 'не выбран'}</strong>
+          </p>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              className={`btn-secondary${deviceType === 'apple_watch' ? ' active' : ''}`}
+              style={{ padding: '6px 14px', fontSize: 13 }}
+              onClick={() => onDeviceTypeChange('apple_watch')}
+            >
+              Apple Watch
+            </button>
+            <button
+              className={`btn-secondary${deviceType === 'xiaomi' ? ' active' : ''}`}
+              style={{ padding: '6px 14px', fontSize: 13 }}
+              onClick={() => onDeviceTypeChange('xiaomi')}
+            >
+              Xiaomi / Mi Band
+            </button>
+          </div>
+        </section>
+      )}
     </div>
   )
 }
