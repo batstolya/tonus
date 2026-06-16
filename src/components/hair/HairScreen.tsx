@@ -44,15 +44,15 @@ function TrendLine({ entries, metricKey }: { entries: HairEntry[]; metricKey: ke
         return <line key={v} x1={pad} x2={W - pad} y1={y} y2={y} stroke="var(--border)" strokeWidth="0.5" />
       })}
       <path d={d} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      {pts.map((e, i) => (
+      {pts.map((_, i) => (
         <circle key={i} cx={xs[i]} cy={ys[i]} r="3" fill="var(--accent)" />
       ))}
     </svg>
   )
 }
 
-function PhotoSlot({ label, icon, path, onFile, url }: {
-  label: string; icon: string; path: string | null; onFile: (f: File) => void; url?: string
+function PhotoSlot({ label, icon, onFile, url }: {
+  label: string; icon: string; path?: string | null; onFile: (f: File) => void; url?: string
 }) {
   const ref = useRef<HTMLInputElement>(null)
   return (
