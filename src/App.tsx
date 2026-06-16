@@ -20,7 +20,7 @@ import { ChatWidget } from './components/chat/ChatWidget'
 import { AppLoader } from './components/ui/Spinner'
 import type { AppView } from './store/appStore'
 import type { CalendarEvent, DailyMetrics, HeartRateSample } from './types'
-import { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useAuth } from './hooks/useAuth'
 import { useTheme } from './hooks/useTheme'
 import { supabase } from './lib/supabase'
@@ -30,20 +30,63 @@ import { connectGoogleCalendar, isGoogleCalendarAvailable } from './lib/googleCa
 import './index.css'
 
 
-const NAV_ITEMS: { view: AppView; label: string; icon: string }[] = [
-  { view: 'dashboard', label: 'Дашборд', icon: '⊞' },
-  { view: 'activity', label: 'Активность', icon: '👟' },
-  { view: 'sleep', label: 'Сон', icon: '🌙' },
-  { view: 'stress-map', label: 'Стресс', icon: '💓' },
-  { view: 'heart-rate', label: 'Пульс', icon: '📈' },
-  { view: 'metrics', label: 'Показатели', icon: '📊' },
-  { view: 'insights', label: 'Инсайты', icon: '💡' },
-  { view: 'supplements', label: 'Препараты', icon: '💊' },
-  { view: 'labs', label: 'Анализы', icon: '🔬' },
-  { view: 'goals', label: 'Цели', icon: '🎯' },
-  { view: 'concerns', label: 'Проблемы', icon: '🩺' },
-  { view: 'hair', label: 'Волосы', icon: '💇' },
+type GroupId = 'body' | 'journal' | 'coach'
+
+const NAV_GROUPS: {
+  id: GroupId
+  label: string
+  defaultView: AppView
+  icon: React.ReactElement
+  views: { view: AppView; label: string }[]
+}[] = [
+  {
+    id: 'body',
+    label: 'Тело',
+    defaultView: 'metrics',
+    icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>,
+    views: [
+      { view: 'metrics', label: 'Обзор' },
+      { view: 'heart-rate', label: 'Пульс' },
+      { view: 'sleep', label: 'Сон' },
+      { view: 'activity', label: 'Активность' },
+      { view: 'stress-map', label: 'Стресс' },
+    ],
+  },
+  {
+    id: 'journal',
+    label: 'Дневник',
+    defaultView: 'supplements',
+    icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>,
+    views: [
+      { view: 'supplements', label: 'Препараты' },
+      { view: 'labs', label: 'Анализы' },
+      { view: 'concerns', label: 'Проблемы' },
+    ],
+  },
+  {
+    id: 'coach',
+    label: 'Коуч',
+    defaultView: 'insights',
+    icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>,
+    views: [
+      { view: 'insights', label: 'Инсайты' },
+      { view: 'goals', label: 'Цели' },
+    ],
+  },
 ]
+
+function getActiveGroup(view: AppView): GroupId | null {
+  if (view === 'hair') return 'journal'
+  for (const g of NAV_GROUPS) {
+    if (g.views.some(v => v.view === view)) return g.id
+  }
+  return null
+}
+
+function getActiveSubView(view: AppView): AppView {
+  if (view === 'hair') return 'concerns'
+  return view
+}
 
 export default function App() {
   const { state, setView, setDaily, setEvents, setProgress, setError, reset } = useAppStore()
@@ -55,23 +98,9 @@ export default function App() {
   const [dbLoading, setDbLoading] = useState(true)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [showGoogleEvents, setShowGoogleEvents] = useState(true)
-  const [syncMenuOpen, setSyncMenuOpen] = useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [calSyncTimes, setCalSyncTimes] = useState<Record<string, string>>(() => {
     try { return JSON.parse(localStorage.getItem('cal_sync_times') ?? '{}') } catch { return {} }
   })
-
-  const closeMobileMenu = useCallback(() => setMobileMenuOpen(false), [])
-
-  useEffect(() => {
-    if (!syncMenuOpen) return
-    const handler = (e: MouseEvent) => {
-      const wrap = document.querySelector('.sync-menu-wrap')
-      if (wrap && !wrap.contains(e.target as Node)) setSyncMenuOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [syncMenuOpen])
 
   const hasData = state.daily.length > 0
   const googleConnected = state.events.some(e => e.source === 'google')
@@ -175,81 +204,66 @@ export default function App() {
   if (!user) return <AuthScreen />
   if (passwordRecovery) return <ResetPasswordScreen onDone={() => setPasswordRecovery(false)} />
 
+  const activeGroup = getActiveGroup(state.view)
+  const activeSubView = getActiveSubView(state.view)
+  const activeGroupData = NAV_GROUPS.find(g => g.id === activeGroup) ?? null
+
   return (
     <div className="app">
       {hasData && (
-        <header className="topbar">
-          <button className="logo-btn" onClick={reset}>Tonus</button>
-          <nav className="topbar-nav">
-            {NAV_ITEMS.map(item => (
+        <>
+          <header className="topbar">
+            <button className="logo-btn" onClick={reset}>Tonus</button>
+            <nav className="topbar-nav">
               <button
-                key={item.view}
-                className={state.view === item.view ? 'nav-btn active' : 'nav-btn'}
-                onClick={() => setView(item.view)}
+                className={`nav-btn${state.view === 'dashboard' ? ' active' : ''}`}
+                onClick={() => setView('dashboard')}
               >
-                {item.label}
+                Дашборд
               </button>
-            ))}
-          </nav>
+              {NAV_GROUPS.map(g => (
+                <button
+                  key={g.id}
+                  className={`nav-btn${activeGroup === g.id ? ' active' : ''}`}
+                  onClick={() => setView(g.defaultView)}
+                >
+                  {g.label}
+                </button>
+              ))}
+            </nav>
 
-          <div className="topbar-right">
-            <button className="burger-btn" onClick={() => setMobileMenuOpen(o => !o)} aria-label="Меню">
-              <span className={`burger-icon${mobileMenuOpen ? ' open' : ''}`}>
-                <span /><span /><span />
-              </span>
-            </button>
-            {lastSync && <span className="sync-label">Синхр: {lastSync}</span>}
-
-            <button className="theme-toggle" onClick={toggleTheme} title="Сменить тему">
-              {theme === 'dark' ? '☀️' : '🌙'}
-            </button>
-            <button
-              className={`theme-toggle${state.view === 'settings' ? ' active' : ''}`}
-              onClick={() => setView('settings')}
-              title="Настройки"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-            </button>
-            <button className="nav-btn signout-btn" onClick={() => supabase.auth.signOut()}>
-              Выйти
-            </button>
-          </div>
-        </header>
-      )}
-
-      {mobileMenuOpen && (
-        <div className="mobile-menu-overlay" onClick={closeMobileMenu}>
-          <nav className="mobile-menu" onClick={e => e.stopPropagation()}>
-            <div className="mobile-menu-header">
-              <span className="mobile-menu-title">Tonus</span>
-              <button className="mobile-menu-close" onClick={closeMobileMenu}>✕</button>
-            </div>
-            {NAV_ITEMS.map(item => (
+            <div className="topbar-right">
+              {lastSync && <span className="sync-label">Синхр: {lastSync}</span>}
+              <button className="theme-toggle" onClick={toggleTheme} title="Сменить тему">
+                {theme === 'dark' ? '☀️' : '🌙'}
+              </button>
               <button
-                key={item.view}
-                className={state.view === item.view ? 'mobile-nav-btn active' : 'mobile-nav-btn'}
-                onClick={() => { setView(item.view); closeMobileMenu() }}
+                className={`theme-toggle${state.view === 'settings' ? ' active' : ''}`}
+                onClick={() => setView('settings')}
+                title="Настройки"
               >
-                <span>{item.icon}</span>
-                {item.label}
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
               </button>
-            ))}
-            <div className="mobile-menu-footer">
-              <button className="mobile-nav-btn" onClick={() => { setView('settings'); closeMobileMenu() }}>
-                <span>⚙️</span>
-                Настройки
-              </button>
-              <button className="mobile-nav-btn" onClick={() => { toggleTheme(); closeMobileMenu() }}>
-                <span>{theme === 'dark' ? '☀️' : '🌙'}</span>
-                {theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'}
-              </button>
-              <button className="mobile-nav-btn signout" onClick={() => supabase.auth.signOut()}>
-                <span>→</span>
+              <button className="nav-btn signout-btn" onClick={() => supabase.auth.signOut()}>
                 Выйти
               </button>
             </div>
-          </nav>
-        </div>
+          </header>
+
+          {activeGroupData && (
+            <nav className="subnav">
+              {activeGroupData.views.map(v => (
+                <button
+                  key={v.view}
+                  className={`subnav-btn${activeSubView === v.view ? ' active' : ''}`}
+                  onClick={() => setView(v.view)}
+                >
+                  {v.label}
+                </button>
+              ))}
+            </nav>
+          )}
+        </>
       )}
 
       {syncMsg && <div className="sync-toast">{syncMsg}</div>}
@@ -304,9 +318,9 @@ export default function App() {
         ) : state.view === 'goals' ? (
           <GoalsScreen user={user} daily={state.daily} />
         ) : state.view === 'concerns' ? (
-          <ConcernsScreen user={user} />
+          <ConcernsScreen user={user} onNavigateHair={() => setView('hair')} />
         ) : state.view === 'hair' ? (
-          <HairScreen user={user} />
+          <HairScreen user={user} onBack={() => setView('concerns')} />
         ) : state.view === 'settings' ? (
           <SettingsScreen
             user={user}
@@ -326,6 +340,28 @@ export default function App() {
       </main>
 
       {hasData && <ChatWidget user={user} daily={state.daily} intakeEvents={intakeEvents} heartRateSamples={state.heartRateSamples} />}
+
+      {hasData && (
+        <nav className="bottom-nav">
+          <button
+            className={`bottom-nav-btn${state.view === 'dashboard' ? ' active' : ''}`}
+            onClick={() => setView('dashboard')}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            <span>Дашборд</span>
+          </button>
+          {NAV_GROUPS.map(g => (
+            <button
+              key={g.id}
+              className={`bottom-nav-btn${activeGroup === g.id ? ' active' : ''}`}
+              onClick={() => setView(g.defaultView)}
+            >
+              {g.icon}
+              <span>{g.label}</span>
+            </button>
+          ))}
+        </nav>
+      )}
     </div>
   )
 }
