@@ -148,28 +148,26 @@ export function buildContextSnapshot(
   if (heartRateSamples.length) {
     const hrCutoff = new Date(); hrCutoff.setDate(hrCutoff.getDate() - 7)
     const recentHR = heartRateSamples
-      .filter(s => new Date(s.timestamp) >= hrCutoff)
-      .sort((a, b) => a.timestamp.localeCompare(b.timestamp))
+      .filter(s => s.time >= hrCutoff)
+      .sort((a, b) => a.time.getTime() - b.time.getTime())
     if (recentHR.length) {
       lines.push('\n=== ПУЛЬС ПО ВРЕМЕНИ (последние 7 дней) ===')
-      // Group by date
       const byDate: Record<string, HeartRateSample[]> = {}
       for (const s of recentHR) {
-        const d = s.timestamp.slice(0, 10)
+        const d = s.time.toISOString().slice(0, 10)
         if (!byDate[d]) byDate[d] = []
         byDate[d].push(s)
       }
       for (const [date, samples] of Object.entries(byDate)) {
-        // Sample every ~30 min to keep context size reasonable
         const thinned: HeartRateSample[] = []
         let lastTs = 0
         for (const s of samples) {
-          const ts = new Date(s.timestamp).getTime()
+          const ts = s.time.getTime()
           if (ts - lastTs >= 25 * 60 * 1000) { thinned.push(s); lastTs = ts }
         }
         const vals = thinned.map(s => {
-          const t = new Date(s.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
-          return `${t}→${s.beatsPerMinute}`
+          const t = s.time.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+          return `${t}→${s.value}`
         }).join(', ')
         lines.push(`${date}: ${vals}`)
       }
