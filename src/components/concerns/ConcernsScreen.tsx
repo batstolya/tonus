@@ -7,7 +7,7 @@ import {
   type HealthConcern, type ConcernLog,
 } from '../../lib/concerns'
 
-interface Props { user: User }
+interface Props { user: User; onNavigateHair?: () => void }
 
 const SEVERITY_LABELS = ['', '1 — Почти нет', '2 — Слабо', '3 — Умеренно', '4 — Сильно', '5 — Очень сильно']
 const SEVERITY_COLOR = ['', 'var(--green)', '#84cc16', '#f59e0b', '#f97316', 'var(--red)']
@@ -171,7 +171,7 @@ function ConcernDetail({ concern, userId, onBack, onUpdate }: {
   )
 }
 
-export function ConcernsScreen({ user }: Props) {
+export function ConcernsScreen({ user, onNavigateHair }: Props) {
   const [concerns, setConcerns] = useState<HealthConcern[]>([])
   const [selected, setSelected] = useState<HealthConcern | null>(null)
   const [showForm, setShowForm] = useState(false)
@@ -214,6 +214,12 @@ export function ConcernsScreen({ user }: Props) {
 
   return (
     <div className="screen">
+      {onNavigateHair && (
+        <div className="concerns-subtabs">
+          <button className="concerns-subtab active">Проблемы</button>
+          <button className="concerns-subtab" onClick={onNavigateHair}>Волосы</button>
+        </div>
+      )}
       <div className="goals-header">
         <h2>Проблемы и симптомы</h2>
         <button className="btn-primary" onClick={() => setShowForm(s => !s)}>
