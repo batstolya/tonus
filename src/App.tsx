@@ -157,7 +157,7 @@ export default function App() {
         syncHRSamples(user.id, samples),
       ])
       if (!hrOk) {
-        setSyncMsg('⚠️ Таблица heart_rate_samples не создана — запусти SQL в Supabase')
+        setSyncMsg('⚠️ Не удалось сохранить пульс — подробности в консоли (F12)')
         setTimeout(() => setSyncMsg(null), 10000)
         return
       }
