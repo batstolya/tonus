@@ -37,13 +37,21 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
   const [amount, setAmount] = useState<string>('')
   const [note, setNote] = useState('')
   const [time, setTime] = useState(nowTimeStr)
+  const [customDt, setCustomDt] = useState('') // datetime-local: 'YYYY-MM-DDTHH:MM'
   const [saving, setSaving] = useState(false)
 
   const preset = EVENT_TYPES.find(e => e.type === selectedType)!
 
   function buildTs() {
+    if (customDt) return new Date(customDt).toISOString()
     const today = new Date().toISOString().slice(0, 10)
     return new Date(`${today}T${time}:00`).toISOString()
+  }
+
+  function localDtNow() {
+    const d = new Date()
+    const off = d.getTimezoneOffset() * 60000
+    return new Date(d.getTime() - off).toISOString().slice(0, 16)
   }
 
   async function handleAdd() {
@@ -62,6 +70,7 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
       setNote('')
       setAmount('')
       setTime(nowTimeStr())
+      setCustomDt('')
       setOpen(false)
     }
     setSaving(false)
@@ -128,15 +137,31 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
                 return (
                   <button
                     key={mins}
-                    className={`time-chip${time === val ? ' active' : ''}`}
-                    onClick={() => setTime(val)}
+                    className={`time-chip${!customDt && time === val ? ' active' : ''}`}
+                    onClick={() => { setTime(val); setCustomDt('') }}
                     type="button"
                   >
                     {label}<span className="time-chip-sub">{val}</span>
                   </button>
                 )
               })}
+              <button
+                className={`time-chip${customDt ? ' active' : ''}`}
+                onClick={() => setCustomDt(c => c ? '' : localDtNow())}
+                type="button"
+              >
+                📅 Дата<span className="time-chip-sub">выбрать</span>
+              </button>
             </div>
+            {customDt && (
+              <input
+                type="datetime-local"
+                className="log-input"
+                value={customDt}
+                max={localDtNow()}
+                onChange={e => setCustomDt(e.target.value)}
+              />
+            )}
             <input
               type="text"
               placeholder="Заметка (необязательно)"
