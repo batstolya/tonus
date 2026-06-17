@@ -190,12 +190,15 @@ export async function syncHRSamples(userId: string, samples: HeartRateSample[]):
   const recent = samples.filter(s => s.time >= cutoff)
   if (!recent.length) return true
 
-  const rows = recent.map(s => ({
-    user_id: userId,
-    ts: s.time.toISOString(),
-    bpm: Math.round(s.value),
-    source: s.sourceName,
-  }))
+  // Дедуп по ts: Apple Watch пишет несколько замеров в одну секунду, а upsert
+  // падает с "ON CONFLICT DO UPDATE cannot affect row a second time" если в
+  // одной пачке два одинаковых (user_id, ts). Оставляем последний замер на секунду.
+  const byTs = new Map<string, { user_id: string; ts: string; bpm: number; source: string }>()
+  for (const s of recent) {
+    const ts = s.time.toISOString()
+    byTs.set(ts, { user_id: userId, ts, bpm: Math.round(s.value), source: s.sourceName })
+  }
+  const rows = [...byTs.values()]
 
   const chunkSize = 500
   for (let i = 0; i < rows.length; i += chunkSize) {
