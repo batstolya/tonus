@@ -480,4 +480,8 @@ export const translations: Record<string, { uk: string; en: string }> = {
   'норма': { uk: 'норма', en: 'target' },
   'зелёный': { uk: 'зелений', en: 'green' },
   'вне нормы': { uk: 'поза нормою', en: 'out of range' },
+  'Экспорт данных': { uk: 'Експорт даних', en: 'Export data' },
+  'Скачай все свои данные для бэкапа или анализа. Обрабатывается в браузере.': { uk: 'Завантаж усі свої дані для бекапу чи аналізу. Обробляється в браузері.', en: 'Download all your data for backup or analysis. Processed in your browser.' },
+  'Полный бэкап (JSON)': { uk: 'Повний бекап (JSON)', en: 'Full backup (JSON)' },
+  'Метрики (CSV)': { uk: 'Метрики (CSV)', en: 'Metrics (CSV)' },
 }
