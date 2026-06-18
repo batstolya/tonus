@@ -40,6 +40,9 @@ export function buildContextSnapshot(
   intakeEvents: IntakeEvent[] = [],
   supplementSummary?: string,
   heartRateSamples: HeartRateSample[] = [],
+  notesSummary?: string,
+  concernsSummary?: string,
+  hairSummary?: string,
 ): string {
   const sorted = [...daily].sort((a, b) => a.date.localeCompare(b.date))
   const cutoff = new Date()
@@ -208,7 +211,79 @@ export function buildContextSnapshot(
     lines.push(labSummary)
   }
 
+  // Day notes — what the user wrote about their days
+  if (notesSummary) {
+    lines.push('\n=== ЗАМЕТКИ ДНЯ (со слов пользователя) ===')
+    lines.push(notesSummary)
+  }
+
+  // Health concerns
+  if (concernsSummary) {
+    lines.push('\n=== ПРОБЛЕМЫ И СИМПТОМЫ ===')
+    lines.push(concernsSummary)
+  }
+
+  // Hair tracking
+  if (hairSummary) {
+    lines.push('\n=== ВОЛОСЫ ===')
+    lines.push(hairSummary)
+  }
+
   return lines.join('\n')
+}
+
+// Заметки дня за период
+export async function loadNotesSummary(userId: string, periodDays: number): Promise<string> {
+  const since = new Date(); since.setDate(since.getDate() - periodDays)
+  const { data } = await supabase
+    .from('context_notes')
+    .select('date, note')
+    .eq('user_id', userId)
+    .gte('date', since.toISOString().slice(0, 10))
+    .order('date', { ascending: false })
+  if (!data?.length) return ''
+  return data.map((n: any) => `${n.date}: ${n.note}`).join('\n')
+}
+
+// Проблемы/симптомы + последние наблюдения
+export async function loadConcernsSummary(userId: string): Promise<string> {
+  const { data: concerns } = await supabase
+    .from('health_concerns')
+    .select('id, name, category, status, started_at')
+    .eq('user_id', userId)
+  if (!concerns?.length) return ''
+  const lines: string[] = []
+  for (const c of concerns) {
+    const { data: logs } = await supabase
+      .from('concern_logs')
+      .select('date, severity, note')
+      .eq('concern_id', c.id)
+      .order('date', { ascending: false })
+      .limit(5)
+    const recent = (logs ?? []).map((l: any) =>
+      `${l.date}: выраженность ${l.severity ?? '—'}/5${l.note ? ` (${l.note})` : ''}`).join('; ')
+    lines.push(`${c.name} [${c.status}]${c.started_at ? `, с ${c.started_at}` : ''}${recent ? `\n  наблюдения: ${recent}` : ''}`)
+  }
+  return lines.join('\n')
+}
+
+// Записи по волосам (последние)
+export async function loadHairSummary(userId: string): Promise<string> {
+  const { data } = await supabase
+    .from('hair_entries')
+    .select('date, shedding_level, density_rating, hairline_rating, notes')
+    .eq('user_id', userId)
+    .order('date', { ascending: false })
+    .limit(6)
+  if (!data?.length) return ''
+  return data.map((e: any) => {
+    const parts = [
+      e.shedding_level ? `выпадение ${e.shedding_level}/5` : null,
+      e.density_rating ? `густота ${e.density_rating}/5` : null,
+      e.hairline_rating ? `линия роста ${e.hairline_rating}/5` : null,
+    ].filter(Boolean).join(', ')
+    return `${e.date}: ${parts}${e.notes ? ` — ${e.notes}` : ''}`
+  }).join('\n')
 }
 
 export async function loadSupplementSummary(userId: string, periodDays: number): Promise<string> {
