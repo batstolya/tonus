@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import type { User } from '@supabase/supabase-js'
+import { useT } from '../../lib/i18n'
 import { loadLabFiles, loadLabResults, deleteLabFile, uploadAndExtract, type LabFile, type LabResult } from '../../lib/labs'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
@@ -19,6 +20,7 @@ function groupByMarker(results: LabResult[]): Record<string, { date: string; val
 const COLORS = ['var(--accent)', 'var(--green)', '#e88c3b', '#a78bfa', '#f472b6']
 
 export function LabsScreen({ user }: Props) {
+  const { t } = useT()
   const [files, setFiles] = useState<LabFile[]>([])
   const [results, setResults] = useState<LabResult[]>([])
   const [uploading, setUploading] = useState(false)
@@ -73,7 +75,7 @@ export function LabsScreen({ user }: Props) {
         setResults(updated)
       }
     } catch (e: any) {
-      setError(e.message ?? 'Ошибка загрузки')
+      setError(e.message ?? t('Ошибка загрузки'))
     }
     setUploading(false)
   }
@@ -93,19 +95,19 @@ export function LabsScreen({ user }: Props) {
       {showConsent && (
         <div className="ai-consent-overlay" onClick={() => setShowConsent(false)}>
           <div className="ai-consent-card" onClick={e => e.stopPropagation()}>
-            <h3>Обработка анализов через ИИ</h3>
-            <p>Содержимое загруженного файла (PDF или фото) будет отправлено в Google Gemini для извлечения текста и биомаркеров. Это самая чувствительная категория данных.</p>
-            <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Нажимая «Согласен», ты подтверждаешь отправку медицинских документов во внешний сервис.</p>
+            <h3>{t('Обработка анализов через ИИ')}</h3>
+            <p>{t('Содержимое загруженного файла (PDF или фото) будет отправлено в Google Gemini для извлечения текста и биомаркеров. Это самая чувствительная категория данных.')}</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>{t('Нажимая «Согласен», ты подтверждаешь отправку медицинских документов во внешний сервис.')}</p>
             <div className="ai-consent-btns">
-              <button className="btn-primary" onClick={handleConsent}>Согласен</button>
-              <button className="btn-ghost" onClick={() => setShowConsent(false)}>Отмена</button>
+              <button className="btn-primary" onClick={handleConsent}>{t('Согласен')}</button>
+              <button className="btn-ghost" onClick={() => setShowConsent(false)}>{t('Отмена')}</button>
             </div>
           </div>
         </div>
       )}
 
       <div className="labs-header">
-        <h2>Анализы</h2>
+        <h2>{t('Анализы')}</h2>
         <div className="labs-upload-row">
           <input
             type="date"
@@ -117,8 +119,8 @@ export function LabsScreen({ user }: Props) {
           <input ref={fileRef} type="file" accept=".pdf,image/*" style={{ display: 'none' }} onChange={handleFileChange} />
           <button className="btn-primary" onClick={handleFileClick} disabled={uploading}>
             {uploading ? (
-              <><span className="ai-spinner" /> Извлекаем…</>
-            ) : '+ Загрузить анализ'}
+              <><span className="ai-spinner" /> {t('Извлекаем…')}</>
+            ) : `+ ${t('Загрузить анализ')}`}
           </button>
         </div>
       </div>
@@ -128,7 +130,7 @@ export function LabsScreen({ user }: Props) {
       {/* Biomarker trends */}
       {markers.length > 0 && (
         <div className="labs-section">
-          <h3>Тренды биомаркеров</h3>
+          <h3>{t('Тренды биомаркеров')}</h3>
           <div className="labs-trends">
             {markers.map((marker, idx) => {
               const pts = markerGroups[marker].sort((a, b) => a.date.localeCompare(b.date))
@@ -150,16 +152,16 @@ export function LabsScreen({ user }: Props) {
             })}
           </div>
           {markers.some(m => markerGroups[m].length < 2) && (
-            <p className="chart-hint">Тренд появится когда будет ≥2 анализов с одним показателем.</p>
+            <p className="chart-hint">{t('Тренд появится когда будет ≥2 анализов с одним показателем.')}</p>
           )}
         </div>
       )}
 
       {/* File list */}
       <div className="labs-section">
-        <h3>Загруженные анализы</h3>
+        <h3>{t('Загруженные анализы')}</h3>
         {files.length === 0 ? (
-          <p className="empty-hint">Нет загруженных анализов. Загрузи PDF или фото бланка.</p>
+          <p className="empty-hint">{t('Нет загруженных анализов. Загрузи PDF или фото бланка.')}</p>
         ) : (
           <div className="labs-list">
             {files.map(f => (
@@ -168,10 +170,10 @@ export function LabsScreen({ user }: Props) {
                   <div className="labs-file-info">
                     <span className="labs-file-name">{f.file_name}</span>
                     {f.date && <span className="labs-file-date">{f.date}</span>}
-                    <span className="labs-file-type">{f.file_type?.split('/')[1]?.toUpperCase() ?? 'файл'}</span>
+                    <span className="labs-file-type">{f.file_type?.split('/')[1]?.toUpperCase() ?? t('файл')}</span>
                   </div>
                   <div className="labs-file-actions">
-                    <button className="ai-card-delete" onClick={e => { e.stopPropagation(); handleDelete(f.id) }} title="Удалить">
+                    <button className="ai-card-delete" onClick={e => { e.stopPropagation(); handleDelete(f.id) }} title={t('Удалить')}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
                     </button>
                     <span className="ai-card-chevron">
@@ -192,7 +194,7 @@ export function LabsScreen({ user }: Props) {
         )}
       </div>
 
-      <p className="caveat">Данные анализов обрабатываются через Google Gemini. Это медицинские документы — храни их с осторожностью.</p>
+      <p className="caveat">{t('Данные анализов обрабатываются через Google Gemini. Это медицинские документы — храни их с осторожностью.')}</p>
     </div>
   )
 }
