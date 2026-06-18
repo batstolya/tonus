@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import type { User } from '@supabase/supabase-js'
 import type { DailyMetrics, HeartRateSample } from '../../types'
 import { sendChatMessage, buildContextSnapshot, loadLabSummary, loadSupplementSummary, type ChatMessage, type IntakeEvent } from '../../lib/chat'
+import { useT } from '../../lib/i18n'
 
 interface Props {
   user: User
@@ -28,6 +29,7 @@ function MsgBubble({ msg }: { msg: ChatMessage }) {
 }
 
 export function ChatWidget({ user, daily, intakeEvents = [], heartRateSamples = [] }: Props) {
+  const { t } = useT()
   const [open, setOpen] = useState(false)
   const [period, setPeriod] = useState<Period>('30d')
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -99,7 +101,7 @@ export function ChatWidget({ user, daily, intakeEvents = [], heartRateSamples = 
       }
       setMessages(prev => [...prev, assistantMsg])
     } catch (e: any) {
-      setError(e.message ?? 'Ошибка')
+      setError(e.message ?? t('Ошибка'))
     }
     setLoading(false)
   }
@@ -117,7 +119,7 @@ export function ChatWidget({ user, daily, intakeEvents = [], heartRateSamples = 
       <button
         className={`chat-fab ${open ? 'open' : ''}`}
         onClick={() => setOpen(o => !o)}
-        title="Чат с ИИ"
+        title={t('Чат с ИИ')}
       >
         {open ? (
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -130,7 +132,7 @@ export function ChatWidget({ user, daily, intakeEvents = [], heartRateSamples = 
       {open && (
         <div className="chat-window">
           <div className="chat-header">
-            <span className="chat-title">ИИ-ассистент</span>
+            <span className="chat-title">{t('ИИ-ассистент')}</span>
             <div className="chat-period-tabs">
               {(['14d', '30d', '90d'] as Period[]).map(p => (
                 <button
@@ -138,7 +140,7 @@ export function ChatWidget({ user, daily, intakeEvents = [], heartRateSamples = 
                   className={`chat-period-btn ${period === p ? 'active' : ''}`}
                   onClick={() => setPeriod(p)}
                 >
-                  {PERIOD_LABELS[p]}
+                  {t(PERIOD_LABELS[p])}
                 </button>
               ))}
             </div>
@@ -147,10 +149,10 @@ export function ChatWidget({ user, daily, intakeEvents = [], heartRateSamples = 
           <div className="chat-messages">
             {messages.length === 0 && (
               <div className="chat-empty">
-                <p>Привет! Я знаю твои данные здоровья за {PERIOD_LABELS[period]}. Задай любой вопрос.</p>
+                <p>{t('Привет! Я знаю твои данные здоровья за')} {t(PERIOD_LABELS[period])}. {t('Задай любой вопрос.')}</p>
                 <div className="chat-suggestions">
                   {['Как мой сон за период?', 'Что с HRV?', 'Когда лучшие показатели?'].map(s => (
-                    <button key={s} className="chat-suggestion" onClick={() => { setInput(s); inputRef.current?.focus() }}>{s}</button>
+                    <button key={s} className="chat-suggestion" onClick={() => { setInput(s); inputRef.current?.focus() }}>{t(s)}</button>
                   ))}
                 </div>
               </div>
@@ -169,7 +171,7 @@ export function ChatWidget({ user, daily, intakeEvents = [], heartRateSamples = 
             <textarea
               ref={inputRef}
               className="chat-input"
-              placeholder="Спроси о своих данных…"
+              placeholder={t('Спроси о своих данных…')}
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKey}
