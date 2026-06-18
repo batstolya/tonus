@@ -20,7 +20,7 @@ function avg(vals: number[]): number | null {
 
 export interface EarlyWarning {
   active: boolean
-  signals: string[]
+  signals: { key: string; vars: Record<string, string | number> }[]
 }
 
 export function computeReadiness(daily: DailyMetrics[]): ReadinessScore | null {
@@ -104,10 +104,10 @@ export function computeEarlyWarning(daily: DailyMetrics[]): EarlyWarning {
   const recentHRV = avg(recent.map(d => d.hrv).filter((v): v is number => v != null))
   const recentSleep = avg(recent.map(d => d.sleepHours).filter((v): v is number => v != null))
 
-  const signals: string[] = []
-  if (baseRHR && recentRHR && recentRHR > baseRHR + 5) signals.push(`Пульс покоя выше нормы на ${Math.round(recentRHR - baseRHR)} уд/мин`)
-  if (baseHRV && recentHRV && recentHRV < baseHRV - 10) signals.push(`HRV ниже нормы на ${Math.round(baseHRV - recentHRV)} мс`)
-  if (recentSleep && recentSleep < 6) signals.push(`Сон менее 6 ч (${recentSleep.toFixed(1)} ч)`)
+  const signals: { key: string; vars: Record<string, string | number> }[] = []
+  if (baseRHR && recentRHR && recentRHR > baseRHR + 5) signals.push({ key: 'Пульс покоя выше нормы на {n} уд/мин', vars: { n: Math.round(recentRHR - baseRHR) } })
+  if (baseHRV && recentHRV && recentHRV < baseHRV - 10) signals.push({ key: 'HRV ниже нормы на {n} мс', vars: { n: Math.round(baseHRV - recentHRV) } })
+  if (recentSleep && recentSleep < 6) signals.push({ key: 'Сон менее 6 ч ({n} ч)', vars: { n: recentSleep.toFixed(1) } })
 
   return { active: signals.length >= 2, signals }
 }
