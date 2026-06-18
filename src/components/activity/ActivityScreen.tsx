@@ -34,7 +34,7 @@ export function ActivityScreen({ daily }: Props) {
   const data = useMemo(() => slice.map(d => ({
     date: d.date.slice(5),
     steps: d.steps ?? 0,
-    distance: d.distance ? Math.round(d.distance / 100) / 10 : null,
+    distance: d.distance ? Math.round(d.distance * 10) / 10 : null,
     energy: d.activeEnergy ? Math.round(d.activeEnergy) : null,
     exercise: d.exerciseMinutes ?? null,
   })), [slice])
