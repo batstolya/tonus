@@ -181,6 +181,38 @@ export function computeFindings(data: ResearchData): Finding[] {
   return out.sort((a, b) => b.strength - a.strength).slice(0, 25)
 }
 
+// ── Архив прогонов ──────────────────────────────────────────────────────────
+export interface ResearchRun {
+  id: string
+  period_days: number
+  findings: Finding[]
+  reply: string | null
+  created_at: string
+}
+
+export async function saveResearchRun(userId: string, periodDays: number, findings: Finding[], reply: string): Promise<ResearchRun | null> {
+  const { data } = await supabase
+    .from('research_runs')
+    .insert({ user_id: userId, period_days: periodDays, findings, reply })
+    .select('id, period_days, findings, reply, created_at')
+    .single()
+  return (data as ResearchRun) ?? null
+}
+
+export async function loadResearchRuns(userId: string): Promise<ResearchRun[]> {
+  const { data } = await supabase
+    .from('research_runs')
+    .select('id, period_days, findings, reply, created_at')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(30)
+  return (data as ResearchRun[]) ?? []
+}
+
+export async function deleteResearchRun(id: string): Promise<void> {
+  await supabase.from('research_runs').delete().eq('id', id)
+}
+
 // Человекочитаемый текст находок — для отправки в ИИ
 export function findingsToText(findings: Finding[]): string {
   return findings.map(f => {
