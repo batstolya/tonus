@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { loadHairEntries, saveHairEntry, uploadHairPhoto, getPhotoUrl, type HairEntry } from '../../lib/concerns'
+import { useT } from '../../lib/i18n'
 
 interface Props { user: User; onBack?: () => void }
 
@@ -72,6 +73,7 @@ function PhotoSlot({ label, icon, onFile, url }: {
 }
 
 export function HairScreen({ user, onBack }: Props) {
+  const { t } = useT()
   const [entries, setEntries] = useState<HairEntry[]>([])
   const [mode, setMode] = useState<'list' | 'add' | 'compare'>('list')
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({})
@@ -153,20 +155,20 @@ export function HairScreen({ user, onBack }: Props) {
     <div className="screen">
       {onBack && (
         <div className="concerns-subtabs">
-          <button className="concerns-subtab" onClick={onBack}>Проблемы</button>
-          <button className="concerns-subtab active">Волосы</button>
+          <button className="concerns-subtab" onClick={onBack}>{t('Проблемы')}</button>
+          <button className="concerns-subtab active">{t('Волосы')}</button>
         </div>
       )}
       <div className="goals-header">
-        <h2>Волосы</h2>
+        <h2>{t('Волосы')}</h2>
         <div style={{ display: 'flex', gap: 8 }}>
           {entries.length >= 2 && (
             <button className="btn-secondary" onClick={() => setMode(m => m === 'compare' ? 'list' : 'compare')}>
-              {mode === 'compare' ? 'К списку' : '↔ Сравнить'}
+              {mode === 'compare' ? t('К списку') : `↔ ${t('Сравнить')}`}
             </button>
           )}
           <button className="btn-primary" onClick={() => setMode(m => m === 'add' ? 'list' : 'add')}>
-            {mode === 'add' ? 'Отмена' : '+ Запись'}
+            {mode === 'add' ? t('Отмена') : `+ ${t('Запись')}`}
           </button>
         </div>
       </div>
@@ -174,8 +176,8 @@ export function HairScreen({ user, onBack }: Props) {
       {/* Hint */}
       {entries.length === 0 && mode !== 'add' && (
         <div className="empty-hint">
-          <p>Добавляй записи раз в месяц — одни и те же ракурсы, похожий свет.</p>
-          <p>Так динамика будет честной и сравнимой.</p>
+          <p>{t('Добавляй записи раз в месяц — одни и те же ракурсы, похожий свет.')}</p>
+          <p>{t('Так динамика будет честной и сравнимой.')}</p>
         </div>
       )}
 
@@ -184,30 +186,30 @@ export function HairScreen({ user, onBack }: Props) {
         <div className="goals-form">
           <div className="goals-form-row">
             <div className="goals-form-field" style={{ maxWidth: 160 }}>
-              <label className="settings-label">Дата</label>
+              <label className="settings-label">{t('Дата')}</label>
               <input className="log-input" type="date" value={date} onChange={e => setDate(e.target.value)} style={{ minWidth: 140 }} />
             </div>
           </div>
 
           <div>
-            <div className="settings-label" style={{ marginBottom: 10 }}>Фото по ракурсам</div>
+            <div className="settings-label" style={{ marginBottom: 10 }}>{t('Фото по ракурсам')}</div>
             <div className="hair-photos-row">
               {ANGLES.map(a => (
-                <PhotoSlot key={a.key} label={a.label} icon={a.icon} path={null}
+                <PhotoSlot key={a.key} label={t(a.label)} icon={a.icon} path={null}
                   url={photoFiles[a.key] ? URL.createObjectURL(photoFiles[a.key]!) : undefined}
                   onFile={f => setPhotoFiles(prev => ({ ...prev, [a.key]: f }))} />
               ))}
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
-              Совет: то же место, тот же свет, что и в прошлый раз
+              {t('Совет: то же место, тот же свет, что и в прошлый раз')}
             </div>
           </div>
 
           {METRIC_LABELS.map(m => (
             <div key={m.key}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 8 }}>
-                <span className="settings-label">{m.label}</span>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{m.desc}</span>
+                <span className="settings-label">{t(m.label)}</span>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t(m.desc)}</span>
               </div>
               <RatingInput
                 value={(m.key === 'shedding_level' ? shedding : m.key === 'density_rating' ? density : hairline)}
@@ -217,17 +219,17 @@ export function HairScreen({ user, onBack }: Props) {
           ))}
 
           <div>
-            <label className="settings-label">Кожа головы / заметки</label>
+            <label className="settings-label">{t('Кожа головы / заметки')}</label>
             <textarea className="log-input" rows={2} value={scalpNote} onChange={e => setScalpNote(e.target.value)}
-              placeholder="Сухость, перхоть, зуд…" style={{ width: '100%', marginTop: 6, resize: 'vertical' }} />
+              placeholder={t('Сухость, перхоть, зуд…')} style={{ width: '100%', marginTop: 6, resize: 'vertical' }} />
           </div>
           <div>
-            <label className="settings-label">Общая заметка</label>
+            <label className="settings-label">{t('Общая заметка')}</label>
             <textarea className="log-input" rows={2} value={entryNotes} onChange={e => setEntryNotes(e.target.value)}
-              placeholder="Что изменилось, самочувствие, лечение…" style={{ width: '100%', marginTop: 6, resize: 'vertical' }} />
+              placeholder={t('Что изменилось, самочувствие, лечение…')} style={{ width: '100%', marginTop: 6, resize: 'vertical' }} />
           </div>
           <button className="btn-primary" onClick={handleSave} disabled={saving}>
-            {saving ? 'Сохранение…' : 'Сохранить запись'}
+            {saving ? t('Сохранение…') : t('Сохранить запись')}
           </button>
         </div>
       )}
@@ -263,13 +265,13 @@ export function HairScreen({ user, onBack }: Props) {
                     <img src={url} alt={entry.date} style={{ width: '100%', borderRadius: 12, objectFit: 'cover', aspectRatio: '3/4' }} />
                   ) : (
                     <div className="hair-photo-empty" style={{ aspectRatio: '3/4', borderRadius: 12 }}>
-                      <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>Нет фото</span>
+                      <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{t('Нет фото')}</span>
                     </div>
                   )}
                   <div className="hair-compare-metrics">
                     {METRIC_LABELS.map(m => {
                       const v = entry[m.key] as number | null
-                      return v != null ? <span key={m.key} style={{ fontSize: 12 }}>{m.label}: <b>{v}/5</b></span> : null
+                      return v != null ? <span key={m.key} style={{ fontSize: 12 }}>{t(m.label)}: <b>{v}/5</b></span> : null
                     })}
                   </div>
                 </div>
@@ -287,14 +289,14 @@ export function HairScreen({ user, onBack }: Props) {
             <div className="hair-trends">
               {METRIC_LABELS.map(m => (
                 <div key={m.key} className="hair-trend-card">
-                  <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6 }}>{m.label}</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6 }}>{t(m.label)}</div>
                   <TrendLine entries={entries} metricKey={m.key} />
                 </div>
               ))}
             </div>
           )}
 
-          <h3 className="goals-section-title">Записи</h3>
+          <h3 className="goals-section-title">{t('Записи')}</h3>
           <div className="hair-entries-list">
             {entries.map(e => {
               const topUrl = photoUrls[`${e.id}_photo_top`]
@@ -304,9 +306,9 @@ export function HairScreen({ user, onBack }: Props) {
                   <div className="hair-entry-body">
                     <div style={{ fontWeight: 600, fontSize: 14 }}>{e.date}</div>
                     <div className="hair-entry-metrics">
-                      {e.shedding_level && <span>Выпадение: {e.shedding_level}/5</span>}
-                      {e.density_rating && <span>Густота: {e.density_rating}/5</span>}
-                      {e.hairline_rating && <span>Линия: {e.hairline_rating}/5</span>}
+                      {e.shedding_level && <span>{t('Выпадение')}: {e.shedding_level}/5</span>}
+                      {e.density_rating && <span>{t('Густота')}: {e.density_rating}/5</span>}
+                      {e.hairline_rating && <span>{t('Линия')}: {e.hairline_rating}/5</span>}
                     </div>
                     {e.notes && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>{e.notes}</div>}
                   </div>
