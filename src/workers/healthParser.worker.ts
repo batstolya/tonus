@@ -128,7 +128,10 @@ function mergedSeconds(ivs: { start: Date; end: Date }[]): number {
   return total / 1000
 }
 
-function aggregateSleep(intervals: { start: Date; end: Date; value: number }[]): Partial<import('../types').DailyMetrics> {
+function aggregateSleep(allIntervals: { start: Date; end: Date; value: number }[]): Partial<import('../types').DailyMetrics> {
+  if (!allIntervals.length) return {}
+  // Отбрасываем явно битые записи: один интервал сна длиннее 16ч — ошибка девайса
+  const intervals = allIntervals.filter(iv => (iv.end.getTime() - iv.start.getTime()) / 3600000 <= 16)
   if (!intervals.length) return {}
   // value: 1=Core/Asleep, 2=Deep, 3=REM, 0=InBed (запас, если нет фаз сна)
   const asleep = intervals.filter(iv => iv.value === 1 || iv.value === 2 || iv.value === 3)
