@@ -4,6 +4,7 @@ import {
   LineChart, Line, Legend,
 } from 'recharts'
 import type { DailyMetrics } from '../../types'
+import { useT } from '../../lib/i18n'
 
 interface Props {
   daily: DailyMetrics[]
@@ -42,6 +43,7 @@ function chartValToTime(val: number): string {
 }
 
 export function SleepScreen({ daily }: Props) {
+  const { t } = useT()
   const [preset, setPreset] = useState<Preset>('30d')
 
   const days = preset === '14d' ? 14 : preset === '30d' ? 30 : 90
@@ -107,20 +109,20 @@ export function SleepScreen({ daily }: Props) {
 
   return (
     <div className="screen">
-      <h2>Сон</h2>
+      <h2>{t('Сон')}</h2>
 
       <div className="presets">
         {(['14d', '30d', '90d'] as Preset[]).map(p => (
           <button key={p} className={preset === p ? 'preset active' : 'preset'} onClick={() => setPreset(p)}>
-            {p.replace('d', ' дн')}
+            {p.replace('d', ` ${t('дн')}`)}
           </button>
         ))}
       </div>
 
       <div className="stat-row">
-        {avgSleep && <div className="stat"><span>{fmtHours(avgSleep)}</span> средняя длительность</div>}
-        {avgBed !== null && <div className="stat"><span>{chartValToTime(avgBed)}</span> среднее засыпание</div>}
-        {avgWake !== null && <div className="stat"><span>{fmtDecimalTime(avgWake)}</span> среднее пробуждение</div>}
+        {avgSleep && <div className="stat"><span>{fmtHours(avgSleep)}</span> {t('средняя длительность')}</div>}
+        {avgBed !== null && <div className="stat"><span>{chartValToTime(avgBed)}</span> {t('среднее засыпание')}</div>}
+        {avgWake !== null && <div className="stat"><span>{fmtDecimalTime(avgWake)}</span> {t('среднее пробуждение')}</div>}
         {bedtimeDays.length > 0 && (
           <div className="stat">
             <span>
@@ -128,14 +130,14 @@ export function SleepScreen({ daily }: Props) {
               {' / '}
               <span style={{ color: notOnTime > 0 ? 'var(--red)' : undefined }}>{notOnTime}</span>
             </span>
-            до/после полуночи
+            {t('до/после полуночи')}
           </div>
         )}
       </div>
 
       {/* Duration chart */}
       <div className="chart-section">
-        <h3>Длительность сна</h3>
+        <h3>{t('Длительность сна')}</h3>
         <ResponsiveContainer width="100%" height={220}>
           {hasPhases ? (
             <BarChart data={data} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
@@ -144,9 +146,9 @@ export function SleepScreen({ daily }: Props) {
               <YAxis tick={{ fontSize: 11 }} unit="ч" />
               <Tooltip formatter={(v) => v != null ? fmtHours(Number(v)) : '—'} />
               <Legend />
-              <Bar dataKey="deep" name="Глубокий" stackId="a" fill="#6c8fff" />
+              <Bar dataKey="deep" name={t('Глубокий')} stackId="a" fill="#6c8fff" />
               <Bar dataKey="rem" name="REM" stackId="a" fill="#5bc896" />
-              <Bar dataKey="core" name="Основной" stackId="a" fill="#8888a0" />
+              <Bar dataKey="core" name={t('Основной')} stackId="a" fill="#8888a0" />
             </BarChart>
           ) : (
             <BarChart data={data} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
@@ -154,7 +156,7 @@ export function SleepScreen({ daily }: Props) {
               <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
               <YAxis tick={{ fontSize: 11 }} unit="ч" />
               <Tooltip formatter={(v) => v != null ? fmtHours(Number(v)) : '—'} />
-              <Bar dataKey="total" name="Сон" fill="var(--accent)" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="total" name={t('Сон')} fill="var(--accent)" radius={[3, 3, 0, 0]} />
             </BarChart>
           )}
         </ResponsiveContainer>
@@ -162,7 +164,7 @@ export function SleepScreen({ daily }: Props) {
 
       {/* Bedtime / Wake time chart */}
       <div className="chart-section">
-        <h3>Время засыпания и пробуждения</h3>
+        <h3>{t('Время засыпания и пробуждения')}</h3>
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={data} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -174,11 +176,11 @@ export function SleepScreen({ daily }: Props) {
             />
             <Tooltip content={<CustomBedtimeTooltip />} />
             <Legend />
-            <Line type="monotone" dataKey="bedtime" name="Засыпание" stroke="var(--accent)" dot={false} connectNulls />
-            <Line type="monotone" dataKey="wake" name="Пробуждение" stroke="var(--green)" dot={false} connectNulls />
+            <Line type="monotone" dataKey="bedtime" name={t('Засыпание')} stroke="var(--accent)" dot={false} connectNulls />
+            <Line type="monotone" dataKey="wake" name={t('Пробуждение')} stroke="var(--green)" dot={false} connectNulls />
           </LineChart>
         </ResponsiveContainer>
-        <p className="chart-hint">Ось Y — время суток</p>
+        <p className="chart-hint">{t('Ось Y — время суток')}</p>
       </div>
 
       {/* Table */}
@@ -186,11 +188,11 @@ export function SleepScreen({ daily }: Props) {
         <table className="metrics-table">
           <thead>
             <tr>
-              <th>Дата</th>
-              <th>Засыпание</th>
-              <th>Пробуждение</th>
-              <th>Итого</th>
-              {hasPhases && <><th>Глубокий</th><th>REM</th><th>Основной</th></>}
+              <th>{t('Дата')}</th>
+              <th>{t('Засыпание')}</th>
+              <th>{t('Пробуждение')}</th>
+              <th>{t('Итого')}</th>
+              {hasPhases && <><th>{t('Глубокий')}</th><th>REM</th><th>{t('Основной')}</th></>}
             </tr>
           </thead>
           <tbody>
