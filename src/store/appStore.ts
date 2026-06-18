@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import type { DailyMetrics, HeartRateSample, CalendarEvent, ParseProgress } from '../types'
 
-export type AppView = 'upload' | 'dashboard' | 'heart-rate' | 'metrics' | 'stress-map' | 'sleep' | 'activity' | 'insights' | 'supplements' | 'labs' | 'settings' | 'goals' | 'concerns' | 'hair'
+export type AppView = 'upload' | 'dashboard' | 'heart-rate' | 'metrics' | 'stress-map' | 'sleep' | 'activity' | 'insights' | 'supplements' | 'labs' | 'settings' | 'goals' | 'concerns' | 'hair' | 'research'
 
 export type DeviceType = 'apple_watch' | 'xiaomi'
 
