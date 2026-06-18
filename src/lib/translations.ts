@@ -447,4 +447,12 @@ export const translations: Record<string, { uk: string; en: string }> = {
   '3 — Умеренно': { uk: '3 — Помірно', en: '3 — Moderate' },
   '4 — Сильно': { uk: '4 — Сильно', en: '4 — Strong' },
   '5 — Очень сильно': { uk: '5 — Дуже сильно', en: '5 — Very strong' },
+
+  // ── Исследования (дип-ресёрч) ──────────────────────────────
+  'Исследования': { uk: 'Дослідження', en: 'Research' },
+  'Найти взаимосвязи': { uk: 'Знайти взаємозвʼязки', en: 'Find correlations' },
+  'Найденные связи (по силе)': { uk: 'Знайдені звʼязки (за силою)', en: 'Found correlations (by strength)' },
+  'след. день': { uk: 'наст. день', en: 'next day' },
+  'Считаю статистические связи между сном, пульсом, активностью, препаратами, событиями и проблемами — затем ИИ объясняет находки. Корреляция ≠ причинность.': { uk: 'Рахую статистичні звʼязки між сном, пульсом, активністю, препаратами, подіями та проблемами — потім ШІ пояснює знахідки. Кореляція ≠ причинність.', en: 'I compute statistical links between sleep, heart rate, activity, supplements, events and concerns — then AI explains the findings. Correlation ≠ causation.' },
+  'Значимых взаимосвязей не найдено. Нужно больше данных — отмечай препараты, события (кофе/алкоголь) и наблюдения по проблемам, и возвращайся через пару недель.': { uk: 'Значущих звʼязків не знайдено. Потрібно більше даних — відмічай препарати, події (кава/алкоголь) та спостереження по проблемах, і повертайся за пару тижнів.', en: 'No significant correlations found. More data is needed — log supplements, events (coffee/alcohol) and concern observations, then come back in a couple of weeks.' },
 }
