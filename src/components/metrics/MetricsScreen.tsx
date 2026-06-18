@@ -3,6 +3,7 @@ import {
   LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer,
 } from 'recharts'
 import type { DailyMetrics, MetricKey } from '../../types'
+import { useT } from '../../lib/i18n'
 
 const METRIC_LABELS: Record<MetricKey, string> = {
   heartRate: 'Пульс (средний)',
@@ -38,6 +39,7 @@ interface Props {
 }
 
 export function MetricsScreen({ daily }: Props) {
+  const { t } = useT()
   const available = (Object.keys(METRIC_LABELS) as MetricKey[]).filter(
     k => daily.some(d => getValue(d, k) !== null)
   )
@@ -57,20 +59,20 @@ export function MetricsScreen({ daily }: Props) {
 
   return (
     <div className="screen">
-      <h2>Все показатели</h2>
+      <h2>{t('Все показатели')}</h2>
 
       <div className="metric-selectors">
         <label>
-          Показатель 1
+          {t('Показатель 1')}
           <select value={primary} onChange={e => setPrimary(e.target.value as MetricKey)}>
-            {available.map(k => <option key={k} value={k}>{METRIC_LABELS[k]}</option>)}
+            {available.map(k => <option key={k} value={k}>{t(METRIC_LABELS[k])}</option>)}
           </select>
         </label>
         <label>
-          Показатель 2 (наложить)
+          {t('Показатель 2 (наложить)')}
           <select value={secondary} onChange={e => setSecondary(e.target.value as MetricKey | '')}>
             <option value="">—</option>
-            {available.filter(k => k !== primary).map(k => <option key={k} value={k}>{METRIC_LABELS[k]}</option>)}
+            {available.filter(k => k !== primary).map(k => <option key={k} value={k}>{t(METRIC_LABELS[k])}</option>)}
           </select>
         </label>
       </div>
@@ -82,9 +84,9 @@ export function MetricsScreen({ daily }: Props) {
           <YAxis yAxisId="left" domain={['auto', 'auto']} tick={{ fontSize: 11 }} />
           {secondary && <YAxis yAxisId="right" orientation="right" domain={['auto', 'auto']} tick={{ fontSize: 11 }} />}
           <Tooltip />
-          <Line yAxisId="left" type="monotone" dataKey="primary" name={METRIC_LABELS[primary]} stroke="#6c8fff" strokeWidth={2} dot={false} connectNulls />
+          <Line yAxisId="left" type="monotone" dataKey="primary" name={t(METRIC_LABELS[primary])} stroke="#6c8fff" strokeWidth={2} dot={false} connectNulls />
           {secondary && (
-            <Line yAxisId="right" type="monotone" dataKey="secondary" name={METRIC_LABELS[secondary as MetricKey]} stroke="#5bc896" strokeWidth={2} dot={false} connectNulls />
+            <Line yAxisId="right" type="monotone" dataKey="secondary" name={t(METRIC_LABELS[secondary as MetricKey])} stroke="#5bc896" strokeWidth={2} dot={false} connectNulls />
           )}
         </LineChart>
       </ResponsiveContainer>
@@ -93,8 +95,8 @@ export function MetricsScreen({ daily }: Props) {
         <table className="metrics-table">
           <thead>
             <tr>
-              <th>Дата</th>
-              {available.map(k => <th key={k}>{METRIC_LABELS[k]}</th>)}
+              <th>{t('Дата')}</th>
+              {available.map(k => <th key={k}>{t(METRIC_LABELS[k])}</th>)}
             </tr>
           </thead>
           <tbody>
