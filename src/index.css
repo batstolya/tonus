@@ -1076,6 +1076,12 @@ body {
 .research-finding-pair { font-size: 14px; font-weight: 500; }
 .research-finding-metric { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .research-finding-n { font-size: 12px; color: var(--text-muted); flex-shrink: 0; }
+.research-archive { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+.research-archive-chip { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface2); cursor: pointer; font-size: 13px; color: var(--text); transition: all 0.15s; }
+.research-archive-chip.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.research-archive-period { font-size: 11px; color: var(--text-muted); }
+.research-archive-del { font-size: 11px; color: var(--text-muted); padding: 0 2px; }
+.research-archive-del:hover { color: var(--red); }
 .rem-quiet input { font-size: 13px; padding: 3px 6px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); }
 .rem-hint { font-size: 11px; color: var(--text-muted); }
 .supp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
