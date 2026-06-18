@@ -324,7 +324,7 @@ async function buildBotContext(userId: string, supabase: any): Promise<string> {
     if (sleep.length) parts.push(`Сон: средн ${avg(sleep)!.toFixed(1)} ч/ночь (от ${Math.min(...sleep).toFixed(1)} до ${Math.max(...sleep).toFixed(1)})`)
     if (steps.length) parts.push(`Шаги: средн ${Math.round(avg(steps)!).toLocaleString('ru-RU')}/день`)
     if (energy.length) parts.push(`Активные ккал: средн ${Math.round(avg(energy)!)}/день`)
-    if (spo2.length) parts.push(`SpO2: средн ${avg(spo2)!.toFixed(0)}%`)
+    if (spo2.length) parts.push(`SpO2: средн ${(avg(spo2)! * 100).toFixed(0)}%`)
     // per-day sleep & rhr for trend
     const daily = rows.slice(-7).map((r: any) =>
       `${r.date}: сон ${r.sleep_hours?.toFixed?.(1) ?? '—'}ч, ЧССп ${r.resting_heart_rate ?? '—'}, шаги ${r.steps ?? '—'}`
