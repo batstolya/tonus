@@ -688,17 +688,27 @@ serve(async (req) => {
         await tgSend(chatId, `✅ <b>${name}</b> отмечен как принятый. Молодец!`)
       }
     } else if (data.startsWith('rem_snz_')) {
-      // Напоминание: snooze на N минут
+      // Напоминание: snooze на N минут (R4: предел переносов — не дальше 4ч от исходной дозы)
       const rest = data.replace('rem_snz_', '')
       const idx = rest.lastIndexOf('_')
       const evId = rest.slice(0, idx)
       const mins = parseInt(rest.slice(idx + 1), 10) || 60
-      const until = new Date(Date.now() + mins * 60000).toISOString()
-      await supabase.from('reminder_events')
-        .update({ status: 'snoozed', snooze_until: until })
-        .eq('id', evId).eq('user_id', userId)
-      const label = mins >= 120 ? '2 часа' : '1 час'
-      await tgSend(chatId, `⏰ Напомню через ${label}.`)
+      const until = new Date(Date.now() + mins * 60000)
+      const { data: ev } = await supabase
+        .from('reminder_events').select('due_at').eq('id', evId).eq('user_id', userId).maybeSingle()
+      const deadline = ev?.due_at ? new Date(ev.due_at).getTime() + 4 * 3600 * 1000 : Infinity
+      if (until.getTime() > deadline) {
+        // дальше переносить некуда — помечаем пропущенным, чтобы не нытьё без конца
+        await supabase.from('reminder_events')
+          .update({ status: 'skipped', responded_at: new Date().toISOString() })
+          .eq('id', evId).eq('user_id', userId)
+        await tgSend(chatId, '⏭ Лимит переносов исчерпан — отметил как пропущено на сегодня.')
+      } else {
+        await supabase.from('reminder_events')
+          .update({ status: 'snoozed', snooze_until: until.toISOString() })
+          .eq('id', evId).eq('user_id', userId)
+        await tgSend(chatId, `⏰ Напомню через ${mins >= 120 ? '2 часа' : '1 час'}.`)
+      }
     } else if (data.startsWith('rem_skip_')) {
       // Напоминание: пропустить сегодня
       const evId = data.replace('rem_skip_', '')
