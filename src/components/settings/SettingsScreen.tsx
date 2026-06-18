@@ -179,20 +179,20 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
         <div className="settings-cal-row">
           <div>
             {tgLinked
-              ? <div className="settings-label">✓ Подключён{tgUsername ? ` (@${tgUsername})` : ''}</div>
-              : <div className="settings-label">Получать двухнедельные отчёты в Telegram</div>
+              ? <div className="settings-label">✓ {t('Подключён')}{tgUsername ? ` (@${tgUsername})` : ''}</div>
+              : <div className="settings-label">{t('Получать двухнедельные отчёты в Telegram')}</div>
             }
             <div className="settings-muted" style={{ fontSize: 12, marginTop: 4 }}>
-              {tgLinked ? 'Команды: /report /last /status /pause' : 'Нажми — откроется бот, нажми Start'}
+              {tgLinked ? t('Команды: /report /last /status /pause') : t('Нажми — откроется бот, нажми Start')}
             </div>
           </div>
           {tgLinked ? (
             <button className="btn-secondary" onClick={handleTgDisconnect} style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
-              Отключить
+              {t('Отключить')}
             </button>
           ) : (
             <button className="btn-primary" onClick={handleTgConnect} disabled={tgLinking} style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
-              {tgLinking ? 'Открываем…' : 'Подключить Telegram'}
+              {tgLinking ? t('Открываем…') : t('Подключить Telegram')}
             </button>
           )}
         </div>
@@ -203,10 +203,10 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
             <div>
               <label className="settings-label" style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
                 <input type="checkbox" checked={noteEnabled} onChange={e => handleNoteToggle(e.target.checked)} style={{ width: 16, height: 16 }} />
-                🌙 Вечерний вопрос «как прошёл день»
+                🌙 {t('Вечерний вопрос «как прошёл день»')}
               </label>
               <div className="settings-muted" style={{ fontSize: 12, marginTop: 4 }}>
-                Бот спросит вечером, ответ сохранится в заметку дня и учтётся в ИИ-отчётах
+                {t('Бот спросит вечером, ответ сохранится в заметку дня и учтётся в ИИ-отчётах')}
               </div>
             </div>
             {noteEnabled && (
@@ -226,31 +226,31 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
         <section className="settings-section">
           <h3 className="settings-section-title">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: 8 }}><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8"/><rect x="12" y="6" width="3" height="12"/><rect x="17" y="13" width="3" height="5"/></svg>
-            Отчёты в Telegram
+            {t('Отчёты в Telegram')}
           </h3>
 
           <div className="rep-setting">
-            <span className="settings-label">Как часто присылать</span>
+            <span className="settings-label">{t('Как часто присылать')}</span>
             <div className="rep-seg">
               {[7, 14, 21].map(d => (
                 <button
                   key={d}
                   className={`rep-seg-btn${rep.frequency_days === d ? ' on' : ''}`}
                   onClick={() => patchRep({ frequency_days: d })}
-                >{d === 7 ? 'Неделя' : `${d / 7} нед`}</button>
+                >{d === 7 ? t('Неделя') : `${d / 7} ${t('нед')}`}</button>
               ))}
             </div>
           </div>
 
           <div className="rep-setting">
-            <span className="settings-label">Подробность</span>
+            <span className="settings-label">{t('Подробность')}</span>
             <div className="rep-seg">
               {([['short', 'Кратко'], ['medium', 'Средне'], ['full', 'Подробно']] as const).map(([v, label]) => (
                 <button
                   key={v}
                   className={`rep-seg-btn${rep.detail_level === v ? ' on' : ''}`}
                   onClick={() => patchRep({ detail_level: v })}
-                >{label}</button>
+                >{t(label)}</button>
               ))}
             </div>
           </div>
@@ -258,16 +258,16 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
           <label className="rep-toggle-row">
             <input type="checkbox" checked={rep.send_sensitive} onChange={e => patchRep({ send_sensitive: e.target.checked })} />
             <span>
-              <span className="settings-label">Присылать чувствительное</span>
-              <span className="settings-muted" style={{ display: 'block', fontSize: 12 }}>Анализы и препараты в отчётах. Выкл — только сводка самочувствия. Telegram не E2E-шифрован.</span>
+              <span className="settings-label">{t('Присылать чувствительное')}</span>
+              <span className="settings-muted" style={{ display: 'block', fontSize: 12 }}>{t('Анализы и препараты в отчётах. Выкл — только сводка самочувствия. Telegram не E2E-шифрован.')}</span>
             </span>
           </label>
 
           <label className="rep-toggle-row">
             <input type="checkbox" checked={rep.morning_summary} onChange={e => patchRep({ morning_summary: e.target.checked })} />
             <span>
-              <span className="settings-label">Утренняя сводка</span>
-              <span className="settings-muted" style={{ display: 'block', fontSize: 12 }}>Короткое «как ты сегодня» утром</span>
+              <span className="settings-label">{t('Утренняя сводка')}</span>
+              <span className="settings-muted" style={{ display: 'block', fontSize: 12 }}>{t('Короткое «как ты сегодня» утром')}</span>
             </span>
             {rep.morning_summary && (
               <input type="time" value={rep.morning_time} onChange={e => patchRep({ morning_time: e.target.value })} className="log-input" style={{ width: 100, marginLeft: 'auto' }} />
@@ -276,7 +276,7 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
 
           <label className="rep-toggle-row">
             <input type="checkbox" checked={!rep.paused} onChange={e => patchRep({ paused: !e.target.checked })} />
-            <span className="settings-label">Автоматические отчёты включены</span>
+            <span className="settings-label">{t('Автоматические отчёты включены')}</span>
           </label>
         </section>
       )}
@@ -289,8 +289,8 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
           </h3>
           <div className="settings-cal-row">
             <div>
-              <div className="settings-label">Загрузить события из Google Calendar</div>
-              {lastSync && <div className="settings-muted" style={{ fontSize: 12, marginTop: 4 }}>Последняя синхронизация: {lastSync}</div>}
+              <div className="settings-label">{t('Загрузить события из Google Calendar')}</div>
+              {lastSync && <div className="settings-muted" style={{ fontSize: 12, marginTop: 4 }}>{t('Последняя синхронизация:')} {lastSync}</div>}
             </div>
             <button
               className={`btn-primary ${googleConnected ? 'btn-success' : ''}`}
@@ -298,7 +298,7 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
               disabled={googleLoading}
               style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
             >
-              {googleLoading ? 'Загрузка…' : googleConnected ? '✓ Синхронизировано' : 'Подключить'}
+              {googleLoading ? t('Загрузка…') : googleConnected ? `✓ ${t('Синхронизировано')}` : t('Подключить')}
             </button>
           </div>
         </section>
@@ -311,11 +311,11 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
         </h3>
         {calLastSync && (
           <div className="settings-muted" style={{ fontSize: 12, marginBottom: 8 }}>
-            Последняя синхронизация: {calLastSync}
+            {t('Последняя синхронизация:')} {calLastSync}
           </div>
         )}
         <div className="settings-muted" style={{ marginBottom: 12, fontSize: 12, lineHeight: 1.5 }}>
-          F12 → Application → Cookies → <b>__Secure-next-auth.session-token</b>. Токен очищается после загрузки — можно вставить второй аккаунт следом.
+          F12 → Application → Cookies → <b>__Secure-next-auth.session-token</b>. {t('Токен очищается после загрузки — можно вставить второй аккаунт следом.')}
         </div>
         <div className="settings-ics-row">
           <input
@@ -327,7 +327,7 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
             onChange={e => setCalToken(e.target.value)}
           />
           <button className="btn-primary" onClick={handleCalSync} disabled={calLoading || !calToken.trim()} style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
-            {calLoading ? 'Загрузка…' : 'Синхронизировать'}
+            {calLoading ? t('Загрузка…') : t('Синхронизировать')}
           </button>
         </div>
         {calMsg && <div style={{ marginTop: 8, fontSize: 13, color: calMsg.startsWith('✓') ? 'var(--green)' : 'var(--red)' }}>{calMsg}</div>}
@@ -336,7 +336,7 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
       <section className="settings-section">
         <h3 className="settings-section-title">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: 8 }}><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          AI расходы — {monthName}
+          {t('AI расходы')} — {monthName}
         </h3>
 
         <div className="settings-budget-bar-track">
@@ -345,26 +345,26 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
 
         <div className="settings-budget-row">
           <span style={{ color: barColor, fontWeight: 600 }}>
-            ${cost?.toFixed(3) ?? '—'} потрачено
+            ${cost?.toFixed(3) ?? '—'} {t('потрачено')}
           </span>
-          <span className="settings-muted">${Math.max(budget - (cost ?? 0), 0).toFixed(2)} осталось</span>
+          <span className="settings-muted">${Math.max(budget - (cost ?? 0), 0).toFixed(2)} {t('осталось')}</span>
         </div>
 
         <div className="settings-tokens-row">
-          <span className="settings-muted">{tokens.toLocaleString()} токенов использовано</span>
+          <span className="settings-muted">{tokens.toLocaleString()} {t('токенов использовано')}</span>
         </div>
 
         {Object.keys(bySource).length > 0 && (
           <div className="settings-by-source">
             {Object.entries(bySource)
               .sort((a, b) => b[1] - a[1])
-              .map(([src, t]) => {
-                const srcPct = tokens > 0 ? (t / tokens) * 100 : 0
+              .map(([src, tok]) => {
+                const srcPct = tokens > 0 ? (tok / tokens) * 100 : 0
                 return (
                   <div key={src} className="settings-source-item">
                     <div className="settings-source-row">
-                      <span>{SOURCE_LABELS[src] ?? src}</span>
-                      <span className="settings-muted">{t.toLocaleString()} токенов · {srcPct.toFixed(0)}%</span>
+                      <span>{t(SOURCE_LABELS[src] ?? src)}</span>
+                      <span className="settings-muted">{tok.toLocaleString()} {t('токенов')} · {srcPct.toFixed(0)}%</span>
                     </div>
                     <div className="settings-source-bar-track">
                       <div className="settings-source-bar-fill" style={{ width: `${srcPct}%` }} />
@@ -376,7 +376,7 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
         )}
 
         <div className="settings-budget-edit-row">
-          <span className="settings-label">Бюджет на месяц</span>
+          <span className="settings-label">{t('Бюджет на месяц')}</span>
           {editing ? (
             <div className="settings-budget-edit">
               <span>$</span>
@@ -391,19 +391,19 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
                 step="0.5"
               />
               <button className="btn-primary" style={{ padding: '6px 14px', fontSize: 13 }} onClick={handleSaveBudget}>
-                Сохранить
+                {t('Сохранить')}
               </button>
               <button className="btn-secondary" style={{ padding: '6px 10px', fontSize: 13 }} onClick={() => setEditing(false)}>
-                Отмена
+                {t('Отмена')}
               </button>
             </div>
           ) : (
             <div className="settings-budget-display">
               <span className="settings-budget-val">${budget.toFixed(2)}</span>
               <button className="settings-edit-btn" onClick={() => { setEditVal(String(budget)); setEditing(true) }}>
-                Изменить
+                {t('Изменить')}
               </button>
-              {saved && <span style={{ color: 'var(--green)', fontSize: 12 }}>сохранено ✓</span>}
+              {saved && <span style={{ color: 'var(--green)', fontSize: 12 }}>{t('сохранено')} ✓</span>}
             </div>
           )}
         </div>
@@ -411,9 +411,9 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
 
       {onDeviceTypeChange && (
         <section className="settings-section">
-          <h2 className="settings-section-title">Устройство</h2>
+          <h2 className="settings-section-title">{t('Устройство')}</h2>
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>
-            Текущий источник данных: <strong>{deviceType === 'xiaomi' ? 'Xiaomi / Mi Band' : deviceType === 'apple_watch' ? 'Apple Watch' : 'не выбран'}</strong>
+            {t('Текущий источник данных:')} <strong>{deviceType === 'xiaomi' ? 'Xiaomi / Mi Band' : deviceType === 'apple_watch' ? 'Apple Watch' : t('не выбран')}</strong>
           </p>
           <div style={{ display: 'flex', gap: 8 }}>
             <button
