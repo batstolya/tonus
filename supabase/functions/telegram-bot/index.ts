@@ -178,6 +178,48 @@ async function buildBotContext(userId: string, supabase: any): Promise<string> {
     parts.push('Нет данных за период.')
   }
 
+  // Фазы сна (глубокий/REM/ядро) из sleep_sessions
+  const { data: sleep } = await supabase
+    .from('sleep_sessions')
+    .select('date, duration_hours, deep_hours, rem_hours, core_hours')
+    .eq('user_id', userId)
+    .gte('date', sinceStr)
+    .order('date', { ascending: false })
+  if (sleep?.length) {
+    const dh = num(sleep, 'deep_hours'), rh = num(sleep, 'rem_hours'), ch = num(sleep, 'core_hours')
+    parts.push('\nФазы сна (14 дней):')
+    if (dh.length) parts.push(`Глубокий: средн ${avg(dh)!.toFixed(1)} ч/ночь`)
+    if (rh.length) parts.push(`REM: средн ${avg(rh)!.toFixed(1)} ч/ночь`)
+    if (ch.length) parts.push(`Лёгкий/ядро: средн ${avg(ch)!.toFixed(1)} ч/ночь`)
+    const recent = sleep.slice(0, 7).map((s: any) =>
+      `${s.date}: всего ${s.duration_hours?.toFixed?.(1) ?? '—'}ч (глуб ${s.deep_hours?.toFixed?.(1) ?? '—'}, REM ${s.rem_hours?.toFixed?.(1) ?? '—'})`
+    ).join('\n')
+    parts.push(`Последние ночи:\n${recent}`)
+  }
+
+  // Анализы (lab_results) — последнее значение и тренд по каждому маркеру
+  const { data: labs } = await supabase
+    .from('lab_results')
+    .select('marker, value, unit, date')
+    .eq('user_id', userId)
+    .order('date', { ascending: false })
+    .limit(60)
+  if (labs?.length) {
+    const byMarker: Record<string, any[]> = {}
+    for (const r of labs) (byMarker[r.marker] ??= []).push(r)
+    parts.push('\nАнализы (последние значения):')
+    for (const [marker, entries] of Object.entries(byMarker)) {
+      const latest = entries[0]
+      const unit = latest.unit ? ` ${latest.unit}` : ''
+      if (entries.length >= 2) {
+        const d = latest.value - entries[1].value
+        parts.push(`${marker}: ${latest.value}${unit} (${latest.date}, ${d > 0 ? '+' : ''}${d.toFixed(1)} к ${entries[1].date})`)
+      } else {
+        parts.push(`${marker}: ${latest.value}${unit} (${latest.date})`)
+      }
+    }
+  }
+
   // Supplements taken
   const { data: sups } = await supabase
     .from('supplements').select('name').eq('user_id', userId)
@@ -245,7 +287,10 @@ async function handleAiChat(chatId: number | string, userId: string, text: strin
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: 1024, temperature: 0.5 } }),
+        body: JSON.stringify({
+          contents,
+          generationConfig: { maxOutputTokens: 2048, temperature: 0.5, thinkingConfig: { thinkingBudget: 0 } },
+        }),
       }
     )
     if (!res.ok) {
