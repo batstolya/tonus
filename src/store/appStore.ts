@@ -5,7 +5,7 @@ export type AppView = 'upload' | 'dashboard' | 'heart-rate' | 'metrics' | 'stres
 
 export type DeviceType = 'apple_watch' | 'xiaomi'
 
-const VIEWS: AppView[] = ['dashboard', 'heart-rate', 'metrics', 'stress-map', 'sleep', 'activity', 'insights', 'supplements', 'labs', 'settings', 'goals', 'concerns', 'hair']
+const VIEWS: AppView[] = ['dashboard', 'heart-rate', 'metrics', 'stress-map', 'sleep', 'activity', 'insights', 'research', 'supplements', 'labs', 'settings', 'goals', 'concerns', 'hair']
 
 function hashToView(): AppView {
   const hash = window.location.hash.slice(1) as AppView
