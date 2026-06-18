@@ -146,7 +146,8 @@ export default function App() {
 
     init()
     return () => { cancelled = true }
-  }, [user])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id])
 
   async function handleDone(daily: DailyMetrics[], samples: HeartRateSample[], filename = 'export') {
     setDaily(daily, samples)
