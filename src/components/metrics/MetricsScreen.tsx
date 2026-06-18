@@ -21,7 +21,7 @@ const METRIC_LABELS: Record<MetricKey, string> = {
   sleepREM: 'REM сон (ч)',
   sleepCore: 'Основной сон (ч)',
   steps: 'Шаги',
-  distance: 'Дистанция (м)',
+  distance: 'Дистанция (км)',
   activeEnergy: 'Активная энергия (ккал)',
   exerciseMinutes: 'Минуты тренировки',
   flightsClimbed: 'Этажи',
@@ -31,7 +31,9 @@ function getValue(d: DailyMetrics, key: MetricKey): number | null {
   const v = d[key]
   if (v === undefined || v === null) return null
   if (typeof v === 'object' && 'avg' in v) return Math.round(v.avg)
-  return typeof v === 'number' ? Math.round(v * 10) / 10 : null
+  if (typeof v !== 'number') return null
+  if (key === 'oxygenSaturation') return Math.round(v * 1000) / 10 // доля → проценты (96.3)
+  return Math.round(v * 10) / 10
 }
 
 interface Props {
