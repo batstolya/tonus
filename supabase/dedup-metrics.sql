@@ -30,3 +30,20 @@ begin
 end $$;
 
 drop table if exists md_dedup;
+
+-- ════════════════════════════════════════════════════════════════
+-- Дедуп sleep_sessions: были фрагменты/дубли на (user_id, date).
+-- Оставляем основной сон — с максимальной длительностью.
+-- ════════════════════════════════════════════════════════════════
+delete from sleep_sessions s
+using sleep_sessions s2
+where s.user_id = s2.user_id and s.date = s2.date and s.id <> s2.id
+  and (coalesce(s2.duration_hours,0) > coalesce(s.duration_hours,0)
+       or (coalesce(s2.duration_hours,0) = coalesce(s.duration_hours,0) and s2.id > s.id));
+
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'sleep_sessions_unique') then
+    alter table sleep_sessions add constraint sleep_sessions_unique unique (user_id, date);
+  end if;
+end $$;
