@@ -6,6 +6,7 @@ import {
   CATEGORIES, STATUS_LABELS,
   type HealthConcern, type ConcernLog,
 } from '../../lib/concerns'
+import { useT } from '../../lib/i18n'
 
 interface Props { user: User; onNavigateHair?: () => void }
 
@@ -172,6 +173,7 @@ function ConcernDetail({ concern, userId, onBack, onUpdate }: {
 }
 
 export function ConcernsScreen({ user, onNavigateHair }: Props) {
+  const { t } = useT()
   const [concerns, setConcerns] = useState<HealthConcern[]>([])
   const [selected, setSelected] = useState<HealthConcern | null>(null)
   const [showForm, setShowForm] = useState(false)
@@ -216,14 +218,14 @@ export function ConcernsScreen({ user, onNavigateHair }: Props) {
     <div className="screen">
       {onNavigateHair && (
         <div className="concerns-subtabs">
-          <button className="concerns-subtab active">Проблемы</button>
-          <button className="concerns-subtab" onClick={onNavigateHair}>Волосы</button>
+          <button className="concerns-subtab active">{t('Проблемы')}</button>
+          <button className="concerns-subtab" onClick={onNavigateHair}>{t('Волосы')}</button>
         </div>
       )}
       <div className="goals-header">
-        <h2>Проблемы и симптомы</h2>
+        <h2>{t('Проблемы и симптомы')}</h2>
         <button className="btn-primary" onClick={() => setShowForm(s => !s)}>
-          {showForm ? 'Отмена' : '+ Добавить'}
+          {showForm ? t('Отмена') : t('+ Добавить')}
         </button>
       </div>
 
@@ -231,34 +233,34 @@ export function ConcernsScreen({ user, onNavigateHair }: Props) {
         <div className="goals-form" style={{ marginBottom: 24 }}>
           <div className="goals-form-row">
             <div className="goals-form-field">
-              <label className="settings-label">Название</label>
-              <input className="log-input" placeholder="Напр. Прыщи на спине" value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()} />
+              <label className="settings-label">{t('Название')}</label>
+              <input className="log-input" placeholder={t('Напр. Прыщи на спине')} value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()} />
             </div>
             <div className="goals-form-field">
-              <label className="settings-label">Категория</label>
+              <label className="settings-label">{t('Категория')}</label>
               <select className="log-input" value={category} onChange={e => setCategory(e.target.value)}>
-                {Object.entries(CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                {Object.entries(CATEGORIES).map(([k, v]) => <option key={k} value={k}>{t(v)}</option>)}
               </select>
             </div>
           </div>
           <div className="goals-form-row">
             <div className="goals-form-field">
-              <label className="settings-label">Началось (приблизительно)</label>
+              <label className="settings-label">{t('Началось (приблизительно)')}</label>
               <input className="log-input" type="date" value={startedAt} onChange={e => setStartedAt(e.target.value)} style={{ minWidth: 140 }} />
             </div>
             <div className="goals-form-field">
-              <label className="settings-label">Заметка</label>
-              <input className="log-input" placeholder="Необязательно" value={notes} onChange={e => setNotes(e.target.value)} />
+              <label className="settings-label">{t('Заметка')}</label>
+              <input className="log-input" placeholder={t('Необязательно')} value={notes} onChange={e => setNotes(e.target.value)} />
             </div>
           </div>
           <button className="btn-primary" onClick={handleAdd} disabled={saving || !name.trim()}>
-            {saving ? 'Сохранение…' : 'Добавить проблему'}
+            {saving ? t('Сохранение…') : t('Добавить проблему')}
           </button>
         </div>
       )}
 
       {active.length === 0 && !showForm && (
-        <p className="empty-hint">Проблем не добавлено. Нажми «+ Добавить» чтобы начать отслеживать.</p>
+        <p className="empty-hint">{t('Проблем не добавлено. Нажми «+ Добавить» чтобы начать отслеживать.')}</p>
       )}
 
       <div className="concerns-list">
@@ -267,12 +269,12 @@ export function ConcernsScreen({ user, onNavigateHair }: Props) {
             <div className="concern-card-top">
               <span className="concern-name">{c.name}</span>
               <span className="concern-status" style={{ color: STATUS_LABELS[c.status]?.color }}>
-                {STATUS_LABELS[c.status]?.label}
+                {t(STATUS_LABELS[c.status]?.label ?? '')}
               </span>
             </div>
             <div className="concern-card-bottom">
-              <span className="concern-cat">{CATEGORIES[c.category] ?? c.category}</span>
-              {c.started_at && <span className="concern-since">с {c.started_at}</span>}
+              <span className="concern-cat">{t(CATEGORIES[c.category] ?? c.category)}</span>
+              {c.started_at && <span className="concern-since">{t('с')} {c.started_at}</span>}
               <span className="concern-arrow">›</span>
             </div>
           </button>
@@ -282,7 +284,7 @@ export function ConcernsScreen({ user, onNavigateHair }: Props) {
       {resolved.length > 0 && (
         <div style={{ marginTop: 24 }}>
           <button className="btn-ghost" style={{ fontSize: 13, marginBottom: 8 }} onClick={() => setShowResolved(s => !s)}>
-            {showResolved ? 'Скрыть решённые' : `Решённые (${resolved.length})`}
+            {showResolved ? t('Скрыть решённые') : `${t('Решённые')} (${resolved.length})`}
           </button>
           {showResolved && (
             <div className="concerns-list">
