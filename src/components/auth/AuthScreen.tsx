@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { useT } from '../../lib/i18n'
 
 type Mode = 'login' | 'signup' | 'reset' | 'sent' | 'reset-sent'
 
 export function AuthScreen() {
+  const { t } = useT()
   const [mode, setMode] = useState<Mode>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -30,7 +32,7 @@ export function AuthScreen() {
     setLoading(true)
 
     if (mode === 'signup') {
-      if (password !== confirm) { setError('Пароли не совпадают'); setLoading(false); return }
+      if (password !== confirm) { setError(t('Пароли не совпадают')); setLoading(false); return }
       const { error } = await supabase.auth.signUp({ email, password })
       setLoading(false)
       if (error) setError(error.message)
@@ -40,7 +42,7 @@ export function AuthScreen() {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       setLoading(false)
       if (error) setError(error.message === 'Invalid login credentials'
-        ? 'Неверный email или пароль'
+        ? t('Неверный email или пароль')
         : error.message)
 
     } else if (mode === 'reset') {
@@ -59,9 +61,9 @@ export function AuthScreen() {
       <div className="auth-card">
         <div className="auth-sent">
           <div className="auth-sent-icon">✉️</div>
-          <h2>Подтверди email</h2>
-          <p>Письмо отправлено на <strong>{email}</strong>.<br />Перейди по ссылке в письме, затем войди.</p>
-          <button className="btn-primary" style={{ marginTop: 8 }} onClick={() => switchMode('login')}>Войти</button>
+          <h2>{t('Подтверди email')}</h2>
+          <p>{t('Письмо отправлено на')} <strong>{email}</strong>.<br />{t('Перейди по ссылке в письме, затем войди.')}</p>
+          <button className="btn-primary" style={{ marginTop: 8 }} onClick={() => switchMode('login')}>{t('Войти')}</button>
         </div>
       </div>
     </div>
@@ -73,9 +75,9 @@ export function AuthScreen() {
       <div className="auth-card">
         <div className="auth-sent">
           <div className="auth-sent-icon">🔑</div>
-          <h2>Письмо отправлено</h2>
-          <p>Проверь <strong>{email}</strong> — там ссылка для сброса пароля.</p>
-          <button className="btn-ghost" onClick={() => switchMode('login')}>Вернуться ко входу</button>
+          <h2>{t('Письмо отправлено')}</h2>
+          <p>{t('Проверь')} <strong>{email}</strong> — {t('там ссылка для сброса пароля.')}</p>
+          <button className="btn-ghost" onClick={() => switchMode('login')}>{t('Вернуться ко входу')}</button>
         </div>
       </div>
     </div>
@@ -86,7 +88,7 @@ export function AuthScreen() {
     <div className="auth-screen">
       <div className="auth-card">
         <h1>Tonus</h1>
-        <p className="auth-subtitle">Восстановление пароля</p>
+        <p className="auth-subtitle">{t('Восстановление пароля')}</p>
         <form onSubmit={handleSubmit} className="auth-form">
           <label>
             Email
@@ -95,10 +97,10 @@ export function AuthScreen() {
           </label>
           {error && <p className="auth-error">{error}</p>}
           <button type="submit" className="btn-primary" disabled={loading}>
-            {loading ? '…' : 'Отправить ссылку'}
+            {loading ? '…' : t('Отправить ссылку')}
           </button>
           <button type="button" className="btn-ghost" onClick={() => switchMode('login')}>
-            Вернуться ко входу
+            {t('Вернуться ко входу')}
           </button>
         </form>
       </div>
@@ -110,7 +112,7 @@ export function AuthScreen() {
     <div className="auth-screen">
       <div className="auth-card">
         <h1>Tonus</h1>
-        <p className="auth-subtitle">Личный хаб здоровья</p>
+        <p className="auth-subtitle">{t('Личный хаб здоровья')}</p>
 
         <button className="btn-google" onClick={handleGoogle} disabled={googleLoading}>
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
@@ -119,14 +121,14 @@ export function AuthScreen() {
             <path d="M3.964 10.705A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.705V4.963H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.037l3.007-2.332z" fill="#FBBC05"/>
             <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.963L3.964 6.295C4.672 4.169 6.656 3.58 9 3.58z" fill="#EA4335"/>
           </svg>
-          {googleLoading ? 'Открываем Google…' : 'Войти через Google'}
+          {googleLoading ? t('Открываем Google…') : t('Войти через Google')}
         </button>
 
-        <div className="auth-divider"><span>или</span></div>
+        <div className="auth-divider"><span>{t('или')}</span></div>
 
         <div className="auth-tabs">
-          <button className={mode === 'login' ? 'auth-tab active' : 'auth-tab'} onClick={() => switchMode('login')}>Вход</button>
-          <button className={mode === 'signup' ? 'auth-tab active' : 'auth-tab'} onClick={() => switchMode('signup')}>Регистрация</button>
+          <button className={mode === 'login' ? 'auth-tab active' : 'auth-tab'} onClick={() => switchMode('login')}>{t('Вход')}</button>
+          <button className={mode === 'signup' ? 'auth-tab active' : 'auth-tab'} onClick={() => switchMode('signup')}>{t('Регистрация')}</button>
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
@@ -136,24 +138,24 @@ export function AuthScreen() {
               placeholder="you@example.com" required autoFocus />
           </label>
           <label>
-            Пароль
+            {t('Пароль')}
             <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-              placeholder={mode === 'signup' ? 'Минимум 6 символов' : '••••••••'} required minLength={6} />
+              placeholder={mode === 'signup' ? t('Минимум 6 символов') : '••••••••'} required minLength={6} />
           </label>
           {mode === 'signup' && (
             <label>
-              Повтори пароль
+              {t('Повтори пароль')}
               <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)}
                 placeholder="••••••••" required minLength={6} />
             </label>
           )}
           {error && <p className="auth-error">{error}</p>}
           <button type="submit" className="btn-primary" disabled={loading}>
-            {loading ? '…' : mode === 'signup' ? 'Создать аккаунт' : 'Войти'}
+            {loading ? '…' : mode === 'signup' ? t('Создать аккаунт') : t('Войти')}
           </button>
           {mode === 'login' && (
             <button type="button" className="btn-ghost" onClick={() => switchMode('reset')}>
-              Забыл пароль
+              {t('Забыл пароль')}
             </button>
           )}
         </form>

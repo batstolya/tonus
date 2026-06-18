@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import type { User } from '@supabase/supabase-js'
+import { useT } from '../../lib/i18n'
 
 interface IntakeEvent {
   id: string
@@ -32,6 +33,7 @@ function nowTimeStr() {
 }
 
 export function QuickLog({ user, events, onEventsChange }: Props) {
+  const { t } = useT()
   const [open, setOpen] = useState(false)
   const [selectedType, setSelectedType] = useState('coffee')
   const [amount, setAmount] = useState<string>('')
@@ -92,16 +94,16 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
 
   function dayLabel(date: string) {
     if (date === today) return 'Сегодня'
-    if (date === yesterday) return 'Вчера'
+    if (date === yesterday) return t('Вчера')
     return new Date(date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
   }
 
   return (
     <div className="quick-log">
       <div className="quick-log-header">
-        <h3>Быстрый лог</h3>
+        <h3>{t('Быстрый лог')}</h3>
         <button className="btn-add" onClick={() => setOpen(!open)}>
-          {open ? '✕' : '+ Добавить'}
+          {open ? '✕' : t('+ Добавить')}
         </button>
       </div>
 
@@ -114,7 +116,7 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
                 className={`type-btn${selectedType === et.type ? ' active' : ''}`}
                 onClick={() => setSelectedType(et.type)}
               >
-                {et.label}
+                {t(et.label)}
               </button>
             ))}
           </div>
@@ -133,7 +135,7 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
               {[0, 30, 60, 120, 180].map(mins => {
                 const d = new Date(Date.now() - mins * 60000)
                 const val = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
-                const label = mins === 0 ? 'Сейчас' : mins < 60 ? `${mins}м` : `${mins/60}ч`
+                const label = mins === 0 ? t('Сейчас') : mins < 60 ? `${mins}${t('м_сокр')}` : `${mins/60}${t('ч_сокр')}`
                 return (
                   <button
                     key={mins}
@@ -150,7 +152,7 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
                 onClick={() => setCustomDt(c => c ? '' : localDtNow())}
                 type="button"
               >
-                📅 Дата<span className="time-chip-sub">выбрать</span>
+                📅 {t('Дата')}<span className="time-chip-sub">{t('выбрать')}</span>
               </button>
             </div>
             {customDt && (
@@ -164,13 +166,13 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
             )}
             <input
               type="text"
-              placeholder="Заметка (необязательно)"
+              placeholder={t('Заметка (необязательно)')}
               value={note}
               onChange={e => setNote(e.target.value)}
               className="log-input"
             />
             <button className="btn-primary" onClick={handleAdd} disabled={saving}>
-              {saving ? '…' : 'Записать'}
+              {saving ? '…' : t('Записать')}
             </button>
           </div>
         </div>
@@ -180,12 +182,13 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
         <div key={date} className="log-today">
           <p className="log-today-label">{dayLabel(date)}</p>
           {items.map(ev => {
-            const et = EVENT_TYPES.find(t => t.type === ev.type)
+            const et = EVENT_TYPES.find(x => x.type === ev.type)
+            const etLabel = et ? t(et.label) : ''
             return (
               <div key={ev.id} className="log-item">
-                <span className="log-item-icon">{et?.label.split(' ')[0]}</span>
+                <span className="log-item-icon">{etLabel.split(' ')[0]}</span>
                 <span className="log-item-text">
-                  {et?.label.slice(et.label.indexOf(' ') + 1)}
+                  {etLabel.slice(etLabel.indexOf(' ') + 1)}
                   {ev.amount ? ` — ${ev.amount}${ev.unit ?? ''}` : ''}
                   {ev.note ? ` · ${ev.note}` : ''}
                 </span>
