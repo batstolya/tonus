@@ -26,9 +26,9 @@ serve(async (req) => {
     const isImage = fileType.startsWith('image/')
 
     let extractedText = ''
+    let biomarkers: { marker: string; value: number; unit?: string; ref_range?: string; flag?: string }[] = []
 
     if (isPdf || isImage) {
-      // Use Gemini Vision to extract text from the file
       const mimeType = fileType
       const geminiRes = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
@@ -37,39 +37,63 @@ serve(async (req) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             systemInstruction: {
-              parts: [{ text: 'Ты — ассистент для обработки медицинских анализов. Извлеки весь текст из документа максимально точно. Затем выдели ключевые биомаркеры в виде JSON-массива в конце ответа в блоке ```json ... ```. Формат: [{marker: "Название показателя", value: число, unit: "единица"}]. Если биомаркеров нет — верни пустой массив.' }]
+              parts: [{ text: `Ты — ассистент для оцифровки бланков медицинских анализов (любой язык: укр/рус/польский/английский/испанский).
+Извлеки КАЖДУЮ строку таблицы результатов с числовым значением — ВСЕ показатели, а не только важные.
+Для каждого: marker (название как в бланке), value (число; десятичную запятую переведи в точку; диапазоны/«<5» вынеси в ref_range, а value поставь как есть если число), unit, ref_range (референсные значения если есть), flag ("low"/"high"/"normal" если бланк помечает отклонение).
+Не выдумывай показатели. В поле summary дай 1-2 предложения с общей картиной.` }]
             },
             contents: [{
               parts: [
-                { text: 'Извлеки текст и биомаркеры из этого документа с результатами анализов:' },
+                { text: 'Оцифруй этот бланк анализов полностью:' },
                 { inlineData: { mimeType, data: fileBase64 } }
               ]
             }],
-            generationConfig: { maxOutputTokens: 4096, temperature: 0.1 },
+            generationConfig: {
+              maxOutputTokens: 8192,
+              temperature: 0,
+              responseMimeType: 'application/json',
+              responseSchema: {
+                type: 'object',
+                properties: {
+                  summary: { type: 'string' },
+                  markers: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        marker: { type: 'string' },
+                        value: { type: 'number' },
+                        unit: { type: 'string' },
+                        ref_range: { type: 'string' },
+                        flag: { type: 'string' },
+                      },
+                      required: ['marker', 'value'],
+                    },
+                  },
+                },
+                required: ['markers'],
+              },
+            },
           }),
         }
       )
 
-      if (!geminiRes.ok) {
-        const err = await geminiRes.text()
-        throw new Error(`Gemini error: ${err}`)
-      }
+      if (!geminiRes.ok) throw new Error(`Gemini error: ${await geminiRes.text()}`)
 
       const geminiData = await geminiRes.json()
-      extractedText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+      const raw = geminiData.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}'
       const tokensUsed = geminiData.usageMetadata?.totalTokenCount ?? null
-      if (tokensUsed) {
-        await supabase.from('ai_usage').insert({ user_id: user.id, source: 'extract-lab', tokens_used: tokensUsed })
-      }
-    }
+      if (tokensUsed) await supabase.from('ai_usage').insert({ user_id: user.id, source: 'extract-lab', tokens_used: tokensUsed })
 
-    // Parse biomarkers from the response
-    let biomarkers: { marker: string; value: number; unit: string }[] = []
-    const jsonMatch = extractedText.match(/```json\s*([\s\S]*?)```/)
-    if (jsonMatch) {
       try {
-        biomarkers = JSON.parse(jsonMatch[1])
-      } catch { /* ignore parse error */ }
+        const parsed = JSON.parse(raw)
+        biomarkers = Array.isArray(parsed.markers) ? parsed.markers : []
+        const lines = biomarkers.map(b => `${b.marker}: ${b.value}${b.unit ? ' ' + b.unit : ''}${b.ref_range ? ` (норма ${b.ref_range})` : ''}${b.flag && b.flag !== 'normal' ? ` [${b.flag}]` : ''}`)
+        extractedText = `${parsed.summary ? parsed.summary + '\n\n' : ''}${lines.join('\n')}`
+      } catch {
+        // не распарсилось — сохраним сырой ответ, чтобы не потерять
+        extractedText = raw
+      }
     }
 
     // Save lab file record
@@ -87,17 +111,18 @@ serve(async (req) => {
 
     if (insertErr || !labFile) throw new Error('Failed to save lab file')
 
-    // Save extracted biomarkers
-    if (biomarkers.length > 0 && date) {
+    // Save extracted biomarkers (дата — из бланка/выбранная, иначе сегодня)
+    const resultDate = date || new Date().toISOString().slice(0, 10)
+    if (biomarkers.length > 0) {
       const rows = biomarkers
-        .filter(b => b.marker && typeof b.value === 'number')
+        .filter(b => b.marker && typeof b.value === 'number' && isFinite(b.value))
         .map(b => ({
           user_id: user.id,
           lab_file_id: labFile.id,
           marker: b.marker,
           value: b.value,
           unit: b.unit || null,
-          date,
+          date: resultDate,
         }))
       if (rows.length > 0) {
         await supabase.from('lab_results').insert(rows)
