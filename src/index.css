@@ -970,8 +970,11 @@ body {
 .settings-budget-row { display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; margin-bottom: 4px; }
 .settings-tokens-row { font-size: 12px; margin-bottom: 16px; }
 .settings-muted { color: var(--text-muted); font-weight: 400; }
-.settings-by-source { border-top: 1px solid var(--border); padding-top: 12px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px; }
+.settings-by-source { border-top: 1px solid var(--border); padding-top: 12px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 12px; }
+.settings-source-item { display: flex; flex-direction: column; gap: 6px; }
 .settings-source-row { display: flex; justify-content: space-between; font-size: 13px; }
+.settings-source-bar-track { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.settings-source-bar-fill { height: 100%; border-radius: 3px; background: var(--green); transition: width 0.4s ease; }
 .settings-budget-edit-row { border-top: 1px solid var(--border); padding-top: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .settings-label { font-size: 14px; font-weight: 500; }
 .settings-budget-display { display: flex; align-items: center; gap: 12px; }
@@ -1034,6 +1037,29 @@ body {
 .supp-pct.bad { background: rgba(255,107,107,0.12); color: var(--red); }
 .supp-delete { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 6px; border-radius: 6px; display: flex; align-items: center; transition: color 0.15s, background 0.15s; }
 .supp-delete:hover { color: var(--red); background: rgba(255,107,107,0.1); }
+.supp-bell { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 6px; border-radius: 6px; display: flex; align-items: center; transition: color 0.15s, background 0.15s; }
+.supp-bell:hover { color: var(--text); background: var(--border); }
+.supp-bell.active { color: var(--green); }
+
+/* Reminder editor */
+.rem-editor { margin: 12px 0 4px; padding: 12px; background: var(--surface-2, rgba(127,127,127,0.06)); border-radius: 10px; display: flex; flex-direction: column; gap: 12px; }
+.rem-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.rem-toggle { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 500; }
+.rem-toggle input { width: 16px; height: 16px; cursor: pointer; }
+.rem-times { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.rem-time-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--border); padding: 4px 8px 4px 10px; border-radius: 14px; font-size: 13px; font-weight: 600; }
+.rem-time-chip button { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 12px; padding: 0; line-height: 1; }
+.rem-time-chip button:hover { color: var(--red); }
+.rem-time-add { display: inline-flex; align-items: center; gap: 4px; }
+.rem-time-add input { font-size: 13px; padding: 3px 6px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); }
+.rem-time-add button { font-size: 12px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); cursor: pointer; }
+.rem-time-add button:hover { background: var(--border); }
+.rem-weekdays { display: flex; gap: 4px; flex-wrap: wrap; }
+.rem-wd { font-size: 12px; font-weight: 600; width: 32px; height: 30px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text-muted); cursor: pointer; transition: all 0.15s; }
+.rem-wd.on { background: var(--green); color: #fff; border-color: var(--green); }
+.rem-quiet { flex-wrap: wrap; }
+.rem-quiet input { font-size: 13px; padding: 3px 6px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); }
+.rem-hint { font-size: 11px; color: var(--text-muted); }
 .supp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
 .supp-dow { font-size: 10px; text-align: center; color: var(--text-muted); padding: 2px 0 6px; font-weight: 500; }
 .supp-cell {

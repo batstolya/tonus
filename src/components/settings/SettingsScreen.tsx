@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import type { User } from '@supabase/supabase-js'
 import type { CalendarEvent } from '../../types'
 import { loadMonthUsage, loadBudget, saveBudget } from '../../lib/aiUsage'
+import { loadDailyNoteSettings, saveDailyNoteSettings } from '../../lib/dailyNote'
 import { supabase } from '../../lib/supabase'
 import type { DeviceType } from '../../store/appStore'
 
@@ -39,6 +40,8 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
   const [tgUsername, setTgUsername] = useState<string | null>(null)
   const [tgLinking, setTgLinking] = useState(false)
   const [tgMsg, setTgMsg] = useState<string | null>(null)
+  const [noteEnabled, setNoteEnabled] = useState(false)
+  const [noteTime, setNoteTime] = useState('21:00')
 
   useEffect(() => {
     supabase.from('telegram_links').select('telegram_chat_id, telegram_username, status')
@@ -46,7 +49,17 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
       .then(({ data }) => {
         if (data) { setTgLinked(true); setTgUsername(data.telegram_username) }
       })
+    loadDailyNoteSettings(user.id).then(s => { setNoteEnabled(s.enabled); setNoteTime(s.time) }).catch(() => {})
   }, [user.id])
+
+  function handleNoteToggle(enabled: boolean) {
+    setNoteEnabled(enabled)
+    saveDailyNoteSettings(user.id, { enabled, time: noteTime })
+  }
+  function handleNoteTime(time: string) {
+    setNoteTime(time)
+    saveDailyNoteSettings(user.id, { enabled: noteEnabled, time })
+  }
 
   async function handleTgConnect() {
     setTgLinking(true)
@@ -158,6 +171,29 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
           )}
         </div>
         {tgMsg && <div style={{ marginTop: 8, fontSize: 13, color: tgMsg.startsWith('Ошибка') ? 'var(--red)' : 'var(--text-muted)' }}>{tgMsg}</div>}
+
+        {tgLinked && (
+          <div className="settings-cal-row" style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+            <div>
+              <label className="settings-label" style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                <input type="checkbox" checked={noteEnabled} onChange={e => handleNoteToggle(e.target.checked)} style={{ width: 16, height: 16 }} />
+                🌙 Вечерний вопрос «как прошёл день»
+              </label>
+              <div className="settings-muted" style={{ fontSize: 12, marginTop: 4 }}>
+                Бот спросит вечером, ответ сохранится в заметку дня и учтётся в ИИ-отчётах
+              </div>
+            </div>
+            {noteEnabled && (
+              <input
+                type="time"
+                value={noteTime}
+                onChange={e => handleNoteTime(e.target.value)}
+                className="log-input"
+                style={{ width: 110, flexShrink: 0 }}
+              />
+            )}
+          </div>
+        )}
       </section>
 
       {onGoogleSync && (
@@ -235,12 +271,22 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
 
         {Object.keys(bySource).length > 0 && (
           <div className="settings-by-source">
-            {Object.entries(bySource).map(([src, t]) => (
-              <div key={src} className="settings-source-row">
-                <span>{SOURCE_LABELS[src] ?? src}</span>
-                <span className="settings-muted">{t.toLocaleString()} токенов</span>
-              </div>
-            ))}
+            {Object.entries(bySource)
+              .sort((a, b) => b[1] - a[1])
+              .map(([src, t]) => {
+                const srcPct = tokens > 0 ? (t / tokens) * 100 : 0
+                return (
+                  <div key={src} className="settings-source-item">
+                    <div className="settings-source-row">
+                      <span>{SOURCE_LABELS[src] ?? src}</span>
+                      <span className="settings-muted">{t.toLocaleString()} токенов · {srcPct.toFixed(0)}%</span>
+                    </div>
+                    <div className="settings-source-bar-track">
+                      <div className="settings-source-bar-fill" style={{ width: `${srcPct}%` }} />
+                    </div>
+                  </div>
+                )
+              })}
           </div>
         )}
 
