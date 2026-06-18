@@ -56,10 +56,7 @@ export function SleepScreen({ daily }: Props) {
     rem: d.sleepREM ? Math.round(d.sleepREM * 10) / 10 : null,
     core: d.sleepCore ? Math.round(d.sleepCore * 10) / 10 : null,
     bedtime: bedtimeToChartVal(d.sleepBedtime),
-    wake: d.sleepWakeTime ? (() => {
-      const d2 = new Date(d.sleepWakeTime!)
-      return Math.round((d2.getHours() + d2.getMinutes() / 60) * 10) / 10
-    })() : null,
+    wake: bedtimeToChartVal(d.sleepWakeTime),
   })), [slice])
 
   const hasPhases = slice.some(d => d.sleepDeep || d.sleepREM)
@@ -73,13 +70,7 @@ export function SleepScreen({ daily }: Props) {
     : null
 
   const avgWake = slice.filter(d => d.sleepWakeTime).length
-    ? (() => {
-        const vals = slice.filter(d => d.sleepWakeTime).map(d => {
-          const dt = new Date(d.sleepWakeTime!)
-          return dt.getHours() + dt.getMinutes() / 60
-        })
-        return vals.reduce((a, b) => a + b, 0) / vals.length
-      })()
+    ? slice.filter(d => d.sleepWakeTime).reduce((a, d) => a + (bedtimeToChartVal(d.sleepWakeTime) ?? 0), 0) / slice.filter(d => d.sleepWakeTime).length
     : null
 
   // Before-midnight compliance: bedtimeToChartVal < 12 means before midnight
@@ -87,11 +78,6 @@ export function SleepScreen({ daily }: Props) {
   const onTime = bedtimeDays.filter(d => (bedtimeToChartVal(d.sleepBedtime) ?? 99) < 12).length
   const notOnTime = bedtimeDays.length - onTime
 
-  function fmtDecimalTime(h: number): string {
-    const hrs = Math.floor(h) % 24
-    const mins = Math.round((h - Math.floor(h)) * 60)
-    return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}`
-  }
 
   const CustomBedtimeTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null
@@ -122,7 +108,7 @@ export function SleepScreen({ daily }: Props) {
       <div className="stat-row">
         {avgSleep && <div className="stat"><span>{fmtHours(avgSleep)}</span> {t('средняя длительность')}</div>}
         {avgBed !== null && <div className="stat"><span>{chartValToTime(avgBed)}</span> {t('среднее засыпание')}</div>}
-        {avgWake !== null && <div className="stat"><span>{fmtDecimalTime(avgWake)}</span> {t('среднее пробуждение')}</div>}
+        {avgWake !== null && <div className="stat"><span>{chartValToTime(avgWake)}</span> {t('среднее пробуждение')}</div>}
         {bedtimeDays.length > 0 && (
           <div className="stat">
             <span>

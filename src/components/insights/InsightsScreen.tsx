@@ -18,11 +18,19 @@ function Heatmap({ daily }: { daily: DailyMetrics[] }) {
   const { cells } = buildHeatmap(daily, mk.key, mk.betterHigh)
   if (!cells.length) return null
   function color(pct: number | null) {
-    if (pct == null) return 'var(--border)'
-    const hue = pct * 120 // красный (плохо) → жёлтый → зелёный (хорошо)
-    return `hsl(${hue} 65% 50%)`
+    if (pct == null) return 'var(--surface2)'
+    const hue = pct * 130 // красный (плохо) → жёлто-зелёный → зелёный (хорошо)
+    // повышенная светлота, чтобы середина была не «болотной», а светло-янтарной
+    const light = 62 - pct * 8
+    return `hsl(${hue} 72% ${light}%)`
   }
   const fmtVal = (v: number | null) => v == null ? '—' : v.toLocaleString('ru-RU', { maximumFractionDigits: mk.decimals })
+  // компактное число для клетки: шаги/калории в тысячах, остальное как есть
+  const cellVal = (v: number | null): string => {
+    if (v == null) return ''
+    if (mk.key === 'steps' || mk.key === 'activeEnergy') return v >= 1000 ? `${(v / 1000).toFixed(v >= 10000 ? 0 : 1)}к` : String(Math.round(v))
+    return v.toFixed(mk.decimals)
+  }
   const fmtD = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
   return (
     <div className="ins-section">
@@ -44,7 +52,9 @@ function Heatmap({ daily }: { daily: DailyMetrics[] }) {
             style={{ background: color(cell.pct) }}
             onMouseEnter={() => setHover({ date: cell.date, v: cell.v })}
             onClick={() => setHover({ date: cell.date, v: cell.v })}
-            title={`${fmtD(cell.date)}: ${fmtVal(cell.v)}`} />
+            title={`${fmtD(cell.date)}: ${fmtVal(cell.v)}`}>
+            {cellVal(cell.v)}
+          </div>
         ))}
       </div>
     </div>
