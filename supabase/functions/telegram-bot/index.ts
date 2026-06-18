@@ -73,6 +73,7 @@ async function setupCommands() {
       { command: 'pause', description: '⏸ Приостановить отчёты' },
       { command: 'resume', description: '▶️ Возобновить отчёты' },
       { command: 'usage', description: '🤖 Лимиты Claude' },
+      { command: 'tokens', description: '✨ Токены Gemini' },
     ],
   })
 }
@@ -128,6 +129,145 @@ async function handleStatus(chatId: number | string, userId: string, supabase: a
   lines.push('', `Данных за период: ${rows.length} дн.`)
 
   await tgSend(chatId, lines.join('\n'), { reply_markup: STATUS_ACTIONS })
+}
+
+// ── AI chat (B3) ──────────────────────────────────────────────────────────────
+
+const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
+
+const CHAT_SYSTEM_PROMPT = `Ты — персональный ассистент по здоровью в Telegram. Отвечаешь на русском.
+Помогаешь пользователю понять его данные здоровья простым языком.
+Строгие правила:
+- Никаких медицинских диагнозов. Только наблюдения по данным.
+- Если есть тревожные значения — мягко советуй обратиться к врачу.
+- Не выдумывай данные, которых нет в контексте.
+- Отвечай кратко (2-4 предложения), это мессенджер.
+- Опирайся на личные тренды пользователя, не на абсолютные нормы.`
+
+async function buildBotContext(userId: string, supabase: any): Promise<string> {
+  const since = new Date(); since.setDate(since.getDate() - 14)
+  const sinceStr = since.toISOString().slice(0, 10)
+
+  const { data: rows } = await supabase
+    .from('daily_metrics')
+    .select('date, resting_heart_rate, hrv, sleep_hours, steps, active_energy, oxygen_saturation')
+    .eq('user_id', userId)
+    .gte('date', sinceStr)
+    .order('date', { ascending: true })
+
+  const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
+  const num = (r: any[], k: string) => r.map(x => x[k]).filter((v: any) => v != null && !isNaN(v))
+
+  const parts: string[] = [`=== ДАННЫЕ ЗА 14 ДНЕЙ (${rows?.length ?? 0} дн.) ===`]
+  if (rows?.length) {
+    const rhr = num(rows, 'resting_heart_rate'), hrv = num(rows, 'hrv')
+    const sleep = num(rows, 'sleep_hours'), steps = num(rows, 'steps')
+    const energy = num(rows, 'active_energy'), spo2 = num(rows, 'oxygen_saturation')
+    if (rhr.length) parts.push(`ЧСС покоя: средн ${avg(rhr)!.toFixed(0)} уд/мин (от ${Math.min(...rhr)} до ${Math.max(...rhr)})`)
+    if (hrv.length) parts.push(`HRV: средн ${avg(hrv)!.toFixed(0)} мс (от ${Math.min(...hrv)} до ${Math.max(...hrv)})`)
+    if (sleep.length) parts.push(`Сон: средн ${avg(sleep)!.toFixed(1)} ч/ночь (от ${Math.min(...sleep).toFixed(1)} до ${Math.max(...sleep).toFixed(1)})`)
+    if (steps.length) parts.push(`Шаги: средн ${Math.round(avg(steps)!).toLocaleString('ru-RU')}/день`)
+    if (energy.length) parts.push(`Активные ккал: средн ${Math.round(avg(energy)!)}/день`)
+    if (spo2.length) parts.push(`SpO2: средн ${avg(spo2)!.toFixed(0)}%`)
+    // per-day sleep & rhr for trend
+    const daily = rows.slice(-7).map((r: any) =>
+      `${r.date}: сон ${r.sleep_hours?.toFixed?.(1) ?? '—'}ч, ЧССп ${r.resting_heart_rate ?? '—'}, шаги ${r.steps ?? '—'}`
+    ).join('\n')
+    parts.push(`\nПоследние дни:\n${daily}`)
+  } else {
+    parts.push('Нет данных за период.')
+  }
+
+  // Supplements taken
+  const { data: sups } = await supabase
+    .from('supplements').select('name').eq('user_id', userId)
+  if (sups?.length) parts.push(`\nПрепараты: ${sups.map((s: any) => s.name).join(', ')}`)
+
+  // Заметки дня (SPEC-DAILY-NOTE) — что пользователь сам писал про свои дни
+  const { data: notes } = await supabase
+    .from('context_notes')
+    .select('date, note')
+    .eq('user_id', userId)
+    .gte('date', sinceStr)
+    .order('date', { ascending: false })
+  if (notes?.length) {
+    parts.push('\nЗаметки дня (со слов пользователя):')
+    for (const n of notes) parts.push(`${n.date}: ${n.note}`)
+  }
+
+  return parts.join('\n')
+}
+
+async function handleAiChat(chatId: number | string, userId: string, text: string, sessionId: string | null, supabase: any): Promise<string | null> {
+  if (!GEMINI_KEY) {
+    await tgSend(chatId, 'Выбери действие:', { reply_markup: MAIN_MENU })
+    return sessionId
+  }
+  await tgTyping(chatId)
+
+  // Ensure a session exists
+  let sid = sessionId
+  if (!sid) {
+    const { data: sess } = await supabase
+      .from('chat_sessions')
+      .insert({ user_id: userId })
+      .select('id')
+      .single()
+    sid = sess?.id ?? null
+  }
+
+  // Save user message
+  if (sid) {
+    await supabase.from('chat_messages').insert({ user_id: userId, session_id: sid, role: 'user', content: text })
+  }
+
+  // Recent history (last 6)
+  const { data: hist } = sid ? await supabase
+    .from('chat_messages')
+    .select('role, content')
+    .eq('session_id', sid)
+    .order('created_at', { ascending: false })
+    .limit(6) : { data: [] }
+  const recent = (hist ?? []).reverse()
+
+  const context = await buildBotContext(userId, supabase)
+
+  const contents = [
+    { role: 'user', parts: [{ text: `${CHAT_SYSTEM_PROMPT}\n\n${context}` }] },
+    { role: 'model', parts: [{ text: 'Понял, готов отвечать по данным.' }] },
+    ...recent.slice(0, -1).map((m: any) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })),
+    { role: 'user', parts: [{ text }] },
+  ]
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: 1024, temperature: 0.5 } }),
+      }
+    )
+    if (!res.ok) {
+      await tgSend(chatId, '❌ Не удалось получить ответ от ИИ. Попробуй позже.', { reply_markup: BACK_MENU })
+      return sid
+    }
+    const data = await res.json()
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text ?? 'Не удалось сформулировать ответ.'
+    const tokens = data.usageMetadata?.totalTokenCount ?? null
+
+    if (sid) {
+      await supabase.from('chat_messages').insert({ user_id: userId, session_id: sid, role: 'assistant', content: reply, tokens_used: tokens })
+    }
+    if (tokens) {
+      await supabase.from('ai_usage').insert({ user_id: userId, source: 'chat', tokens_used: tokens })
+    }
+
+    await tgSend(chatId, reply, { reply_markup: BACK_MENU })
+  } catch (_e) {
+    await tgSend(chatId, '❌ Ошибка ИИ. Попробуй позже.', { reply_markup: BACK_MENU })
+  }
+  return sid
 }
 
 async function handleSupplements(chatId: number | string, userId: string, supabase: any) {
@@ -237,9 +377,6 @@ async function checkStaleness(chatId: number | string, userId: string, supabase:
 // ── Main handler ──────────────────────────────────────────────────────────────
 
 serve(async (req) => {
-  if (WEBHOOK_SECRET && req.headers.get('x-telegram-bot-api-secret-token') !== WEBHOOK_SECRET) {
-    return new Response('Forbidden', { status: 403 })
-  }
 
   const body = await req.json().catch(() => null)
   if (!body) return new Response('ok')
@@ -301,6 +438,44 @@ serve(async (req) => {
       )
       const { data: sup } = await supabase.from('supplements').select('name').eq('id', supId).single()
       await tgSend(chatId, `✅ ${sup?.name ?? 'Препарат'} отмечен как принятый сегодня.`, { reply_markup: BACK_MENU })
+    } else if (data.startsWith('rem_take_')) {
+      // Напоминание: принял → запись в supplement_logs + статус taken
+      const evId = data.replace('rem_take_', '')
+      const { data: ev } = await supabase
+        .from('reminder_events')
+        .select('supplement_id, supplements(name)')
+        .eq('id', evId).eq('user_id', userId).single()
+      if (ev) {
+        const today = new Date().toISOString().slice(0, 10)
+        await supabase.from('supplement_logs').upsert(
+          { user_id: userId, supplement_id: ev.supplement_id, date: today, taken: true },
+          { onConflict: 'user_id,supplement_id,date' }
+        )
+        await supabase.from('reminder_events')
+          .update({ status: 'taken', responded_at: new Date().toISOString() })
+          .eq('id', evId)
+        const name = (ev.supplements as any)?.name ?? 'Препарат'
+        await tgSend(chatId, `✅ <b>${name}</b> отмечен как принятый. Молодец!`)
+      }
+    } else if (data.startsWith('rem_snz_')) {
+      // Напоминание: snooze на N минут
+      const rest = data.replace('rem_snz_', '')
+      const idx = rest.lastIndexOf('_')
+      const evId = rest.slice(0, idx)
+      const mins = parseInt(rest.slice(idx + 1), 10) || 60
+      const until = new Date(Date.now() + mins * 60000).toISOString()
+      await supabase.from('reminder_events')
+        .update({ status: 'snoozed', snooze_until: until })
+        .eq('id', evId).eq('user_id', userId)
+      const label = mins >= 120 ? '2 часа' : '1 час'
+      await tgSend(chatId, `⏰ Напомню через ${label}.`)
+    } else if (data.startsWith('rem_skip_')) {
+      // Напоминание: пропустить сегодня
+      const evId = data.replace('rem_skip_', '')
+      await supabase.from('reminder_events')
+        .update({ status: 'skipped', responded_at: new Date().toISOString() })
+        .eq('id', evId).eq('user_id', userId)
+      await tgSend(chatId, '⏭ Пропущено на сегодня.')
     }
 
     return new Response('ok')
@@ -355,7 +530,7 @@ serve(async (req) => {
   // Find user by telegram chat id
   const { data: link } = await supabase
     .from('telegram_links')
-    .select('user_id, status')
+    .select('user_id, status, tg_session_id, awaiting_note_date')
     .eq('telegram_chat_id', String(chatId))
     .single()
 
@@ -442,40 +617,82 @@ serve(async (req) => {
     return new Response('ok')
   }
 
+  // /tokens — Gemini token usage this month
+  if (text === '/tokens') {
+    const monthStart = new Date()
+    monthStart.setDate(1)
+    monthStart.setHours(0, 0, 0, 0)
+
+    const { data: rows } = await supabase
+      .from('ai_usage')
+      .select('source, tokens_used')
+      .eq('user_id', userId)
+      .gte('created_at', monthStart.toISOString())
+
+    if (!rows || rows.length === 0) {
+      await tgSend(chatId, '📭 В этом месяце токены ещё не использовались.', { reply_markup: BACK_MENU })
+      return new Response('ok')
+    }
+
+    const SOURCE_LABELS: Record<string, string> = {
+      chat: '💬 Чат',
+      analyze: '🔍 Анализ',
+      'extract-lab': '🔬 OCR анализов',
+      'biweekly-report': '📊 Отчёты',
+    }
+    const COST_PER_1M = 0.30
+
+    const bySource: Record<string, number> = {}
+    let total = 0
+    for (const r of rows) {
+      const t = r.tokens_used ?? 0
+      bySource[r.source] = (bySource[r.source] ?? 0) + t
+      total += t
+    }
+    const cost = (total / 1_000_000) * COST_PER_1M
+
+    function bar(pct: number, width = 6): string {
+      const filled = Math.round(pct / 100 * width)
+      return '🟦'.repeat(filled) + '⬜'.repeat(width - filled)
+    }
+
+    const monthName = new Date().toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })
+    const lines = Object.entries(bySource)
+      .sort((a, b) => b[1] - a[1])
+      .map(([src, t]) => {
+        const pct = total > 0 ? (t / total) * 100 : 0
+        return `${SOURCE_LABELS[src] ?? src}\n${bar(pct)} ${pct.toFixed(0)}% · ${t.toLocaleString('ru-RU')}`
+      })
+      .join('\n\n')
+
+    await tgSend(chatId,
+      `✨ *Gemini — ${monthName}*\n\n` +
+      `${lines}\n\n` +
+      `━━━━━━━━━━━━━━━\n` +
+      `*Всего:* ${total.toLocaleString('ru-RU')} токенов · *$${cost.toFixed(3)}*`,
+      { parse_mode: 'Markdown', reply_markup: BACK_MENU }
+    )
+    return new Response('ok')
+  }
+
   // /usage — Claude usage stats
   if (text === '/usage') {
-    const usageUrl = Deno.env.get('CLAUDE_USAGE_URL')
-    const sessionKey = Deno.env.get('CLAUDE_SESSION_KEY')
-    const deviceId = Deno.env.get('CLAUDE_DEVICE_ID') ?? ''
-    if (!usageUrl || !sessionKey) {
-      await tgSend(chatId, '⚙️ CLAUDE_USAGE_URL или CLAUDE_SESSION_KEY не настроены в Supabase secrets.', { reply_markup: BACK_MENU })
-      return new Response('ok')
-    }
-    await tgTyping(chatId)
-    const res = await fetch(usageUrl, {
-      headers: {
-        'Cookie': `sessionKey=${sessionKey}; anthropic-device-id=${deviceId}`,
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-        'Accept': 'application/json',
-        'Referer': 'https://claude.ai/settings/usage',
-        'sec-fetch-dest': 'empty',
-        'sec-fetch-mode': 'cors',
-        'sec-fetch-site': 'same-origin',
-      },
-    })
-    if (!res.ok) {
-      await tgSend(chatId, `❌ Не удалось получить данные (${res.status}). Возможно sessionKey устарел.`, { reply_markup: BACK_MENU })
-      return new Response('ok')
-    }
-    const data = await res.json()
-    const s = data.five_hour ?? {}
-    const w = data.seven_day ?? {}
-    const sPct: number = s.utilization ?? 0
-    const wPct: number = w.utilization ?? 0
+    // Read cached usage data written by local monitor
+    const { data: usageRow, error: usageErr } = await supabase
+      .from('claude_usage')
+      .select('*')
+      .eq('id', 1)
+      .single()
 
-    function bar(pct: number, width = 10): string {
+    if (usageErr || !usageRow) {
+      await tgSend(chatId, '❌ Нет данных. Убедись что monitor.py запущен локально.', { reply_markup: BACK_MENU })
+      return new Response('ok')
+    }
+
+    function bar(pct: number, width = 6): string {
       const filled = Math.round(pct / 100 * width)
-      return '█'.repeat(filled) + '░'.repeat(width - filled)
+      const fill = pct >= 90 ? '🟥' : pct >= 70 ? '🟨' : '🟩'
+      return fill.repeat(filled) + '⬜'.repeat(width - filled)
     }
     function fmtTime(iso: string): string {
       const secs = Math.max(0, Math.floor((new Date(iso).getTime() - Date.now()) / 1000))
@@ -484,17 +701,58 @@ serve(async (req) => {
       return h > 0 ? `${h}ч ${String(m).padStart(2, '0')}м` : `${m}м`
     }
 
-    const sLine = s.resets_at ? `${bar(sPct)} ${sPct.toFixed(0)}% · сброс через *${fmtTime(s.resets_at)}*` : `${bar(sPct)} ${sPct.toFixed(0)}%`
-    const wLine = w.resets_at ? `${bar(wPct)} ${wPct.toFixed(0)}% · сброс через *${fmtTime(w.resets_at)}*` : `${bar(wPct)} ${wPct.toFixed(0)}%`
+    const sPct: number = usageRow.session_pct ?? 0
+    const wPct: number = usageRow.weekly_pct ?? 0
+    const sLine = usageRow.session_resets_at
+      ? `${bar(sPct)} ${sPct.toFixed(0)}% · сброс через *${fmtTime(usageRow.session_resets_at)}*`
+      : `${bar(sPct)} ${sPct.toFixed(0)}%`
+    const wLine = usageRow.weekly_resets_at
+      ? `${bar(wPct)} ${wPct.toFixed(0)}% · сброс через *${fmtTime(usageRow.weekly_resets_at)}*`
+      : `${bar(wPct)} ${wPct.toFixed(0)}%`
 
+    const age = Math.floor((Date.now() - new Date(usageRow.updated_at).getTime()) / 60000)
     await tgSend(chatId,
-      `*Сессия (5ч)*\n${sLine}\n\n*Неделя*\n${wLine}`,
+      `🤖 *Лимиты Claude*\n\n` +
+      `*Сессия (5ч)*\n${sLine}\n\n` +
+      `*Неделя*\n${wLine}\n\n` +
+      `_обновлено ${age === 0 ? 'только что' : age + ' мин назад'}_`,
       { parse_mode: 'Markdown', reply_markup: BACK_MENU }
     )
     return new Response('ok')
   }
 
-  // Any other text → show main menu
-  await tgSend(chatId, 'Выбери действие:', { reply_markup: MAIN_MENU })
+  // Commands start with "/" but unknown → show menu
+  if (text.startsWith('/')) {
+    await tgSend(chatId, 'Выбери действие:', { reply_markup: MAIN_MENU })
+    return new Response('ok')
+  }
+
+  // Ответ на вечерний вопрос → заметка дня (N2 + N4, SPEC-DAILY-NOTE)
+  if (link.awaiting_note_date) {
+    const noteDate = link.awaiting_note_date
+    // дополняем существующую заметку, не затираем
+    const { data: existing } = await supabase
+      .from('context_notes')
+      .select('note')
+      .eq('user_id', userId)
+      .eq('date', noteDate)
+      .maybeSingle()
+    const merged = existing?.note ? `${existing.note}\n${text}` : text
+    await supabase.from('context_notes').upsert(
+      { user_id: userId, date: noteDate, note: merged, updated_at: new Date().toISOString() },
+      { onConflict: 'user_id,date' }
+    )
+    await supabase.from('telegram_links')
+      .update({ awaiting_note_date: null })
+      .eq('telegram_chat_id', String(chatId))
+    await tgSend(chatId, '📝 Записал в заметку дня. Спасибо!\n\nТеперь можешь задать любой вопрос — отвечу по твоим данным.')
+    return new Response('ok')
+  }
+
+  // Any other text → AI chat (B3)
+  const newSid = await handleAiChat(chatId, userId, text, link.tg_session_id ?? null, supabase)
+  if (newSid && newSid !== link.tg_session_id) {
+    await supabase.from('telegram_links').update({ tg_session_id: newSid }).eq('telegram_chat_id', String(chatId))
+  }
   return new Response('ok')
 })

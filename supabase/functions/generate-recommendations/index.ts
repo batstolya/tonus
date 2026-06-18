@@ -91,7 +91,11 @@ ${digest}
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.4, maxOutputTokens: 1024 },
+          generationConfig: {
+            temperature: 0.4,
+            maxOutputTokens: 4096,
+            responseMimeType: 'application/json',
+          },
         }),
       }
     )
@@ -103,7 +107,17 @@ ${digest}
 
     // Parse JSON from response (strip markdown fences if present)
     const jsonStr = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-    const recs = JSON.parse(jsonStr)
+    let recs: any
+    try {
+      recs = JSON.parse(jsonStr)
+    } catch (_e) {
+      // Ответ обрезан/повреждён — попробуем вытащить целые объекты до обрыва
+      const objs = jsonStr.match(/\{[^{}]*\}/g) ?? []
+      recs = objs.map((o: string) => { try { return JSON.parse(o) } catch { return null } }).filter(Boolean)
+      if (!recs.length) {
+        throw new Error('ИИ вернул некорректный ответ. Попробуй ещё раз.')
+      }
+    }
 
     if (!Array.isArray(recs)) throw new Error('Invalid response format')
 
