@@ -29,6 +29,7 @@ import { syncMetricsToSupabase, loadMetricsFromSupabase, getLastSyncInfo, syncHR
 import { saveCalendarEvents, loadCalendarEvents } from './lib/calendarSync'
 import { connectGoogleCalendar, isGoogleCalendarAvailable } from './lib/googleCalendar'
 import { detectAvailableMetrics } from './lib/availableMetrics'
+import { useT } from './lib/i18n'
 import './index.css'
 
 
@@ -93,6 +94,7 @@ function getActiveSubView(view: AppView): AppView {
 }
 
 export default function App() {
+  const { t } = useT()
   const { state, setView, setDaily, setEvents, setProgress, setError, reset, setDeviceType } = useAppStore()
   const { user, loading, passwordRecovery, setPasswordRecovery } = useAuth()
   const { theme, toggle: toggleTheme } = useTheme()
@@ -205,7 +207,7 @@ export default function App() {
     setGoogleLoading(false)
   }
 
-  if (loading || dbLoading) return <AppLoader label={dbLoading ? 'Загружаем данные…' : undefined} />
+  if (loading || dbLoading) return <AppLoader label={dbLoading ? t('Загружаем данные…') : undefined} />
   if (!user) return <AuthScreen />
   if (passwordRecovery) return <ResetPasswordScreen onDone={() => setPasswordRecovery(false)} />
 
@@ -237,25 +239,25 @@ export default function App() {
                   className={`nav-btn${activeGroup === g.id ? ' active' : ''}`}
                   onClick={() => setView(g.defaultView)}
                 >
-                  {g.label}
+                  {t(g.label)}
                 </button>
               ))}
             </nav>
 
             <div className="topbar-right">
-              {lastSync && <span className="sync-label">Синхр: {lastSync}</span>}
-              <button className="theme-toggle" onClick={toggleTheme} title="Сменить тему">
+              {lastSync && <span className="sync-label">{t('Синхр')}: {lastSync}</span>}
+              <button className="theme-toggle" onClick={toggleTheme} title={t('Сменить тему')}>
                 {theme === 'dark' ? '☀️' : '🌙'}
               </button>
               <button
                 className={`theme-toggle${state.view === 'settings' ? ' active' : ''}`}
                 onClick={() => setView('settings')}
-                title="Настройки"
+                title={t('Настройки')}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
               </button>
               <button className="nav-btn signout-btn" onClick={() => supabase.auth.signOut()}>
-                Выйти
+                {t('Выйти')}
               </button>
             </div>
           </header>
@@ -268,7 +270,7 @@ export default function App() {
                   className={`subnav-btn${activeSubView === v.view ? ' active' : ''}`}
                   onClick={() => setView(v.view)}
                 >
-                  {v.label}
+                  {t(v.label)}
                 </button>
               ))}
             </nav>
@@ -374,7 +376,7 @@ export default function App() {
               onClick={() => setView(g.defaultView)}
             >
               {g.icon}
-              <span>{g.label}</span>
+              <span>{t(g.label)}</span>
             </button>
           ))}
         </nav>
