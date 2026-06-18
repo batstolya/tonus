@@ -17,6 +17,8 @@ export interface LabResult {
   marker: string
   value: number
   unit: string | null
+  ref_range?: string | null
+  flag?: string | null
   date: string
 }
 
