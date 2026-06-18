@@ -155,4 +155,31 @@ export const translations: Record<string, { uk: string; en: string }> = {
   '💬 Чат': { uk: '💬 Чат', en: '💬 Chat' },
   '🔍 Анализ данных': { uk: '🔍 Аналіз даних', en: '🔍 Data analysis' },
   '🔬 OCR анализов': { uk: '🔬 OCR аналізів', en: '🔬 Lab OCR' },
+
+  // ── Дни недели ─────────────────────────────────────────────
+  'Пн': { uk: 'Пн', en: 'Mon' },
+  'Вт': { uk: 'Вт', en: 'Tue' },
+  'Ср': { uk: 'Ср', en: 'Wed' },
+  'Чт': { uk: 'Чт', en: 'Thu' },
+  'Пт': { uk: 'Пт', en: 'Fri' },
+  'Сб': { uk: 'Сб', en: 'Sat' },
+  'Вс': { uk: 'Нд', en: 'Sun' },
+
+  // ── Препараты ──────────────────────────────────────────────
+  'Препараты и добавки': { uk: 'Препарати та добавки', en: 'Supplements & meds' },
+  'Название (напр. Витамин D)': { uk: 'Назва (напр. Вітамін D)', en: 'Name (e.g. Vitamin D)' },
+  'Доза (напр. 5000)': { uk: 'Доза (напр. 5000)', en: 'Dose (e.g. 5000)' },
+  'Ед. (напр. IU)': { uk: 'Од. (напр. IU)', en: 'Unit (e.g. IU)' },
+  'Нет препаратов. Нажми «+ Добавить» чтобы начать.': { uk: 'Немає препаратів. Натисни «+ Додати» щоб почати.', en: 'No supplements yet. Tap "+ Add" to start.' },
+  'Колонка не найдена в БД. Запусти в Supabase SQL Editor:': { uk: 'Колонку не знайдено в БД. Запусти в Supabase SQL Editor:', en: 'Column not found in DB. Run in Supabase SQL Editor:' },
+  'Запасы': { uk: 'Запаси', en: 'Stock' },
+  'Заканчивается': { uk: 'Закінчується', en: 'Running low' },
+  'Нажми чтобы ввести вручную': { uk: 'Натисни щоб ввести вручну', en: 'Tap to enter manually' },
+  'шт': { uk: 'шт', en: 'pcs' },
+  'Напоминания': { uk: 'Нагадування', en: 'Reminders' },
+  'Напоминать в Telegram': { uk: 'Нагадувати в Telegram', en: 'Remind in Telegram' },
+  'Убрать': { uk: 'Прибрати', en: 'Remove' },
+  'время': { uk: 'час', en: 'time' },
+  'Не позже': { uk: 'Не пізніше', en: 'No later than' },
+  'тихие часы — после этого времени не напоминать': { uk: 'тихі години — після цього часу не нагадувати', en: 'quiet hours — no reminders after this time' },
 }
