@@ -144,26 +144,33 @@ export async function loadMetricsFromSupabase(userId: string): Promise<DailyMetr
 
   const byDate = new Map<string, DailyMetrics>()
 
+  // При дублях (две выгрузки на один день) берём более полное значение:
+  // максимум для сумм (шаги/дистанция/калории), и не затираем непустое для средних.
+  const maxSum = (cur: number | undefined, v: number | null): number | undefined =>
+    v == null ? cur : (cur == null ? v : Math.max(cur, v))
+  const keepAvg = (cur: number | undefined, v: number | null): number | undefined =>
+    cur != null ? cur : (v ?? undefined)
+
   for (const row of metricsRes.data ?? []) {
     if (!byDate.has(row.date)) byDate.set(row.date, { date: row.date })
     const d = byDate.get(row.date)!
     switch (row.metric) {
       case 'heartRate':
-        if (row.avg_val != null)
+        if (row.avg_val != null && !d.heartRate)
           d.heartRate = { avg: row.avg_val, min: row.min_val ?? row.avg_val, max: row.max_val ?? row.avg_val }
         break
-      case 'restingHeartRate': d.restingHeartRate = row.avg_val ?? undefined; break
-      case 'hrv': d.hrv = row.avg_val ?? undefined; break
-      case 'walkingHeartRate': d.walkingHeartRate = row.avg_val ?? undefined; break
-      case 'oxygenSaturation': d.oxygenSaturation = row.avg_val ?? undefined; break
-      case 'respiratoryRate': d.respiratoryRate = row.avg_val ?? undefined; break
-      case 'wristTemperature': d.wristTemperature = row.avg_val ?? undefined; break
-      case 'vo2max': d.vo2max = row.avg_val ?? undefined; break
-      case 'steps': d.steps = row.sum_val ?? undefined; break
-      case 'distance': d.distance = row.sum_val ?? undefined; break
-      case 'activeEnergy': d.activeEnergy = row.sum_val ?? undefined; break
-      case 'exerciseMinutes': d.exerciseMinutes = row.sum_val ?? undefined; break
-      case 'flightsClimbed': d.flightsClimbed = row.sum_val ?? undefined; break
+      case 'restingHeartRate': d.restingHeartRate = keepAvg(d.restingHeartRate, row.avg_val); break
+      case 'hrv': d.hrv = keepAvg(d.hrv, row.avg_val); break
+      case 'walkingHeartRate': d.walkingHeartRate = keepAvg(d.walkingHeartRate, row.avg_val); break
+      case 'oxygenSaturation': d.oxygenSaturation = keepAvg(d.oxygenSaturation, row.avg_val); break
+      case 'respiratoryRate': d.respiratoryRate = keepAvg(d.respiratoryRate, row.avg_val); break
+      case 'wristTemperature': d.wristTemperature = keepAvg(d.wristTemperature, row.avg_val); break
+      case 'vo2max': d.vo2max = keepAvg(d.vo2max, row.avg_val); break
+      case 'steps': d.steps = maxSum(d.steps, row.sum_val); break
+      case 'distance': d.distance = maxSum(d.distance, row.sum_val); break
+      case 'activeEnergy': d.activeEnergy = maxSum(d.activeEnergy, row.sum_val); break
+      case 'exerciseMinutes': d.exerciseMinutes = maxSum(d.exerciseMinutes, row.sum_val); break
+      case 'flightsClimbed': d.flightsClimbed = maxSum(d.flightsClimbed, row.sum_val); break
     }
   }
 
