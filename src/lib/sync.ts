@@ -174,8 +174,14 @@ export async function loadMetricsFromSupabase(userId: string): Promise<DailyMetr
     }
   }
 
+  // При дублях/фрагментах sleep_sessions берём ОСНОВНОЙ сон — с макс. длительностью
+  const mainSleep = new Map<string, number>() // date → лучшая длительность
   for (const row of sleepRes.data ?? []) {
     if (!byDate.has(row.date)) byDate.set(row.date, { date: row.date })
+    const dur = row.duration_hours ?? 0
+    const best = mainSleep.get(row.date)
+    if (best != null && dur <= best) continue // уже есть более длинный сон за этот день
+    mainSleep.set(row.date, dur)
     const d = byDate.get(row.date)!
     d.sleepHours = row.duration_hours ?? undefined
     d.sleepBedtime = row.bedtime ?? undefined
