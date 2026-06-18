@@ -236,15 +236,16 @@ async function classifyLog(text: string, supplementNames: string[]): Promise<any
 async function execLog(chatId: number | string, userId: string, act: any, tz: string, supabase: any): Promise<string | null> {
   if (act.action === 'supplement') {
     // нестрогий матч: точное ilike, иначе по началу слова
+    // select без stock_count — колонка может отсутствовать в БД (иначе запрос падает)
     let sup: any = null
     if (act.supplement) {
       const { data: exact } = await supabase
-        .from('supplements').select('id, name, stock_count')
+        .from('supplements').select('id, name')
         .eq('user_id', userId).ilike('name', act.supplement).maybeSingle()
       sup = exact
       if (!sup) {
         const { data: like } = await supabase
-          .from('supplements').select('id, name, stock_count')
+          .from('supplements').select('id, name')
           .eq('user_id', userId).ilike('name', `${act.supplement.slice(0, 5)}%`).maybeSingle()
         sup = like
       }
@@ -262,12 +263,19 @@ async function execLog(chatId: number | string, userId: string, act: any, tz: st
       { user_id: userId, supplement_id: sup.id, date, taken: true, dose: act.dose ?? null },
       { onConflict: 'user_id,supplement_id,date' }
     )
+    // списать из запаса — best-effort (колонки stock_count может не быть)
     let stockMsg = ''
-    if (!existing?.taken && typeof sup.stock_count === 'number') {
-      const next = Math.max(0, sup.stock_count - 1)
-      await supabase.from('supplements').update({ stock_count: next }).eq('id', sup.id)
-      stockMsg = `\nОсталось в запасе: ${next} шт`
-      if (next <= 7) stockMsg += ' ⚠️'
+    if (!existing?.taken) {
+      try {
+        const { data: cur } = await supabase
+          .from('supplements').select('stock_count').eq('id', sup.id).maybeSingle()
+        if (cur && typeof cur.stock_count === 'number') {
+          const next = Math.max(0, cur.stock_count - 1)
+          await supabase.from('supplements').update({ stock_count: next }).eq('id', sup.id)
+          stockMsg = `\nОсталось в запасе: ${next} шт`
+          if (next <= 7) stockMsg += ' ⚠️'
+        }
+      } catch { /* колонки нет — пропускаем списание */ }
     }
     const when = date === today ? 'на сегодня' : `за ${new Date(date + 'T00:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}`
     return `✅ <b>${sup.name}</b>${act.dose ? ` ${act.dose}` : ''} отмечен ${when}.${stockMsg}`
@@ -929,10 +937,9 @@ serve(async (req) => {
       return new Response('ok')
     }
 
-    function bar(pct: number, width = 6): string {
+    function bar(pct: number, width = 10): string {
       const filled = Math.round(pct / 100 * width)
-      const fill = pct >= 90 ? '🟥' : pct >= 70 ? '🟨' : '🟩'
-      return fill.repeat(filled) + '⬜'.repeat(width - filled)
+      return '█'.repeat(filled) + '░'.repeat(width - filled)
     }
     function fmtTime(iso: string): string {
       const secs = Math.max(0, Math.floor((new Date(iso).getTime() - Date.now()) / 1000))
