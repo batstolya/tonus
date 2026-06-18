@@ -144,6 +144,154 @@ const CHAT_SYSTEM_PROMPT = `Ты — персональный ассистент
 - Отвечай кратко (2-4 предложения), это мессенджер.
 - Опирайся на личные тренды пользователя, не на абсолютные нормы.`
 
+// ── Natural-language logging (приём препарата / событие из текста) ─────────────
+
+// Смещение таймзоны (минуты к востоку от UTC) на конкретный момент
+function tzOffsetMin(tz: string, date: Date): number {
+  const dtf = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, hour12: false,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  })
+  const p = Object.fromEntries(dtf.formatToParts(date).map(x => [x.type, x.value]))
+  const asUTC = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second)
+  return (asUTC - date.getTime()) / 60000
+}
+
+// Локальные дата/время (HH:MM) в этой tz → ISO (UTC). time=null → сейчас.
+function localToIso(tz: string, time: string | null, dateStr?: string | null): string {
+  const now = new Date()
+  if (!time && !dateStr) return now.toISOString()
+  const off = tzOffsetMin(tz, now)
+  let day = dateStr
+  if (!day || !/^\d{4}-\d{2}-\d{2}$/.test(day)) {
+    const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', {
+      timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+    }).formatToParts(now).map(x => [x.type, x.value]))
+    day = `${p.year}-${p.month}-${p.day}`
+  }
+  const naiveUTC = Date.parse(`${day}T${time ?? '12:00'}:00Z`)
+  return new Date(naiveUTC - off * 60000).toISOString()
+}
+
+function localDate(tz: string): string {
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date()).map(x => [x.type, x.value]))
+  return `${p.year}-${p.month}-${p.day}`
+}
+
+// Классифицирует свободный текст: это действие-лог или вопрос?
+// Возвращает действие, либо null если это обычный вопрос (→ чат).
+async function classifyLog(text: string, supplementNames: string[]): Promise<any | null> {
+  if (!GEMINI_KEY) return null
+  const todayStr = new Date().toISOString().slice(0, 10)
+  const prompt = `Пользователь пишет сообщение боту здоровья. Определи, это ЗАПИСЬ события или ВОПРОС.
+Препараты пользователя: ${supplementNames.length ? supplementNames.join(', ') : '(нет)'}
+Сегодня: ${todayStr}
+
+Сообщение: "${text}"
+
+Верни ТОЛЬКО JSON:
+{
+  "action": "supplement" | "intake" | "chat",
+  "supplement": название препарата ТОЧНО как в списке пользователя (исправь опечатки на ближайший из списка) или null,
+  "dose": доза текстом (напр. "1мг") или null,
+  "intake_type": "coffee" | "alcohol" | "meal" | "water" | "meds" | "custom" | null,
+  "amount": число или null,
+  "unit": "мл" или null,
+  "date": "ГГГГ-ММ-ДД" если указана дата/число дня, иначе null,
+  "time": "ЧЧ:ММ" если указано время, иначе null,
+  "note": краткая заметка (напр. "Макдональдс") или null
+}
+
+Правила:
+- "принял/выпил <препарат>" → action="supplement", supplement ТОЧНО из списка (исправь опечатку: "финатерид"→"Финастерид").
+- "пил кофе", "выпил вина", "съел макдак/еду", "выпил воды" → action="intake" с нужным intake_type. Макдоналдс/еда = meal с note.
+- Вопрос ("как мой сон", "что ты знаешь") → action="chat".
+- Число без контекста после препарата ("финастерид 18") — это ДЕНЬ месяца: date="${todayStr.slice(0,7)}-18". "1мг"/"5000" рядом с дозой — это доза, не дата.
+- Время словами: "в обед"≈13:00, "утром"≈09:00, "вечером"≈20:00 → ЧЧ:ММ.`
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0, maxOutputTokens: 512, responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } },
+        }),
+      }
+    )
+    if (!res.ok) return null
+    const data = await res.json()
+    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}'
+    const parsed = JSON.parse(raw)
+    return parsed?.action && parsed.action !== 'chat' ? parsed : null
+  } catch { return null }
+}
+
+// Выполняет распознанное действие. Возвращает текст подтверждения или null.
+async function execLog(chatId: number | string, userId: string, act: any, tz: string, supabase: any): Promise<string | null> {
+  if (act.action === 'supplement') {
+    // нестрогий матч: точное ilike, иначе по началу слова
+    let sup: any = null
+    if (act.supplement) {
+      const { data: exact } = await supabase
+        .from('supplements').select('id, name, stock_count')
+        .eq('user_id', userId).ilike('name', act.supplement).maybeSingle()
+      sup = exact
+      if (!sup) {
+        const { data: like } = await supabase
+          .from('supplements').select('id, name, stock_count')
+          .eq('user_id', userId).ilike('name', `${act.supplement.slice(0, 5)}%`).maybeSingle()
+        sup = like
+      }
+    }
+    if (!sup) {
+      return `🤔 Не нашёл препарат «${act.supplement ?? '?'}» в твоём списке. Добавь его на сайте или проверь название.`
+    }
+    const today = localDate(tz)
+    const date = (act.date && /^\d{4}-\d{2}-\d{2}$/.test(act.date)) ? act.date : today
+    // уже отмечен в этот день?
+    const { data: existing } = await supabase
+      .from('supplement_logs')
+      .select('taken').eq('user_id', userId).eq('supplement_id', sup.id).eq('date', date).maybeSingle()
+    await supabase.from('supplement_logs').upsert(
+      { user_id: userId, supplement_id: sup.id, date, taken: true, dose: act.dose ?? null },
+      { onConflict: 'user_id,supplement_id,date' }
+    )
+    let stockMsg = ''
+    if (!existing?.taken && typeof sup.stock_count === 'number') {
+      const next = Math.max(0, sup.stock_count - 1)
+      await supabase.from('supplements').update({ stock_count: next }).eq('id', sup.id)
+      stockMsg = `\nОсталось в запасе: ${next} шт`
+      if (next <= 7) stockMsg += ' ⚠️'
+    }
+    const when = date === today ? 'на сегодня' : `за ${new Date(date + 'T00:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}`
+    return `✅ <b>${sup.name}</b>${act.dose ? ` ${act.dose}` : ''} отмечен ${when}.${stockMsg}`
+  }
+
+  if (act.action === 'intake' && act.intake_type) {
+    const labels: Record<string, string> = { coffee: '☕ Кофе', alcohol: '🍷 Алкоголь', meal: '🍽 Еда', water: '💧 Вода', meds: '💊 Лекарства', custom: '📝 Заметка' }
+    const ts = localToIso(tz, act.time, act.date)
+    await supabase.from('intake_events').insert({
+      user_id: userId,
+      ts,
+      type: act.intake_type,
+      amount: act.amount ?? null,
+      unit: act.unit ?? null,
+      note: act.note ?? null,
+    })
+    const timeStr = new Date(ts).toLocaleTimeString('ru-RU', { timeZone: tz, hour: '2-digit', minute: '2-digit' })
+    const extra = [act.amount ? `${act.amount}${act.unit ?? ''}` : '', act.note ?? ''].filter(Boolean).join(', ')
+    return `📝 Записал: ${labels[act.intake_type] ?? act.intake_type}${extra ? ` (${extra})` : ''} в ${timeStr}`
+  }
+
+  return null
+}
+
 async function buildBotContext(userId: string, supabase: any): Promise<string> {
   const since = new Date(); since.setDate(since.getDate() - 14)
   const sinceStr = since.toISOString().slice(0, 10)
@@ -224,6 +372,43 @@ async function buildBotContext(userId: string, supabase: any): Promise<string> {
   const { data: sups } = await supabase
     .from('supplements').select('name').eq('user_id', userId)
   if (sups?.length) parts.push(`\nПрепараты: ${sups.map((s: any) => s.name).join(', ')}`)
+
+  // События (кофе/алкоголь/еда/вода) за 14 дней
+  const { data: intake } = await supabase
+    .from('intake_events')
+    .select('ts, type, amount, unit, note')
+    .eq('user_id', userId)
+    .gte('ts', `${sinceStr}T00:00:00Z`)
+    .order('ts', { ascending: false })
+    .limit(80)
+  if (intake?.length) {
+    const tLabels: Record<string, string> = { coffee: 'кофе', alcohol: 'алкоголь', meal: 'еда', water: 'вода', meds: 'лекарство', custom: 'заметка' }
+    parts.push('\nСобытия (кофе/алкоголь/еда):')
+    for (const e of intake) {
+      const d = new Date(e.ts).toISOString().slice(0, 16).replace('T', ' ')
+      const amt = e.amount ? ` ${e.amount}${e.unit ?? ''}` : ''
+      parts.push(`${d} ${tLabels[e.type] ?? e.type}${amt}${e.note ? ` (${e.note})` : ''}`)
+    }
+  }
+
+  // Отметки приёма препаратов за 14 дней
+  const { data: logs } = await supabase
+    .from('supplement_logs')
+    .select('date, taken, supplements(name)')
+    .eq('user_id', userId)
+    .gte('date', sinceStr)
+    .eq('taken', true)
+    .order('date', { ascending: false })
+    .limit(100)
+  if (logs?.length) {
+    const byDay: Record<string, string[]> = {}
+    for (const l of logs) {
+      const name = (l.supplements as any)?.name
+      if (name) (byDay[l.date] ??= []).push(name)
+    }
+    parts.push('\nПриём препаратов (по дням):')
+    for (const [date, names] of Object.entries(byDay)) parts.push(`${date}: ${names.join(', ')}`)
+  }
 
   // Заметки дня (SPEC-DAILY-NOTE) — что пользователь сам писал про свои дни
   const { data: notes } = await supabase
@@ -792,6 +977,22 @@ serve(async (req) => {
       .eq('telegram_chat_id', String(chatId))
     await tgSend(chatId, '📝 Записал в заметку дня. Спасибо!\n\nТеперь можешь задать любой вопрос — отвечу по твоим данным.')
     return new Response('ok')
+  }
+
+  // Естественный ввод: "принял финастерид 1мг", "пил кофе в 14:00", "съел макдак"
+  const { data: supList } = await supabase
+    .from('supplements').select('name').eq('user_id', userId).eq('active', true)
+  const supNames = (supList ?? []).map((s: any) => s.name)
+  const act = await classifyLog(text, supNames)
+  if (act) {
+    const { data: noteSet } = await supabase
+      .from('daily_note_settings').select('timezone').eq('user_id', userId).maybeSingle()
+    const tz = noteSet?.timezone || 'Europe/Kyiv'
+    const confirm = await execLog(chatId, userId, act, tz, supabase)
+    if (confirm) {
+      await tgSend(chatId, confirm, { reply_markup: BACK_MENU })
+      return new Response('ok')
+    }
   }
 
   // Any other text → AI chat (B3)
