@@ -4,6 +4,7 @@ import {
   ReferenceLine,
 } from 'recharts'
 import type { DailyMetrics } from '../../types'
+import { useT } from '../../lib/i18n'
 
 interface IntakeEvent {
   id: string
@@ -34,6 +35,7 @@ function filterDays(daily: DailyMetrics[], preset: Preset): DailyMetrics[] {
 }
 
 export function HeartRateScreen({ daily, intakeEvents = [] }: Props) {
+  const { t } = useT()
   const [preset, setPreset] = useState<Preset>('30d')
   const [shown, setShown] = useState<Set<string>>(new Set())
 
@@ -93,13 +95,13 @@ export function HeartRateScreen({ daily, intakeEvents = [] }: Props) {
 
   return (
     <div className="screen">
-      <h2>Пульс за период</h2>
+      <h2>{t('Пульс за период')}</h2>
 
       <div className="hr-controls">
         <div className="presets">
           {(['7d', '30d', '90d', 'all'] as Preset[]).map(p => (
             <button key={p} className={preset === p ? 'preset active' : 'preset'} onClick={() => setPreset(p)}>
-              {p === 'all' ? 'Всё время' : p.replace('d', ' дн')}
+              {p === 'all' ? t('Всё время') : p.replace('d', ` ${t('дн')}`)}
             </button>
           ))}
         </div>
@@ -112,16 +114,16 @@ export function HeartRateScreen({ daily, intakeEvents = [] }: Props) {
                 checked={shown.has(o.key)}
                 onChange={() => toggleOverlay(o.key)}
               />
-              <span style={{ color: shown.has(o.key) ? o.color : 'var(--text-muted)' }}>{o.label}</span>
+              <span style={{ color: shown.has(o.key) ? o.color : 'var(--text-muted)' }}>{t(o.label)}</span>
             </label>
           ))}
         </div>
       </div>
 
       <div className="stat-row">
-        {avgAll && <div className="stat"><span>{avgAll}</span> уд/мин средний</div>}
-        {avgRHR && <div className="stat"><span>{avgRHR}</span> уд/мин покой</div>}
-        {maxEver && <div className="stat"><span>{maxEver}</span> уд/мин макс</div>}
+        {avgAll && <div className="stat"><span>{avgAll}</span> {t('уд/мин средний')}</div>}
+        {avgRHR && <div className="stat"><span>{avgRHR}</span> {t('уд/мин покой')}</div>}
+        {maxEver && <div className="stat"><span>{maxEver}</span> {t('уд/мин макс')}</div>}
       </div>
 
       <ResponsiveContainer width="100%" height={340}>
@@ -131,9 +133,9 @@ export function HeartRateScreen({ daily, intakeEvents = [] }: Props) {
           <YAxis domain={['auto', 'auto']} tick={{ fontSize: 11 }} />
           <Tooltip />
           <Legend />
-          <Line type="monotone" dataKey="avg" name="Средний" stroke="#6c8fff" strokeWidth={2} dot={false} connectNulls />
-          <Line type="monotone" dataKey="resting" name="Покой" stroke="#5bc896" strokeWidth={2} dot={false} connectNulls />
-          <Line type="monotone" dataKey="max" name="Макс" stroke="#ff6b6b" strokeWidth={1.5} dot={false} connectNulls strokeDasharray="4 2" />
+          <Line type="monotone" dataKey="avg" name={t('Средний')} stroke="#6c8fff" strokeWidth={2} dot={false} connectNulls />
+          <Line type="monotone" dataKey="resting" name={t('Покой')} stroke="#5bc896" strokeWidth={2} dot={false} connectNulls />
+          <Line type="monotone" dataKey="max" name={t('Макс')} stroke="#ff6b6b" strokeWidth={1.5} dot={false} connectNulls strokeDasharray="4 2" />
           {referenceLines.map((l, i) => (
             <ReferenceLine
               key={i}
