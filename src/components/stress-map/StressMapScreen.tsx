@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import type { HeartRateSample, CalendarEvent } from '../../types'
+import { useT } from '../../lib/i18n'
 import { buildStressMap } from '../../utils/stressMap'
 import { parseICS } from '../../parsers/icsParser'
 import { parseCalBookings } from '../../parsers/calBookingsParser'
@@ -21,6 +22,7 @@ function fmtDate(d: Date): string {
 type SortMode = 'stress' | 'date'
 
 export function StressMapScreen({ heartRateSamples, events, onEvents, onGoogleCalendar, googleConnected = false, showGoogle = true, onToggleGoogle }: Props) {
+  const { t } = useT()
   const [sortMode, setSortMode] = useState<SortMode>('stress')
   const rawEntries = useMemo(() => buildStressMap(events, heartRateSamples), [events, heartRateSamples])
   const entries = useMemo(() => {
@@ -47,14 +49,14 @@ export function StressMapScreen({ heartRateSamples, events, onEvents, onGoogleCa
   if (!events.length) {
     return (
       <div className="screen">
-        <h2>Карта стресса</h2>
+        <h2>{t('Карта стресса')}</h2>
         <p className="empty-hint" style={{ marginBottom: 24 }}>
-          Нужны данные календаря. Загрузите один из форматов:
+          {t('Нужны данные календаря. Загрузите один из форматов:')}
         </p>
         <div style={{ display: 'flex', gap: 12 }}>
           <input ref={icsRef} type="file" accept=".ics" style={{ display: 'none' }} onChange={handleICS} />
           <button className="btn-primary" style={{ maxWidth: 200 }} onClick={() => icsRef.current?.click()}>
-            📅 Загрузить .ics
+            📅 {t('Загрузить .ics')}
           </button>
           <input ref={calRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleCal} />
           <button className="btn-secondary" onClick={() => calRef.current?.click()}>
@@ -74,24 +76,23 @@ export function StressMapScreen({ heartRateSamples, events, onEvents, onGoogleCa
     <div className="screen">
       <div className="stress-header">
         <div>
-          <h2>Карта стресса — пульс ↔ события</h2>
+          <h2>{t('Карта стресса — пульс ↔ события')}</h2>
           <p className="screen-hint">
-            События отсортированы по нагрузке на сердце (превышение над базовым уровнем).
-            Физическая активность помечена отдельно.
+            {t('События отсортированы по нагрузке на сердце (превышение над базовым уровнем). Физическая активность помечена отдельно.')}
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
           <div className="stress-sort-tabs">
             <button className={`stress-sort-btn${sortMode === 'stress' ? ' active' : ''}`} onClick={() => setSortMode('stress')}>
-              По стрессу
+              {t('По стрессу')}
             </button>
             <button className={`stress-sort-btn${sortMode === 'date' ? ' active' : ''}`} onClick={() => setSortMode('date')}>
-              По дате
+              {t('По дате')}
             </button>
           </div>
           {googleConnected && onToggleGoogle && (
             <label className="source-toggle">
-              <span className="source-toggle-label">Google Календарь</span>
+              <span className="source-toggle-label">{t('Google Календарь')}</span>
               <div className={`toggle-switch${showGoogle ? ' on' : ''}`} onClick={() => onToggleGoogle(!showGoogle)}>
                 <div className="toggle-thumb" />
               </div>
@@ -108,26 +109,26 @@ export function StressMapScreen({ heartRateSamples, events, onEvents, onGoogleCa
           >
             <div className="stress-event-header">
               <span className="stress-title">{entry.event.title}</span>
-              {entry.isPhysicalActivity && <span className="badge">🏃 активность</span>}
+              {entry.isPhysicalActivity && <span className="badge">🏃 {t('активность')}</span>}
               <span className="stress-date">{fmtDate(entry.event.start)}</span>
             </div>
             <div className="stress-stats">
               {entry.sampleCount === 0 ? (
-                <span className="no-data">Нет данных о пульсе за это время</span>
+                <span className="no-data">{t('Нет данных о пульсе за это время')}</span>
               ) : (
                 <>
-                  <span>Пульс: <strong>{entry.avgHeartRate}</strong> уд/мин (ср), {entry.peakHeartRate} (пик)</span>
+                  <span>{t('Пульс')}: <strong>{entry.avgHeartRate}</strong> {t('уд/мин (ср)')}, {entry.peakHeartRate} ({t('пик')})</span>
                   {entry.heartRateDelta !== null && (
                     <span className={entry.heartRateDelta > 10 ? 'delta-high' : 'delta-normal'}>
-                      {entry.heartRateDelta > 0 ? '+' : ''}{entry.heartRateDelta} к базовому
+                      {entry.heartRateDelta > 0 ? '+' : ''}{entry.heartRateDelta} {t('к базовому')}
                     </span>
                   )}
-                  <span className="sample-count">{entry.sampleCount} замеров</span>
+                  <span className="sample-count">{entry.sampleCount} {t('замеров')}</span>
                 </>
               )}
             </div>
             {entry.sampleCount > 0 && entry.sampleCount < 4 && (
-              <p className="stress-caveat">Мало замеров — интерпретируйте осторожно</p>
+              <p className="stress-caveat">{t('Мало замеров — интерпретируйте осторожно')}</p>
             )}
           </div>
         ))}
