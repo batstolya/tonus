@@ -126,12 +126,23 @@ serve(async (req) => {
     const digest1 = buildDigest(r1.data ?? [], 'Последние 2 недели', s1.data ?? [])
     const digest2 = buildDigest(r2.data ?? [], 'Предыдущие 2 недели', s2.data ?? [])
 
+    // Заметки дня за период (SPEC-DAILY-NOTE) — что человек сам писал про свои дни
+    const { data: noteRows } = await supabase
+      .from('context_notes')
+      .select('date, note')
+      .eq('user_id', user.id)
+      .gte('date', fmt(p1Start)).lte('date', fmt(p1End))
+      .order('date')
+    const notesBlock = noteRows?.length
+      ? `\nЗаметки дня (со слов пользователя — объясняют всплески и просадки):\n${noteRows.map((n: any) => `${n.date}: ${n.note}`).join('\n')}\n`
+      : ''
+
     const prompt = `Сравни два периода здоровья и напиши отчёт для Telegram.
 
 ${digest1}
 
 ${digest2}
-
+${notesBlock}
 Требования:
 - Только plain text, никакого markdown, никаких звёздочек или решёток
 - Emoji разрешены

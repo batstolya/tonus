@@ -61,6 +61,46 @@ export async function loadLogsForMonth(userId: string, year: number, month: numb
   return (data ?? []) as SupplementLog[]
 }
 
+// ── Reminders (SPEC-REMINDERS) ──────────────────────────────────────────────
+
+export interface ReminderSetting {
+  supplement_id: string
+  times: string[]
+  weekdays: number[]
+  timezone: string
+  quiet_until: string | null
+  enabled: boolean
+}
+
+export async function loadReminders(userId: string): Promise<Record<string, ReminderSetting>> {
+  const { data } = await supabase
+    .from('reminder_settings')
+    .select('supplement_id, times, weekdays, timezone, quiet_until, enabled')
+    .eq('user_id', userId)
+  const map: Record<string, ReminderSetting> = {}
+  for (const r of data ?? []) map[r.supplement_id] = r as ReminderSetting
+  return map
+}
+
+export async function saveReminder(
+  userId: string,
+  supplementId: string,
+  patch: Partial<ReminderSetting>
+): Promise<boolean> {
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Kyiv'
+  const { error } = await supabase.from('reminder_settings').upsert(
+    {
+      user_id: userId,
+      supplement_id: supplementId,
+      timezone: tz,
+      updated_at: new Date().toISOString(),
+      ...patch,
+    },
+    { onConflict: 'user_id,supplement_id' }
+  )
+  return !error
+}
+
 export async function toggleLog(userId: string, supplementId: string, date: string, taken: boolean): Promise<void> {
   if (taken) {
     await supabase.from('supplement_logs').upsert(

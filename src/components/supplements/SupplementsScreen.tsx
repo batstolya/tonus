@@ -3,7 +3,8 @@ import type { User } from '@supabase/supabase-js'
 import {
   loadSupplements, addSupplement, deleteSupplement, updateStock,
   loadLogsForMonth, toggleLog,
-  type Supplement, type SupplementLog,
+  loadReminders, saveReminder,
+  type Supplement, type SupplementLog, type ReminderSetting,
 } from '../../lib/supplements'
 
 interface Props {
@@ -48,6 +49,9 @@ export function SupplementsScreen({ user }: Props) {
   const [editingStock, setEditingStock] = useState<string | null>(null)
   const [stockInput, setStockInput] = useState('')
   const [stockError, setStockError] = useState<string | null>(null)
+  const [reminders, setReminders] = useState<Record<string, ReminderSetting>>({})
+  const [remOpen, setRemOpen] = useState<string | null>(null)
+  const [remError, setRemError] = useState<string | null>(null)
 
   const days = getDaysInMonth(year, month)
   const todayStr = toDateStr(now)
@@ -62,6 +66,18 @@ export function SupplementsScreen({ user }: Props) {
   }, [user.id, year, month])
 
   useEffect(() => { reload() }, [reload])
+
+  useEffect(() => {
+    loadReminders(user.id).then(setReminders).catch(() => {})
+  }, [user.id])
+
+  async function handleReminderSave(supplementId: string, patch: Partial<ReminderSetting>) {
+    const prev = reminders[supplementId] ?? { supplement_id: supplementId, times: [], weekdays: [1,2,3,4,5,6,7], timezone: '', quiet_until: null, enabled: true }
+    const next = { ...prev, ...patch }
+    setReminders(r => ({ ...r, [supplementId]: next }))
+    const ok = await saveReminder(user.id, supplementId, patch)
+    if (!ok) setRemError('Запусти миграцию reminders.sql в Supabase SQL Editor')
+  }
 
   function prevMonth() {
     if (month === 1) { setYear(y => y - 1); setMonth(12) } else setMonth(m => m - 1)
@@ -176,6 +192,13 @@ export function SupplementsScreen({ user }: Props) {
         </div>
       )}
 
+      {remError && (
+        <div className="auth-error" style={{ marginBottom: 12, fontSize: 13 }}>
+          ⚠️ {remError}
+          <button style={{ marginLeft: 8, fontSize: 11, cursor: 'pointer' }} onClick={() => setRemError(null)}>✕</button>
+        </div>
+      )}
+
       {supplements.length > 0 && (
         <div className="supp-stock-panel">
           <div className="supp-stock-title">Запасы</div>
@@ -253,11 +276,25 @@ export function SupplementsScreen({ user }: Props) {
               </div>
               <div className="supp-card-actions">
                 <span className={`supp-pct ${pct >= 80 ? 'good' : pct >= 50 ? 'ok' : 'bad'}`}>{pct}%</span>
+                <button
+                  className={`supp-bell${reminders[sup.id]?.enabled && reminders[sup.id]?.times.length ? ' active' : ''}`}
+                  onClick={() => setRemOpen(o => o === sup.id ? null : sup.id)}
+                  title="Напоминания"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                </button>
                 <button className="supp-delete" onClick={() => handleDelete(sup.id)} title="Удалить">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
                 </button>
               </div>
             </div>
+
+            {remOpen === sup.id && (
+              <ReminderEditor
+                setting={reminders[sup.id]}
+                onSave={patch => handleReminderSave(sup.id, patch)}
+              />
+            )}
 
             <div className="supp-grid">
               {/* Day-of-week headers */}
@@ -295,6 +332,77 @@ export function SupplementsScreen({ user }: Props) {
           </div>
         )
       })}
+    </div>
+  )
+}
+
+// ── Reminder editor ──────────────────────────────────────────────────────────
+
+const WD = [['Пн',1],['Вт',2],['Ср',3],['Чт',4],['Пт',5],['Сб',6],['Вс',7]] as const
+
+function ReminderEditor({ setting, onSave }: {
+  setting?: ReminderSetting
+  onSave: (patch: Partial<ReminderSetting>) => void
+}) {
+  const times = setting?.times ?? []
+  const weekdays = setting?.weekdays ?? [1,2,3,4,5,6,7]
+  const enabled = setting?.enabled ?? true
+  const quietUntil = setting?.quiet_until ?? ''
+  const [newTime, setNewTime] = useState('22:00')
+
+  function addTime() {
+    if (!/^\d{2}:\d{2}$/.test(newTime) || times.includes(newTime)) return
+    onSave({ times: [...times, newTime].sort() })
+  }
+  function removeTime(t: string) {
+    onSave({ times: times.filter(x => x !== t) })
+  }
+  function toggleWd(d: number) {
+    const next = weekdays.includes(d) ? weekdays.filter(x => x !== d) : [...weekdays, d].sort()
+    onSave({ weekdays: next })
+  }
+
+  return (
+    <div className="rem-editor">
+      <div className="rem-row">
+        <label className="rem-toggle">
+          <input type="checkbox" checked={enabled} onChange={e => onSave({ enabled: e.target.checked })} />
+          <span>Напоминать в Telegram</span>
+        </label>
+      </div>
+
+      <div className="rem-times">
+        {times.map(t => (
+          <span key={t} className="rem-time-chip">
+            {t}
+            <button onClick={() => removeTime(t)} title="Убрать">✕</button>
+          </span>
+        ))}
+        <span className="rem-time-add">
+          <input type="time" value={newTime} onChange={e => setNewTime(e.target.value)} />
+          <button onClick={addTime}>+ время</button>
+        </span>
+      </div>
+
+      <div className="rem-weekdays">
+        {WD.map(([label, d]) => (
+          <button
+            key={d}
+            className={`rem-wd${weekdays.includes(d) ? ' on' : ''}`}
+            onClick={() => toggleWd(d)}
+          >{label}</button>
+        ))}
+      </div>
+
+      <div className="rem-row rem-quiet">
+        <span>Не позже</span>
+        <input
+          type="time"
+          value={quietUntil}
+          onChange={e => onSave({ quiet_until: e.target.value || null })}
+        />
+        <span className="rem-hint">тихие часы — после этого времени не напоминать</span>
+      </div>
     </div>
   )
 }
