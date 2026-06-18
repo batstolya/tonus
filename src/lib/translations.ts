@@ -457,4 +457,23 @@ export const translations: Record<string, { uk: string; en: string }> = {
   'Значимых взаимосвязей не найдено. Нужно больше данных — отмечай препараты, события (кофе/алкоголь) и наблюдения по проблемам, и возвращайся через пару недель.': { uk: 'Значущих звʼязків не знайдено. Потрібно більше даних — відмічай препарати, події (кава/алкоголь) та спостереження по проблемах, і повертайся за пару тижнів.', en: 'No significant correlations found. More data is needed — log supplements, events (coffee/alcohol) and concern observations, then come back in a couple of weeks.' },
   'Пока нет исследований. Нажми «Найти взаимосвязи».': { uk: 'Поки немає досліджень. Натисни «Знайти взаємозвʼязки».', en: 'No research yet. Tap "Find correlations".' },
   'Архив не сохраняется — запусти research.sql в Supabase SQL Editor.': { uk: 'Архів не зберігається — запусти research.sql у Supabase SQL Editor.', en: "Archive isn't saved — run research.sql in the Supabase SQL Editor." },
+
+  // ── Инсайты (расширенные) ──────────────────────────────────
+  'за 2 недели': { uk: 'за 2 тижні', en: 'over 2 weeks' },
+  'Рекорды и серии': { uk: 'Рекорди та серії', en: 'Records & streaks' },
+  'дней подряд ≥8к шагов': { uk: 'днів поспіль ≥8к кроків', en: 'days in a row ≥8k steps' },
+  'ночей подряд сон ≥7ч': { uk: 'ночей поспіль сон ≥7год', en: 'nights in a row ≥7h sleep' },
+  'Дни-выбросы': { uk: 'Дні-викиди', en: 'Outlier days' },
+  'Календарь': { uk: 'Календар', en: 'Calendar' },
+  'Паттерны по дням недели': { uk: 'Патерни за днями тижня', en: 'Weekday patterns' },
+  'выше': { uk: 'вище', en: 'higher' },
+  'ниже': { uk: 'нижче', en: 'lower' },
+  'на': { uk: 'на', en: 'by' },
+  'Понедельник': { uk: 'Понеділок', en: 'Monday' },
+  'Вторник': { uk: 'Вівторок', en: 'Tuesday' },
+  'Среда': { uk: 'Середа', en: 'Wednesday' },
+  'Четверг': { uk: 'Четвер', en: 'Thursday' },
+  'Пятница': { uk: "П'ятниця", en: 'Friday' },
+  'Суббота': { uk: 'Субота', en: 'Saturday' },
+  'Воскресенье': { uk: 'Неділя', en: 'Sunday' },
 }
