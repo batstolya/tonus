@@ -88,7 +88,7 @@ function ReadinessCard({ daily }: { daily: DailyMetrics[] }) {
         <div className="readiness-left">
           <div className="readiness-label">{t('Готовность дня')}</div>
           <div className="readiness-score" style={{ color: r.color }}>{r.score}</div>
-          <div className="readiness-sublabel" style={{ color: r.color }}>{r.label}</div>
+          <div className="readiness-sublabel" style={{ color: r.color }}>{t(r.label)}</div>
         </div>
         <div className="readiness-bars">
           {r.components.hrv != null && (
@@ -116,7 +116,7 @@ function ReadinessCard({ daily }: { daily: DailyMetrics[] }) {
 }
 
 function StressDaysCard({ daily }: { daily: DailyMetrics[] }) {
-  const { t } = useT()
+  const { t, lang } = useT()
   const now = new Date()
   const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
   const monthDays = daily.filter(d => d.date >= monthStart && d.hrv != null)
@@ -126,9 +126,9 @@ function StressDaysCard({ daily }: { daily: DailyMetrics[] }) {
   const mostStressed = sorted[0]
   const leastStressed = sorted[sorted.length - 1]
 
+  const locale = lang === 'en' ? 'en-GB' : lang === 'uk' ? 'uk-UA' : 'ru-RU'
   function fmtDate(d: string) {
-    const dt = new Date(d + 'T00:00:00')
-    return dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
+    return new Date(d + 'T00:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'short' })
   }
 
   return (
@@ -138,7 +138,7 @@ function StressDaysCard({ daily }: { daily: DailyMetrics[] }) {
         <div className="sd-info">
           <div className="sd-label">{t('Самый стрессовый')}</div>
           <div className="sd-date">{fmtDate(mostStressed.date)}</div>
-          <div className="sd-hrv">HRV {mostStressed.hrv} {t('мс')}{mostStressed.restingHeartRate ? ` · ${t('ЧСС')} ${mostStressed.restingHeartRate}` : ''}</div>
+          <div className="sd-hrv">HRV {mostStressed.hrv!.toFixed(0)} {t('мс')}{mostStressed.restingHeartRate ? ` · ${t('ЧСС')} ${Math.round(mostStressed.restingHeartRate)}` : ''}</div>
         </div>
       </div>
       <div className="sd-divider" />
@@ -147,7 +147,7 @@ function StressDaysCard({ daily }: { daily: DailyMetrics[] }) {
         <div className="sd-info">
           <div className="sd-label">{t('Самый спокойный')}</div>
           <div className="sd-date">{fmtDate(leastStressed.date)}</div>
-          <div className="sd-hrv">HRV {leastStressed.hrv} {t('мс')}{leastStressed.restingHeartRate ? ` · ${t('ЧСС')} ${leastStressed.restingHeartRate}` : ''}</div>
+          <div className="sd-hrv">HRV {leastStressed.hrv!.toFixed(0)} {t('мс')}{leastStressed.restingHeartRate ? ` · ${t('ЧСС')} ${Math.round(leastStressed.restingHeartRate)}` : ''}</div>
         </div>
       </div>
     </div>
@@ -164,7 +164,7 @@ function EarlyWarningBanner({ daily }: { daily: DailyMetrics[] }) {
       <div>
         <strong>{t('Организм под нагрузкой')}</strong>
         <ul className="ew-list">
-          {w.signals.map((s, i) => <li key={i}>{s}</li>)}
+          {w.signals.map((s, i) => <li key={i}>{t(s.key, s.vars)}</li>)}
         </ul>
         <span className="ew-hint">{t('Возможно стоит снизить нагрузку или проверить самочувствие.')}</span>
       </div>
