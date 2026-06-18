@@ -165,7 +165,50 @@ serve(async () => {
     notesSent++
   }
 
-  return new Response(JSON.stringify({ created, sent, notesSent }), {
+  // ── 5. Автоматический двухнедельный отчёт (раз в 14 дней, утром ~09:00) ──────
+  let reportsSent = 0
+  {
+    const { hhmm } = localNow('Europe/Kyiv')
+    if (timeDue('09:00', hhmm)) {
+      const { data: links } = await supabase
+        .from('telegram_links')
+        .select('user_id')
+        .eq('status', 'active')
+      for (const l of links ?? []) {
+        // пропустить, если отчёты на паузе
+        const { data: rs } = await supabase
+          .from('report_settings').select('paused').eq('user_id', l.user_id).maybeSingle()
+        if (rs?.paused) continue
+        // последний доставленный отчёт
+        const { data: last } = await supabase
+          .from('scheduled_reports')
+          .select('delivered_at')
+          .eq('user_id', l.user_id)
+          .not('delivered_at', 'is', null)
+          .order('delivered_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        const daysSince = last?.delivered_at
+          ? (nowMs - new Date(last.delivered_at).getTime()) / 86400000
+          : 999
+        if (daysSince < 14) continue
+        // сгенерировать отчёт через biweekly-report (service-role + x-user-id)
+        try {
+          await fetch(`${SUPABASE_URL}/functions/v1/biweekly-report`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+              'x-user-id': l.user_id,
+            },
+          })
+          reportsSent++
+        } catch (_e) { /* пропускаем сбойного юзера */ }
+      }
+    }
+  }
+
+  return new Response(JSON.stringify({ created, sent, notesSent, reportsSent }), {
     headers: { 'Content-Type': 'application/json' },
   })
 })
