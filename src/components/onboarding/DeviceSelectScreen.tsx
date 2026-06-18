@@ -1,15 +1,17 @@
 import type { DeviceType } from '../../store/appStore'
+import { useT } from '../../lib/i18n'
 
 interface Props {
   onSelect: (device: DeviceType) => void
 }
 
 export function DeviceSelectScreen({ onSelect }: Props) {
+  const { t } = useT()
   return (
     <div className="upload-screen">
       <div className="upload-header">
         <h1>Tonus</h1>
-        <p className="upload-desc">Какое у вас устройство?</p>
+        <p className="upload-desc">{t('Какое у вас устройство?')}</p>
       </div>
 
       <div className="device-select-grid">
@@ -21,7 +23,7 @@ export function DeviceSelectScreen({ onSelect }: Props) {
             </svg>
           </div>
           <div className="device-card-title">Apple Watch</div>
-          <div className="device-card-desc">Экспорт через приложение «Здоровье» на iPhone</div>
+          <div className="device-card-desc">{t('Экспорт через приложение «Здоровье» на iPhone')}</div>
         </button>
 
         <button className="device-card" onClick={() => onSelect('xiaomi')}>
@@ -32,11 +34,11 @@ export function DeviceSelectScreen({ onSelect }: Props) {
             </svg>
           </div>
           <div className="device-card-title">Xiaomi / Mi Band</div>
-          <div className="device-card-desc">Экспорт через account.xiaomi.com — CSV с данными</div>
+          <div className="device-card-desc">{t('Экспорт через account.xiaomi.com — CSV с данными')}</div>
         </button>
       </div>
 
-      <p className="upload-hint">Выбор можно изменить позже в настройках</p>
+      <p className="upload-hint">{t('Выбор можно изменить позже в настройках')}</p>
     </div>
   )
 }
