@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { User } from '@supabase/supabase-js'
 import type { DailyMetrics } from '../../types'
+import { useT } from '../../lib/i18n'
 import {
   loadGoals, createGoal, updateGoalStatus, deleteGoal,
   loadRecommendations, updateRecommendationStatus,
@@ -64,6 +65,7 @@ function endDate(days: number): string {
 }
 
 export function GoalsScreen({ user, daily }: Props) {
+  const { t } = useT()
   const [goals, setGoals] = useState<Goal[]>([])
   const [recs, setRecs] = useState<Recommendation[]>([])
   const [showForm, setShowForm] = useState(false)
@@ -148,10 +150,10 @@ export function GoalsScreen({ user, daily }: Props) {
       })
       if (!res.ok) throw new Error(await res.text())
       const { count } = await res.json()
-      setGenMsg(`Получено ${count} рекомендаций`)
+      setGenMsg(t('Получено {n} рекомендаций', { n: count }))
       await reload()
     } catch (e: any) {
-      setGenMsg(`Ошибка: ${e.message}`)
+      setGenMsg(`${t('Ошибка')}: ${e.message}`)
     }
     setGenLoading(false)
   }
@@ -162,13 +164,13 @@ export function GoalsScreen({ user, daily }: Props) {
     <div className="screen">
       {/* Header */}
       <div className="goals-header">
-        <h2>Цели и прогресс</h2>
+        <h2>{t('Цели и прогресс')}</h2>
         <div style={{ display: 'flex', gap: 10 }}>
           <button className="btn-secondary" onClick={handleGenerate} disabled={genLoading}>
-            {genLoading ? '⏳ Анализ…' : '✨ Предложить ИИ'}
+            {genLoading ? `⏳ ${t('Анализ…')}` : `✨ ${t('Предложить ИИ')}`}
           </button>
           <button className="btn-primary" onClick={() => setShowForm(s => !s)}>
-            {showForm ? 'Отмена' : '+ Цель'}
+            {showForm ? t('Отмена') : `+ ${t('Цель')}`}
           </button>
         </div>
       </div>
@@ -179,39 +181,39 @@ export function GoalsScreen({ user, daily }: Props) {
         <div className="goals-form">
           <div className="goals-form-row">
             <div className="goals-form-field">
-              <label className="settings-label">Показатель</label>
+              <label className="settings-label">{t('Показатель')}</label>
               <select className="log-input" value={fMetric} onChange={e => setFMetric(e.target.value)}>
                 {Object.entries(METRIC_CONFIG).map(([k, v]) => (
-                  <option key={k} value={k}>{v.label}</option>
+                  <option key={k} value={k}>{t(v.label)}</option>
                 ))}
               </select>
             </div>
             <div className="goals-form-field">
-              <label className="settings-label">Название цели</label>
-              <input className="log-input" value={fTitle} onChange={e => setFTitle(e.target.value)} placeholder="Например: Улучшить сон" />
+              <label className="settings-label">{t('Название цели')}</label>
+              <input className="log-input" value={fTitle} onChange={e => setFTitle(e.target.value)} placeholder={t('Например: Улучшить сон')} />
             </div>
           </div>
           <div className="goals-form-row">
             <div className="goals-form-field">
               <label className="settings-label">
-                Целевое значение {cfg ? `(${cfg.unit})` : ''}
-                {baseline !== null && <span className="goals-baseline-hint"> — текущая база: {fmtVal(baseline, fMetric)}</span>}
+                {t('Целевое значение')} {cfg ? `(${cfg.unit})` : ''}
+                {baseline !== null && <span className="goals-baseline-hint"> — {t('текущая база:')} {fmtVal(baseline, fMetric)}</span>}
               </label>
               <input className="log-input" type="number" step="0.1" value={fTarget}
                 onChange={e => setFTarget(e.target.value)} placeholder={baseline !== null ? String(Math.round(baseline * 10) / 10) : '0'} />
             </div>
             <div className="goals-form-field">
-              <label className="settings-label">Срок</label>
+              <label className="settings-label">{t('Срок')}</label>
               <div className="goals-duration-tabs">
                 {DURATION_OPTIONS.map(o => (
                   <button key={o.days} className={`goals-dur-btn${fDays === o.days ? ' active' : ''}`}
-                    onClick={() => setFDays(o.days)}>{o.label}</button>
+                    onClick={() => setFDays(o.days)}>{t(o.label)}</button>
                 ))}
               </div>
             </div>
           </div>
           <button className="btn-primary" onClick={handleCreate} disabled={fSaving || !fTarget || !fTitle.trim()}>
-            {fSaving ? 'Сохраняем…' : 'Создать цель'}
+            {fSaving ? t('Сохраняем…') : t('Создать цель')}
           </button>
         </div>
       )}
@@ -219,7 +221,7 @@ export function GoalsScreen({ user, daily }: Props) {
       {/* Recommendations */}
       {recs.length > 0 && (
         <div className="goals-recs-section">
-          <h3 className="goals-section-title">💡 Рекомендации ИИ</h3>
+          <h3 className="goals-section-title">💡 {t('Рекомендации ИИ')}</h3>
           {recs.map(rec => (
             <div key={rec.id} className="goal-rec-card">
               <div className="goal-rec-body">
@@ -230,16 +232,16 @@ export function GoalsScreen({ user, daily }: Props) {
                 {rec.suggested_target && METRIC_CONFIG[rec.metric] && (
                   <button className="btn-primary" style={{ fontSize: 13, padding: '6px 14px' }}
                     onClick={() => handleAcceptRec(rec)}>
-                    Сделать целью
+                    {t('Сделать целью')}
                   </button>
                 )}
                 <button className="btn-ghost" style={{ fontSize: 13 }}
                   onClick={() => { updateRecommendationStatus(rec.id, 'snoozed'); setRecs(r => r.filter(x => x.id !== rec.id)) }}>
-                  Позже
+                  {t('Позже')}
                 </button>
                 <button className="btn-ghost" style={{ fontSize: 13, color: 'var(--text-muted)' }}
                   onClick={() => { updateRecommendationStatus(rec.id, 'dismissed'); setRecs(r => r.filter(x => x.id !== rec.id)) }}>
-                  Скрыть
+                  {t('Скрыть')}
                 </button>
               </div>
             </div>
@@ -250,14 +252,14 @@ export function GoalsScreen({ user, daily }: Props) {
       {/* Active goals */}
       {activeGoals.length === 0 && !showForm && recs.length === 0 && (
         <div className="goals-empty">
-          <p>Целей пока нет.</p>
-          <p>Нажми <b>+ Цель</b> чтобы создать вручную или <b>✨ Предложить ИИ</b> для автоматических рекомендаций.</p>
+          <p>{t('Целей пока нет.')}</p>
+          <p>{t('Нажми')} <b>+ {t('Цель')}</b> {t('чтобы создать вручную или')} <b>✨ {t('Предложить ИИ')}</b> {t('для автоматических рекомендаций.')}</p>
         </div>
       )}
 
       {activeGoals.length > 0 && (
         <>
-          <h3 className="goals-section-title">Активные цели</h3>
+          <h3 className="goals-section-title">{t('Активные цели')}</h3>
           <div className="goals-list">
             {activeGoals.map(goal => {
               const prog = computeProgress(goal, daily)
@@ -277,24 +279,24 @@ export function GoalsScreen({ user, daily }: Props) {
                     </div>
                     <div className="goal-card-meta">
                       {cfg && goal.baseline_value !== null &&
-                        <span>База: {fmtVal(goal.baseline_value, goal.metric)}</span>}
-                      {cfg && <span>Цель: {fmtVal(goal.target_value, goal.metric)}</span>}
+                        <span>{t('База:')} {fmtVal(goal.baseline_value, goal.metric)}</span>}
+                      {cfg && <span>{t('Цель:')} {fmtVal(goal.target_value, goal.metric)}</span>}
                       {prog.currentAvg !== null && cfg &&
-                        <span>Сейчас: <b>{fmtVal(prog.currentAvg, goal.metric)}</b></span>}
+                        <span>{t('Сейчас:')} <b>{fmtVal(prog.currentAvg, goal.metric)}</b></span>}
                     </div>
                     <div className="goal-card-stat">
                       <span style={{ color }}>
-                        {prog.daysOnTarget} из {prog.daysWithData} дн. в цели
+                        {t('{a} из {b} дн. в цели', { a: prog.daysOnTarget, b: prog.daysWithData })}
                       </span>
-                      <span className="goals-days-left">{daysLeft > 0 ? `ещё ${daysLeft} дн.` : 'срок истёк'}</span>
+                      <span className="goals-days-left">{daysLeft > 0 ? t('ещё {n} дн.', { n: daysLeft }) : t('срок истёк')}</span>
                     </div>
                   </div>
                   <div className="goal-card-actions">
-                    <button className="supp-delete" title="Пауза"
+                    <button className="supp-delete" title={t('Пауза')}
                       onClick={() => { updateGoalStatus(goal.id, 'paused'); setGoals(g => g.filter(x => x.id !== goal.id)) }}>
                       ⏸
                     </button>
-                    <button className="supp-delete" title="Удалить"
+                    <button className="supp-delete" title={t('Удалить')}
                       onClick={() => { deleteGoal(goal.id); setGoals(g => g.filter(x => x.id !== goal.id)) }}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M9 6V4h6v2"/></svg>
                     </button>
