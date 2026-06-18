@@ -97,15 +97,20 @@ export function buildContextSnapshot(
     lines.push(`Среднее время пробуждения: ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`)
   }
 
-  // Last 5 bedtime/wake entries for detail
-  const recentSleep = slice.filter(d => d.sleepBedtime || d.sleepWakeTime).slice(-5)
+  // Per-night detail (last 14 nights) with stages, so вопросы про конкретную ночь работают
+  const recentSleep = slice.filter(d => d.sleepBedtime || d.sleepWakeTime || d.sleepHours != null).slice(-14)
   if (recentSleep.length) {
-    lines.push('\nПоследние записи сна:')
+    lines.push('\nСон по ночам (последние 14):')
     recentSleep.forEach(d => {
       const bed = d.sleepBedtime ? fmtTime(d.sleepBedtime) : '—'
       const wake = d.sleepWakeTime ? fmtTime(d.sleepWakeTime) : '—'
-      const dur = d.sleepHours ? `${d.sleepHours.toFixed(1)}ч` : '—'
-      lines.push(`  ${d.date}: засыпание ${bed}, пробуждение ${wake}, длительность ${dur}`)
+      const dur = d.sleepHours != null ? `${d.sleepHours.toFixed(1)}ч` : '—'
+      const stages = [
+        d.sleepDeep != null ? `глубокий ${d.sleepDeep.toFixed(1)}ч` : null,
+        d.sleepREM != null ? `REM ${d.sleepREM.toFixed(1)}ч` : null,
+        d.sleepCore != null ? `лёгкий ${d.sleepCore.toFixed(1)}ч` : null,
+      ].filter(Boolean).join(', ')
+      lines.push(`  ${d.date}: длительность ${dur}, засыпание ${bed}, пробуждение ${wake}${stages ? `, ${stages}` : ''}`)
     })
   }
 
