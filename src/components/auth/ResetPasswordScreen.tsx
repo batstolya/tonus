@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { useT } from '../../lib/i18n'
 
 interface Props {
   onDone: () => void
 }
 
 export function ResetPasswordScreen({ onDone }: Props) {
+  const { t } = useT()
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
@@ -13,7 +15,7 @@ export function ResetPasswordScreen({ onDone }: Props) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (password !== confirm) { setError('Пароли не совпадают'); return }
+    if (password !== confirm) { setError(t('Пароли не совпадают')); return }
     setLoading(true)
     const { error } = await supabase.auth.updateUser({ password })
     setLoading(false)
@@ -25,21 +27,21 @@ export function ResetPasswordScreen({ onDone }: Props) {
     <div className="auth-screen">
       <div className="auth-card">
         <h1>Tonus</h1>
-        <p className="auth-subtitle">Установи новый пароль</p>
+        <p className="auth-subtitle">{t('Установи новый пароль')}</p>
         <form onSubmit={handleSubmit} className="auth-form">
           <label>
-            Новый пароль
+            {t('Новый пароль')}
             <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-              placeholder="Минимум 6 символов" required minLength={6} autoFocus />
+              placeholder={t('Минимум 6 символов')} required minLength={6} autoFocus />
           </label>
           <label>
-            Повтори пароль
+            {t('Повтори пароль')}
             <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)}
               placeholder="••••••••" required minLength={6} />
           </label>
           {error && <p className="auth-error">{error}</p>}
           <button type="submit" className="btn-primary" disabled={loading}>
-            {loading ? '…' : 'Сохранить пароль'}
+            {loading ? '…' : t('Сохранить пароль')}
           </button>
         </form>
       </div>
