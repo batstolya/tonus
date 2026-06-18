@@ -6,6 +6,7 @@ import {
   loadReminders, saveReminder,
   type Supplement, type SupplementLog, type ReminderSetting,
 } from '../../lib/supplements'
+import { useT } from '../../lib/i18n'
 
 interface Props {
   user: User
@@ -36,6 +37,7 @@ function compliance(logs: SupplementLog[], supplementId: string, days: Date[]): 
 }
 
 export function SupplementsScreen({ user }: Props) {
+  const { t } = useT()
   const now = new Date()
   const [year, setYear] = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth() + 1)
@@ -148,45 +150,45 @@ export function SupplementsScreen({ user }: Props) {
   return (
     <div className="screen">
       <div className="supp-header">
-        <h2>Препараты и добавки</h2>
-        <button className="btn-primary" onClick={() => setShowForm(s => !s)}>+ Добавить</button>
+        <h2>{t('Препараты и добавки')}</h2>
+        <button className="btn-primary" onClick={() => setShowForm(s => !s)}>{t('+ Добавить')}</button>
       </div>
 
       {showForm && (
         <div className="supp-form">
           <input
             className="supp-input"
-            placeholder="Название (напр. Витамин D)"
+            placeholder={t('Название (напр. Витамин D)')}
             value={newName}
             onChange={e => setNewName(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleAdd()}
           />
           <input
             className="supp-input supp-input-sm"
-            placeholder="Доза (напр. 5000)"
+            placeholder={t('Доза (напр. 5000)')}
             value={newDose}
             onChange={e => setNewDose(e.target.value)}
           />
           <input
             className="supp-input supp-input-sm"
-            placeholder="Ед. (напр. IU)"
+            placeholder={t('Ед. (напр. IU)')}
             value={newUnit}
             onChange={e => setNewUnit(e.target.value)}
           />
           <button className="btn-primary" onClick={handleAdd} disabled={adding || !newName.trim()}>
-            {adding ? '…' : 'Сохранить'}
+            {adding ? '…' : t('Сохранить')}
           </button>
-          <button className="btn-ghost" onClick={() => setShowForm(false)}>Отмена</button>
+          <button className="btn-ghost" onClick={() => setShowForm(false)}>{t('Отмена')}</button>
         </div>
       )}
 
       {supplements.length === 0 && !showForm && (
-        <p className="empty-hint">Нет препаратов. Нажми «+ Добавить» чтобы начать.</p>
+        <p className="empty-hint">{t('Нет препаратов. Нажми «+ Добавить» чтобы начать.')}</p>
       )}
 
       {stockError && (
         <div className="auth-error" style={{ marginBottom: 12, fontSize: 13 }}>
-          ⚠️ Колонка не найдена в БД. Запусти в Supabase SQL Editor:<br/>
+          ⚠️ {t('Колонка не найдена в БД. Запусти в Supabase SQL Editor:')}<br/>
           <code style={{ fontSize: 11 }}>alter table supplements add column if not exists stock_count integer default null;</code>
           <button style={{ marginLeft: 8, fontSize: 11, cursor: 'pointer' }} onClick={() => setStockError(null)}>✕</button>
         </div>
@@ -201,7 +203,7 @@ export function SupplementsScreen({ user }: Props) {
 
       {supplements.length > 0 && (
         <div className="supp-stock-panel">
-          <div className="supp-stock-title">Запасы</div>
+          <div className="supp-stock-title">{t('Запасы')}</div>
           <div className="supp-stock-grid">
             {supplements.map(sup => {
               const stock = sup.stock_count
@@ -211,7 +213,7 @@ export function SupplementsScreen({ user }: Props) {
                   <div className="supp-stock-info">
                     <div className="supp-stock-name">{sup.name}</div>
                     <div className="supp-stock-dose">{sup.default_dose ? `${sup.default_dose}${sup.unit ? ` ${sup.unit}` : ''}` : ''}</div>
-                    {low && <div className="supp-stock-warn">⚠ Заканчивается</div>}
+                    {low && <div className="supp-stock-warn">⚠ {t('Заканчивается')}</div>}
                   </div>
                   <div className="supp-stock-split">
                     <button
@@ -224,7 +226,7 @@ export function SupplementsScreen({ user }: Props) {
                     <div
                       className="supp-split-center"
                       onClick={() => { setEditingStock(sup.id); setStockInput(String(stock ?? 0)) }}
-                      title="Нажми чтобы ввести вручную"
+                      title={t('Нажми чтобы ввести вручную')}
                     >
                       {editingStock === sup.id ? (
                         <input
@@ -240,7 +242,7 @@ export function SupplementsScreen({ user }: Props) {
                           onKeyDown={e => { if (e.key === 'Enter') handleStockSet(sup.id); if (e.key === 'Escape') { setEditingStock(null); setStockInput('') } }}
                         />
                       ) : (
-                        <span className="supp-split-count">{stock === null ? '—' : stock}<span className="supp-stock-unit">шт</span></span>
+                        <span className="supp-split-count">{stock === null ? '—' : stock}<span className="supp-stock-unit">{t('шт')}</span></span>
                       )}
                     </div>
                     <button
@@ -279,11 +281,11 @@ export function SupplementsScreen({ user }: Props) {
                 <button
                   className={`supp-bell${reminders[sup.id]?.enabled && reminders[sup.id]?.times.length ? ' active' : ''}`}
                   onClick={() => setRemOpen(o => o === sup.id ? null : sup.id)}
-                  title="Напоминания"
+                  title={t('Напоминания')}
                 >
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                 </button>
-                <button className="supp-delete" onClick={() => handleDelete(sup.id)} title="Удалить">
+                <button className="supp-delete" onClick={() => handleDelete(sup.id)} title={t('Удалить')}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
                 </button>
               </div>
@@ -299,7 +301,7 @@ export function SupplementsScreen({ user }: Props) {
             <div className="supp-grid">
               {/* Day-of-week headers */}
               {DAYS_OF_WEEK.map(d => (
-                <div key={d} className="supp-dow">{d}</div>
+                <div key={d} className="supp-dow">{t(d)}</div>
               ))}
               {/* Empty cells before first day */}
               {Array.from({ length: firstDow }).map((_, i) => (
@@ -344,6 +346,7 @@ function ReminderEditor({ setting, onSave }: {
   setting?: ReminderSetting
   onSave: (patch: Partial<ReminderSetting>) => void
 }) {
+  const { t } = useT()
   const times = setting?.times ?? []
   const weekdays = setting?.weekdays ?? [1,2,3,4,5,6,7]
   const enabled = setting?.enabled ?? true
@@ -367,20 +370,20 @@ function ReminderEditor({ setting, onSave }: {
       <div className="rem-row">
         <label className="rem-toggle">
           <input type="checkbox" checked={enabled} onChange={e => onSave({ enabled: e.target.checked })} />
-          <span>Напоминать в Telegram</span>
+          <span>{t('Напоминать в Telegram')}</span>
         </label>
       </div>
 
       <div className="rem-times">
-        {times.map(t => (
-          <span key={t} className="rem-time-chip">
-            {t}
-            <button onClick={() => removeTime(t)} title="Убрать">✕</button>
+        {times.map(tm => (
+          <span key={tm} className="rem-time-chip">
+            {tm}
+            <button onClick={() => removeTime(tm)} title={t('Убрать')}>✕</button>
           </span>
         ))}
         <span className="rem-time-add">
           <input type="time" value={newTime} onChange={e => setNewTime(e.target.value)} />
-          <button onClick={addTime}>+ время</button>
+          <button onClick={addTime}>+ {t('время')}</button>
         </span>
       </div>
 
@@ -390,18 +393,18 @@ function ReminderEditor({ setting, onSave }: {
             key={d}
             className={`rem-wd${weekdays.includes(d) ? ' on' : ''}`}
             onClick={() => toggleWd(d)}
-          >{label}</button>
+          >{t(label)}</button>
         ))}
       </div>
 
       <div className="rem-row rem-quiet">
-        <span>Не позже</span>
+        <span>{t('Не позже')}</span>
         <input
           type="time"
           value={quietUntil}
           onChange={e => onSave({ quiet_until: e.target.value || null })}
         />
-        <span className="rem-hint">тихие часы — после этого времени не напоминать</span>
+        <span className="rem-hint">{t('тихие часы — после этого времени не напоминать')}</span>
       </div>
     </div>
   )
