@@ -1058,6 +1058,14 @@ body {
 .rem-wd { font-size: 12px; font-weight: 600; width: 32px; height: 30px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text-muted); cursor: pointer; transition: all 0.15s; }
 .rem-wd.on { background: var(--green); color: #fff; border-color: var(--green); }
 .rem-quiet { flex-wrap: wrap; }
+
+/* Report settings */
+.rep-setting { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.rep-seg { display: inline-flex; background: var(--border); border-radius: 10px; padding: 3px; gap: 2px; }
+.rep-seg-btn { border: none; background: none; color: var(--text-muted); font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 8px; cursor: pointer; transition: all 0.15s; }
+.rep-seg-btn.on { background: var(--bg); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+.rep-toggle-row { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; cursor: pointer; }
+.rep-toggle-row input[type="checkbox"] { width: 16px; height: 16px; margin-top: 2px; flex-shrink: 0; cursor: pointer; }
 .rem-quiet input { font-size: 13px; padding: 3px 6px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); }
 .rem-hint { font-size: 11px; color: var(--text-muted); }
 .supp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
