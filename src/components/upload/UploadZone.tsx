@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import type { DragEvent, ChangeEvent } from 'react'
+import { useT } from '../../lib/i18n'
 
 interface Props {
   onFile: (file: File) => void
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function UploadZone({ onFile, accept, label, sublabel, optional }: Props) {
+  const { t } = useT()
   const [dragging, setDragging] = useState(false)
   const [filename, setFilename] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -44,7 +46,7 @@ export function UploadZone({ onFile, accept, label, sublabel, optional }: Props)
       <div className="upload-icon">{filename ? '✓' : '↑'}</div>
       <div className="upload-label">{filename ?? label}</div>
       {!filename && sublabel && <div className="upload-sublabel">{sublabel}</div>}
-      {optional && !filename && <div className="upload-optional">необязательно</div>}
+      {optional && !filename && <div className="upload-optional">{t('необязательно')}</div>}
     </div>
   )
 }

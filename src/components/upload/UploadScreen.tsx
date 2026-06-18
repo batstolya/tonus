@@ -4,6 +4,7 @@ import { parseICS } from '../../parsers/icsParser'
 import { parseXiaomiCSV } from '../../parsers/xiaomiParser'
 import type { ParseProgress, CalendarEvent } from '../../types'
 import type { DeviceType } from '../../store/appStore'
+import { useT } from '../../lib/i18n'
 
 interface Props {
   onProgress: (p: ParseProgress) => void
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function UploadScreen({ onProgress, onDone, onEvents, onError, progress, error, deviceType }: Props) {
+  const { t } = useT()
   const workerRef = useRef<Worker | null>(null)
   const [xiaomiWarnings, setXiaomiWarnings] = useState<string[]>([])
 
@@ -38,14 +40,14 @@ export function UploadScreen({ onProgress, onDone, onEvents, onError, progress, 
   }
 
   async function handleXiaomiFile(file: File) {
-    onProgress({ phase: 'reading', percent: 10, message: 'Читаем архив Xiaomi…' })
+    onProgress({ phase: 'reading', percent: 10, message: t('Читаем архив Xiaomi…') })
     try {
       let files: { name: string; text: string }[] = []
 
       if (file.name.endsWith('.zip')) {
         const JSZip = (await import('jszip')).default
         const zip = await JSZip.loadAsync(file)
-        onProgress({ phase: 'parsing', percent: 40, message: 'Разбираем CSV файлы…' })
+        onProgress({ phase: 'parsing', percent: 40, message: t('Разбираем CSV файлы…') })
         const entries = Object.entries(zip.files).filter(([n]) => n.toLowerCase().endsWith('.csv') && !zip.files[n].dir)
         for (const [name, entry] of entries) {
           const text = await entry.async('string')
@@ -55,23 +57,23 @@ export function UploadScreen({ onProgress, onDone, onEvents, onError, progress, 
         const text = await file.text()
         files = [{ name: file.name, text }]
       } else {
-        onError('Ожидается .zip или .csv файл экспорта Xiaomi')
+        onError(t('Ожидается .zip или .csv файл экспорта Xiaomi'))
         return
       }
 
-      onProgress({ phase: 'parsing', percent: 70, message: 'Формируем метрики…' })
+      onProgress({ phase: 'parsing', percent: 70, message: t('Формируем метрики…') })
       const { daily, warnings } = parseXiaomiCSV(files)
 
       if (daily.length === 0) {
-        onError('Не удалось найти данные в файле Xiaomi. Убедитесь что экспортируете данные через account.xiaomi.com → Privacy → Manage.')
+        onError(t('Не удалось найти данные в файле Xiaomi. Убедитесь что экспортируете данные через account.xiaomi.com → Privacy → Manage.'))
         return
       }
 
       setXiaomiWarnings(warnings)
-      onProgress({ phase: 'done', percent: 100, message: 'Готово' })
+      onProgress({ phase: 'done', percent: 100, message: t('Готово') })
       onDone(daily, [], file.name)
     } catch (e: any) {
-      onError(`Ошибка разбора файла Xiaomi: ${e?.message ?? e}`)
+      onError(`${t('Ошибка разбора файла Xiaomi')}: ${e?.message ?? e}`)
     }
   }
 
@@ -80,7 +82,7 @@ export function UploadScreen({ onProgress, onDone, onEvents, onError, progress, 
       try {
         onEvents(parseICS(text))
       } catch {
-        onError('Не удалось прочитать .ics файл')
+        onError(t('Не удалось прочитать .ics файл'))
       }
     })
   }
@@ -93,13 +95,13 @@ export function UploadScreen({ onProgress, onDone, onEvents, onError, progress, 
         <h1>Tonus</h1>
         {isXiaomi ? (
           <p className="upload-desc">
-            Загрузите экспорт данных Xiaomi (zip или CSV).<br />
-            <strong>Все данные обрабатываются только в вашем браузере и никуда не передаются.</strong>
+            {t('Загрузите экспорт данных Xiaomi (zip или CSV).')}<br />
+            <strong>{t('Все данные обрабатываются только в вашем браузере и никуда не передаются.')}</strong>
           </p>
         ) : (
           <p className="upload-desc">
-            Загрузите выгрузку Apple Health и (по желанию) файл календаря.<br />
-            <strong>Все данные обрабатываются только в вашем браузере и никуда не передаются.</strong>
+            {t('Загрузите выгрузку Apple Health и (по желанию) файл календаря.')}<br />
+            <strong>{t('Все данные обрабатываются только в вашем браузере и никуда не передаются.')}</strong>
           </p>
         )}
       </div>
@@ -108,22 +110,22 @@ export function UploadScreen({ onProgress, onDone, onEvents, onError, progress, 
         {isXiaomi ? (
           <UploadZone
             accept=".zip,.csv"
-            label="Перетащите экспорт Xiaomi (.zip или .csv)"
-            sublabel="Данные Mi Fitness / Mi Band"
+            label={t('Перетащите экспорт Xiaomi (.zip или .csv)')}
+            sublabel={t('Данные Mi Fitness / Mi Band')}
             onFile={handleXiaomiFile}
           />
         ) : (
           <UploadZone
             accept=".zip,.xml"
-            label="Перетащите export.zip или export.xml"
-            sublabel="Выгрузка Apple Health"
+            label={t('Перетащите export.zip или export.xml')}
+            sublabel={t('Выгрузка Apple Health')}
             onFile={handleHealthFile}
           />
         )}
         <UploadZone
           accept=".ics"
-          label="Перетащите файл календаря .ics"
-          sublabel="Для карты стресса"
+          label={t('Перетащите файл календаря .ics')}
+          sublabel={t('Для карты стресса')}
           optional
           onFile={handleICSFile}
         />
@@ -146,16 +148,16 @@ export function UploadScreen({ onProgress, onDone, onEvents, onError, progress, 
 
       {isXiaomi ? (
         <div className="upload-hint-block">
-          <p className="upload-hint">Как получить файл экспорта:</p>
+          <p className="upload-hint">{t('Как получить файл экспорта:')}</p>
           <ol className="upload-hint-steps">
-            <li>Откройте <strong>account.xiaomi.com</strong> в браузере</li>
-            <li>Перейдите в <strong>Privacy → Manage my data</strong></li>
-            <li>Запросите экспорт данных о здоровье и скачайте zip</li>
+            <li>{t('Откройте')} <strong>account.xiaomi.com</strong> {t('в браузере')}</li>
+            <li>{t('Перейдите в')} <strong>Privacy → Manage my data</strong></li>
+            <li>{t('Запросите экспорт данных о здоровье и скачайте zip')}</li>
           </ol>
         </div>
       ) : (
         <p className="upload-hint">
-          Чтобы экспортировать данные: iPhone → Здоровье → аватар → Экспортировать данные о здоровье
+          {t('Чтобы экспортировать данные: iPhone → Здоровье → аватар → Экспортировать данные о здоровье')}
         </p>
       )}
     </div>
