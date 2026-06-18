@@ -78,7 +78,7 @@ export async function loadResearchData(userId: string, daily: DailyMetrics[], pe
   for (const dm of daily) {
     if (dm.date < sinceStr) continue
     const row = ensure(dm.date)
-    for (const m of METRICS) { const v = dm[m.key]; if (typeof v === 'number') row[m.key as string] = v }
+    for (const m of METRICS) { const v = dm[m.key]; if (typeof v === 'number') row[m.key as string] = m.key === 'oxygenSaturation' ? v * 100 : v }
   }
 
   // события: алкоголь (бинарно), кофе (счётчик)

@@ -148,13 +148,13 @@ serve(async (req) => {
     const digest1 = buildDigest(r1.data ?? [], 'Последние 2 недели', s1.data ?? [])
     const digest2 = buildDigest(r2.data ?? [], 'Предыдущие 2 недели', s2.data ?? [])
 
-    // SpO2
+    // SpO2 — хранится как доля (0.96 = 96%), переводим в проценты
     const spo2Block = (() => {
-      const vals = (r1.data ?? []).map((r: any) => r.oxygen_saturation).filter(Boolean)
+      const vals = (r1.data ?? []).map((r: any) => r.oxygen_saturation).filter(Boolean).map((v: number) => v * 100)
       if (!vals.length) return ''
-      const lows = (r1.data ?? []).filter((r: any) => r.oxygen_saturation && r.oxygen_saturation < 94)
+      const lows = (r1.data ?? []).filter((r: any) => r.oxygen_saturation && r.oxygen_saturation * 100 < 94)
       return `\nКислород (SpO2): средн ${avg(vals)!.toFixed(0)}%, мин ${Math.min(...vals).toFixed(0)}%` +
-        (lows.length ? `, дни <94%: ${lows.map((r: any) => `${r.date} (${r.oxygen_saturation.toFixed(0)}%)`).join(', ')}` : '')
+        (lows.length ? `, дни <94%: ${lows.map((r: any) => `${r.date} (${(r.oxygen_saturation * 100).toFixed(0)}%)`).join(', ')}` : '')
     })()
 
     // Фазы сна
