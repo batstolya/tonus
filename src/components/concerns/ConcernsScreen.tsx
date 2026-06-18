@@ -41,6 +41,7 @@ function TrendChart({ logs }: { logs: ConcernLog[] }) {
 function ConcernDetail({ concern, userId, onBack, onUpdate }: {
   concern: HealthConcern; userId: string; onBack: () => void; onUpdate: (c: HealthConcern) => void
 }) {
+  const { t } = useT()
   const [logs, setLogs] = useState<ConcernLog[]>([])
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({})
   const [severity, setSeverity] = useState(3)
@@ -82,12 +83,12 @@ function ConcernDetail({ concern, userId, onBack, onUpdate }: {
   return (
     <div>
       <button className="btn-ghost" onClick={onBack} style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6, fontSize: 14 }}>
-        ← Назад
+        ← {t('Назад')}
       </button>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 8 }}>
         <div>
           <h2 style={{ margin: 0 }}>{concern.name}</h2>
-          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{CATEGORIES[concern.category] ?? concern.category}</span>
+          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t(CATEGORIES[concern.category] ?? concern.category)}</span>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           {(['active', 'improving', 'resolved'] as const).map(s => (
@@ -96,7 +97,7 @@ function ConcernDetail({ concern, userId, onBack, onUpdate }: {
               style={{ fontSize: 12, padding: '5px 12px', ...(concern.status === s ? { background: STATUS_LABELS[s].color, borderColor: STATUS_LABELS[s].color } : {}) }}
               onClick={() => handleStatusChange(s)}
             >
-              {STATUS_LABELS[s].label}
+              {t(STATUS_LABELS[s].label)}
             </button>
           ))}
         </div>
@@ -104,16 +105,16 @@ function ConcernDetail({ concern, userId, onBack, onUpdate }: {
 
       {logs.length >= 2 && (
         <div className="concern-chart-wrap">
-          <div className="concern-chart-label">Динамика выраженности</div>
+          <div className="concern-chart-label">{t('Динамика выраженности')}</div>
           <TrendChart logs={logs} />
         </div>
       )}
 
       {/* Add log */}
       <div className="concern-log-form">
-        <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 10 }}>Новое наблюдение</div>
+        <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 10 }}>{t('Новое наблюдение')}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Выраженность:</span>
+          <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('Выраженность:')}</span>
           {[1, 2, 3, 4, 5].map(v => (
             <button key={v} className={`severity-btn${severity === v ? ' active' : ''}`}
               style={{ '--sev-color': SEVERITY_COLOR[v] } as any}
@@ -122,19 +123,19 @@ function ConcernDetail({ concern, userId, onBack, onUpdate }: {
               {v}
             </button>
           ))}
-          <span style={{ fontSize: 12, color: SEVERITY_COLOR[severity] }}>{SEVERITY_LABELS[severity]}</span>
+          <span style={{ fontSize: 12, color: SEVERITY_COLOR[severity] }}>{t(SEVERITY_LABELS[severity])}</span>
         </div>
-        <textarea className="log-input" rows={2} placeholder="Заметка (необязательно)…"
+        <textarea className="log-input" rows={2} placeholder={t('Заметка (необязательно)…')}
           value={note} onChange={e => setNote(e.target.value)}
           style={{ width: '100%', marginBottom: 10, resize: 'vertical' }} />
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
           <label className="btn-secondary" style={{ cursor: 'pointer', fontSize: 13 }}>
-            📷 {photoFile ? photoFile.name : 'Фото'}
+            📷 {photoFile ? photoFile.name : t('Фото')}
             <input type="file" accept="image/*" style={{ display: 'none' }}
               onChange={e => setPhotoFile(e.target.files?.[0] ?? null)} />
           </label>
           <button className="btn-primary" onClick={handleSave} disabled={saving}>
-            {saving ? 'Сохранение…' : 'Добавить'}
+            {saving ? t('Сохранение…') : t('Добавить')}
           </button>
         </div>
       </div>
@@ -142,10 +143,10 @@ function ConcernDetail({ concern, userId, onBack, onUpdate }: {
       {/* Log list */}
       <div style={{ marginTop: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-          <span style={{ fontWeight: 600, fontSize: 14 }}>Журнал наблюдений</span>
+          <span style={{ fontWeight: 600, fontSize: 14 }}>{t('Журнал наблюдений')}</span>
           {logs.length > 5 && (
             <button className="btn-ghost" style={{ fontSize: 12 }} onClick={() => setShowResolved(s => !s)}>
-              {showResolved ? 'Показать последние' : `Все ${logs.length}`}
+              {showResolved ? t('Показать последние') : `${t('Все')} ${logs.length}`}
             </button>
           )}
         </div>
@@ -166,7 +167,7 @@ function ConcernDetail({ concern, userId, onBack, onUpdate }: {
             )}
           </div>
         ))}
-        {logs.length === 0 && <p className="empty-hint">Наблюдений пока нет.</p>}
+        {logs.length === 0 && <p className="empty-hint">{t('Наблюдений пока нет.')}</p>}
       </div>
     </div>
   )
