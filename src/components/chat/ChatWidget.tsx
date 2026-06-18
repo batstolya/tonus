@@ -31,7 +31,7 @@ function MsgBubble({ msg }: { msg: ChatMessage }) {
 export function ChatWidget({ user, daily, intakeEvents = [], heartRateSamples = [] }: Props) {
   const { t } = useT()
   const [open, setOpen] = useState(false)
-  const [period, setPeriod] = useState<Period>('30d')
+  const [period, setPeriod] = useState<Period>('14d')
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
