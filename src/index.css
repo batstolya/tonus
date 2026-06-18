@@ -70,10 +70,12 @@ body {
   width: 34px; height: 34px;
   display: flex; align-items: center; justify-content: center;
   font-size: 16px;
+  color: var(--text);
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
-.theme-toggle:hover { background: var(--border); }
+.theme-toggle svg { stroke: currentColor; }
+.theme-toggle:hover { background: var(--border); color: var(--text); }
 .btn-secondary {
   background: var(--surface2);
   border: 1px solid var(--border);

@@ -243,4 +243,23 @@ export const translations: Record<string, { uk: string; en: string }> = {
   'Пробуждение': { uk: 'Пробудження', en: 'Wake-up' },
   'Ось Y — время суток': { uk: 'Вісь Y — час доби', en: 'Y axis — time of day' },
   'Итого': { uk: 'Разом', en: 'Total' },
+
+  // ── Активность ─────────────────────────────────────────────
+  'шагов': { uk: 'кроків', en: 'steps' },
+  'среднее / день': { uk: 'середнє / день', en: 'avg / day' },
+  'рекорд': { uk: 'рекорд', en: 'record' },
+  'дней с {n}+ шагов': { uk: 'днів з {n}+ кроків', en: 'days with {n}+ steps' },
+  'дней с {n}+': { uk: 'днів з {n}+', en: 'days with {n}+' },
+  'Рекомендации': { uk: 'Рекомендації', en: 'Recommendations' },
+  'Дистанция (км)': { uk: 'Дистанція (км)', en: 'Distance (km)' },
+  'Дистанция': { uk: 'Дистанція', en: 'Distance' },
+  'км': { uk: 'км', en: 'km' },
+  'Отлично': { uk: 'Відмінно', en: 'Great' },
+  'Цель достигнута': { uk: 'Ціль досягнута', en: 'Goal reached' },
+  'Умеренно': { uk: 'Помірно', en: 'Moderate' },
+  'Мало': { uk: 'Мало', en: 'Low' },
+  'Средний показатель {avg} шагов — ниже цели {goal}. Старайся добавлять короткие прогулки в обед.': { uk: 'Середній показник {avg} кроків — нижче цілі {goal}. Намагайся додавати короткі прогулянки в обід.', en: 'Average of {avg} steps — below the {goal} goal. Try adding short walks at lunch.' },
+  'Отлично! Средний показатель {avg} шагов — выше {great}. Так держать.': { uk: 'Відмінно! Середній показник {avg} кроків — вище {great}. Так тримати.', en: 'Great! Average of {avg} steps — above {great}. Keep it up.' },
+  'Цель {goal} шагов достигнута только в {n} из {total} дней. Попробуй припарковаться дальше или выходить на остановку раньше.': { uk: 'Ціль {goal} кроків досягнута лише в {n} з {total} днів. Спробуй паркуватися далі або виходити на зупинку раніше.', en: 'The {goal}-step goal was met on only {n} of {total} days. Try parking farther or getting off a stop earlier.' },
+  '{n} дней с {great}+ шагами — высокая активность, хорошая нагрузка на сердце.': { uk: '{n} днів з {great}+ кроками — висока активність, гарне навантаження на серце.', en: '{n} days with {great}+ steps — high activity, good for your heart.' },
 }
