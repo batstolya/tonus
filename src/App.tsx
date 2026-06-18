@@ -6,6 +6,7 @@ import { HeartRateScreen } from './components/heart-rate/HeartRateScreen'
 import { MetricsScreen } from './components/metrics/MetricsScreen'
 import { StressMapScreen } from './components/stress-map/StressMapScreen'
 import { InsightsScreen } from './components/insights/InsightsScreen'
+import { ResearchScreen } from './components/research/ResearchScreen'
 import { SleepScreen } from './components/sleep/SleepScreen'
 import { ActivityScreen } from './components/activity/ActivityScreen'
 import { AuthScreen } from './components/auth/AuthScreen'
@@ -75,6 +76,7 @@ const NAV_GROUPS: {
     icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>,
     views: [
       { view: 'insights', label: 'Инсайты' },
+      { view: 'research', label: 'Исследования' },
       { view: 'goals', label: 'Цели' },
     ],
   },
@@ -335,6 +337,8 @@ export default function App() {
           <ActivityScreen daily={state.daily} />
         ) : state.view === 'insights' ? (
           <InsightsScreen daily={state.daily} />
+        ) : state.view === 'research' ? (
+          <ResearchScreen user={user} daily={state.daily} />
         ) : state.view === 'supplements' ? (
           <SupplementsScreen user={user} />
         ) : state.view === 'labs' ? (
