@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { DailyMetrics } from '../../types'
 import { generateInsights } from '../../utils/insights'
+import { useT } from '../../lib/i18n'
 
 interface Props {
   daily: DailyMetrics[]
@@ -68,18 +69,20 @@ function buildComparison(daily: DailyMetrics[]): CompareRow[] {
 }
 
 function DeltaBadge({ delta, unit, higherIsBetter }: { delta: number; unit: string; higherIsBetter: boolean }) {
-  if (Math.abs(delta) < 0.05) return <span className="cmp-delta neutral">→ без изменений</span>
+  const { t } = useT()
+  if (Math.abs(delta) < 0.05) return <span className="cmp-delta neutral">→ {t('без изменений')}</span>
   const good = higherIsBetter ? delta > 0 : delta < 0
   const sign = delta > 0 ? '+' : ''
   const dec = Math.abs(delta) < 10 ? 1 : 0
   return (
     <span className={`cmp-delta ${good ? 'good' : 'bad'}`}>
-      {sign}{delta.toFixed(dec)} {unit}
+      {sign}{delta.toFixed(dec)} {t(unit)}
     </span>
   )
 }
 
 export function InsightsScreen({ daily }: Props) {
+  const { t } = useT()
   const insights = generateInsights(daily)
   const [comparison, setComparison] = useState<CompareRow[] | null>(null)
 
@@ -89,32 +92,32 @@ export function InsightsScreen({ daily }: Props) {
 
   return (
     <div className="screen">
-      <h2>Инсайты и тренды</h2>
+      <h2>{t('Инсайты и тренды')}</h2>
 
       <div style={{ marginBottom: 16 }}>
         <button className="btn-primary" onClick={handleCompare}>
-          Сравнить эту неделю с прошлой
+          {t('Сравнить эту неделю с прошлой')}
         </button>
       </div>
 
       {comparison && (
         <div className="insight-card cmp-card" style={{ marginBottom: 16 }}>
-          <div className="insight-tag">Сравнение недель</div>
+          <div className="insight-tag">{t('Сравнение недель')}</div>
           <table className="cmp-table">
             <thead>
               <tr>
-                <th>Метрика</th>
-                <th>Эта неделя</th>
-                <th>Прошлая неделя</th>
-                <th>Изменение</th>
+                <th>{t('Метрика')}</th>
+                <th>{t('Эта неделя')}</th>
+                <th>{t('Прошлая неделя')}</th>
+                <th>{t('Изменение')}</th>
               </tr>
             </thead>
             <tbody>
               {comparison.map(row => (
                 <tr key={row.label}>
-                  <td className="cmp-label">{row.label}</td>
-                  <td className="cmp-val">{row.thisWeek} <span className="cmp-unit">{row.unit}</span></td>
-                  <td className="cmp-val muted">{row.lastWeek} <span className="cmp-unit">{row.unit}</span></td>
+                  <td className="cmp-label">{t(row.label)}</td>
+                  <td className="cmp-val">{row.thisWeek} <span className="cmp-unit">{t(row.unit)}</span></td>
+                  <td className="cmp-val muted">{row.lastWeek} <span className="cmp-unit">{t(row.unit)}</span></td>
                   <td><DeltaBadge delta={row.delta} unit={row.unit} higherIsBetter={row.higherIsBetter} /></td>
                 </tr>
               ))}
@@ -124,7 +127,7 @@ export function InsightsScreen({ daily }: Props) {
       )}
 
       {insights.length === 0 ? (
-        <p className="empty-hint">Нужно хотя бы 14 дней данных для генерации инсайтов.</p>
+        <p className="empty-hint">{t('Нужно хотя бы 14 дней данных для генерации инсайтов.')}</p>
       ) : (
         <div className="insights-list">
           {insights.map(i => (
@@ -135,7 +138,7 @@ export function InsightsScreen({ daily }: Props) {
           ))}
         </div>
       )}
-      <p className="caveat">Всё выше — наблюдения на основе данных, не медицинские рекомендации.</p>
+      <p className="caveat">{t('Всё выше — наблюдения на основе данных, не медицинские рекомендации.')}</p>
     </div>
   )
 }
