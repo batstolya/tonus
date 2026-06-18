@@ -477,4 +477,6 @@ export const translations: Record<string, { uk: string; en: string }> = {
   'Суббота': { uk: 'Субота', en: 'Saturday' },
   'Воскресенье': { uk: 'Неділя', en: 'Sunday' },
   'Наведи на день, чтобы увидеть число': { uk: 'Наведи на день, щоб побачити число', en: 'Hover a day to see the value' },
+  'норма': { uk: 'норма', en: 'target' },
+  'зелёный': { uk: 'зелений', en: 'green' },
 }

@@ -44,7 +44,9 @@ function Heatmap({ daily }: { daily: DailyMetrics[] }) {
       <div className="heat-detail">
         {hover
           ? <span><b>{fmtD(hover.date)}</b> — {fmtVal(hover.v)}{mk.unit ? ' ' + t(mk.unit) : ''}</span>
-          : <span className="settings-muted">{t('Наведи на день, чтобы увидеть число')}</span>}
+          : <span className="settings-muted">
+              {t('норма')}: {mk.betterHigh ? '≥' : '≤'} {mk.greenAt.toLocaleString('ru-RU')}{mk.unit ? ' ' + t(mk.unit) : ''} ({t('зелёный')})
+            </span>}
       </div>
       <div className="heatmap">
         {cells.map(cell => (
