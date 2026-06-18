@@ -3,6 +3,7 @@ import type { User } from '@supabase/supabase-js'
 import type { CalendarEvent } from '../../types'
 import { loadMonthUsage, loadBudget, saveBudget } from '../../lib/aiUsage'
 import { loadDailyNoteSettings, saveDailyNoteSettings } from '../../lib/dailyNote'
+import { loadReportSettings, saveReportSettings, type ReportSettings } from '../../lib/reportSettings'
 import { supabase } from '../../lib/supabase'
 import type { DeviceType } from '../../store/appStore'
 
@@ -42,6 +43,7 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
   const [tgMsg, setTgMsg] = useState<string | null>(null)
   const [noteEnabled, setNoteEnabled] = useState(false)
   const [noteTime, setNoteTime] = useState('21:00')
+  const [rep, setRep] = useState<ReportSettings | null>(null)
 
   useEffect(() => {
     supabase.from('telegram_links').select('telegram_chat_id, telegram_username, status')
@@ -50,7 +52,13 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
         if (data) { setTgLinked(true); setTgUsername(data.telegram_username) }
       })
     loadDailyNoteSettings(user.id).then(s => { setNoteEnabled(s.enabled); setNoteTime(s.time) }).catch(() => {})
+    loadReportSettings(user.id).then(setRep).catch(() => {})
   }, [user.id])
+
+  function patchRep(patch: Partial<ReportSettings>) {
+    setRep(r => r ? { ...r, ...patch } : r)
+    saveReportSettings(user.id, patch)
+  }
 
   function handleNoteToggle(enabled: boolean) {
     setNoteEnabled(enabled)
@@ -195,6 +203,65 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
           </div>
         )}
       </section>
+
+      {tgLinked && rep && (
+        <section className="settings-section">
+          <h3 className="settings-section-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: 8 }}><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8"/><rect x="12" y="6" width="3" height="12"/><rect x="17" y="13" width="3" height="5"/></svg>
+            Отчёты в Telegram
+          </h3>
+
+          <div className="rep-setting">
+            <span className="settings-label">Как часто присылать</span>
+            <div className="rep-seg">
+              {[7, 14, 21].map(d => (
+                <button
+                  key={d}
+                  className={`rep-seg-btn${rep.frequency_days === d ? ' on' : ''}`}
+                  onClick={() => patchRep({ frequency_days: d })}
+                >{d === 7 ? 'Неделя' : `${d / 7} нед`}</button>
+              ))}
+            </div>
+          </div>
+
+          <div className="rep-setting">
+            <span className="settings-label">Подробность</span>
+            <div className="rep-seg">
+              {([['short', 'Кратко'], ['medium', 'Средне'], ['full', 'Подробно']] as const).map(([v, label]) => (
+                <button
+                  key={v}
+                  className={`rep-seg-btn${rep.detail_level === v ? ' on' : ''}`}
+                  onClick={() => patchRep({ detail_level: v })}
+                >{label}</button>
+              ))}
+            </div>
+          </div>
+
+          <label className="rep-toggle-row">
+            <input type="checkbox" checked={rep.send_sensitive} onChange={e => patchRep({ send_sensitive: e.target.checked })} />
+            <span>
+              <span className="settings-label">Присылать чувствительное</span>
+              <span className="settings-muted" style={{ display: 'block', fontSize: 12 }}>Анализы и препараты в отчётах. Выкл — только сводка самочувствия. Telegram не E2E-шифрован.</span>
+            </span>
+          </label>
+
+          <label className="rep-toggle-row">
+            <input type="checkbox" checked={rep.morning_summary} onChange={e => patchRep({ morning_summary: e.target.checked })} />
+            <span>
+              <span className="settings-label">Утренняя сводка</span>
+              <span className="settings-muted" style={{ display: 'block', fontSize: 12 }}>Короткое «как ты сегодня» утром</span>
+            </span>
+            {rep.morning_summary && (
+              <input type="time" value={rep.morning_time} onChange={e => patchRep({ morning_time: e.target.value })} className="log-input" style={{ width: 100, marginLeft: 'auto' }} />
+            )}
+          </label>
+
+          <label className="rep-toggle-row">
+            <input type="checkbox" checked={!rep.paused} onChange={e => patchRep({ paused: !e.target.checked })} />
+            <span className="settings-label">Автоматические отчёты включены</span>
+          </label>
+        </section>
+      )}
 
       {onGoogleSync && (
         <section className="settings-section">
