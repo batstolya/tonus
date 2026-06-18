@@ -6,6 +6,7 @@ import { generateInsights } from '../../utils/insights'
 import { AiAnalysisBlock } from './AiAnalysisBlock'
 import { computeReadiness, computeEarlyWarning } from '../../lib/readiness'
 import { loadTodayNote, saveNote } from '../../lib/contextNotes'
+import { useT } from '../../lib/i18n'
 
 interface Props {
   daily: DailyMetrics[]
@@ -37,10 +38,10 @@ function avgN(daily: DailyMetrics[], key: 'restingHeartRate' | 'hrv', days = 30)
   return Math.round(slice.reduce((a, d) => a + (d[key] as number), 0) / slice.length)
 }
 
-function greeting(user: User): string {
-  const name = user.user_metadata?.name ?? user.email?.split('@')[0] ?? 'привет'
+function greeting(user: User, t: (s: string) => string): string {
+  const name = user.user_metadata?.name ?? user.email?.split('@')[0] ?? t('привет')
   const h = new Date().getHours()
-  const time = h < 12 ? 'Доброе утро' : h < 18 ? 'Добрый день' : 'Добрый вечер'
+  const time = h < 12 ? t('Доброе утро') : h < 18 ? t('Добрый день') : t('Добрый вечер')
   return `${time}, ${name}`
 }
 
@@ -77,6 +78,7 @@ function spo2Color(v: number | null): string | undefined {
 }
 
 function ReadinessCard({ daily }: { daily: DailyMetrics[] }) {
+  const { t } = useT()
   const r = computeReadiness(daily)
   if (!r) return null
 
@@ -84,7 +86,7 @@ function ReadinessCard({ daily }: { daily: DailyMetrics[] }) {
     <div className="readiness-card">
       <div className="readiness-top">
         <div className="readiness-left">
-          <div className="readiness-label">Готовность дня</div>
+          <div className="readiness-label">{t('Готовность дня')}</div>
           <div className="readiness-score" style={{ color: r.color }}>{r.score}</div>
           <div className="readiness-sublabel" style={{ color: r.color }}>{r.label}</div>
         </div>
@@ -97,13 +99,13 @@ function ReadinessCard({ daily }: { daily: DailyMetrics[] }) {
           )}
           {r.components.rhr != null && (
             <div className="r-bar-row">
-              <span>ЧСС</span>
+              <span>{t('ЧСС')}</span>
               <div className="r-bar-track"><div className="r-bar-fill" style={{ width: `${(r.components.rhr / 30) * 100}%`, background: r.color }} /></div>
             </div>
           )}
           {r.components.sleep != null && (
             <div className="r-bar-row">
-              <span>Сон</span>
+              <span>{t('Сон')}</span>
               <div className="r-bar-track"><div className="r-bar-fill" style={{ width: `${(r.components.sleep / 30) * 100}%`, background: r.color }} /></div>
             </div>
           )}
@@ -114,6 +116,7 @@ function ReadinessCard({ daily }: { daily: DailyMetrics[] }) {
 }
 
 function StressDaysCard({ daily }: { daily: DailyMetrics[] }) {
+  const { t } = useT()
   const now = new Date()
   const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
   const monthDays = daily.filter(d => d.date >= monthStart && d.hrv != null)
@@ -133,18 +136,18 @@ function StressDaysCard({ daily }: { daily: DailyMetrics[] }) {
       <div className="sd-item sd-bad">
         <div className="sd-icon">😓</div>
         <div className="sd-info">
-          <div className="sd-label">Самый стрессовый</div>
+          <div className="sd-label">{t('Самый стрессовый')}</div>
           <div className="sd-date">{fmtDate(mostStressed.date)}</div>
-          <div className="sd-hrv">HRV {mostStressed.hrv} мс{mostStressed.restingHeartRate ? ` · ЧСС ${mostStressed.restingHeartRate}` : ''}</div>
+          <div className="sd-hrv">HRV {mostStressed.hrv} {t('мс')}{mostStressed.restingHeartRate ? ` · ${t('ЧСС')} ${mostStressed.restingHeartRate}` : ''}</div>
         </div>
       </div>
       <div className="sd-divider" />
       <div className="sd-item sd-good">
         <div className="sd-icon">😌</div>
         <div className="sd-info">
-          <div className="sd-label">Самый спокойный</div>
+          <div className="sd-label">{t('Самый спокойный')}</div>
           <div className="sd-date">{fmtDate(leastStressed.date)}</div>
-          <div className="sd-hrv">HRV {leastStressed.hrv} мс{leastStressed.restingHeartRate ? ` · ЧСС ${leastStressed.restingHeartRate}` : ''}</div>
+          <div className="sd-hrv">HRV {leastStressed.hrv} {t('мс')}{leastStressed.restingHeartRate ? ` · ${t('ЧСС')} ${leastStressed.restingHeartRate}` : ''}</div>
         </div>
       </div>
     </div>
@@ -152,23 +155,25 @@ function StressDaysCard({ daily }: { daily: DailyMetrics[] }) {
 }
 
 function EarlyWarningBanner({ daily }: { daily: DailyMetrics[] }) {
+  const { t } = useT()
   const w = computeEarlyWarning(daily)
   if (!w.active) return null
   return (
     <div className="early-warning">
       <span className="ew-icon">⚠</span>
       <div>
-        <strong>Организм под нагрузкой</strong>
+        <strong>{t('Организм под нагрузкой')}</strong>
         <ul className="ew-list">
           {w.signals.map((s, i) => <li key={i}>{s}</li>)}
         </ul>
-        <span className="ew-hint">Возможно стоит снизить нагрузку или проверить самочувствие.</span>
+        <span className="ew-hint">{t('Возможно стоит снизить нагрузку или проверить самочувствие.')}</span>
       </div>
     </div>
   )
 }
 
 function ContextJournal({ user }: { user: User }) {
+  const { t } = useT()
   const todayStr = new Date().toISOString().slice(0, 10)
   const [note, setNote] = useState('')
   const [saved, setSaved] = useState(false)
@@ -192,12 +197,12 @@ function ContextJournal({ user }: { user: User }) {
   return (
     <div className="context-journal">
       <div className="cj-header">
-        <span className="cj-label">Заметка дня</span>
-        {saved && <span className="cj-saved">сохранено ✓</span>}
+        <span className="cj-label">{t('Заметка дня')}</span>
+        {saved && <span className="cj-saved">{t('сохранено')} ✓</span>}
       </div>
       <textarea
         className="cj-textarea"
-        placeholder="Как прошёл день? Важные события, самочувствие, стресс… (используется как контекст в ИИ-анализе)"
+        placeholder={t('Как прошёл день? Важные события, самочувствие, стресс… (используется как контекст в ИИ-анализе)')}
         value={note}
         onChange={e => handleChange(e.target.value)}
         rows={3}
@@ -207,6 +212,7 @@ function ContextJournal({ user }: { user: User }) {
 }
 
 export function Dashboard({ daily, events, onNavigate, user, quickLog }: Props) {
+  const { t } = useT()
   const insights = generateInsights(daily)
   const totalDays = daily.length
 
@@ -292,8 +298,8 @@ export function Dashboard({ daily, events, onNavigate, user, quickLog }: Props) 
 
   return (
     <div className="dashboard">
-      {user && <p className="dashboard-greeting">{greeting(user)}</p>}
-      <h2>Дашборд</h2>
+      {user && <p className="dashboard-greeting">{greeting(user, t)}</p>}
+      <h2>{t('Дашборд')}</h2>
 
       <EarlyWarningBanner daily={daily} />
       <ReadinessCard daily={daily} />
@@ -302,10 +308,10 @@ export function Dashboard({ daily, events, onNavigate, user, quickLog }: Props) 
       <div className="cards-grid">
         {cards.map(c => (
           <button key={c.label} className="metric-card" onClick={() => onNavigate(c.view)}>
-            <div className="card-label">{c.label}</div>
-            {c.sub && <div className="card-sub">{c.sub}</div>}
+            <div className="card-label">{t(c.label)}</div>
+            {c.sub && <div className="card-sub">{t(c.sub)}</div>}
             <div className="card-value" style={c.color ? { color: c.color } : undefined}>
-              {c.value !== null ? <>{c.value} <span className="card-unit">{c.unit}</span></> : <span className="card-empty">—</span>}
+              {c.value !== null ? <>{c.value} <span className="card-unit">{c.unit ? t(c.unit) : ''}</span></> : <span className="card-empty">—</span>}
             </div>
           </button>
         ))}
@@ -313,18 +319,18 @@ export function Dashboard({ daily, events, onNavigate, user, quickLog }: Props) 
       </div>
 
       <nav className="dash-nav">
-        <button onClick={() => onNavigate('heart-rate')}>Пульс →</button>
-        <button onClick={() => onNavigate('metrics')}>Показатели →</button>
-        <button onClick={() => onNavigate('stress-map')}>Стресс →</button>
-        <button onClick={() => onNavigate('sleep')}>Сон →</button>
-        <button onClick={() => onNavigate('insights')}>Инсайты →</button>
+        <button onClick={() => onNavigate('heart-rate')}>{t('Пульс')} →</button>
+        <button onClick={() => onNavigate('metrics')}>{t('Показатели')} →</button>
+        <button onClick={() => onNavigate('stress-map')}>{t('Стресс')} →</button>
+        <button onClick={() => onNavigate('sleep')}>{t('Сон')} →</button>
+        <button onClick={() => onNavigate('insights')}>{t('Инсайты')} →</button>
       </nav>
 
       {user && <ContextJournal user={user} />}
 
       {insights.length > 0 && (
         <div className="insights-preview">
-          <h3>Инсайты</h3>
+          <h3>{t('Инсайты')}</h3>
           {insights.slice(0, 3).map(i => (
             <div key={i.id} className="insight-item">
               <span className="insight-metric">{i.metric}</span>
