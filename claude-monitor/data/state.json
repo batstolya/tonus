@@ -1,9 +1,9 @@
 {
-  "session_reset_at": "2026-06-18T18:59:59.383250+00:00",
-  "weekly_reset_at": "2026-06-19T08:59:59.383272+00:00",
+  "session_reset_at": "2026-06-19T00:10:00.911908+00:00",
+  "weekly_reset_at": "2026-06-19T09:00:00.911935+00:00",
   "session_exhausted_sent": false,
   "weekly_exhausted_sent": false,
   "initialized": true,
-  "session_warn_sent": true,
+  "session_warn_sent": false,
   "weekly_warn_sent": true
 }

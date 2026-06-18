@@ -1102,6 +1102,8 @@ body {
 .heatmap { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, 1fr); gap: 3px; }
 .heat-cell { aspect-ratio: 1; border-radius: 3px; min-width: 10px; }
 .heat-cell.empty { background: transparent; }
+.heat-cell { cursor: pointer; }
+.heat-detail { font-size: 13px; margin-bottom: 8px; min-height: 18px; }
 .rem-quiet input { font-size: 13px; padding: 3px 6px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); }
 .rem-hint { font-size: 11px; color: var(--text-muted); }
 .supp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
