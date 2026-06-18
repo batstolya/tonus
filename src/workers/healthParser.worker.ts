@@ -1,7 +1,6 @@
 import JSZip from 'jszip'
 import type { HealthRecord, HeartRateSample, DailyMetrics, ParseProgress } from '../types'
 
-const PRIORITY_SOURCE = /apple watch/i
 
 type WorkerMessage =
   | { type: 'parseFile'; payload: File }
@@ -113,24 +112,35 @@ function parseXML(xml: string): { records: HealthRecord[]; heartRateSamples: Hea
   return { records, heartRateSamples }
 }
 
+// Длительность ОБЪЕДИНЕНИЯ интервалов (секунды) — перекрытия не задваиваются
+function mergedSeconds(ivs: { start: Date; end: Date }[]): number {
+  if (!ivs.length) return 0
+  const sorted = ivs.map(i => ({ s: i.start.getTime(), e: i.end.getTime() }))
+    .filter(i => i.e > i.s)
+    .sort((a, b) => a.s - b.s)
+  if (!sorted.length) return 0
+  let total = 0, curS = sorted[0].s, curE = sorted[0].e
+  for (let k = 1; k < sorted.length; k++) {
+    if (sorted[k].s <= curE) curE = Math.max(curE, sorted[k].e)
+    else { total += curE - curS; curS = sorted[k].s; curE = sorted[k].e }
+  }
+  total += curE - curS
+  return total / 1000
+}
+
 function aggregateSleep(intervals: { start: Date; end: Date; value: number }[]): Partial<import('../types').DailyMetrics> {
   if (!intervals.length) return {}
-  // value: 1=Core/Asleep, 2=Deep, 3=REM (0=InBed used as fallback total)
-  const durSec = (iv: { start: Date; end: Date }) =>
-    (iv.end.getTime() - iv.start.getTime()) / 1000
+  // value: 1=Core/Asleep, 2=Deep, 3=REM, 0=InBed (запас, если нет фаз сна)
+  const asleep = intervals.filter(iv => iv.value === 1 || iv.value === 2 || iv.value === 3)
+  const base = asleep.length ? asleep : intervals // если только InBed — берём его
 
-  let total = 0, deep = 0, rem = 0, core = 0
-  for (const iv of intervals) {
-    const d = durSec(iv)
-    total += d
-    if (iv.value === 2) deep += d
-    else if (iv.value === 3) rem += d
-    else if (iv.value === 1) core += d
-    else core += d // InBed (0) counted as core if no phases
-  }
+  const total = mergedSeconds(base)
+  const deep = mergedSeconds(intervals.filter(iv => iv.value === 2))
+  const rem = mergedSeconds(intervals.filter(iv => iv.value === 3))
+  const core = mergedSeconds(intervals.filter(iv => iv.value === 1))
 
-  const bedtime = new Date(Math.min(...intervals.map(iv => iv.start.getTime())))
-  const wakeTime = new Date(Math.max(...intervals.map(iv => iv.end.getTime())))
+  const bedtime = new Date(Math.min(...base.map(iv => iv.start.getTime())))
+  const wakeTime = new Date(Math.max(...base.map(iv => iv.end.getTime())))
 
   return {
     sleepHours: total / 3600,
@@ -210,11 +220,14 @@ function aggregateByDay(records: HealthRecord[]): DailyMetrics[] {
   const sum = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) : undefined
 
   // Deduplicate sources: prefer Apple Watch
+  // Кумулятивные метрики (шаги/дистанция/энергия): суммируем В ПРЕДЕЛАХ источника,
+  // затем берём МАКСИМУМ по источникам. Так iPhone+Watch не задваиваются: каждый
+  // источник независимо считает весь день, берём самый полный, а не их сумму.
   function dedupeSum(items: { v: number; src: string }[]): number | undefined {
     if (!items.length) return undefined
-    const watchItems = items.filter(i => PRIORITY_SOURCE.test(i.src))
-    const chosen = watchItems.length ? watchItems : items
-    return chosen.reduce((a, b) => a + b.v, 0)
+    const bySource: Record<string, number> = {}
+    for (const i of items) bySource[i.src] = (bySource[i.src] ?? 0) + i.v
+    return Math.max(...Object.values(bySource))
   }
 
   const result: DailyMetrics[] = []
