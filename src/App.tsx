@@ -94,7 +94,7 @@ function getActiveSubView(view: AppView): AppView {
 }
 
 export default function App() {
-  const { t } = useT()
+  const { t, lang, setLang } = useT()
   const { state, setView, setDaily, setEvents, setProgress, setError, reset, setDeviceType } = useAppStore()
   const { user, loading, passwordRecovery, setPasswordRecovery } = useAuth()
   const { theme, toggle: toggleTheme } = useTheme()
@@ -245,7 +245,13 @@ export default function App() {
             </nav>
 
             <div className="topbar-right">
-              {lastSync && <span className="sync-label">{t('Синхр')}: {lastSync}</span>}
+              <button
+                className="theme-toggle lang-toggle"
+                onClick={() => setLang(lang === 'ru' ? 'uk' : lang === 'uk' ? 'en' : 'ru')}
+                title={t('Язык')}
+              >
+                {lang === 'ru' ? '🇷🇺' : lang === 'uk' ? '🇺🇦' : '🇬🇧'}
+              </button>
               <button className="theme-toggle" onClick={toggleTheme} title={t('Сменить тему')}>
                 {theme === 'dark' ? '☀️' : '🌙'}
               </button>
