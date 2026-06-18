@@ -345,7 +345,6 @@ export const translations: Record<string, { uk: string; en: string }> = {
   'Google Календарь': { uk: 'Google Календар', en: 'Google Calendar' },
   'активность': { uk: 'активність', en: 'activity' },
   'Нет данных о пульсе за это время': { uk: 'Немає даних про пульс за цей час', en: 'No heart-rate data for this time' },
-  'Пульс': { uk: 'Пульс', en: 'Heart rate' },
   'уд/мин (ср)': { uk: 'уд/хв (сер)', en: 'bpm (avg)' },
   'пик': { uk: 'пік', en: 'peak' },
   'к базовому': { uk: 'до базового', en: 'vs baseline' },
