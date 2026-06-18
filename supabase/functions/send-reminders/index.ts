@@ -246,7 +246,55 @@ serve(async () => {
     }
   }
 
-  return new Response(JSON.stringify({ created, sent, notesSent, reportsSent, morningsSent }), {
+  // ── 7. Проактивные алерты (раз в день ~10:00, дедуп 3 дня) ───────────────────
+  let alertsSent = 0
+  {
+    const { hhmm } = localNow('Europe/Kyiv')
+    if (timeDue('10:00', hhmm)) {
+      const { data: links } = await supabase
+        .from('telegram_links').select('user_id, telegram_chat_id').eq('status', 'active')
+      const avgF = (a: number[]) => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null
+      const since = new Date(nowMs - 21 * 86400000).toISOString().slice(0, 10)
+
+      for (const l of links ?? []) {
+        const { data: rows } = await supabase
+          .from('daily_metrics')
+          .select('date, resting_heart_rate, hrv, sleep_hours')
+          .eq('user_id', l.user_id).gte('date', since).order('date', { ascending: true })
+        if (!rows || rows.length < 10) continue
+        const recent = rows.slice(-3), base = rows.slice(-17, -3)
+        const col = (rs: any[], k: string) => rs.map(r => r[k]).filter((v: any) => v != null)
+
+        const checks: { type: string; cond: boolean; msg: string }[] = []
+        const rHrv = avgF(col(recent, 'hrv')), bHrv = avgF(col(base, 'hrv'))
+        if (rHrv != null && bHrv != null && rHrv < bHrv * 0.8)
+          checks.push({ type: 'hrv_drop', cond: true, msg: `📉 <b>HRV снизился</b>\nПоследние дни ${rHrv.toFixed(0)} мс против ${bHrv.toFixed(0)} мс обычно (−${Math.round((1 - rHrv / bHrv) * 100)}%). Возможна усталость/стресс — стоит восстановиться.` })
+
+        const rRhr = avgF(col(recent, 'resting_heart_rate')), bRhr = avgF(col(base, 'resting_heart_rate'))
+        if (rRhr != null && bRhr != null && rRhr > bRhr * 1.1)
+          checks.push({ type: 'rhr_rise', cond: true, msg: `📈 <b>Пульс покоя вырос</b>\n${rRhr.toFixed(0)} уд/мин против ${bRhr.toFixed(0)} обычно (+${Math.round((rRhr / bRhr - 1) * 100)}%). Бывает при недосыпе, нагрузке или начале болезни.` })
+
+        const lastSleep = col(recent, 'sleep_hours')
+        if (lastSleep.length >= 3 && lastSleep.every((v: number) => v < 6))
+          checks.push({ type: 'sleep_short', cond: true, msg: `😴 <b>Мало сна</b>\n3 ночи подряд меньше 6 часов. Накопленный недосып бьёт по восстановлению — постарайся лечь раньше.` })
+
+        for (const c of checks) {
+          if (!c.cond) continue
+          const { data: recentAlert } = await supabase
+            .from('health_alerts')
+            .select('created_at').eq('user_id', l.user_id).eq('type', c.type)
+            .gte('created_at', new Date(nowMs - 3 * 86400000).toISOString())
+            .limit(1).maybeSingle()
+          if (recentAlert) continue
+          await tgSend(l.telegram_chat_id, c.msg)
+          await supabase.from('health_alerts').insert({ user_id: l.user_id, type: c.type })
+          alertsSent++
+        }
+      }
+    }
+  }
+
+  return new Response(JSON.stringify({ created, sent, notesSent, reportsSent, morningsSent, alertsSent }), {
     headers: { 'Content-Type': 'application/json' },
   })
 })

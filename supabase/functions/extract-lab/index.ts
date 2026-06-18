@@ -122,6 +122,8 @@ serve(async (req) => {
           marker: b.marker,
           value: b.value,
           unit: b.unit || null,
+          ref_range: b.ref_range || null,
+          flag: b.flag && ['low', 'high', 'normal'].includes(b.flag) ? b.flag : null,
           date: resultDate,
         }))
       if (rows.length > 0) {
