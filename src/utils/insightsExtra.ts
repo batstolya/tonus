@@ -1,14 +1,16 @@
 import type { DailyMetrics } from '../types'
 
-export interface MetricDef { key: keyof DailyMetrics; label: string; unit: string; betterHigh: boolean; decimals: number }
+// greenAt / redAt — абсолютные пороги для цвета (норма зелёная, плохо красное).
+// Для betterLow (пульс покоя) greenAt < redAt — pct растёт когда значение ниже.
+export interface MetricDef { key: keyof DailyMetrics; label: string; unit: string; betterHigh: boolean; decimals: number; greenAt: number; redAt: number }
 
 export const INSIGHT_METRICS: MetricDef[] = [
-  { key: 'hrv', label: 'HRV', unit: 'мс', betterHigh: true, decimals: 0 },
-  { key: 'restingHeartRate', label: 'Пульс покоя', unit: 'уд/мин', betterHigh: false, decimals: 0 },
-  { key: 'sleepHours', label: 'Сон', unit: 'ч', betterHigh: true, decimals: 1 },
-  { key: 'sleepDeep', label: 'Глубокий сон', unit: 'ч', betterHigh: true, decimals: 1 },
-  { key: 'steps', label: 'Шаги', unit: '', betterHigh: true, decimals: 0 },
-  { key: 'activeEnergy', label: 'Активные калории', unit: 'ккал', betterHigh: true, decimals: 0 },
+  { key: 'hrv', label: 'HRV', unit: 'мс', betterHigh: true, decimals: 0, greenAt: 70, redAt: 25 },
+  { key: 'restingHeartRate', label: 'Пульс покоя', unit: 'уд/мин', betterHigh: false, decimals: 0, greenAt: 52, redAt: 80 },
+  { key: 'sleepHours', label: 'Сон', unit: 'ч', betterHigh: true, decimals: 1, greenAt: 7.5, redAt: 4 },
+  { key: 'sleepDeep', label: 'Глубокий сон', unit: 'ч', betterHigh: true, decimals: 1, greenAt: 1.5, redAt: 0.3 },
+  { key: 'steps', label: 'Шаги', unit: '', betterHigh: true, decimals: 0, greenAt: 10000, redAt: 1500 },
+  { key: 'activeEnergy', label: 'Активные калории', unit: 'ккал', betterHigh: true, decimals: 0, greenAt: 600, redAt: 100 },
 ]
 
 const num = (d: DailyMetrics, k: keyof DailyMetrics): number | null => {
@@ -99,18 +101,20 @@ export function computeAnomalies(daily: DailyMetrics[]): AnomalyCard[] {
 // ── C. Хитмап (последние ~10 недель) ────────────────────────────────────────
 export interface HeatCell { date: string; v: number | null; pct: number | null } // pct 0..1 для цвета
 
-export function buildHeatmap(daily: DailyMetrics[], key: keyof DailyMetrics, betterHigh: boolean): { cells: HeatCell[]; weeks: number } {
+export function buildHeatmap(daily: DailyMetrics[], key: keyof DailyMetrics, _betterHigh: boolean): { cells: HeatCell[]; weeks: number } {
+  const def = INSIGHT_METRICS.find(m => m.key === key)
+  const greenAt = def?.greenAt ?? 1, redAt = def?.redAt ?? 0
   const map = new Map<string, number | null>()
   for (const d of daily) map.set(d.date, num(d, key))
-  const vals = [...map.values()].filter((v): v is number => v != null)
-  if (!vals.length) return { cells: [], weeks: 0 }
-  const min = Math.min(...vals), max = Math.max(...vals)
-  const range = max - min || 1
+  if (![...map.values()].some(v => v != null)) return { cells: [], weeks: 0 }
 
-  // строим сетку: последние 70 дней, выровнено по понедельникам
+  const clamp01 = (x: number) => Math.max(0, Math.min(1, x))
+  // абсолютная норма: pct=1 у greenAt, pct=0 у redAt (работает в обе стороны)
+  const toPct = (v: number) => clamp01((v - redAt) / (greenAt - redAt))
+
+  // сетка: последние 70 дней, выровнено по понедельникам
   const today = new Date()
   const start = new Date(today); start.setDate(start.getDate() - 69)
-  // сдвиг к понедельнику
   const dow = (start.getDay() + 6) % 7
   start.setDate(start.getDate() - dow)
   const cells: HeatCell[] = []
@@ -118,9 +122,7 @@ export function buildHeatmap(daily: DailyMetrics[], key: keyof DailyMetrics, bet
   while (d <= today) {
     const ds = d.toISOString().slice(0, 10)
     const v = map.has(ds) ? map.get(ds)! : null
-    let pct: number | null = null
-    if (v != null) { const norm = (v - min) / range; pct = betterHigh ? norm : 1 - norm }
-    cells.push({ date: ds, v, pct })
+    cells.push({ date: ds, v, pct: v != null ? toPct(v) : null })
     d.setDate(d.getDate() + 1)
   }
   return { cells, weeks: Math.ceil(cells.length / 7) }
