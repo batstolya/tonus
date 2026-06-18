@@ -59,6 +59,23 @@ async function sendTelegram(chatId: string, text: string) {
   })
 }
 
+// Разбивает длинный текст на части ≤4000 символов по границам абзацев
+function splitForTelegram(text: string, limit = 4000): string[] {
+  if (text.length <= limit) return [text]
+  const parts: string[] = []
+  let buf = ''
+  for (const para of text.split('\n')) {
+    if ((buf + '\n' + para).length > limit) {
+      if (buf) parts.push(buf)
+      buf = para
+    } else {
+      buf = buf ? `${buf}\n${para}` : para
+    }
+  }
+  if (buf) parts.push(buf)
+  return parts
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
@@ -115,45 +132,123 @@ serve(async (req) => {
       )
     }
 
-    // Load metrics + sleep sessions for both periods
-    const [r1, r2, s1, s2] = await Promise.all([
+    // Load metrics + sleep + nutrition + supplements + labs for both periods
+    const [r1, r2, s1, s2, intake, supLogs, supList, labs, noteRowsRes] = await Promise.all([
       supabase.from('daily_summary').select('*').eq('user_id', user.id).gte('date', fmt(p1Start)).lte('date', fmt(p1End)),
       supabase.from('daily_summary').select('*').eq('user_id', user.id).gte('date', fmt(p2Start)).lte('date', fmt(p2End)),
-      supabase.from('sleep_sessions').select('date, bedtime, wake_time, duration_hours').eq('user_id', user.id).gte('date', fmt(p1Start)).lte('date', fmt(p1End)).order('date'),
-      supabase.from('sleep_sessions').select('date, bedtime, wake_time, duration_hours').eq('user_id', user.id).gte('date', fmt(p2Start)).lte('date', fmt(p2End)).order('date'),
+      supabase.from('sleep_sessions').select('date, bedtime, wake_time, duration_hours, deep_hours, rem_hours, core_hours').eq('user_id', user.id).gte('date', fmt(p1Start)).lte('date', fmt(p1End)).order('date'),
+      supabase.from('sleep_sessions').select('date, bedtime, wake_time, duration_hours, deep_hours, rem_hours, core_hours').eq('user_id', user.id).gte('date', fmt(p2Start)).lte('date', fmt(p2End)).order('date'),
+      supabase.from('intake_events').select('ts, type, amount, unit, note').eq('user_id', user.id).gte('ts', `${fmt(p1Start)}T00:00:00Z`).lte('ts', `${fmt(p1End)}T23:59:59Z`).order('ts'),
+      supabase.from('supplement_logs').select('date, taken, supplements(name)').eq('user_id', user.id).eq('taken', true).gte('date', fmt(p1Start)).lte('date', fmt(p1End)),
+      supabase.from('supplements').select('id, name').eq('user_id', user.id).eq('active', true),
+      supabase.from('lab_results').select('marker, value, unit, date').eq('user_id', user.id).order('date', { ascending: false }).limit(60),
+      supabase.from('context_notes').select('date, note').eq('user_id', user.id).gte('date', fmt(p1Start)).lte('date', fmt(p1End)).order('date'),
     ])
 
     const digest1 = buildDigest(r1.data ?? [], 'Последние 2 недели', s1.data ?? [])
     const digest2 = buildDigest(r2.data ?? [], 'Предыдущие 2 недели', s2.data ?? [])
 
-    // Заметки дня за период (SPEC-DAILY-NOTE) — что человек сам писал про свои дни
-    const { data: noteRows } = await supabase
-      .from('context_notes')
-      .select('date, note')
-      .eq('user_id', user.id)
-      .gte('date', fmt(p1Start)).lte('date', fmt(p1End))
-      .order('date')
+    // SpO2
+    const spo2Block = (() => {
+      const vals = (r1.data ?? []).map((r: any) => r.oxygen_saturation).filter(Boolean)
+      if (!vals.length) return ''
+      const lows = (r1.data ?? []).filter((r: any) => r.oxygen_saturation && r.oxygen_saturation < 94)
+      return `\nКислород (SpO2): средн ${avg(vals)!.toFixed(0)}%, мин ${Math.min(...vals).toFixed(0)}%` +
+        (lows.length ? `, дни <94%: ${lows.map((r: any) => `${r.date} (${r.oxygen_saturation.toFixed(0)}%)`).join(', ')}` : '')
+    })()
+
+    // Фазы сна
+    const sleepStagesBlock = (() => {
+      const d = (s1.data ?? []).map((s: any) => s.deep_hours).filter(Boolean)
+      const r = (s1.data ?? []).map((s: any) => s.rem_hours).filter(Boolean)
+      const c = (s1.data ?? []).map((s: any) => s.core_hours).filter(Boolean)
+      if (!d.length && !r.length) return ''
+      const lines = ['\nФазы сна (средн/ночь):']
+      if (d.length) lines.push(`глубокий ${avg(d)!.toFixed(1)}ч`)
+      if (r.length) lines.push(`REM ${avg(r)!.toFixed(1)}ч`)
+      if (c.length) lines.push(`лёгкий ${avg(c)!.toFixed(1)}ч`)
+      return lines.join(' ')
+    })()
+
+    // Питание / события
+    const nutritionBlock = (() => {
+      const ev = intake.data ?? []
+      if (!ev.length) return ''
+      const cnt = (t: string) => ev.filter((e: any) => e.type === t).length
+      const coffee = cnt('coffee'), alcohol = cnt('alcohol'), meals = cnt('meal'), water = cnt('water')
+      const alcoholDays = [...new Set(ev.filter((e: any) => e.type === 'alcohol').map((e: any) => e.ts.slice(0, 10)))]
+      const lines = ['\nПитание/события за 2 недели:']
+      if (coffee) lines.push(`☕ кофе: ${coffee} раз`)
+      if (alcohol) lines.push(`🍷 алкоголь: ${alcohol} раз (дни: ${alcoholDays.join(', ')})`)
+      if (meals) lines.push(`🍽 приёмов еды записано: ${meals}`)
+      if (water) lines.push(`💧 вода: ${water} записей`)
+      const notes = ev.filter((e: any) => e.note).map((e: any) => `${e.ts.slice(5, 10)} ${e.note}`)
+      if (notes.length) lines.push(`заметки еды: ${notes.join('; ')}`)
+      return lines.join('\n')
+    })()
+
+    // Приём препаратов (соблюдение)
+    const adherenceBlock = (() => {
+      const sups = supList.data ?? []
+      if (!sups.length) return ''
+      const taken = supLogs.data ?? []
+      const days = 14
+      const lines = ['\nПриём препаратов (за 14 дней):']
+      for (const sup of sups) {
+        const n = taken.filter((t: any) => (t.supplements as any)?.name === sup.name).length
+        lines.push(`${sup.name}: ${n}/${days} дней (${Math.round(n / days * 100)}%)`)
+      }
+      return lines.join('\n')
+    })()
+
+    // Анализы
+    const labsBlock = (() => {
+      const rows = labs.data ?? []
+      if (!rows.length) return ''
+      const byMarker: Record<string, any[]> = {}
+      for (const r of rows) (byMarker[r.marker] ??= []).push(r)
+      const lines = ['\nАнализы (последнее значение, тренд):']
+      for (const [marker, entries] of Object.entries(byMarker)) {
+        const latest = entries[0]
+        const u = latest.unit ? ` ${latest.unit}` : ''
+        if (entries.length >= 2) {
+          const delta = latest.value - entries[1].value
+          lines.push(`${marker}: ${latest.value}${u} (${latest.date}, ${delta > 0 ? '+' : ''}${delta.toFixed(1)} к пред.)`)
+        } else lines.push(`${marker}: ${latest.value}${u} (${latest.date})`)
+      }
+      return lines.join('\n')
+    })()
+
+    const noteRows = noteRowsRes.data
     const notesBlock = noteRows?.length
-      ? `\nЗаметки дня (со слов пользователя — объясняют всплески и просадки):\n${noteRows.map((n: any) => `${n.date}: ${n.note}`).join('\n')}\n`
+      ? `\nЗаметки дня (со слов пользователя — объясняют всплески и просадки):\n${noteRows.map((n: any) => `${n.date}: ${n.note}`).join('\n')}`
       : ''
 
-    const prompt = `Сравни два периода здоровья и напиши отчёт для Telegram.
+    const prompt = `Ты — опытный аналитик здоровья. Напиши ПОДРОБНЫЙ двухнедельный отчёт для пользователя по всем его данным.
 
 ${digest1}
+${spo2Block}${sleepStagesBlock}${nutritionBlock}${adherenceBlock}${labsBlock}${notesBlock}
 
+ДЛЯ СРАВНЕНИЯ — предыдущие 2 недели:
 ${digest2}
-${notesBlock}
-Требования:
-- Только plain text, никакого markdown, никаких звёздочек или решёток
-- Emoji разрешены
-- Максимум 800 символов итогового текста
-- Структура:
-  1 строка — общий вывод
-  ✅ что улучшилось (с конкретными цифрами)
-  📉 что просело — если есть данные о позднем засыпании или стрессовых днях, упомяни конкретные даты
-  💡 1-2 совета исходя из слабых мест
-- Конкретно по датам и цифрам из данных, без общих фраз
-- Без диагнозов, на русском`
+
+Требования к отчёту:
+- Plain text, без markdown (никаких *, #, _). Emoji для заголовков разделов разрешены и желательны.
+- Разверни ПОДРОБНО, по разделам, каждый раздел с конкретными цифрами и датами:
+  📋 Краткий итог (2-3 предложения)
+  😴 Сон — длительность, фазы (глубокий/REM), позднее засыпание, динамика к прошлому периоду
+  ❤️ Сердце и восстановление — ЧСС покоя, HRV, стрессовые дни
+  🏃 Активность — шаги, калории, динамика
+  🫁 Кислород — если есть SpO2, оцени
+  🍽 Питание и привычки — кофе, алкоголь, еда; связь с самочувствием/сном если видна
+  💊 Препараты — соблюдение приёма
+  🧪 Анализы — если есть, отметь отклонения и тренды
+  🔗 Связи и закономерности — свяжи события (алкоголь/кофе/футбол из заметок) с метриками (пульс, сон) по конкретным датам
+  💡 Рекомендации — 3-5 конкретных советов по слабым местам
+- Опирайся на личные тренды пользователя, сравнивай с его же прошлым периодом, а не с абсолютными нормами.
+- Конкретика по датам и цифрам, без воды и общих фраз.
+- Без медицинских диагнозов. При тревожных значениях мягко советуй врача.
+- На русском. Объём — насколько нужно для полноты, но без воды.`
 
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
@@ -187,8 +282,12 @@ ${notesBlock}
     const { data: tgLink } = await supabase.from('telegram_links').select('telegram_chat_id').eq('user_id', user.id).eq('status', 'active').single()
     if (tgLink?.telegram_chat_id) {
       const tgReport = report.replace(/[*_`#]/g, '')
-      const header = `📊 Двухнедельный отчёт\n${fmt(p1Start)} — ${fmt(p1End)}\n\n`
-      await sendTelegram(tgLink.telegram_chat_id, (header + tgReport).slice(0, 4096))
+      const header = `📊 Подробный двухнедельный отчёт\n${fmt(p1Start)} — ${fmt(p1End)}\n\n`
+      const chunks = splitForTelegram(header + tgReport)
+      for (const chunk of chunks) {
+        await sendTelegram(tgLink.telegram_chat_id, chunk)
+        await new Promise(r => setTimeout(r, 400)) // не упереться в rate limit
+      }
       await supabase.from('scheduled_reports').update({ delivered_at: new Date().toISOString(), channel: 'telegram' }).eq('id', saved?.id)
     }
 
