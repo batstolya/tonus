@@ -202,4 +202,18 @@ export const translations: Record<string, { uk: string; en: string }> = {
   'Для анализа агрегированный дайджест твоих данных здоровья (средние значения, тренды) будет отправлен в Google Gemini API. Сырые данные и персональная информация не передаются.': { uk: 'Для аналізу агрегований дайджест твоїх даних здоровʼя (середні значення, тренди) буде надіслано в Google Gemini API. Сирі дані та персональна інформація не передаються.', en: 'For analysis, an aggregated digest of your health data (averages, trends) is sent to the Google Gemini API. Raw data and personal info are not shared.' },
   'Нажимая «Согласен», ты подтверждаешь отправку данных во внешний сервис.': { uk: 'Натискаючи «Згоден», ти підтверджуєш надсилання даних у зовнішній сервіс.', en: 'By tapping "Agree", you consent to sending data to an external service.' },
   'Согласен': { uk: 'Згоден', en: 'Agree' },
+
+  // ── Чат ────────────────────────────────────────────────────
+  'Ошибка': { uk: 'Помилка', en: 'Error' },
+  'Чат с ИИ': { uk: 'Чат зі ШІ', en: 'AI chat' },
+  'ИИ-ассистент': { uk: 'ШІ-асистент', en: 'AI assistant' },
+  '2 недели': { uk: '2 тижні', en: '2 weeks' },
+  '30 дней': { uk: '30 днів', en: '30 days' },
+  '3 месяца': { uk: '3 місяці', en: '3 months' },
+  'Привет! Я знаю твои данные здоровья за': { uk: 'Привіт! Я знаю твої дані здоровʼя за', en: 'Hi! I know your health data for' },
+  'Задай любой вопрос.': { uk: 'Постав будь-яке питання.', en: 'Ask anything.' },
+  'Как мой сон за период?': { uk: 'Як мій сон за період?', en: 'How was my sleep this period?' },
+  'Что с HRV?': { uk: 'Що з HRV?', en: 'How about my HRV?' },
+  'Когда лучшие показатели?': { uk: 'Коли найкращі показники?', en: 'When were my best metrics?' },
+  'Спроси о своих данных…': { uk: 'Запитай про свої дані…', en: 'Ask about your data…' },
 }
