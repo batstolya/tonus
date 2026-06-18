@@ -234,6 +234,9 @@ export async function loadSupplementSummary(userId: string, periodDays: number):
     .eq('taken', true)
 
   const logSet = new Set((logs ?? []).map((l: any) => `${l.supplement_id}:${l.date}`))
+  // даты приёма по каждому препарату — чтобы можно было связать с конкретным днём
+  const datesBySup: Record<string, string[]> = {}
+  for (const l of logs ?? []) (datesBySup[l.supplement_id] ??= []).push(l.date)
 
   // count days in period
   const days: string[] = []
@@ -244,7 +247,9 @@ export async function loadSupplementSummary(userId: string, periodDays: number):
     const taken = days.filter(day => logSet.has(`${s.id}:${day}`)).length
     const pct = days.length ? Math.round((taken / days.length) * 100) : 0
     const dose = s.default_dose ? ` ${s.default_dose}${s.unit ? ' ' + s.unit : ''}` : ''
-    return `${s.name}${dose}: принято ${taken}/${days.length} дней (${pct}%)`
+    const takenDates = (datesBySup[s.id] ?? []).sort()
+    const datesStr = takenDates.length ? `\n  дни приёма: ${takenDates.join(', ')}` : ''
+    return `${s.name}${dose}: принято ${taken}/${days.length} дней (${pct}%)${datesStr}`
   })
 
   return lines.join('\n')
