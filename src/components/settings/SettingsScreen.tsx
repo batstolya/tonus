@@ -4,6 +4,7 @@ import type { CalendarEvent } from '../../types'
 import { loadMonthUsage, loadBudget, saveBudget } from '../../lib/aiUsage'
 import { loadDailyNoteSettings, saveDailyNoteSettings } from '../../lib/dailyNote'
 import { loadReportSettings, saveReportSettings, type ReportSettings } from '../../lib/reportSettings'
+import { useT, LANGS } from '../../lib/i18n'
 import { supabase } from '../../lib/supabase'
 import type { DeviceType } from '../../store/appStore'
 
@@ -27,6 +28,7 @@ const SOURCE_LABELS: Record<string, string> = {
 }
 
 export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnected, lastSync, calLastSync, onCalEvents, onNavigate, deviceType, onDeviceTypeChange }: Props) {
+  const { t, lang, setLang } = useT()
   const [cost, setCost] = useState<number | null>(null)
   const [tokens, setTokens] = useState(0)
   const [bySource, setBySource] = useState<Record<string, number>>({})
@@ -151,7 +153,23 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
 
   return (
     <div className="settings-screen">
-      <h2>Настройки</h2>
+      <h2>{t('Настройки')}</h2>
+
+      <section className="settings-section">
+        <h3 className="settings-section-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: 8 }}><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          {t('Язык интерфейса')}
+        </h3>
+        <div className="rep-seg">
+          {LANGS.map(l => (
+            <button
+              key={l.code}
+              className={`rep-seg-btn${lang === l.code ? ' on' : ''}`}
+              onClick={() => setLang(l.code)}
+            >{l.flag} {l.label}</button>
+          ))}
+        </div>
+      </section>
 
       <section className="settings-section">
         <h3 className="settings-section-title">
