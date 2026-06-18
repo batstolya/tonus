@@ -175,10 +175,11 @@ serve(async () => {
         .select('user_id')
         .eq('status', 'active')
       for (const l of links ?? []) {
-        // пропустить, если отчёты на паузе
+        // настройки отчёта (частота)
         const { data: rs } = await supabase
-          .from('report_settings').select('paused').eq('user_id', l.user_id).maybeSingle()
+          .from('report_settings').select('paused, frequency_days').eq('user_id', l.user_id).maybeSingle()
         if (rs?.paused) continue
+        const freqDays = rs?.frequency_days ?? 14
         // последний доставленный отчёт
         const { data: last } = await supabase
           .from('scheduled_reports')
@@ -191,7 +192,7 @@ serve(async () => {
         const daysSince = last?.delivered_at
           ? (nowMs - new Date(last.delivered_at).getTime()) / 86400000
           : 999
-        if (daysSince < 14) continue
+        if (daysSince < freqDays) continue
         // сгенерировать отчёт через biweekly-report (service-role + x-user-id)
         try {
           await fetch(`${SUPABASE_URL}/functions/v1/biweekly-report`, {
@@ -208,7 +209,44 @@ serve(async () => {
     }
   }
 
-  return new Response(JSON.stringify({ created, sent, notesSent, reportsSent }), {
+  // ── 6. Утренняя сводка (B4) ─────────────────────────────────────────────────
+  let morningsSent = 0
+  {
+    const { data: morn } = await supabase
+      .from('report_settings')
+      .select('user_id, morning_time, timezone, morning_last_sent')
+      .eq('morning_summary', true)
+    for (const m of morn ?? []) {
+      const tz = m.timezone || 'Europe/Kyiv'
+      const { hhmm, dateStr } = localNow(tz)
+      if (!timeDue(m.morning_time || '09:00', hhmm)) continue
+      if (m.morning_last_sent === dateStr) continue
+      const { data: link } = await supabase
+        .from('telegram_links').select('telegram_chat_id').eq('user_id', m.user_id).eq('status', 'active').maybeSingle()
+      if (!link?.telegram_chat_id) continue
+
+      // короткая сводка по последним 7 дням
+      const since = new Date(nowMs - 7 * 86400000).toISOString().slice(0, 10)
+      const { data: rows } = await supabase
+        .from('daily_metrics')
+        .select('resting_heart_rate, hrv, sleep_hours')
+        .eq('user_id', m.user_id).gte('date', since)
+      const avgF = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
+      const rhr = (rows ?? []).map((r: any) => r.resting_heart_rate).filter(Boolean)
+      const hrv = (rows ?? []).map((r: any) => r.hrv).filter(Boolean)
+      const sl = (rows ?? []).map((r: any) => r.sleep_hours).filter(Boolean)
+      const parts = ['☀️ <b>Доброе утро!</b> Сводка за неделю:']
+      if (sl.length) parts.push(`😴 Сон: ${avgF(sl)!.toFixed(1)} ч/ночь`)
+      if (rhr.length) parts.push(`❤️ ЧСС покоя: ${avgF(rhr)!.toFixed(0)} уд/мин`)
+      if (hrv.length) parts.push(`💚 HRV: ${avgF(hrv)!.toFixed(0)} мс`)
+      parts.push('\nХорошего дня! 💪')
+      await tgSend(link.telegram_chat_id, parts.join('\n'))
+      await supabase.from('report_settings').update({ morning_last_sent: dateStr }).eq('user_id', m.user_id)
+      morningsSent++
+    }
+  }
+
+  return new Response(JSON.stringify({ created, sent, notesSent, reportsSent, morningsSent }), {
     headers: { 'Content-Type': 'application/json' },
   })
 })

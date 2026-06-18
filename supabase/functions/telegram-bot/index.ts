@@ -990,6 +990,9 @@ serve(async (req) => {
   }
 
   // Естественный ввод: "принял финастерид 1мг", "пил кофе в 14:00", "съел макдак"
+  // Дешёвый keyword-фильтр: классификатор (доп. Gemini-вызов) только если похоже на лог
+  const looksLikeLog = /прин(я|и)л|выпил|пил|съел|поел|сожрал|кофе|алкогол|вин[оа]|пив[оа]|водк|воды|выпь|таблетк|капсул|\bмг\b|\bмл\b|макдак|макдональ|еду|покушал/i.test(text)
+  if (looksLikeLog) {
   const { data: supList } = await supabase
     .from('supplements').select('name').eq('user_id', userId).eq('active', true)
   const supNames = (supList ?? []).map((s: any) => s.name)
@@ -1003,6 +1006,7 @@ serve(async (req) => {
       await tgSend(chatId, confirm, { reply_markup: BACK_MENU })
       return new Response('ok')
     }
+  }
   }
 
   // Any other text → AI chat (B3)
