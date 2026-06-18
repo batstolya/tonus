@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { DailyMetrics } from '../../types'
 import { runAnalysis, loadAnalyses, deleteAnalysis, type AiAnalysis, type AnalysisPeriod } from '../../lib/aiAnalysis'
+import { useT } from '../../lib/i18n'
 
 interface Props {
   daily: DailyMetrics[]
@@ -16,6 +17,7 @@ function fmtPeriod(s: string, e: string) {
 }
 
 function AnalysisCard({ item, onDelete }: { item: AiAnalysis; onDelete: (id: string) => void }) {
+  const { t } = useT()
   const [open, setOpen] = useState(false)
 
   return (
@@ -26,7 +28,7 @@ function AnalysisCard({ item, onDelete }: { item: AiAnalysis; onDelete: (id: str
           <span className="ai-card-period">{fmtPeriod(item.period_start, item.period_end)}</span>
         </div>
         <div className="ai-card-actions">
-          <button className="ai-card-delete" onClick={e => { e.stopPropagation(); onDelete(item.id) }} title="Удалить">
+          <button className="ai-card-delete" onClick={e => { e.stopPropagation(); onDelete(item.id) }} title={t('Удалить')}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
           </button>
           <span className="ai-card-chevron">
@@ -42,20 +44,20 @@ function AnalysisCard({ item, onDelete }: { item: AiAnalysis; onDelete: (id: str
           <p className="ai-summary">{item.summary}</p>
           {item.good.length > 0 && (
             <div className="ai-section">
-              <span className="ai-section-label good">Что хорошо</span>
-              <ul>{item.good.map((t, i) => <li key={i}>{t}</li>)}</ul>
+              <span className="ai-section-label good">{t('Что хорошо')}</span>
+              <ul>{item.good.map((txt, i) => <li key={i}>{txt}</li>)}</ul>
             </div>
           )}
           {item.improve.length > 0 && (
             <div className="ai-section">
-              <span className="ai-section-label improve">Что улучшить</span>
-              <ul>{item.improve.map((t, i) => <li key={i}>{t}</li>)}</ul>
+              <span className="ai-section-label improve">{t('Что улучшить')}</span>
+              <ul>{item.improve.map((txt, i) => <li key={i}>{txt}</li>)}</ul>
             </div>
           )}
           {item.focus.length > 0 && (
             <div className="ai-section">
-              <span className="ai-section-label focus">Фокус</span>
-              <ul>{item.focus.map((t, i) => <li key={i}>{t}</li>)}</ul>
+              <span className="ai-section-label focus">{t('Фокус')}</span>
+              <ul>{item.focus.map((txt, i) => <li key={i}>{txt}</li>)}</ul>
             </div>
           )}
         </div>
@@ -65,6 +67,7 @@ function AnalysisCard({ item, onDelete }: { item: AiAnalysis; onDelete: (id: str
 }
 
 export function AiAnalysisBlock({ daily, userId }: Props) {
+  const { t } = useT()
   const [analyses, setAnalyses] = useState<AiAnalysis[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -84,7 +87,7 @@ export function AiAnalysisBlock({ daily, userId }: Props) {
       const result = await runAnalysis(userId, daily, period)
       setAnalyses(prev => [result, ...prev])
     } catch (e: any) {
-      setError(e.message ?? 'Ошибка анализа')
+      setError(e.message ?? t('Ошибка анализа'))
     }
     setLoading(false)
   }
@@ -106,29 +109,29 @@ export function AiAnalysisBlock({ daily, userId }: Props) {
       {showConsent && (
         <div className="ai-consent-overlay" onClick={() => setShowConsent(false)}>
           <div className="ai-consent-card" onClick={e => e.stopPropagation()}>
-            <h3>Анализ данных через ИИ</h3>
-            <p>Для анализа агрегированный дайджест твоих данных здоровья (средние значения, тренды) будет отправлен в Google Gemini API. Сырые данные и персональная информация не передаются.</p>
-            <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Нажимая «Согласен», ты подтверждаешь отправку данных во внешний сервис.</p>
+            <h3>{t('Анализ данных через ИИ')}</h3>
+            <p>{t('Для анализа агрегированный дайджест твоих данных здоровья (средние значения, тренды) будет отправлен в Google Gemini API. Сырые данные и персональная информация не передаются.')}</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>{t('Нажимая «Согласен», ты подтверждаешь отправку данных во внешний сервис.')}</p>
             <div className="ai-consent-btns">
-              <button className="btn-primary" onClick={handleConsent}>Согласен</button>
-              <button className="btn-ghost" onClick={() => setShowConsent(false)}>Отмена</button>
+              <button className="btn-primary" onClick={handleConsent}>{t('Согласен')}</button>
+              <button className="btn-ghost" onClick={() => setShowConsent(false)}>{t('Отмена')}</button>
             </div>
           </div>
         </div>
       )}
 
       <div className="ai-block-header">
-        <h3>ИИ-анализ</h3>
+        <h3>{t('ИИ-анализ')}</h3>
         <div className="ai-controls">
           <div className="presets" style={{ marginBottom: 0 }}>
             {(['14d', '30d'] as AnalysisPeriod[]).map(p => (
               <button key={p} className={period === p ? 'preset active' : 'preset'} onClick={() => setPeriod(p)}>
-                {p === '14d' ? '2 нед' : '1 мес'}
+                {p === '14d' ? t('2 нед') : t('1 мес')}
               </button>
             ))}
           </div>
           <button className="btn-primary ai-run-btn" onClick={handleRun} disabled={loading}>
-            {loading ? <span className="ai-spinner" /> : '✦'} {loading ? 'Анализируем…' : 'Проанализировать'}
+            {loading ? <span className="ai-spinner" /> : '✦'} {loading ? t('Анализируем…') : t('Проанализировать')}
           </button>
         </div>
       </div>
