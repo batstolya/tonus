@@ -127,6 +127,35 @@ export function LabsScreen({ user }: Props) {
 
       {error && <p className="auth-error">{error}</p>}
 
+      {/* Latest markers with flags */}
+      {results.length > 0 && (() => {
+        const latest = new Map<string, LabResult>()
+        for (const r of [...results].sort((a, b) => a.date.localeCompare(b.date))) latest.set(r.marker, r)
+        const items = [...latest.values()]
+        const abn = items.filter(r => r.flag === 'low' || r.flag === 'high')
+        return (
+          <div className="labs-section">
+            <h3>{t('Показатели')} {abn.length > 0 && <span className="labs-abn-count">· {abn.length} {t('вне нормы')}</span>}</h3>
+            <div className="labs-markers">
+              {items.sort((a, b) => (a.flag === 'normal' || !a.flag ? 1 : 0) - (b.flag === 'normal' || !b.flag ? 1 : 0))
+                .map(r => {
+                  const cls = r.flag === 'high' ? 'high' : r.flag === 'low' ? 'low' : ''
+                  return (
+                    <div key={r.id} className={`labs-marker ${cls}`}>
+                      <span className="labs-marker-name">{r.marker}</span>
+                      <span className="labs-marker-val">
+                        {r.flag === 'high' && '↑ '}{r.flag === 'low' && '↓ '}
+                        <b>{r.value}</b>{r.unit ? ` ${r.unit}` : ''}
+                      </span>
+                      {r.ref_range && <span className="labs-marker-ref">{t('норма')}: {r.ref_range}</span>}
+                    </div>
+                  )
+                })}
+            </div>
+          </div>
+        )
+      })()}
+
       {/* Biomarker trends */}
       {markers.length > 0 && (
         <div className="labs-section">
