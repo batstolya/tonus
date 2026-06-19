@@ -121,6 +121,22 @@ function parseHAE(userId: string, payload: any): { metrics: MetricRow[]; sleep: 
   return { metrics, sleep }
 }
 
+// Сырые посекундные замеры пульса для карты стресса (heart_rate_samples).
+// Дедуп по ts (Apple пишет несколько в секунду). Только если пришли сэмплы.
+function parseHRSamples(userId: string, payload: any): { user_id: string; ts: string; bpm: number; source: string }[] {
+  const metricsArr: any[] = payload?.data?.metrics ?? payload?.metrics ?? []
+  const hr = metricsArr.find(m => m?.name === 'heart_rate')
+  if (!hr || !Array.isArray(hr.data)) return []
+  const byTs = new Map<string, { user_id: string; ts: string; bpm: number; source: string }>()
+  for (const p of hr.data) {
+    const bpm = num(p.Avg ?? p.avg ?? p.qty ?? p.value)
+    if (bpm == null || !p.date) continue
+    const ts = new Date(String(p.date)).toISOString()
+    byTs.set(ts, { user_id: userId, ts, bpm: Math.round(bpm), source: p.source ?? 'Apple' })
+  }
+  return [...byTs.values()]
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
   try {
@@ -165,6 +181,11 @@ serve(async (req) => {
         const { error } = await supabase.from('sleep_sessions').upsert(
           sleep.map(r => ({ ...r })), { onConflict: 'user_id,date' })
         if (!error) promoted += sleep.length
+      }
+      // сырой пульс для карты стресса (если HAE прислал сэмплы, а не дневной агрегат)
+      const hrSamples = parseHRSamples(userId, payload)
+      for (let i = 0; i < hrSamples.length; i += 500) {
+        await supabase.from('heart_rate_samples').upsert(hrSamples.slice(i, i + 500), { onConflict: 'user_id,ts' })
       }
     }
 
