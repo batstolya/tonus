@@ -100,6 +100,7 @@ export const translations: Record<string, { uk: string; en: string }> = {
   'Пульс покоя выше нормы на {n} уд/мин': { uk: 'Пульс спокою вищий за норму на {n} уд/хв', en: 'Resting HR is {n} bpm above normal' },
   'HRV ниже нормы на {n} мс': { uk: 'HRV нижче норми на {n} мс', en: 'HRV is {n} ms below normal' },
   'Сон менее 6 ч ({n} ч)': { uk: 'Сон менше 6 год ({n} год)', en: 'Sleep under 6h ({n}h)' },
+  'Относительно вашей нормы (30 дней)': { uk: 'Відносно вашої норми (30 днів)', en: 'Vs your baseline (30 days)' },
   'Фокус недели': { uk: 'Фокус тижня', en: 'Weekly focus' },
   'из 7 дней': { uk: 'із 7 днів', en: 'of 7 days' },
   'Сегодня держусь': { uk: 'Сьогодні тримаюсь', en: 'On track today' },

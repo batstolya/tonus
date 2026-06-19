@@ -10,6 +10,7 @@ export interface HealthContextOptions {
 export interface HealthContext {
   periodDays: number
   coachProfile: { summary: string; facts: string[] } | null
+  scores: Record<string, any> | null
   metrics: Record<string, any>[]
   sleep: Record<string, any>[]
   labs: Record<string, any>[]
@@ -32,10 +33,11 @@ export async function buildHealthContext(
   const since = new Date(); since.setDate(since.getDate() - periodDays)
   const sinceStr = since.toISOString().slice(0, 10)
 
-  const [profRes, mRes, sRes, labRes, supRes, intakeRes, logRes, notesRes] = await Promise.all([
+  const [profRes, scoreRes, mRes, sRes, labRes, supRes, intakeRes, logRes, notesRes] = await Promise.all([
     opts.includeCoachProfile
       ? supabase.from('coach_profile').select('summary, facts').eq('user_id', userId).maybeSingle()
       : Promise.resolve({ data: null }),
+    supabase.from('daily_scores').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('daily_metrics')
       .select('date, resting_heart_rate, hrv, sleep_hours, steps, active_energy, oxygen_saturation')
       .eq('user_id', userId).gte('date', sinceStr).order('date', { ascending: true }),
@@ -61,6 +63,7 @@ export async function buildHealthContext(
   return {
     periodDays,
     coachProfile: prof?.summary ? { summary: prof.summary, facts: Array.isArray(prof.facts) ? prof.facts : [] } : null,
+    scores: scoreRes.data ?? null,
     metrics: mRes.data ?? [],
     sleep: sRes.data ?? [],
     labs: labRes.data ?? [],
@@ -78,6 +81,22 @@ export function healthContextToText(ctx: HealthContext): string {
   if (ctx.coachProfile) {
     const facts = ctx.coachProfile.facts.length ? `\nФакты: ${ctx.coachProfile.facts.join('; ')}` : ''
     parts.push(`=== ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ (помни это) ===\n${ctx.coachProfile.summary}${facts}\n`)
+  }
+
+  if (ctx.scores) {
+    const s = ctx.scores
+    const sc: string[] = []
+    if (s.readiness != null) sc.push(`готовность ${s.readiness}/100`)
+    if (s.recovery_score != null) sc.push(`восстановление ${s.recovery_score}/100`)
+    if (s.sleep_score != null) sc.push(`сон ${s.sleep_score}/100`)
+    if (s.stress_score != null) sc.push(`нагрузка ${s.stress_score}/100`)
+    if (sc.length) parts.push(`=== ОЦЕНКИ (${s.date}) ===\n${sc.join(', ')}`)
+    // персональная норма (базовая линия)
+    const base: string[] = []
+    if (s.hrv_baseline != null) base.push(`HRV ~${Math.round(s.hrv_baseline)}мс`)
+    if (s.rhr_baseline != null) base.push(`пульс покоя ~${Math.round(s.rhr_baseline)}`)
+    if (s.sleep_baseline != null) base.push(`сон ~${s.sleep_baseline.toFixed(1)}ч`)
+    if (base.length) parts.push(`Персональная норма (30 дней): ${base.join(', ')}. Сравнивай текущие значения с этой нормой, а не с абсолютной.`)
   }
 
   const rows = ctx.metrics
