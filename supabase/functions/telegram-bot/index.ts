@@ -304,6 +304,16 @@ async function buildBotContext(userId: string, supabase: any): Promise<string> {
   const since = new Date(); since.setDate(since.getDate() - 14)
   const sinceStr = since.toISOString().slice(0, 10)
 
+  const parts: string[] = []
+
+  // Профиль коуча (память поверх 14-дневного окна)
+  const { data: prof } = await supabase
+    .from('coach_profile').select('summary, facts').eq('user_id', userId).maybeSingle()
+  if (prof?.summary) {
+    const facts = Array.isArray(prof.facts) && prof.facts.length ? `\nФакты: ${prof.facts.join('; ')}` : ''
+    parts.push(`=== ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ (помни это) ===\n${prof.summary}${facts}\n`)
+  }
+
   const { data: rows } = await supabase
     .from('daily_metrics')
     .select('date, resting_heart_rate, hrv, sleep_hours, steps, active_energy, oxygen_saturation')
@@ -314,7 +324,7 @@ async function buildBotContext(userId: string, supabase: any): Promise<string> {
   const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
   const num = (r: any[], k: string) => r.map(x => x[k]).filter((v: any) => v != null && !isNaN(v))
 
-  const parts: string[] = [`=== ДАННЫЕ ЗА 14 ДНЕЙ (${rows?.length ?? 0} дн.) ===`]
+  parts.push(`=== ДАННЫЕ ЗА 14 ДНЕЙ (${rows?.length ?? 0} дн.) ===`)
   if (rows?.length) {
     const rhr = num(rows, 'resting_heart_rate'), hrv = num(rows, 'hrv')
     const sleep = num(rows, 'sleep_hours'), steps = num(rows, 'steps')

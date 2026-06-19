@@ -43,6 +43,7 @@ export function buildContextSnapshot(
   notesSummary?: string,
   concernsSummary?: string,
   hairSummary?: string,
+  coachProfile?: string,
 ): string {
   const sorted = [...daily].sort((a, b) => a.date.localeCompare(b.date))
   const cutoff = new Date()
@@ -51,7 +52,9 @@ export function buildContextSnapshot(
   const slice = sorted.filter(d => d.date >= cutoffStr)
   if (!slice.length) return 'Данных нет.'
 
-  const lines: string[] = [`Период: ${slice[0].date} — ${slice[slice.length - 1].date} (${slice.length} дней)`]
+  const lines: string[] = []
+  if (coachProfile) lines.push(`=== ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ (помни это) ===\n${coachProfile}\n`)
+  lines.push(`Период: ${slice[0].date} — ${slice[slice.length - 1].date} (${slice.length} дней)`)
 
   const rhr = pick(slice, 'restingHeartRate')
   if (rhr.length) lines.push(`Пульс покоя: среднее ${avg(rhr)?.toFixed(0)} уд/мин, мин ${Math.min(...rhr).toFixed(0)}, макс ${Math.max(...rhr).toFixed(0)}`)
@@ -230,6 +233,24 @@ export function buildContextSnapshot(
   }
 
   return lines.join('\n')
+}
+
+// Профиль коуча (память). Пересобирает раз в сутки через edge-функцию, иначе из БД.
+export async function loadCoachProfile(): Promise<string> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return ''
+    const url = import.meta.env.VITE_SUPABASE_URL as string
+    const res = await fetch(`${url}/functions/v1/coach-profile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      body: JSON.stringify({ force: false }),
+    })
+    if (!res.ok) return ''
+    const p = await res.json()
+    const facts = Array.isArray(p.facts) && p.facts.length ? `\nФакты: ${p.facts.join('; ')}` : ''
+    return p.summary ? `${p.summary}${facts}` : ''
+  } catch { return '' }
 }
 
 // Заметки дня за период

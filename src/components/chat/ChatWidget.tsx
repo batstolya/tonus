@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import type { User } from '@supabase/supabase-js'
 import type { DailyMetrics, HeartRateSample } from '../../types'
-import { sendChatMessage, buildContextSnapshot, loadLabSummary, loadSupplementSummary, loadNotesSummary, loadConcernsSummary, loadHairSummary, type ChatMessage, type IntakeEvent } from '../../lib/chat'
+import { sendChatMessage, buildContextSnapshot, loadLabSummary, loadSupplementSummary, loadNotesSummary, loadConcernsSummary, loadHairSummary, loadCoachProfile, type ChatMessage, type IntakeEvent } from '../../lib/chat'
 import { useT } from '../../lib/i18n'
 
 interface Props {
@@ -43,6 +43,7 @@ export function ChatWidget({ user, daily, intakeEvents = [], heartRateSamples = 
   const [notesSummary, setNotesSummary] = useState<string>('')
   const [concernsSummary, setConcernsSummary] = useState<string>('')
   const [hairSummary, setHairSummary] = useState<string>('')
+  const [coachProfile, setCoachProfile] = useState<string>('')
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -50,6 +51,7 @@ export function ChatWidget({ user, daily, intakeEvents = [], heartRateSamples = 
     loadLabSummary(user.id).then(setLabSummary)
     loadConcernsSummary(user.id).then(setConcernsSummary)
     loadHairSummary(user.id).then(setHairSummary)
+    loadCoachProfile().then(setCoachProfile)
   }, [user.id])
 
   // Rebuild snapshot when period changes (also reloads supplement compliance for the new period)
@@ -61,10 +63,10 @@ export function ChatWidget({ user, daily, intakeEvents = [], heartRateSamples = 
 
   useEffect(() => {
     const days = period === '14d' ? 14 : period === '30d' ? 30 : 90
-    setSnapshot(daily.length ? buildContextSnapshot(daily, days, labSummary || undefined, intakeEvents, supplementSummary || undefined, heartRateSamples, notesSummary || undefined, concernsSummary || undefined, hairSummary || undefined) : null)
+    setSnapshot(daily.length ? buildContextSnapshot(daily, days, labSummary || undefined, intakeEvents, supplementSummary || undefined, heartRateSamples, notesSummary || undefined, concernsSummary || undefined, hairSummary || undefined, coachProfile || undefined) : null)
     setSessionId(null)
     setMessages([])
-  }, [period, daily, labSummary, intakeEvents, supplementSummary, heartRateSamples, notesSummary, concernsSummary, hairSummary])
+  }, [period, daily, labSummary, intakeEvents, supplementSummary, heartRateSamples, notesSummary, concernsSummary, hairSummary, coachProfile])
 
   useEffect(() => {
     if (open) {
