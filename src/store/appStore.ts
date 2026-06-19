@@ -1,11 +1,11 @@
 import { useState, useCallback, useEffect } from 'react'
 import type { DailyMetrics, HeartRateSample, CalendarEvent, ParseProgress } from '../types'
 
-export type AppView = 'upload' | 'dashboard' | 'heart-rate' | 'metrics' | 'stress-map' | 'sleep' | 'activity' | 'insights' | 'supplements' | 'labs' | 'settings' | 'goals' | 'concerns' | 'hair' | 'research' | 'nutrition'
+export type AppView = 'upload' | 'dashboard' | 'heart-rate' | 'metrics' | 'stress-map' | 'sleep' | 'activity' | 'insights' | 'supplements' | 'labs' | 'settings' | 'goals' | 'concerns' | 'hair' | 'research' | 'experiments' | 'nutrition'
 
 export type DeviceType = 'apple_watch' | 'xiaomi'
 
-const VIEWS: AppView[] = ['dashboard', 'heart-rate', 'metrics', 'stress-map', 'sleep', 'activity', 'insights', 'research', 'supplements', 'labs', 'settings', 'goals', 'concerns', 'hair', 'nutrition']
+const VIEWS: AppView[] = ['dashboard', 'heart-rate', 'metrics', 'stress-map', 'sleep', 'activity', 'insights', 'research', 'experiments', 'supplements', 'labs', 'settings', 'goals', 'concerns', 'hair', 'nutrition']
 
 function hashToView(): AppView {
   const hash = window.location.hash.slice(1) as AppView
