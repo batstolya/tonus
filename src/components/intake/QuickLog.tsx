@@ -102,6 +102,34 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
     return new Date(date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
   }
 
+  // Caffeine model: 80mg per 200ml, half-life 5.5h
+  function caffeineNow(): number {
+    const nowMs = Date.now()
+    return events
+      .filter(e => e.type === 'coffee' && e.ts.slice(0, 10) === today)
+      .reduce((total, ev) => {
+        const dose = ((ev.amount ?? 200) / 200) * 80
+        const hoursElapsed = (nowMs - new Date(ev.ts).getTime()) / 3600000
+        return total + dose * Math.pow(0.5, hoursElapsed / 5.5)
+      }, 0)
+  }
+  function caffeineAtBedtime(): number {
+    const bedtime = new Date(); bedtime.setHours(23, 0, 0, 0)
+    const targetMs = bedtime.getTime()
+    return events
+      .filter(e => e.type === 'coffee' && e.ts.slice(0, 10) === today)
+      .reduce((total, ev) => {
+        const dose = ((ev.amount ?? 200) / 200) * 80
+        const hoursElapsed = (targetMs - new Date(ev.ts).getTime()) / 3600000
+        if (hoursElapsed < 0) return total
+        return total + dose * Math.pow(0.5, hoursElapsed / 5.5)
+      }, 0)
+  }
+
+  const todayCoffee = events.filter(e => e.type === 'coffee' && e.ts.slice(0, 10) === today)
+  const cafNow = Math.round(caffeineNow())
+  const cafBed = Math.round(caffeineAtBedtime())
+
   return (
     <div className="quick-log">
       <div className="quick-log-header">
@@ -110,6 +138,17 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
           {open ? '✕' : t('+ Добавить')}
         </button>
       </div>
+
+      {todayCoffee.length > 0 && cafNow > 10 && (
+        <div className="caffeine-bar" title={t('Упрощённая модель: 80мг на 200мл, период полувыведения 5.5ч')}>
+          <span className="caffeine-icon">☕</span>
+          <span className="caffeine-text">
+            {t('Кофеин сейчас')}: <b style={{ color: cafNow > 50 ? 'var(--red)' : cafNow > 25 ? '#f59e0b' : 'var(--green)' }}>{cafNow}мг</b>
+            {' · '}{t('к 23:00')}: <b style={{ color: cafBed > 30 ? 'var(--red)' : cafBed > 15 ? '#f59e0b' : 'var(--text-muted)' }}>{cafBed}мг</b>
+            {cafBed > 30 && <span className="caffeine-warn"> {t('— может мешать сну')}</span>}
+          </span>
+        </div>
+      )}
 
       {open && (
         <div className="quick-log-form">
