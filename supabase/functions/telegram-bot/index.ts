@@ -605,6 +605,21 @@ serve(async (req) => {
         .update({ status: 'skipped', responded_at: new Date().toISOString() })
         .eq('id', evId).eq('user_id', userId)
       await tgSend(chatId, '⏭ Пропущено на сегодня.')
+    } else if (data.startsWith('nudge_acc:')) {
+      // Коуч: пользователь берёт совет в работу → ставим follow-up через 5 дней
+      const subtype = data.replace('nudge_acc:', '')
+      const metric = subtype === 'late_coffee' ? 'sleep_hours' : 'hrv' // что отслеживаем
+      const { data: score } = await supabase
+        .from('daily_scores').select('hrv_baseline, sleep_baseline')
+        .eq('user_id', userId).order('date', { ascending: false }).limit(1).maybeSingle()
+      const baseline = metric === 'sleep_hours' ? score?.sleep_baseline ?? null : score?.hrv_baseline ?? null
+      await supabase.from('coach_events').insert({
+        user_id: userId, type: 'followup', status: 'open',
+        payload: { subtype, metric, baseline, due: new Date(Date.now() + 5 * 86400000).toISOString() },
+      })
+      await tgSend(chatId, '👍 Беру на заметку — проверю через несколько дней, как отзовётся, и вернусь с результатом.')
+    } else if (data === 'nudge_no') {
+      await tgSend(chatId, 'Окей, без давления 🙂')
     }
 
     return new Response('ok')
