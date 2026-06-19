@@ -739,6 +739,12 @@ body {
   .signout-btn { display: none !important; }
   .theme-toggle { display: none !important; }
 
+  /* Show burger on mobile */
+  .burger-btn { display: flex !important; align-items: center; justify-content: center; }
+
+  /* Show mobile menu overlay when open */
+  .mobile-menu-overlay.open { display: block; }
+
   /* Topbar compact */
   .topbar { padding: 0 12px; gap: 8px; height: 50px; top: 0; }
   .logo-btn { font-size: 16px; }
