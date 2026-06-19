@@ -5,6 +5,7 @@ import type { AppView } from '../../store/appStore'
 import { generateInsights } from '../../utils/insights'
 import { AiAnalysisBlock } from './AiAnalysisBlock'
 import { computeReadiness, computeEarlyWarning } from '../../lib/readiness'
+import { baselineDeviations } from '../../lib/scores'
 import { loadTodayNote, saveNote } from '../../lib/contextNotes'
 import { loadFocus, loadCheckins, checkInToday, removeCheckinToday, type CoachFocus } from '../../lib/coach'
 import { useT } from '../../lib/i18n'
@@ -83,6 +84,11 @@ function ReadinessCard({ daily }: { daily: DailyMetrics[] }) {
   const r = computeReadiness(daily)
   if (!r) return null
 
+  const devs = baselineDeviations(daily)
+  const labels: Record<string, string> = { hrv: 'HRV', rhr: t('Пульс покоя'), sleep: t('Сон'), steps: t('Шаги') }
+  // для HRV/сна/шагов рост = хорошо (зелёный), для пульса покоя рост = плохо (красный)
+  const goodUp: Record<string, boolean> = { hrv: true, sleep: true, steps: true, rhr: false }
+
   return (
     <div className="readiness-card">
       <div className="readiness-top">
@@ -112,6 +118,22 @@ function ReadinessCard({ daily }: { daily: DailyMetrics[] }) {
           )}
         </div>
       </div>
+      {devs.length > 0 && (
+        <div className="readiness-baseline">
+          <div className="readiness-baseline-title">{t('Относительно вашей нормы (30 дней)')}</div>
+          <div className="readiness-baseline-row">
+            {devs.filter(d => Math.abs(d.pct) >= 5).map(d => {
+              const positive = goodUp[d.metric] ? d.pct > 0 : d.pct < 0
+              const color = positive ? 'var(--green)' : 'var(--red)'
+              return (
+                <span key={d.metric} className="readiness-dev" style={{ color }}>
+                  {labels[d.metric]} {d.pct > 0 ? '+' : ''}{d.pct}%
+                </span>
+              )
+            })}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

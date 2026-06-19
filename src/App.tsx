@@ -27,6 +27,7 @@ import { useAuth } from './hooks/useAuth'
 import { useTheme } from './hooks/useTheme'
 import { supabase } from './lib/supabase'
 import { syncMetricsToSupabase, loadMetricsFromSupabase, getLastSyncInfo, syncHRSamples, loadHRSamples } from './lib/sync'
+import { persistDailyScores } from './lib/scores'
 import { saveCalendarEvents, loadCalendarEvents } from './lib/calendarSync'
 import { connectGoogleCalendar, isGoogleCalendarAvailable } from './lib/googleCalendar'
 import { detectAvailableMetrics } from './lib/availableMetrics'
@@ -136,7 +137,10 @@ export default function App() {
       const hrSamples = await loadHRSamples(user!.id)
       if (cancelled) return
 
-      if (stored.length > 0) setDaily(stored, hrSamples, true)
+      if (stored.length > 0) {
+        setDaily(stored, hrSamples, true)
+        persistDailyScores(user!.id, stored).catch(() => {})
+      }
       if (syncInfo?.imported_at) {
         const d = new Date(syncInfo.imported_at)
         setLastSync(d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))
@@ -172,6 +176,7 @@ export default function App() {
       } else {
         setSyncMsg('Данные актуальны')
       }
+      persistDailyScores(user.id, daily).catch(() => {})
     } catch (e: any) {
       setSyncMsg(`Ошибка синхронизации: ${e?.message ?? 'unknown'}`)
     }
