@@ -916,7 +916,8 @@ serve(async (req) => {
       return '█'.repeat(filled) + '░'.repeat(width - filled)
     }
     function fmtTime(iso: string): string {
-      const secs = Math.max(0, Math.floor((new Date(iso).getTime() - Date.now()) / 1000))
+      const secs = Math.floor((new Date(iso).getTime() - Date.now()) / 1000)
+      if (secs <= 0) return 'истёк (вероятно сброшен)'
       const h = Math.floor(secs / 3600)
       const m = Math.floor((secs % 3600) / 60)
       return h > 0 ? `${h}ч ${String(m).padStart(2, '0')}м` : `${m}м`
@@ -931,12 +932,20 @@ serve(async (req) => {
       ? `${bar(wPct)} ${wPct.toFixed(0)}% · сброс через *${fmtTime(usageRow.weekly_resets_at)}*`
       : `${bar(wPct)} ${wPct.toFixed(0)}%`
 
-    const age = Math.floor((Date.now() - new Date(usageRow.updated_at).getTime()) / 60000)
+    const ageMin = Math.floor((Date.now() - new Date(usageRow.updated_at).getTime()) / 60000)
+    const ageStr = ageMin === 0 ? 'только что' : ageMin < 60 ? `${ageMin} мин назад` : `${Math.floor(ageMin / 60)}ч ${ageMin % 60}м назад`
+    // монитор обновляет раз в минуту; >15 мин = он не запущен и цифры могут быть неактуальны
+    const stale = ageMin > 15
+    const header = stale
+      ? `⚠️ *Данные неактуальны* (обновлено ${ageStr}).\nЛокальный монитор не запущен — это последний снимок. Запусти monitor.py для свежих цифр.\n\n`
+      : ''
+    const footer = stale ? '' : `\n\n_обновлено ${ageStr}_`
     await tgSend(chatId,
+      header +
       `🤖 *Лимиты Claude*\n\n` +
       `*Сессия (5ч)*\n${sLine}\n\n` +
-      `*Неделя*\n${wLine}\n\n` +
-      `_обновлено ${age === 0 ? 'только что' : age + ' мин назад'}_`,
+      `*Неделя*\n${wLine}` +
+      footer,
       { parse_mode: 'Markdown', reply_markup: BACK_MENU }
     )
     return new Response('ok')
