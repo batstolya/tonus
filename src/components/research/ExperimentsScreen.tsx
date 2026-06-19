@@ -114,7 +114,7 @@ function effectLabel(d: number | null): string {
   return 'нет эффекта'
 }
 
-function ResultBlock({ r, metric }: { r: ExperimentResult; metric: string }) {
+function ResultBlock({ r }: { r: ExperimentResult; metric?: string }) {
   const { t } = useT()
   if (r.baselineMean === null || r.expMean === null) {
     return <p className="settings-muted">{t('Недостаточно данных для сравнения.')}</p>
@@ -174,7 +174,6 @@ export function ExperimentsScreen({ user, daily }: Props) {
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
-    const baselineStart = daysAgo(form.baseline_days + Math.ceil((new Date(form.start_date).getTime() - new Date(daysAgo(0)).getTime()) / 86400000 * -1))
     const { data, error } = await supabase.from('experiments').insert({
       user_id: user.id,
       hypothesis: form.hypothesis,

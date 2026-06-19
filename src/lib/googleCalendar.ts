@@ -61,7 +61,6 @@ export async function silentGoogleCalendarSync(): Promise<CalendarEvent[] | null
       const client = google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID!,
         scope: SCOPES,
-        prompt: '',
         callback: async (resp) => {
           if (resp.error || !resp.access_token) { done(null); return }
           try { done(await fetchGoogleEvents(resp.access_token)) }
