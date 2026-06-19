@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { checkBudget, budgetExceededMessage } from '../_shared/costGuard.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
@@ -31,6 +32,14 @@ serve(async (req) => {
 
     const { sessionId, message, contextSnapshot, periodLabel } = await req.json()
     if (!message) return new Response('Missing message', { status: 400, headers: CORS })
+
+    // AI Cost Guard — не вызываем Gemini при превышении месячного бюджета
+    const budget = await checkBudget(supabase, user.id)
+    if (!budget.ok) {
+      return new Response(JSON.stringify({ error: 'budget_exceeded', message: budgetExceededMessage(budget) }), {
+        status: 402, headers: { ...CORS, 'Content-Type': 'application/json' },
+      })
+    }
 
     // Load or create session
     let session: any = null

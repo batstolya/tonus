@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { checkBudget } from '../_shared/costGuard.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
@@ -19,6 +20,8 @@ async function tgSend(chatId: string, text: string) {
 
 // Разбор для одного пользователя
 async function runForUser(supabase: any, userId: string): Promise<string | null> {
+  const budget = await checkBudget(supabase, userId)
+  if (!budget.ok) return null // превышен бюджет — пропускаем разбор
   const now = Date.now()
   const since = new Date(now - 14 * 86400000).toISOString().slice(0, 10)
 
