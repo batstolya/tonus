@@ -87,11 +87,16 @@ export async function loadResearchData(userId: string, daily: DailyMetrics[], pe
     const row = ensure(d)
     if (ev.type === 'alcohol') row['ev_alcohol'] = 1
     if (ev.type === 'coffee') row['ev_coffee'] = ((row['ev_coffee'] as number) ?? 0) + 1
+    if (ev.type === 'illness') row['ev_illness'] = 1
+    if (ev.type === 'stress') row['ev_stress'] = 1
+    if (ev.type === 'workout') row['ev_workout'] = 1
+    if (ev.type === 'travel') row['ev_travel'] = 1
   }
   // дни без события считаем 0 — для дней, где вообще есть данные
   for (const row of byDate.values()) {
-    if (row['ev_alcohol'] == null) row['ev_alcohol'] = 0
-    if (row['ev_coffee'] == null) row['ev_coffee'] = 0
+    for (const k of ['ev_alcohol', 'ev_coffee', 'ev_illness', 'ev_stress', 'ev_workout', 'ev_travel']) {
+      if (row[k] == null) row[k] = 0
+    }
   }
 
   // препараты: бинарно «принял в этот день»
@@ -117,6 +122,10 @@ export async function loadResearchData(userId: string, daily: DailyMetrics[], pe
   const eventKeys = [
     { key: 'ev_alcohol', label: 'Алкоголь (день)' },
     { key: 'ev_coffee', label: 'Кофе (кол-во)' },
+    { key: 'ev_illness', label: 'Болезнь (день)' },
+    { key: 'ev_stress', label: 'Стресс (день)' },
+    { key: 'ev_workout', label: 'Тренировка (день)' },
+    { key: 'ev_travel', label: 'Поездка (день)' },
     ...sups.map((s: any) => ({ key: `sup_${s.id}`, label: `Приём: ${s.name}` })),
   ]
   const concernKeys = concerns
