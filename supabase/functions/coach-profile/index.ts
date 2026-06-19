@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { checkBudget } from '../_shared/costGuard.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
@@ -30,6 +31,12 @@ serve(async (req) => {
     const { data: existing } = await supabase.from('coach_profile').select('*').eq('user_id', userId).maybeSingle()
     if (existing && !force && existing.updated_at && (Date.now() - new Date(existing.updated_at).getTime()) < 86400000) {
       return new Response(JSON.stringify(existing), { headers: { ...CORS, 'Content-Type': 'application/json' } })
+    }
+
+    // AI Cost Guard — при превышении бюджета вернуть текущий профиль без пересборки
+    const budget = await checkBudget(supabase, userId)
+    if (!budget.ok) {
+      return new Response(JSON.stringify(existing ?? { summary: '', facts: [] }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
     }
 
     const since = new Date(); since.setDate(since.getDate() - 30)
