@@ -6,6 +6,7 @@ import { generateInsights } from '../../utils/insights'
 import { AiAnalysisBlock } from './AiAnalysisBlock'
 import { computeReadiness, computeEarlyWarning } from '../../lib/readiness'
 import { loadTodayNote, saveNote } from '../../lib/contextNotes'
+import { loadFocus, loadCheckins, checkInToday, removeCheckinToday, type CoachFocus } from '../../lib/coach'
 import { useT } from '../../lib/i18n'
 
 interface Props {
@@ -172,6 +173,46 @@ function EarlyWarningBanner({ daily }: { daily: DailyMetrics[] }) {
   )
 }
 
+function CoachFocusCard({ user }: { user: User }) {
+  const { t } = useT()
+  const [focus, setFocus] = useState<CoachFocus | null>(null)
+  const [checkins, setCheckins] = useState<string[]>([])
+  const today = new Date().toISOString().slice(0, 10)
+
+  useEffect(() => {
+    loadFocus(user.id).then(f => {
+      setFocus(f)
+      if (f) loadCheckins(user.id, f.set_at).then(setCheckins)
+    })
+  }, [user.id])
+
+  if (!focus) return null
+  const doneToday = checkins.includes(today)
+
+  async function toggle() {
+    if (doneToday) {
+      setCheckins(c => c.filter(d => d !== today))
+      await removeCheckinToday(user.id)
+    } else {
+      setCheckins(c => [today, ...c])
+      await checkInToday(user.id)
+    }
+  }
+
+  return (
+    <div className="coach-focus-card">
+      <div className="coach-focus-head">
+        <span className="coach-focus-label">🎯 {t('Фокус недели')}</span>
+        <span className="coach-focus-count">{checkins.length} {t('из 7 дней')}</span>
+      </div>
+      <div className="coach-focus-text">{focus.text}</div>
+      <button className={`coach-focus-btn${doneToday ? ' done' : ''}`} onClick={toggle}>
+        {doneToday ? `✓ ${t('Сегодня держусь')}` : t('Отметить сегодня')}
+      </button>
+    </div>
+  )
+}
+
 function ContextJournal({ user }: { user: User }) {
   const { t } = useT()
   const todayStr = new Date().toISOString().slice(0, 10)
@@ -302,6 +343,7 @@ export function Dashboard({ daily, events, onNavigate, user, quickLog }: Props) 
       <h2>{t('Дашборд')}</h2>
 
       <EarlyWarningBanner daily={daily} />
+      {user && <CoachFocusCard user={user} />}
       <ReadinessCard daily={daily} />
       <StressDaysCard daily={daily} />
 
