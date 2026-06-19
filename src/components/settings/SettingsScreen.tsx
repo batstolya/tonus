@@ -5,6 +5,7 @@ import { loadMonthUsage, loadBudget, saveBudget } from '../../lib/aiUsage'
 import { loadDailyNoteSettings, saveDailyNoteSettings } from '../../lib/dailyNote'
 import { loadReportSettings, saveReportSettings, type ReportSettings } from '../../lib/reportSettings'
 import { exportAllJSON, exportMetricsCSV } from '../../lib/exportData'
+import { AutoSyncSettings } from './AutoSyncSettings'
 import { useT, LANGS } from '../../lib/i18n'
 import { supabase } from '../../lib/supabase'
 import type { DeviceType } from '../../store/appStore'
@@ -419,6 +420,8 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
           )}
         </div>
       </section>
+
+      <AutoSyncSettings user={user} />
 
       {onDeviceTypeChange && (
         <section className="settings-section">
