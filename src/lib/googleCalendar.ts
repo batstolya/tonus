@@ -46,6 +46,36 @@ export async function connectGoogleCalendar(): Promise<CalendarEvent[]> {
   })
 }
 
+// Тихая синхронизация без попапа: работает, если у пользователя ещё активен
+// грант Google. Если нужна интеракция — молча возвращает null (не показываем окно).
+export async function silentGoogleCalendarSync(): Promise<CalendarEvent[] | null> {
+  if (!CLIENT_ID) return null
+  try {
+    await loadGoogleScript()
+  } catch { return null }
+
+  return new Promise((resolve) => {
+    let settled = false
+    const done = (v: CalendarEvent[] | null) => { if (!settled) { settled = true; resolve(v) } }
+    try {
+      const client = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID!,
+        scope: SCOPES,
+        prompt: '',
+        callback: async (resp) => {
+          if (resp.error || !resp.access_token) { done(null); return }
+          try { done(await fetchGoogleEvents(resp.access_token)) }
+          catch { done(null) }
+        },
+        error_callback: () => done(null),
+      })
+      client.requestAccessToken({ prompt: '' })
+    } catch { done(null) }
+    // на всякий случай — не висеть дольше 15с
+    setTimeout(() => done(null), 15000)
+  })
+}
+
 async function fetchGoogleEvents(token: string): Promise<CalendarEvent[]> {
   const timeMin = new Date()
   timeMin.setFullYear(timeMin.getFullYear() - 2)
