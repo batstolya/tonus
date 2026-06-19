@@ -66,7 +66,6 @@ export async function silentGoogleCalendarSync(): Promise<CalendarEvent[] | null
           try { done(await fetchGoogleEvents(resp.access_token)) }
           catch { done(null) }
         },
-        error_callback: () => done(null),
       })
       client.requestAccessToken({ prompt: '' })
     } catch { done(null) }
