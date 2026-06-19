@@ -7,6 +7,7 @@ import { MetricsScreen } from './components/metrics/MetricsScreen'
 import { StressMapScreen } from './components/stress-map/StressMapScreen'
 import { InsightsScreen } from './components/insights/InsightsScreen'
 import { ResearchScreen } from './components/research/ResearchScreen'
+import { ExperimentsScreen } from './components/research/ExperimentsScreen'
 import { SleepScreen } from './components/sleep/SleepScreen'
 import { ActivityScreen } from './components/activity/ActivityScreen'
 import { AuthScreen } from './components/auth/AuthScreen'
@@ -80,6 +81,7 @@ const NAV_GROUPS: {
     views: [
       { view: 'insights', label: 'Инсайты' },
       { view: 'research', label: 'Исследования' },
+      { view: 'experiments', label: 'Эксперименты' },
       { view: 'goals', label: 'Цели' },
     ],
   },
@@ -388,6 +390,8 @@ export default function App() {
           <InsightsScreen daily={state.daily} />
         ) : state.view === 'research' ? (
           <ResearchScreen user={user} daily={state.daily} />
+        ) : state.view === 'experiments' ? (
+          <ExperimentsScreen user={user} daily={state.daily} />
         ) : state.view === 'supplements' ? (
           <SupplementsScreen user={user} />
         ) : state.view === 'nutrition' ? (

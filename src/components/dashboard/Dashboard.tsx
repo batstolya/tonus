@@ -4,6 +4,7 @@ import type { DailyMetrics, HeartRateSample, CalendarEvent } from '../../types'
 import type { AppView } from '../../store/appStore'
 import { generateInsights } from '../../utils/insights'
 import { AiAnalysisBlock } from './AiAnalysisBlock'
+import { DataGaps } from '../ui/DataGaps'
 import { computeReadiness, computeEarlyWarning } from '../../lib/readiness'
 import { baselineDeviations } from '../../lib/scores'
 import { loadTodayNote, saveNote } from '../../lib/contextNotes'
@@ -404,6 +405,7 @@ export function Dashboard({ daily, events, onNavigate, user, quickLog }: Props) 
         </div>
       )}
 
+      <DataGaps daily={daily} days={14} />
       {user && <AiAnalysisBlock daily={daily} userId={user.id} />}
     </div>
   )
