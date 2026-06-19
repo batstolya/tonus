@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.tonus.claude-monitor</string>
+
+  <!-- caffeinate -s держит Mac бодрым, пока работает монитор (на зарядке, даже с
+       закрытой крышкой). -i/-m тоже не дают усыпиться системе/диску. -->
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/caffeinate</string>
+    <string>-i</string>
+    <string>-s</string>
+    <string>-m</string>
+    <string>/usr/local/bin/python3</string>
+    <string>monitor.py</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/anatolii/tonus/claude-monitor</string>
+
+  <!-- стартовать при логине и перезапускать при падении -->
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+
+  <!-- не молотить рестартами чаще раза в 30с -->
+  <key>ThrottleInterval</key>
+  <integer>30</integer>
+
+  <key>StandardOutPath</key>
+  <string>/Users/anatolii/tonus/claude-monitor/data/monitor.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/anatolii/tonus/claude-monitor/data/monitor.err.log</string>
+</dict>
+</plist>
