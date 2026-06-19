@@ -1107,6 +1107,25 @@ body {
 [data-theme="light"] .heat-cell.empty { background: rgba(0,0,0,0.05); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.12); }
 .heat-detail { font-size: 13px; margin-bottom: 8px; min-height: 18px; }
 
+/* Nutrition screen */
+.nutr-today { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 20px; }
+.nutr-today-head { display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; }
+.nutr-goal-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 12px; }
+.nutr-goal-btn:hover { color: var(--text); }
+.nutr-goal-edit input { width: 70px; padding: 2px 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface2); color: var(--text); margin: 0 4px; }
+.nutr-today-cal { font-size: 32px; font-weight: 700; margin-bottom: 10px; }
+.nutr-today-cal span { font-size: 16px; font-weight: 500; color: var(--text-muted); }
+.nutr-bar-track { height: 10px; background: var(--border); border-radius: 5px; overflow: hidden; margin-bottom: 12px; }
+.nutr-bar-fill { height: 100%; border-radius: 5px; transition: width 0.4s ease; }
+.nutr-macros { display: flex; flex-wrap: wrap; gap: 16px; font-size: 14px; margin-bottom: 8px; }
+.nutr-avg { font-size: 12px; }
+.nutr-subtitle { font-size: 15px; margin: 20px 0 10px; }
+.nutr-history { display: flex; flex-direction: column; gap: 14px; }
+.nutr-day { border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+.nutr-day-head { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.nutr-meal { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; }
+.nutr-meal-info { color: var(--text-muted); white-space: nowrap; }
+
 /* Chart event markers legend */
 .chart-events-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 4px 0 12px; font-size: 12px; color: var(--text-muted); }
 .chart-events-toggle { display: flex; align-items: center; gap: 5px; cursor: pointer; font-weight: 600; color: var(--text); }
