@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { checkBudget } from '../_shared/costGuard.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -95,6 +96,10 @@ serve(async (req) => {
       user = data.user
     }
     if (!user) return new Response('Unauthorized', { status: 401, headers: CORS })
+
+    // AI Cost Guard
+    const budget = await checkBudget(supabase, user.id)
+    if (!budget.ok) return new Response(JSON.stringify({ error: 'budget_exceeded' }), { status: 402, headers: { ...CORS, 'Content-Type': 'application/json' } })
 
     // Date ranges
     const now = new Date()

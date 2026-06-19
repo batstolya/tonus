@@ -405,6 +405,10 @@ export async function sendChatMessage(
   })
 
   if (!res.ok) {
+    if (res.status === 402) {
+      const j = await res.json().catch(() => ({}))
+      throw new Error(j.message || 'Достигнут месячный лимит ИИ-расходов. Увеличь бюджет в Настройках.')
+    }
     const text = await res.text()
     throw new Error(text || 'Ошибка чата')
   }

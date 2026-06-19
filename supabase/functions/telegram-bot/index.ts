@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { buildHealthContext, healthContextToText } from '../_shared/healthContext.ts'
+import { checkBudget, budgetExceededMessage } from '../_shared/costGuard.ts'
 
 const TG_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -309,6 +310,11 @@ async function buildBotContext(userId: string, supabase: any): Promise<string> {
 async function handleAiChat(chatId: number | string, userId: string, text: string, sessionId: string | null, supabase: any): Promise<string | null> {
   if (!GEMINI_KEY) {
     await tgSend(chatId, 'Выбери действие:', { reply_markup: MAIN_MENU })
+    return sessionId
+  }
+  const budget = await checkBudget(supabase, userId)
+  if (!budget.ok) {
+    await tgSend(chatId, budgetExceededMessage(budget))
     return sessionId
   }
   await tgTyping(chatId)
