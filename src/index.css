@@ -1107,6 +1107,17 @@ body {
 [data-theme="light"] .heat-cell.empty { background: rgba(0,0,0,0.05); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.12); }
 .heat-detail { font-size: 13px; margin-bottom: 8px; min-height: 18px; }
 
+/* Auto-sync settings */
+.autosync-url { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+.autosync-url code { flex: 1; min-width: 200px; font-size: 11px; background: var(--surface2); padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); word-break: break-all; }
+.autosync-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; font-size: 14px; }
+.autosync-compare { border-top: 1px solid var(--border); padding-top: 12px; margin-top: 6px; }
+.autosync-table { font-size: 12px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.autosync-th, .autosync-tr { display: grid; grid-template-columns: 1fr 1.5fr 1fr 1fr; gap: 4px; padding: 5px 8px; }
+.autosync-th { background: var(--surface2); font-weight: 600; }
+.autosync-tr { border-top: 1px solid var(--border); }
+.autosync-tr.mismatch { background: color-mix(in srgb, var(--red) 14%, transparent); }
+
 /* Nutrition screen */
 .nutr-today { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 20px; }
 .nutr-today-head { display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; }
