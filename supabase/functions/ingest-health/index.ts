@@ -65,8 +65,9 @@ function parseHAE(userId: string, payload: any): { metrics: MetricRow[]; sleep: 
           byDay[date] = {
             user_id: userId, date, duration_hours: total,
             deep_hours: deep, rem_hours: rem, core_hours: core,
-            bedtime: p.sleepStart ? String(p.sleepStart).slice(11, 16) : null,
-            wake_time: p.sleepEnd ? String(p.sleepEnd).slice(11, 16) : null,
+            // полные дата-время (боевая колонка — timestamptz); HH:MM не подходит
+            bedtime: p.sleepStart ? String(p.sleepStart) : null,
+            wake_time: p.sleepEnd ? String(p.sleepEnd) : null,
           }
         }
       }
