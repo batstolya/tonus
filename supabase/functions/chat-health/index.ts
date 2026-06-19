@@ -109,6 +109,8 @@ serve(async (req) => {
           generationConfig: {
             maxOutputTokens: 2048,
             temperature: 0.5,
+            // без этого Gemini 2.5 тратит токены на «размышления» и обрезает ответ
+            thinkingConfig: { thinkingBudget: 0 },
           },
         }),
       }
