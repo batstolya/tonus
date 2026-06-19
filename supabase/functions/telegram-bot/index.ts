@@ -205,10 +205,15 @@ async function classifyLog(text: string, supplementNames: string[]): Promise<any
   "unit": "мл" или null,
   "date": "ГГГГ-ММ-ДД" если указана дата/число дня, иначе null,
   "time": "ЧЧ:ММ" если указано время, иначе null,
-  "note": краткая заметка (напр. "Макдональдс") или null
+  "note": краткая заметка (напр. "Макдональдс") или null,
+  "calories": для intake_type="meal" — оценка калорий (целое число) по описанию еды и порциям, иначе null,
+  "protein_g": для meal — белки в граммах (число) или null,
+  "carbs_g": для meal — углеводы в граммах (число) или null,
+  "fat_g": для meal — жиры в граммах (число) или null
 }
 
 Правила:
+- Для еды оцени калории и БЖУ по типичным порциям (напр. "бигмак и кола" ≈ 750 ккал). Если еда указана размыто — дай разумную среднюю оценку.
 - "принял/выпил <препарат>" → action="supplement", supplement ТОЧНО из списка (исправь опечатку: "финатерид"→"Финастерид").
 - "пил кофе", "выпил вина", "съел макдак/еду", "выпил воды" → action="intake" с нужным intake_type. Макдоналдс/еда = meal с note.
 - Вопрос ("как мой сон", "что ты знаешь") → action="chat".
@@ -287,17 +292,19 @@ async function execLog(chatId: number | string, userId: string, act: any, tz: st
   if (act.action === 'intake' && act.intake_type) {
     const labels: Record<string, string> = { coffee: '☕ Кофе', alcohol: '🍷 Алкоголь', meal: '🍽 Еда', water: '💧 Вода', meds: '💊 Лекарства', custom: '📝 Заметка' }
     const ts = localToIso(tz, act.time, act.date)
-    await supabase.from('intake_events').insert({
-      user_id: userId,
-      ts,
-      type: act.intake_type,
-      amount: act.amount ?? null,
-      unit: act.unit ?? null,
-      note: act.note ?? null,
-    })
+    const isMeal = act.intake_type === 'meal'
+    const base = { user_id: userId, ts, type: act.intake_type, amount: act.amount ?? null, unit: act.unit ?? null, note: act.note ?? null }
+    const withNutr = { ...base, calories: isMeal ? act.calories ?? null : null, protein_g: isMeal ? act.protein_g ?? null : null, carbs_g: isMeal ? act.carbs_g ?? null : null, fat_g: isMeal ? act.fat_g ?? null : null }
+    const ins = await supabase.from('intake_events').insert(withNutr)
+    if (ins.error) await supabase.from('intake_events').insert(base) // фолбэк, если колонок ещё нет
     const timeStr = new Date(ts).toLocaleTimeString('ru-RU', { timeZone: tz, hour: '2-digit', minute: '2-digit' })
     const extra = [act.amount ? `${act.amount}${act.unit ?? ''}` : '', act.note ?? ''].filter(Boolean).join(', ')
-    return `📝 Записал: ${labels[act.intake_type] ?? act.intake_type}${extra ? ` (${extra})` : ''} в ${timeStr}`
+    let nutr = ''
+    if (isMeal && act.calories) {
+      const macros = [act.protein_g ? `Б ${Math.round(act.protein_g)}` : '', act.carbs_g ? `У ${Math.round(act.carbs_g)}` : '', act.fat_g ? `Ж ${Math.round(act.fat_g)}` : ''].filter(Boolean).join(' · ')
+      nutr = `\n≈ ${act.calories} ккал${macros ? ` (${macros} г)` : ''}`
+    }
+    return `📝 Записал: ${labels[act.intake_type] ?? act.intake_type}${extra ? ` (${extra})` : ''} в ${timeStr}${nutr}`
   }
 
   return null

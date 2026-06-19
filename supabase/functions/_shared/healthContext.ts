@@ -49,7 +49,7 @@ export async function buildHealthContext(
       .eq('user_id', userId).order('date', { ascending: false }).limit(60),
     supabase.from('supplements').select('name').eq('user_id', userId),
     supabase.from('intake_events')
-      .select('ts, type, amount, unit, note')
+      .select('ts, type, amount, unit, note, calories, protein_g, carbs_g, fat_g')
       .eq('user_id', userId).gte('ts', `${sinceStr}T00:00:00Z`).order('ts', { ascending: false }).limit(80),
     supabase.from('supplement_logs')
       .select('date, taken, supplements(name)')
@@ -155,7 +155,16 @@ export function healthContextToText(ctx: HealthContext): string {
     for (const e of ctx.intake) {
       const d = new Date(e.ts).toISOString().slice(0, 16).replace('T', ' ')
       const amt = e.amount ? ` ${e.amount}${e.unit ?? ''}` : ''
-      parts.push(`${d} ${tLabels[e.type] ?? e.type}${amt}${e.note ? ` (${e.note})` : ''}`)
+      const kcal = e.calories ? ` ≈${e.calories} ккал` : ''
+      parts.push(`${d} ${tLabels[e.type] ?? e.type}${amt}${e.note ? ` (${e.note})` : ''}${kcal}`)
+    }
+    // суточные калории по дням, где есть оценки
+    const kcalByDay: Record<string, number> = {}
+    for (const e of ctx.intake) if (e.calories) kcalByDay[e.ts.slice(0, 10)] = (kcalByDay[e.ts.slice(0, 10)] ?? 0) + e.calories
+    const days = Object.keys(kcalByDay).sort().reverse()
+    if (days.length) {
+      parts.push('Калории по дням (оценка):')
+      for (const day of days) parts.push(`${day}: ~${kcalByDay[day]} ккал`)
     }
   }
 
