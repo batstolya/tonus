@@ -18,6 +18,10 @@ const EVENT_TYPES = [
   { type: 'meal', label: '🍽 Еда', unit: null, defaultAmount: null },
   { type: 'water', label: '💧 Вода', unit: 'мл', defaultAmount: 250 },
   { type: 'meds', label: '💊 Лекарства', unit: null, defaultAmount: null },
+  { type: 'workout', label: '🏋️ Тренировка', unit: null, defaultAmount: null },
+  { type: 'illness', label: '🤒 Болезнь', unit: null, defaultAmount: null },
+  { type: 'stress', label: '😰 Стресс', unit: null, defaultAmount: null },
+  { type: 'travel', label: '🧳 Поездка', unit: null, defaultAmount: null },
   { type: 'custom', label: '📝 Другое', unit: null, defaultAmount: null },
 ]
 

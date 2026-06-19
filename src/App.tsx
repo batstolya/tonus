@@ -325,7 +325,7 @@ export default function App() {
         ) : state.view === 'heart-rate' ? (
           <HeartRateScreen daily={state.daily} intakeEvents={intakeEvents} />
         ) : state.view === 'metrics' ? (
-          <MetricsScreen daily={state.daily} />
+          <MetricsScreen daily={state.daily} intakeEvents={intakeEvents} />
         ) : state.view === 'stress-map' ? (
           <StressMapScreen
             heartRateSamples={state.heartRateSamples}
