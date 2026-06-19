@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { buildHealthContext, healthContextToText } from '../_shared/healthContext.ts'
 import { checkBudget, budgetExceededMessage } from '../_shared/costGuard.ts'
+import { getPrompt } from '../_shared/prompts.ts'
 
 const TG_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -345,9 +346,10 @@ async function handleAiChat(chatId: number | string, userId: string, text: strin
   const recent = (hist ?? []).reverse()
 
   const context = await buildBotContext(userId, supabase)
+  const sys = await getPrompt(supabase, 'telegram-chat-system', CHAT_SYSTEM_PROMPT)
 
   const contents = [
-    { role: 'user', parts: [{ text: `${CHAT_SYSTEM_PROMPT}\n\n${context}` }] },
+    { role: 'user', parts: [{ text: `${sys.text}\n\n${context}` }] },
     { role: 'model', parts: [{ text: 'Понял, готов отвечать по данным.' }] },
     ...recent.slice(0, -1).map((m: any) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })),
     { role: 'user', parts: [{ text }] },
@@ -377,7 +379,7 @@ async function handleAiChat(chatId: number | string, userId: string, text: strin
       await supabase.from('chat_messages').insert({ user_id: userId, session_id: sid, role: 'assistant', content: reply, tokens_used: tokens })
     }
     if (tokens) {
-      await supabase.from('ai_usage').insert({ user_id: userId, source: 'chat', tokens_used: tokens })
+      await supabase.from('ai_usage').insert({ user_id: userId, source: 'chat', tokens_used: tokens, prompt_version: sys.version })
     }
 
     await tgSend(chatId, reply, { reply_markup: BACK_MENU })

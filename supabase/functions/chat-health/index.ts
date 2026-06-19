@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { checkBudget, budgetExceededMessage } from '../_shared/costGuard.ts'
+import { getPrompt } from '../_shared/prompts.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
@@ -80,11 +81,13 @@ serve(async (req) => {
       ? `\n\n=== ДАННЫЕ ПОЛЬЗОВАТЕЛЯ (${periodLabel ?? 'последний период'}) ===\n${session.context_snapshot}`
       : ''
 
+    const sys = await getPrompt(supabase, 'chat-health-system', SYSTEM_PROMPT)
+
     const geminiContents = [
       // System context as first user message (Gemini pattern)
       {
         role: 'user',
-        parts: [{ text: `${SYSTEM_PROMPT}${contextText}\n\nПользователь задаёт вопрос о своих данных здоровья.` }],
+        parts: [{ text: `${sys.text}${contextText}\n\nПользователь задаёт вопрос о своих данных здоровья.` }],
       },
       { role: 'model', parts: [{ text: 'Понял, буду отвечать на основе твоих данных.' }] },
       // Recent conversation history
@@ -131,7 +134,7 @@ serve(async (req) => {
 
     // Track usage
     if (tokensUsed) {
-      await supabase.from('ai_usage').insert({ user_id: user.id, source: 'chat', tokens_used: tokensUsed })
+      await supabase.from('ai_usage').insert({ user_id: user.id, source: 'chat', tokens_used: tokensUsed, prompt_version: sys.version })
     }
 
     // Update session updated_at
