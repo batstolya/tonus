@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { buildHealthContext, healthContextToText } from '../_shared/healthContext.ts'
 
 const TG_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -301,146 +302,8 @@ async function execLog(chatId: number | string, userId: string, act: any, tz: st
 }
 
 async function buildBotContext(userId: string, supabase: any): Promise<string> {
-  const since = new Date(); since.setDate(since.getDate() - 14)
-  const sinceStr = since.toISOString().slice(0, 10)
-
-  const parts: string[] = []
-
-  // Профиль коуча (память поверх 14-дневного окна)
-  const { data: prof } = await supabase
-    .from('coach_profile').select('summary, facts').eq('user_id', userId).maybeSingle()
-  if (prof?.summary) {
-    const facts = Array.isArray(prof.facts) && prof.facts.length ? `\nФакты: ${prof.facts.join('; ')}` : ''
-    parts.push(`=== ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ (помни это) ===\n${prof.summary}${facts}\n`)
-  }
-
-  const { data: rows } = await supabase
-    .from('daily_metrics')
-    .select('date, resting_heart_rate, hrv, sleep_hours, steps, active_energy, oxygen_saturation')
-    .eq('user_id', userId)
-    .gte('date', sinceStr)
-    .order('date', { ascending: true })
-
-  const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
-  const num = (r: any[], k: string) => r.map(x => x[k]).filter((v: any) => v != null && !isNaN(v))
-
-  parts.push(`=== ДАННЫЕ ЗА 14 ДНЕЙ (${rows?.length ?? 0} дн.) ===`)
-  if (rows?.length) {
-    const rhr = num(rows, 'resting_heart_rate'), hrv = num(rows, 'hrv')
-    const sleep = num(rows, 'sleep_hours'), steps = num(rows, 'steps')
-    const energy = num(rows, 'active_energy'), spo2 = num(rows, 'oxygen_saturation')
-    if (rhr.length) parts.push(`ЧСС покоя: средн ${avg(rhr)!.toFixed(0)} уд/мин (от ${Math.min(...rhr)} до ${Math.max(...rhr)})`)
-    if (hrv.length) parts.push(`HRV: средн ${avg(hrv)!.toFixed(0)} мс (от ${Math.min(...hrv)} до ${Math.max(...hrv)})`)
-    if (sleep.length) parts.push(`Сон: средн ${avg(sleep)!.toFixed(1)} ч/ночь (от ${Math.min(...sleep).toFixed(1)} до ${Math.max(...sleep).toFixed(1)})`)
-    if (steps.length) parts.push(`Шаги: средн ${Math.round(avg(steps)!).toLocaleString('ru-RU')}/день`)
-    if (energy.length) parts.push(`Активные ккал: средн ${Math.round(avg(energy)!)}/день`)
-    if (spo2.length) parts.push(`SpO2: средн ${(avg(spo2)! * 100).toFixed(0)}%`)
-    // per-day sleep & rhr for trend
-    const daily = rows.slice(-7).map((r: any) =>
-      `${r.date}: сон ${r.sleep_hours?.toFixed?.(1) ?? '—'}ч, ЧССп ${r.resting_heart_rate ?? '—'}, шаги ${r.steps ?? '—'}`
-    ).join('\n')
-    parts.push(`\nПоследние дни:\n${daily}`)
-  } else {
-    parts.push('Нет данных за период.')
-  }
-
-  // Фазы сна (глубокий/REM/ядро) из sleep_sessions
-  const { data: sleep } = await supabase
-    .from('sleep_sessions')
-    .select('date, duration_hours, deep_hours, rem_hours, core_hours')
-    .eq('user_id', userId)
-    .gte('date', sinceStr)
-    .order('date', { ascending: false })
-  if (sleep?.length) {
-    const dh = num(sleep, 'deep_hours'), rh = num(sleep, 'rem_hours'), ch = num(sleep, 'core_hours')
-    parts.push('\nФазы сна (14 дней):')
-    if (dh.length) parts.push(`Глубокий: средн ${avg(dh)!.toFixed(1)} ч/ночь`)
-    if (rh.length) parts.push(`REM: средн ${avg(rh)!.toFixed(1)} ч/ночь`)
-    if (ch.length) parts.push(`Лёгкий/ядро: средн ${avg(ch)!.toFixed(1)} ч/ночь`)
-    const recent = sleep.slice(0, 7).map((s: any) =>
-      `${s.date}: всего ${s.duration_hours?.toFixed?.(1) ?? '—'}ч (глуб ${s.deep_hours?.toFixed?.(1) ?? '—'}, REM ${s.rem_hours?.toFixed?.(1) ?? '—'})`
-    ).join('\n')
-    parts.push(`Последние ночи:\n${recent}`)
-  }
-
-  // Анализы (lab_results) — последнее значение и тренд по каждому маркеру
-  const { data: labs } = await supabase
-    .from('lab_results')
-    .select('marker, value, unit, date')
-    .eq('user_id', userId)
-    .order('date', { ascending: false })
-    .limit(60)
-  if (labs?.length) {
-    const byMarker: Record<string, any[]> = {}
-    for (const r of labs) (byMarker[r.marker] ??= []).push(r)
-    parts.push('\nАнализы (последние значения):')
-    for (const [marker, entries] of Object.entries(byMarker)) {
-      const latest = entries[0]
-      const unit = latest.unit ? ` ${latest.unit}` : ''
-      if (entries.length >= 2) {
-        const d = latest.value - entries[1].value
-        parts.push(`${marker}: ${latest.value}${unit} (${latest.date}, ${d > 0 ? '+' : ''}${d.toFixed(1)} к ${entries[1].date})`)
-      } else {
-        parts.push(`${marker}: ${latest.value}${unit} (${latest.date})`)
-      }
-    }
-  }
-
-  // Supplements taken
-  const { data: sups } = await supabase
-    .from('supplements').select('name').eq('user_id', userId)
-  if (sups?.length) parts.push(`\nПрепараты: ${sups.map((s: any) => s.name).join(', ')}`)
-
-  // События (кофе/алкоголь/еда/вода) за 14 дней
-  const { data: intake } = await supabase
-    .from('intake_events')
-    .select('ts, type, amount, unit, note')
-    .eq('user_id', userId)
-    .gte('ts', `${sinceStr}T00:00:00Z`)
-    .order('ts', { ascending: false })
-    .limit(80)
-  if (intake?.length) {
-    const tLabels: Record<string, string> = { coffee: 'кофе', alcohol: 'алкоголь', meal: 'еда', water: 'вода', meds: 'лекарство', custom: 'заметка' }
-    parts.push('\nСобытия (кофе/алкоголь/еда):')
-    for (const e of intake) {
-      const d = new Date(e.ts).toISOString().slice(0, 16).replace('T', ' ')
-      const amt = e.amount ? ` ${e.amount}${e.unit ?? ''}` : ''
-      parts.push(`${d} ${tLabels[e.type] ?? e.type}${amt}${e.note ? ` (${e.note})` : ''}`)
-    }
-  }
-
-  // Отметки приёма препаратов за 14 дней
-  const { data: logs } = await supabase
-    .from('supplement_logs')
-    .select('date, taken, supplements(name)')
-    .eq('user_id', userId)
-    .gte('date', sinceStr)
-    .eq('taken', true)
-    .order('date', { ascending: false })
-    .limit(100)
-  if (logs?.length) {
-    const byDay: Record<string, string[]> = {}
-    for (const l of logs) {
-      const name = (l.supplements as any)?.name
-      if (name) (byDay[l.date] ??= []).push(name)
-    }
-    parts.push('\nПриём препаратов (по дням):')
-    for (const [date, names] of Object.entries(byDay)) parts.push(`${date}: ${names.join(', ')}`)
-  }
-
-  // Заметки дня (SPEC-DAILY-NOTE) — что пользователь сам писал про свои дни
-  const { data: notes } = await supabase
-    .from('context_notes')
-    .select('date, note')
-    .eq('user_id', userId)
-    .gte('date', sinceStr)
-    .order('date', { ascending: false })
-  if (notes?.length) {
-    parts.push('\nЗаметки дня (со слов пользователя):')
-    for (const n of notes) parts.push(`${n.date}: ${n.note}`)
-  }
-
-  return parts.join('\n')
+  const ctx = await buildHealthContext(supabase, userId, { periodDays: 14, includeCoachProfile: true })
+  return healthContextToText(ctx)
 }
 
 async function handleAiChat(chatId: number | string, userId: string, text: string, sessionId: string | null, supabase: any): Promise<string | null> {
