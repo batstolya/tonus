@@ -13,6 +13,7 @@ const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers
 const METRIC_MAP: Record<string, string> = {
   step_count: 'steps',
   distance_walking_running: 'distance',
+  walking_running_distance: 'distance',
   active_energy: 'activeEnergy',
   apple_exercise_time: 'exerciseMinutes',
   flights_climbed: 'flightsClimbed',
@@ -86,9 +87,12 @@ function parseHAE(userId: string, payload: any): { metrics: MetricRow[]; sleep: 
         const src = p.source ?? 'unknown'
         ;(perDay[date] ??= {})[src] = (perDay[date][src] ?? 0) + q
       }
+      const units = String(m?.units ?? '').toLowerCase()
       for (const [date, bySrc] of Object.entries(perDay)) {
         let v = Math.max(...Object.values(bySrc))
         if (key === 'distance' && v > 100) v = v / 1000 // метры → км
+        // активная энергия: HAE отдаёт в кДж, у нас в ккал
+        if (key === 'activeEnergy' && (units.includes('kj') || units.includes('кдж'))) v = v / 4.184
         metrics.push({ user_id: userId, date, metric: key, sum_val: v })
       }
     } else {
