@@ -186,6 +186,66 @@ function localDate(tz: string): string {
 
 // Классифицирует свободный текст: это действие-лог или вопрос?
 // Возвращает действие, либо null если это обычный вопрос (→ чат).
+// Фото еды → оценка блюда, калорий и БЖУ через Gemini vision
+async function classifyMealPhoto(base64: string, mime: string, caption: string): Promise<any | null> {
+  if (!GEMINI_KEY) return null
+  const prompt = `На фото — еда. Оцени блюдо и его пищевую ценность по виду и типичным порциям.${caption ? ` Подпись пользователя: "${caption}".` : ''}
+Верни ТОЛЬКО JSON:
+{
+  "dish": "краткое название блюда на русском (напр. 'Паста с курицей')",
+  "calories": целое число — оценка калорий,
+  "protein_g": белки в граммах (число),
+  "carbs_g": углеводы в граммах (число),
+  "fat_g": жиры в граммах (число),
+  "is_food": true если на фото действительно еда, иначе false
+}
+Если еды нет — is_food=false и остальное null. Не выдумывай точность, давай разумную оценку.`
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
+      {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: mime, data: base64 } }] }],
+          generationConfig: { temperature: 0.2, maxOutputTokens: 512, responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } },
+        }),
+      }
+    )
+    if (!res.ok) return null
+    const data = await res.json()
+    const tokens = data.usageMetadata?.totalTokenCount ?? null
+    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}'
+    return { parsed: JSON.parse(raw), tokens }
+  } catch { return null }
+}
+
+async function handleMealPhoto(chatId: number | string, userId: string, fileId: string, caption: string, tz: string, supabase: any): Promise<void> {
+  await tgTyping(chatId)
+  // получить ссылку на файл и скачать
+  const fileRes = await tgCall('getFile', { file_id: fileId })
+  const filePath = fileRes?.result?.file_path
+  if (!filePath) { await tgSend(chatId, 'Не удалось загрузить фото, попробуй ещё раз.'); return }
+  const dl = await fetch(`https://api.telegram.org/file/bot${TG_TOKEN}/${filePath}`)
+  const buf = new Uint8Array(await dl.arrayBuffer())
+  let bin = ''; for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i])
+  const base64 = btoa(bin)
+  const mime = filePath.endsWith('.png') ? 'image/png' : 'image/jpeg'
+
+  const out = await classifyMealPhoto(base64, mime, caption)
+  if (out?.tokens) await supabase.from('ai_usage').insert({ user_id: userId, source: 'meal-photo', tokens_used: out.tokens })
+  const r = out?.parsed
+  if (!r || r.is_food === false) { await tgSend(chatId, '🤔 Не вижу еду на фото. Пришли фото блюда — оценю калории.'); return }
+
+  const ts = localToIso(tz, null, null)
+  const base = { user_id: userId, ts, type: 'meal', note: r.dish ?? (caption || 'Еда') }
+  const withNutr = { ...base, calories: r.calories ?? null, protein_g: r.protein_g ?? null, carbs_g: r.carbs_g ?? null, fat_g: r.fat_g ?? null }
+  const ins = await supabase.from('intake_events').insert(withNutr)
+  if (ins.error) await supabase.from('intake_events').insert(base)
+
+  const macros = [r.protein_g ? `Б ${Math.round(r.protein_g)}` : '', r.carbs_g ? `У ${Math.round(r.carbs_g)}` : '', r.fat_g ? `Ж ${Math.round(r.fat_g)}` : ''].filter(Boolean).join(' · ')
+  await tgSend(chatId, `📸🍽 <b>${r.dish ?? 'Еда'}</b>\n≈ ${r.calories ?? '?'} ккал${macros ? ` (${macros} г)` : ''}\nЗаписал в дневник.`, { parse_mode: 'HTML', reply_markup: BACK_MENU })
+}
+
 async function classifyLog(text: string, supplementNames: string[]): Promise<any | null> {
   if (!GEMINI_KEY) return null
   const todayStr = new Date().toISOString().slice(0, 10)
@@ -691,6 +751,17 @@ serve(async (req) => {
   }
 
   const userId = link.user_id
+
+  // Фото еды → оценка калорий
+  if (Array.isArray(msg.photo) && msg.photo.length) {
+    const budget = await checkBudget(supabase, userId)
+    if (!budget.ok) { await tgSend(chatId, budgetExceededMessage(budget)); return new Response('ok') }
+    const largest = msg.photo[msg.photo.length - 1] // самое большое разрешение
+    const { data: noteSet } = await supabase.from('daily_note_settings').select('timezone').eq('user_id', userId).maybeSingle()
+    const tz = noteSet?.timezone || 'Europe/Kyiv'
+    await handleMealPhoto(chatId, userId, largest.file_id, msg.caption ?? '', tz, supabase)
+    return new Response('ok')
+  }
 
   // /menu
   if (text === '/menu' || text === '/start') {
