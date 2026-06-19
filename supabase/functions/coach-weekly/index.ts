@@ -1,0 +1,140 @@
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
+const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+const TG_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') ?? ''
+
+const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' }
+const avg = (a: number[]) => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null
+
+async function tgSend(chatId: string, text: string) {
+  if (!TG_TOKEN) return
+  await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId, text }),
+  })
+}
+
+// Разбор для одного пользователя
+async function runForUser(supabase: any, userId: string): Promise<string | null> {
+  const now = Date.now()
+  const since = new Date(now - 14 * 86400000).toISOString().slice(0, 10)
+
+  const [mRes, sRes, notesRes, intakeRes, supLogRes, profRes] = await Promise.all([
+    supabase.from('daily_metrics').select('date, resting_heart_rate, hrv, sleep_hours, steps, active_energy').eq('user_id', userId).gte('date', since).order('date'),
+    supabase.from('sleep_sessions').select('date, duration_hours, deep_hours, rem_hours, bedtime').eq('user_id', userId).gte('date', since),
+    supabase.from('context_notes').select('date, note').eq('user_id', userId).gte('date', since).order('date'),
+    supabase.from('intake_events').select('ts, type, note').eq('user_id', userId).gte('ts', `${since}T00:00:00Z`),
+    supabase.from('supplement_logs').select('date, taken, supplements(name)').eq('user_id', userId).eq('taken', true).gte('date', since),
+    supabase.from('coach_profile').select('summary, focus').eq('user_id', userId).maybeSingle(),
+  ])
+
+  const m = mRes.data ?? []
+  if (m.length < 5) return null // мало данных — пропускаем
+
+  const num = (rows: any[], k: string) => rows.map(r => r[k]).filter((v: any) => v != null)
+  const recent = m.slice(-7), prior = m.slice(-14, -7)
+  const cmp = (k: string) => {
+    const r = avg(num(recent, k)), p = avg(num(prior, k))
+    if (r == null) return ''
+    const d = p != null ? ((r - p) / p) * 100 : 0
+    return `${r.toFixed(k === 'sleep_hours' ? 1 : 0)}${p != null ? ` (${d > 0 ? '+' : ''}${d.toFixed(0)}% к прошлой неделе)` : ''}`
+  }
+
+  const intake = intakeRes.data ?? []
+  const coffee = intake.filter((e: any) => e.type === 'coffee').length
+  const alcoholDays = [...new Set(intake.filter((e: any) => e.type === 'alcohol').map((e: any) => e.ts.slice(0, 10)))]
+  const notes = (notesRes.data ?? []).map((n: any) => `${n.date}: ${n.note}`).join('\n')
+
+  const sleep = sRes.data ?? []
+  const deep = avg(num(sleep, 'deep_hours')), rem = avg(num(sleep, 'rem_hours'))
+
+  const profile = profRes.data?.summary ? `\nПРОФИЛЬ: ${profRes.data.summary}` : ''
+  const prevFocus = profRes.data?.focus?.text ? `\nПРОШЛЫЙ ФОКУС: «${profRes.data.focus.text}»` : ''
+
+  const prompt = `Ты — персональный коуч по здоровью. Напиши тёплый еженедельный разбор для пользователя в Telegram (plain text, без markdown-звёздочек, можно emoji).
+${profile}${prevFocus}
+
+НЕДЕЛЯ (среднее, в скобках динамика):
+HRV: ${cmp('hrv')} мс
+Пульс покоя: ${cmp('resting_heart_rate')} уд/мин
+Сон: ${cmp('sleep_hours')} ч${deep != null ? ` (глубокий ~${deep.toFixed(1)}ч, REM ~${(rem ?? 0).toFixed(1)}ч)` : ''}
+Шаги: ${cmp('steps')}
+Кофе: ${coffee} раз, алкоголь: дни ${alcoholDays.join(', ') || 'нет'}
+Заметки дня:
+${notes || 'нет'}
+
+Структура (коротко, по-человечески):
+👋 Пара слов как прошла неделя (2-3 предложения, отметь прогресс/спад с цифрами)
+💡 1-2 наблюдения или связи (если видно из данных/заметок)
+🎯 ОДИН фокус на следующую неделю — конкретный и измеримый (напр. «лечь до 00:00 хотя бы 5 ночей»). Если прошлый фокус был — оцени его и поставь следующий.
+❓ Тёплый вопрос пользователю
+
+В конце ОТДЕЛЬНОЙ строкой: FOCUS: <одна фраза фокуса для трекинга>
+Без диагнозов. Опирайся на цифры, не выдумывай. На русском.`
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
+    {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.6, maxOutputTokens: 2048, thinkingConfig: { thinkingBudget: 0 } } }),
+    }
+  )
+  if (!res.ok) return null
+  const data = await res.json()
+  let text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+  const tokens = data.usageMetadata?.totalTokenCount ?? null
+  if (tokens) await supabase.from('ai_usage').insert({ user_id: userId, source: 'coach-weekly', tokens_used: tokens })
+
+  // вытащить фокус
+  const focusMatch = text.match(/FOCUS:\s*(.+)$/m)
+  const focusText = focusMatch ? focusMatch[1].trim() : null
+  text = text.replace(/\n?FOCUS:.*$/m, '').trim()
+
+  // сохранить фокус в профиль + событие
+  if (focusText) {
+    await supabase.from('coach_profile').upsert(
+      { user_id: userId, focus: { text: focusText, set_at: new Date().toISOString() }, updated_at: new Date().toISOString() },
+      { onConflict: 'user_id' }
+    )
+  }
+  await supabase.from('coach_events').insert({ user_id: userId, type: 'weekly', payload: { focus: focusText, text } })
+
+  return text
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
+  try {
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+    const authHeader = req.headers.get('Authorization') ?? ''
+    const body = await req.json().catch(() => ({}))
+    // нет токена пользователя → режим cron (всем); есть → конкретному пользователю
+    const cronMode = !authHeader || authHeader.includes(SUPABASE_SERVICE_KEY.slice(0, 20))
+
+    let sent = 0
+    if (cronMode && !body.userId) {
+      // cron: всем активным, у кого не было разбора за 6 дней
+      const { data: links } = await supabase.from('telegram_links').select('user_id, telegram_chat_id').eq('status', 'active')
+      for (const l of links ?? []) {
+        const { data: rs } = await supabase.from('report_settings').select('paused').eq('user_id', l.user_id).maybeSingle()
+        if (rs?.paused) continue
+        const { data: last } = await supabase.from('coach_events').select('created_at').eq('user_id', l.user_id).eq('type', 'weekly').order('created_at', { ascending: false }).limit(1).maybeSingle()
+        if (last && (Date.now() - new Date(last.created_at).getTime()) < 6 * 86400000) continue
+        const text = await runForUser(supabase, l.user_id)
+        if (text && l.telegram_chat_id) { await tgSend(l.telegram_chat_id, `🧭 Разбор недели\n\n${text}`); sent++ }
+      }
+      return new Response(JSON.stringify({ sent }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
+    }
+
+    // ручной вызов с токеном пользователя — вернуть текст (для кнопки на сайте)
+    const { data, error } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
+    if (error || !data.user) return new Response('Unauthorized', { status: 401, headers: CORS })
+    const text = await runForUser(supabase, data.user.id)
+    return new Response(JSON.stringify({ text }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
+  } catch (e: any) {
+    return new Response(JSON.stringify({ error: e.message ?? 'Error' }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } })
+  }
+})
