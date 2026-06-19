@@ -94,6 +94,8 @@ function parseHAE(userId: string, payload: any): { metrics: MetricRow[]; sleep: 
         if (key === 'distance' && v > 100) v = v / 1000 // метры → км
         // активная энергия: HAE отдаёт в кДж, у нас в ккал
         if (key === 'activeEnergy' && (units.includes('kj') || units.includes('кдж'))) v = v / 4.184
+        // целочисленные метрики округляем (HAE может слать дроби при агрегации)
+        if (key === 'steps' || key === 'flightsClimbed' || key === 'exerciseMinutes') v = Math.round(v)
         metrics.push({ user_id: userId, date, metric: key, sum_val: v })
       }
     } else {

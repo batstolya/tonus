@@ -112,6 +112,7 @@ export default function App() {
   const [calSyncTimes, setCalSyncTimes] = useState<Record<string, string>>(() => {
     try { return JSON.parse(localStorage.getItem('cal_sync_times') ?? '{}') } catch { return {} }
   })
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const hasData = state.daily.length > 0
   const availableMetrics = React.useMemo(() => detectAvailableMetrics(state.daily), [state.daily])
@@ -275,8 +276,49 @@ export default function App() {
               <button className="nav-btn signout-btn" onClick={() => supabase.auth.signOut()}>
                 {t('Выйти')}
               </button>
+              <button className="burger-btn" onClick={() => setMobileMenuOpen(o => !o)} aria-label="Меню">
+                <div className={`burger-icon${mobileMenuOpen ? ' open' : ''}`}>
+                  <span /><span /><span />
+                </div>
+              </button>
             </div>
           </header>
+
+          {mobileMenuOpen && (
+            <div className={`mobile-menu-overlay${mobileMenuOpen ? ' open' : ''}`} onClick={() => setMobileMenuOpen(false)}>
+              <div className="mobile-menu" onClick={e => e.stopPropagation()}>
+                <div className="mobile-menu-header">
+                  <span className="mobile-menu-title">Tonus</span>
+                  <button className="mobile-menu-close" onClick={() => setMobileMenuOpen(false)}>✕</button>
+                </div>
+                <button
+                  className={`mobile-nav-btn${state.view === 'settings' ? ' active' : ''}`}
+                  onClick={() => { setView('settings'); setMobileMenuOpen(false) }}
+                >
+                  <span>⚙️</span><span>{t('Настройки')}</span>
+                </button>
+                <button
+                  className="mobile-nav-btn"
+                  onClick={() => { toggleTheme(); setMobileMenuOpen(false) }}
+                >
+                  <span>{theme === 'dark' ? '☀️' : '🌙'}</span>
+                  <span>{theme === 'dark' ? t('Светлая тема') : t('Тёмная тема')}</span>
+                </button>
+                <button
+                  className="mobile-nav-btn"
+                  onClick={() => setLang(lang === 'ru' ? 'uk' : lang === 'uk' ? 'en' : 'ru')}
+                >
+                  <span>{lang === 'ru' ? '🇷🇺' : lang === 'uk' ? '🇺🇦' : '🇬🇧'}</span>
+                  <span>{lang === 'ru' ? 'Русский' : lang === 'uk' ? 'Українська' : 'English'}</span>
+                </button>
+                <div className="mobile-menu-footer">
+                  <button className="mobile-nav-btn signout" onClick={() => supabase.auth.signOut()}>
+                    <span>🚪</span><span>{t('Выйти')}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {activeGroupData && (
             <nav className="subnav">
