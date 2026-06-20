@@ -374,11 +374,14 @@ export function ExperimentsScreen({ user, daily }: Props) {
         </form>
       )}
 
+      {exps.length === 0 && !showForm ? (
+        <div className="exp-empty">
+          <div className="exp-empty-emoji" aria-hidden>🧪</div>
+          <p>{t('Нет экспериментов. Создай первый — проверь гипотезу с цифрами.')}</p>
+        </div>
+      ) : (
       <div className="research-layout">
         <div className="research-runs">
-          {exps.length === 0 && !showForm && (
-            <p className="settings-muted">{t('Нет экспериментов. Создай первый — проверь гипотезу с цифрами.')}</p>
-          )}
           {exps.map(exp => (
             <button key={exp.id} className={`research-run-btn${activeId === exp.id ? ' active' : ''}`}
               onClick={() => setActiveId(exp.id)}>
@@ -424,6 +427,7 @@ export function ExperimentsScreen({ user, daily }: Props) {
           )
         })()}
       </div>
+      )}
     </div>
   )
 }
