@@ -356,31 +356,34 @@ export async function loadSupplementSummary(userId: string, periodDays: number):
 export async function loadLabSummary(userId: string): Promise<string> {
   const { data } = await supabase
     .from('lab_results')
-    .select('marker, value, unit, date')
+    .select('marker, value, unit, ref_range, flag, date')
     .eq('user_id', userId)
     .order('date', { ascending: false })
-    .limit(50)
+    .limit(60)
 
   if (!data || !data.length) return ''
 
-  // Group by marker, show latest value + trend
-  const byMarker: Record<string, { date: string; value: number; unit: string | null }[]> = {}
+  // Group by marker, show latest value + flag (вне нормы) + reference range + trend
+  const byMarker: Record<string, { date: string; value: number; unit: string | null; ref_range: string | null; flag: string | null }[]> = {}
   for (const r of data) {
     if (!byMarker[r.marker]) byMarker[r.marker] = []
     byMarker[r.marker].push(r)
   }
 
+  const flagTxt = (f: string | null) => f === 'high' ? ' ⚠️ВЫШЕ НОРМЫ' : f === 'low' ? ' ⚠️НИЖЕ НОРМЫ' : ''
   const summaryLines: string[] = []
   for (const [marker, entries] of Object.entries(byMarker)) {
     const latest = entries[0]
     const unit = latest.unit ? ` ${latest.unit}` : ''
+    const ref = latest.ref_range ? ` [норма ${latest.ref_range}]` : ''
+    const fl = flagTxt(latest.flag)
     if (entries.length >= 2) {
       const prev = entries[1]
       const delta = latest.value - prev.value
       const sign = delta > 0 ? '+' : ''
-      summaryLines.push(`${marker}: ${latest.value}${unit} (${latest.date}, ${sign}${delta.toFixed(1)} vs ${prev.date})`)
+      summaryLines.push(`${marker}: ${latest.value}${unit}${fl}${ref} (${latest.date}, ${sign}${delta.toFixed(1)} vs ${prev.date})`)
     } else {
-      summaryLines.push(`${marker}: ${latest.value}${unit} (${latest.date})`)
+      summaryLines.push(`${marker}: ${latest.value}${unit}${fl}${ref} (${latest.date})`)
     }
   }
 
