@@ -103,10 +103,10 @@ export function buildContextSnapshot(
     lines.push(`Среднее время пробуждения: ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`)
   }
 
-  // Per-night detail (last 14 nights) with stages, so вопросы про конкретную ночь работают
-  const recentSleep = slice.filter(d => d.sleepBedtime || d.sleepWakeTime || d.sleepHours != null).slice(-14)
+  // Per-night detail (last 7 nights) — достаточно для большинства вопросов
+  const recentSleep = slice.filter(d => d.sleepBedtime || d.sleepWakeTime || d.sleepHours != null).slice(-7)
   if (recentSleep.length) {
-    lines.push('\nСон по ночам (последние 14):')
+    lines.push('\nСон по ночам (последние 7):')
     recentSleep.forEach(d => {
       const bed = d.sleepBedtime ? fmtTime(d.sleepBedtime) : '—'
       const wake = d.sleepWakeTime ? fmtTime(d.sleepWakeTime) : '—'
@@ -135,7 +135,7 @@ export function buildContextSnapshot(
 
   // Intake / quick log events for the period
   const cutoffTs = new Date(cutoffStr + 'T00:00:00').getTime()
-  const periodEvents = intakeEvents.filter(e => new Date(e.ts).getTime() >= cutoffTs)
+  const periodEvents = intakeEvents.filter(e => new Date(e.ts).getTime() >= cutoffTs && e.type !== 'water')
   if (periodEvents.length) {
     lines.push('\n=== БЫСТРЫЙ ЛОГ (питание, кофе, лекарства) ===')
     // Group by type and count
@@ -162,19 +162,22 @@ export function buildContextSnapshot(
       .filter(s => s.time >= hrCutoff)
       .sort((a, b) => a.time.getTime() - b.time.getTime())
     if (recentHR.length) {
-      lines.push('\n=== ПУЛЬС ПО ВРЕМЕНИ (последние 7 дней) ===')
+      lines.push('\n=== ПУЛЬС ПО ВРЕМЕНИ (последние 3 дня) ===')
       const byDate: Record<string, HeartRateSample[]> = {}
       for (const s of recentHR) {
         const d = s.time.toISOString().slice(0, 10)
         if (!byDate[d]) byDate[d] = []
         byDate[d].push(s)
       }
-      for (const [date, samples] of Object.entries(byDate)) {
+      // Only last 3 days of detailed HR
+      const last3Days = Object.keys(byDate).sort().slice(-3)
+      for (const date of last3Days) {
+        const samples = byDate[date]
         const thinned: HeartRateSample[] = []
         let lastTs = 0
         for (const s of samples) {
           const ts = s.time.getTime()
-          if (ts - lastTs >= 25 * 60 * 1000) { thinned.push(s); lastTs = ts }
+          if (ts - lastTs >= 30 * 60 * 1000) { thinned.push(s); lastTs = ts } // каждые 30 мин вместо 25
         }
         const vals = thinned.map(s => {
           const t = s.time.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
