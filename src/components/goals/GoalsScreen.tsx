@@ -9,7 +9,7 @@ import {
   METRIC_CONFIG,
   type Goal, type Recommendation,
 } from '../../lib/goals'
-import { supabase } from '../../lib/supabase'
+import { callFunction } from '../../lib/edgeFunctions'
 
 interface Props {
   user: User
@@ -142,14 +142,7 @@ export function GoalsScreen({ user, daily }: Props) {
     setGenLoading(true)
     setGenMsg(null)
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const url = import.meta.env.VITE_SUPABASE_URL as string
-      const res = await fetch(`${url}/functions/v1/generate-recommendations`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session!.access_token}` },
-      })
-      if (!res.ok) throw new Error(await res.text())
-      const { count } = await res.json()
+      const { count } = await callFunction<{ count: number }>('generate-recommendations')
       setGenMsg(t('Получено {n} рекомендаций', { n: count }))
       await reload()
     } catch (e: any) {

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '../../lib/supabase'
+import { callFunction } from '../../lib/edgeFunctions'
 import { useT } from '../../lib/i18n'
 
 interface MealResult {
@@ -67,21 +68,15 @@ export function MealLogger({ user, onSaved }: Props) {
   async function handleAnalyze() {
     setLoading(true); reset()
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const url = import.meta.env.VITE_SUPABASE_URL as string
       const body = tab === 'photo' && imageData
         ? { image: imageData, text: text || undefined }
         : { text }
-      const res = await fetch(`${url}/functions/v1/classify-meal`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session!.access_token}` },
-        body: JSON.stringify(body),
-      })
-      const json = await res.json()
-      if (json.error === 'not_food') { setError(t('На фото не видно еды. Попробуй другое фото.')); return }
-      if (json.error) { setError(json.error); return }
+      const json = await callFunction<MealResult>('classify-meal', body)
       setEditResult(json)
-    } catch (e: any) { setError(e.message) }
+    } catch (e: any) {
+      // classify-meal возвращает { error: 'not_food' } при не-еде на фото
+      setError(e.message === 'not_food' ? t('На фото не видно еды. Попробуй другое фото.') : e.message)
+    }
     finally { setLoading(false) }
   }
 
