@@ -359,7 +359,7 @@ export async function loadLabSummary(userId: string): Promise<string> {
     .select('marker, value, unit, ref_range, flag, date')
     .eq('user_id', userId)
     .order('date', { ascending: false })
-    .limit(60)
+    .limit(200)
 
   if (!data || !data.length) return ''
 
