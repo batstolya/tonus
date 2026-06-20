@@ -54,26 +54,34 @@ serve(async (req) => {
     const raw = cand?.content?.parts?.[0]?.text ?? '{}'
     const parsed = JSON.parse(raw)
 
-    if (parsed.is_food === false) {
+    // Gemini отдаёт МАССИВ объектов, если в описании несколько блюд ("суп и арбуз").
+    // Раньше код читал parsed.calories у массива → undefined → ложно-«пустая» карточка.
+    // Сводим к одному приёму пищи: суммируем ккал/БЖУ, объединяем названия.
+    const items: any[] = Array.isArray(parsed) ? parsed : [parsed]
+
+    if (items[0]?.is_food === false) {
       return new Response(JSON.stringify({ error: 'not_food' }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
     }
 
-    // Пустой/обрезанный ответ Gemini (при MAX_TOKENS parts приходит пустым) — раньше
-    // это молча отдавало карточку со всеми null. Теперь возвращаем понятную ошибку.
-    if (parsed.calories == null) {
-      console.error('classify-meal: empty result', { finishReason: cand?.finishReason, tokens })
+    const num = (v: unknown) => (typeof v === 'number' && isFinite(v) ? v : 0)
+    const hasCalories = items.some((it) => it?.calories != null)
+    const result = {
+      dish: items.map((it) => it?.dish).filter(Boolean).join(', ') || null,
+      calories: hasCalories ? Math.round(items.reduce((s, it) => s + num(it?.calories), 0)) : null,
+      protein_g: hasCalories ? Math.round(items.reduce((s, it) => s + num(it?.protein_g), 0) * 10) / 10 : null,
+      carbs_g: hasCalories ? Math.round(items.reduce((s, it) => s + num(it?.carbs_g), 0) * 10) / 10 : null,
+      fat_g: hasCalories ? Math.round(items.reduce((s, it) => s + num(it?.fat_g), 0) * 10) / 10 : null,
+    }
+
+    // Подлинно пустой ответ (модель реально ничего не оценила) — честная ошибка вместо null-карточки.
+    if (result.calories == null) {
+      console.error('classify-meal: no calories', { finishReason: cand?.finishReason, raw: raw.slice(0, 120) })
       return new Response(JSON.stringify({ error: 'Не удалось распознать блюдо — уточни описание и попробуй ещё раз.' }), { status: 422, headers: { ...CORS, 'Content-Type': 'application/json' } })
     }
 
     await supabase.from('ai_usage').insert({ user_id: user.id, source: 'meal-classify', tokens_used: tokens })
 
-    return new Response(JSON.stringify({
-      dish: parsed.dish ?? null,
-      calories: parsed.calories ?? null,
-      protein_g: parsed.protein_g ?? null,
-      carbs_g: parsed.carbs_g ?? null,
-      fat_g: parsed.fat_g ?? null,
-    }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
+    return new Response(JSON.stringify(result), { headers: { ...CORS, 'Content-Type': 'application/json' } })
   } catch (e: any) {
     return new Response(JSON.stringify({ error: e.message ?? 'Error' }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } })
   }
