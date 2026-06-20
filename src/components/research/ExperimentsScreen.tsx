@@ -33,6 +33,14 @@ interface ExperimentResult {
   betterHigh: boolean
 }
 
+// Предложение от ИИ (edge-функция suggest-experiments). target_metric валидируем по METRIC_OPTIONS.
+interface Suggestion {
+  hypothesis: string
+  change_rule: string
+  target_metric: string
+  rationale?: string
+}
+
 const METRIC_OPTIONS: { key: string; label: string; betterHigh: boolean }[] = [
   { key: 'hrv', label: 'HRV', betterHigh: true },
   { key: 'restingHeartRate', label: 'Пульс покоя', betterHigh: false },
@@ -44,6 +52,9 @@ const METRIC_OPTIONS: { key: string; label: string; betterHigh: boolean }[] = [
   { key: 'oxygenSaturation', label: 'SpO₂', betterHigh: true },
   { key: 'heartRate', label: 'ЧСС средняя', betterHigh: false },
 ]
+
+const isValidMetric = (k: string) => METRIC_OPTIONS.some(m => m.key === k)
+const metricLabel = (k: string) => METRIC_OPTIONS.find(m => m.key === k)?.label ?? k
 
 function today() { return new Date().toISOString().slice(0, 10) }
 function daysAgo(n: number) {
@@ -159,6 +170,14 @@ export function ExperimentsScreen({ user, daily }: Props) {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [aiLoading, setAiLoading] = useState<string | null>(null)
 
+  // ИИ-предложения (кнопка «Подобрать») и ассистент-формулировщик внутри формы
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([])
+  const [suggestLoading, setSuggestLoading] = useState(false)
+  const [suggestError, setSuggestError] = useState<string | null>(null)
+  const [refineIdea, setRefineIdea] = useState('')
+  const [refineLoading, setRefineLoading] = useState(false)
+  const [refineError, setRefineError] = useState<string | null>(null)
+
   const [form, setForm] = useState({
     hypothesis: '',
     change_rule: '',
@@ -193,11 +212,59 @@ export function ExperimentsScreen({ user, daily }: Props) {
     }
   }
 
+  // «Подобрать (ИИ)» — генерим гипотезы из 30 дней метрик
+  async function handleSuggest() {
+    setSuggestLoading(true); setSuggestError(null)
+    try {
+      const json = await callFunction<{ suggestions?: Suggestion[]; message?: string }>('suggest-experiments', { mode: 'generate' })
+      const valid = (json.suggestions ?? []).filter(s => isValidMetric(s.target_metric))
+      setSuggestions(valid)
+      if (!valid.length) setSuggestError(json.message ?? t('Пока недостаточно данных для предложений.'))
+    } catch (e: any) {
+      setSuggestError(e.message)
+    }
+    setSuggestLoading(false)
+  }
+
+  // Ассистент: текст идеи → структурированная гипотеза, заполняем форму
+  async function handleRefine() {
+    if (refineIdea.trim().length < 2) return
+    setRefineLoading(true); setRefineError(null)
+    try {
+      const json = await callFunction<{ suggestions?: Suggestion[] }>('suggest-experiments', { mode: 'refine', idea: refineIdea })
+      const s = json.suggestions?.[0]
+      if (!s) throw new Error(t('Не удалось уточнить. Попробуй переформулировать.'))
+      applyToForm(s)
+    } catch (e: any) {
+      setRefineError(e.message)
+    }
+    setRefineLoading(false)
+  }
+
+  function applyToForm(s: Suggestion) {
+    setForm(f => ({
+      ...f,
+      hypothesis: s.hypothesis,
+      change_rule: s.change_rule,
+      target_metric: isValidMetric(s.target_metric) ? s.target_metric : f.target_metric,
+    }))
+  }
+
+  // «Применить» на карточке-предложении: открыть форму, заполнить, прокрутить к ней
+  function applySuggestion(s: Suggestion) {
+    applyToForm(s)
+    setShowForm(true)
+    setRefineError(null)
+    requestAnimationFrame(() => {
+      document.querySelector('.exp-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    })
+  }
+
   async function handleAI(exp: Experiment) {
     const result = computeResult(daily, exp)
     setAiLoading(exp.id)
     try {
-      const metaLabel = METRIC_OPTIONS.find(m => m.key === exp.target_metric)?.label ?? exp.target_metric
+      const metaLabel = metricLabel(exp.target_metric)
       const prompt = `Эксперимент: "${exp.hypothesis}". Изменение: "${exp.change_rule}". Метрика: ${metaLabel}. До: ${result.baselineMean} (n=${result.baselineN}). Во время: ${result.expMean} (n=${result.expN}). Дельта: ${result.delta} (${result.deltaPct}%). d Коэна: ${result.cohenD} (${effectLabel(result.cohenD)}). Объясни результат кратко: что наблюдается, возможные объяснения, оговорки. На русском, 3-5 предложений.`
       const json = await callFunction<{ reply?: string }>('deep-research', { findings: prompt, periodLabel: `${exp.baseline_days} дн` })
       const explanation = json.reply ?? ''
@@ -218,16 +285,63 @@ export function ExperimentsScreen({ user, daily }: Props) {
     <div className="screen">
       <div className="screen-header">
         <h2>{t('Эксперименты')}</h2>
-        <button className="btn btn-primary" onClick={() => setShowForm(s => !s)}>
-          {showForm ? t('Отмена') : t('+ Новый')}
-        </button>
+        <div className="exp-header-actions">
+          <button className="btn-suggest" onClick={handleSuggest} disabled={suggestLoading}>
+            {suggestLoading
+              ? <><span className="ai-spinner" />{t('Подбираю…')}</>
+              : <><span aria-hidden>✨</span>{t('Подобрать (ИИ)')}</>}
+          </button>
+          <button className="btn btn-primary" onClick={() => setShowForm(s => !s)}>
+            {showForm ? t('Отмена') : t('+ Новый')}
+          </button>
+        </div>
       </div>
       <p className="settings-muted" style={{ marginBottom: 16 }}>
         {t('Активная проверка гипотезы: что изменилось, когда ты поменял привычку? До/после с размером эффекта.')}
       </p>
 
+      {suggestError && !suggestions.length && (
+        <p className="settings-muted" style={{ marginBottom: 16 }}>{suggestError}</p>
+      )}
+
+      {suggestions.length > 0 && (
+        <div className="exp-suggest-block">
+          <div className="exp-suggest-head">
+            <span><span aria-hidden>✨</span> {t('Предложено ИИ на основе твоих данных')}</span>
+            <button className="exp-suggest-hide" onClick={() => setSuggestions([])}>{t('Скрыть')}</button>
+          </div>
+          <div className="exp-suggest-grid">
+            {suggestions.map((s, i) => (
+              <div key={i} className="exp-suggest-card">
+                <span className="exp-suggest-metric">{metricLabel(s.target_metric)}</span>
+                <div className="exp-suggest-hyp">{s.hypothesis}</div>
+                <div className="exp-suggest-change">{t('Меняем')}: {s.change_rule}</div>
+                {s.rationale && <div className="exp-suggest-why">{s.rationale}</div>}
+                <button className="btn btn-secondary exp-suggest-apply" onClick={() => applySuggestion(s)}>
+                  {t('Применить')}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {showForm && (
         <form className="exp-form" onSubmit={handleCreate}>
+          <div className="exp-ai-row">
+            <div className="exp-ai-row-head"><span aria-hidden>✨</span> {t('ИИ-ассистент')}</div>
+            <div className="exp-ai-row-input">
+              <input className="settings-input" placeholder={t('Опиши идею своими словами…')}
+                value={refineIdea} onChange={e => setRefineIdea(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleRefine() } }} />
+              <button type="button" className="btn btn-secondary"
+                disabled={refineLoading || refineIdea.trim().length < 2} onClick={handleRefine}>
+                {refineLoading ? t('Думаю…') : t('Уточнить')}
+              </button>
+            </div>
+            {refineError && <p className="settings-muted" style={{ color: 'var(--red)', fontSize: 13, marginTop: 8 }}>{refineError}</p>}
+          </div>
+
           <label className="settings-label">{t('Гипотеза')}
             <input className="settings-input" required placeholder={t('Без кофе после 16:00 улучшится сон')}
               value={form.hypothesis} onChange={e => setForm(f => ({ ...f, hypothesis: e.target.value }))} />
@@ -236,22 +350,22 @@ export function ExperimentsScreen({ user, daily }: Props) {
             <input className="settings-input" required placeholder={t('Перестал пить кофе после 16:00')}
               value={form.change_rule} onChange={e => setForm(f => ({ ...f, change_rule: e.target.value }))} />
           </label>
-          <label className="settings-label">{t('За какой метрикой следим')}
-            <select className="settings-input" value={form.target_metric}
-              onChange={e => setForm(f => ({ ...f, target_metric: e.target.value }))}>
-              {METRIC_OPTIONS.map(m => <option key={m.key} value={m.key}>{m.label}</option>)}
-            </select>
-          </label>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <label className="settings-label" style={{ flex: 1, minWidth: 140 }}>{t('Начало')}
+          <div className="exp-form-grid">
+            <label className="settings-label">{t('За какой метрикой следим')}
+              <select className="settings-input" value={form.target_metric}
+                onChange={e => setForm(f => ({ ...f, target_metric: e.target.value }))}>
+                {METRIC_OPTIONS.map(m => <option key={m.key} value={m.key}>{m.label}</option>)}
+              </select>
+            </label>
+            <label className="settings-label">{t('Начало')}
               <input type="date" className="settings-input" required value={form.start_date}
                 onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} />
             </label>
-            <label className="settings-label" style={{ flex: 1, minWidth: 140 }}>{t('Конец')}
+            <label className="settings-label">{t('Конец')}
               <input type="date" className="settings-input" required value={form.end_date}
                 onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))} />
             </label>
-            <label className="settings-label" style={{ flex: 1, minWidth: 140 }}>{t('Базовый период (дней)')}
+            <label className="settings-label">{t('Базовый период (дней)')}
               <input type="number" className="settings-input" min={7} max={90} value={form.baseline_days}
                 onChange={e => setForm(f => ({ ...f, baseline_days: +e.target.value }))} />
             </label>
@@ -265,21 +379,17 @@ export function ExperimentsScreen({ user, daily }: Props) {
           {exps.length === 0 && !showForm && (
             <p className="settings-muted">{t('Нет экспериментов. Создай первый — проверь гипотезу с цифрами.')}</p>
           )}
-          {exps.map(exp => {
-            const metaLabel = METRIC_OPTIONS.find(m => m.key === exp.target_metric)?.label ?? exp.target_metric
-            return (
-              <button key={exp.id} className={`research-run-btn${activeId === exp.id ? ' active' : ''}`}
-                onClick={() => setActiveId(exp.id)}>
-                <span className="research-run-label">{exp.hypothesis}</span>
-                <span className="research-run-meta">{metaLabel} · {exp.start_date} – {exp.end_date}</span>
-              </button>
-            )
-          })}
+          {exps.map(exp => (
+            <button key={exp.id} className={`research-run-btn${activeId === exp.id ? ' active' : ''}`}
+              onClick={() => setActiveId(exp.id)}>
+              <span className="research-run-label">{exp.hypothesis}</span>
+              <span className="research-run-meta">{metricLabel(exp.target_metric)} · {exp.start_date} – {exp.end_date}</span>
+            </button>
+          ))}
         </div>
 
         {active && (() => {
           const result = active.result ?? computeResult(daily, active)
-          const metaLabel = METRIC_OPTIONS.find(m => m.key === active.target_metric)?.label ?? active.target_metric
           return (
             <div className="research-detail">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
@@ -291,13 +401,13 @@ export function ExperimentsScreen({ user, daily }: Props) {
               </div>
 
               <div className="exp-meta-row">
-                <span className="subnav-btn" style={{ cursor: 'default' }}>{metaLabel}</span>
+                <span className="subnav-btn" style={{ cursor: 'default' }}>{metricLabel(active.target_metric)}</span>
                 <span className="settings-muted" style={{ fontSize: 12 }}>
                   {t('Базовый')}: {active.baseline_days} {t('дн')} · {t('Эксперимент')}: {active.start_date} – {active.end_date}
                 </span>
               </div>
 
-              <ResultBlock r={result} metric={metaLabel} />
+              <ResultBlock r={result} metric={metricLabel(active.target_metric)} />
 
               {active.ai_explanation ? (
                 <div className="ai-block" style={{ marginTop: 16 }}>
