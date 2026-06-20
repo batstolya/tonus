@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { User } from '@supabase/supabase-js'
 import type { DailyMetrics } from '../../types'
-import { supabase } from '../../lib/supabase'
+import { callFunction } from '../../lib/edgeFunctions'
 import {
   loadResearchData, computeFindings, findingsToText,
   saveResearchRun, loadResearchRuns, deleteResearchRun,
@@ -71,15 +71,9 @@ export function ResearchScreen({ user, daily }: Props) {
         reply = t('Значимых взаимосвязей не найдено. Нужно больше данных — отмечай препараты, события (кофе/алкоголь) и наблюдения по проблемам, и возвращайся через пару недель.')
       } else {
         const notes = await loadNotesSummary(user.id, days)
-        const { data: { session } } = await supabase.auth.getSession()
-        const url = import.meta.env.VITE_SUPABASE_URL as string
-        const res = await fetch(`${url}/functions/v1/deep-research`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session!.access_token}` },
-          body: JSON.stringify({ findings: findingsToText(found), periodLabel: `${days} ${t('дн')}`, notes: notes || undefined }),
+        const json = await callFunction<{ reply?: string }>('deep-research', {
+          findings: findingsToText(found), periodLabel: `${days} ${t('дн')}`, notes: notes || undefined,
         })
-        const json = await res.json()
-        if (json.error) throw new Error(json.error)
         reply = json.reply ?? ''
       }
 

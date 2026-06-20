@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { callFunction } from './edgeFunctions'
 
 export interface CoachFocus { text: string; set_at: string }
 
@@ -33,15 +34,8 @@ export async function removeCheckinToday(userId: string): Promise<void> {
 
 // Запустить разбор недели вручную (кнопка) — возвращает текст
 export async function runWeeklyReview(): Promise<string | null> {
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return null
-  const url = import.meta.env.VITE_SUPABASE_URL as string
-  const res = await fetch(`${url}/functions/v1/coach-weekly`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-    body: JSON.stringify({}),
-  })
-  if (!res.ok) return null
-  const j = await res.json()
-  return j.text ?? null
+  try {
+    const j = await callFunction<{ text?: string }>('coach-weekly', {})
+    return j.text ?? null
+  } catch { return null }
 }

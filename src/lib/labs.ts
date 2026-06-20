@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { callFunction } from './edgeFunctions'
 
 export interface LabFile {
   id: string
@@ -49,9 +50,6 @@ export async function uploadAndExtract(
   file: File,
   date: string,
 ): Promise<LabFile | null> {
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) throw new Error('Не авторизован')
-
   // Convert file to base64
   const buffer = await file.arrayBuffer()
   const bytes = new Uint8Array(buffer)
@@ -59,25 +57,10 @@ export async function uploadAndExtract(
   bytes.forEach(b => { binary += String.fromCharCode(b) })
   const base64 = btoa(binary)
 
-  const supabaseUrl = (supabase as any).supabaseUrl as string
-  const res = await fetch(`${supabaseUrl}/functions/v1/extract-lab`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${session.access_token}`,
-    },
-    body: JSON.stringify({
-      fileName: file.name,
-      fileType: file.type,
-      fileBase64: base64,
-      date,
-    }),
+  return callFunction<LabFile>('extract-lab', {
+    fileName: file.name,
+    fileType: file.type,
+    fileBase64: base64,
+    date,
   })
-
-  if (!res.ok) {
-    const text = await res.text()
-    throw new Error(text || 'Ошибка извлечения данных')
-  }
-
-  return res.json()
 }

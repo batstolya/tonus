@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import type { User } from '@supabase/supabase-js'
 import type { DailyMetrics } from '../../types'
 import { supabase } from '../../lib/supabase'
+import { callFunction } from '../../lib/edgeFunctions'
 import { useT } from '../../lib/i18n'
 
 interface Props { user: User; daily: DailyMetrics[] }
@@ -196,16 +197,9 @@ export function ExperimentsScreen({ user, daily }: Props) {
     const result = computeResult(daily, exp)
     setAiLoading(exp.id)
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const url = import.meta.env.VITE_SUPABASE_URL as string
       const metaLabel = METRIC_OPTIONS.find(m => m.key === exp.target_metric)?.label ?? exp.target_metric
       const prompt = `Эксперимент: "${exp.hypothesis}". Изменение: "${exp.change_rule}". Метрика: ${metaLabel}. До: ${result.baselineMean} (n=${result.baselineN}). Во время: ${result.expMean} (n=${result.expN}). Дельта: ${result.delta} (${result.deltaPct}%). d Коэна: ${result.cohenD} (${effectLabel(result.cohenD)}). Объясни результат кратко: что наблюдается, возможные объяснения, оговорки. На русском, 3-5 предложений.`
-      const res = await fetch(`${url}/functions/v1/deep-research`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session!.access_token}` },
-        body: JSON.stringify({ findings: prompt, periodLabel: `${exp.baseline_days} дн` }),
-      })
-      const json = await res.json()
+      const json = await callFunction<{ reply?: string }>('deep-research', { findings: prompt, periodLabel: `${exp.baseline_days} дн` })
       const explanation = json.reply ?? ''
       await supabase.from('experiments').update({ result, ai_explanation: explanation }).eq('id', exp.id)
       setExps(prev => prev.map(e => e.id === exp.id ? { ...e, result, ai_explanation: explanation } : e))

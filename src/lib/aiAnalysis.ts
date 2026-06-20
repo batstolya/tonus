@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { callFunction } from './edgeFunctions'
 import type { DailyMetrics } from '../types'
 
 export type AnalysisPeriod = '14d' | '30d'
@@ -106,25 +107,7 @@ export async function runAnalysis(
   const periodEnd = slice[slice.length - 1].date
   const digest = buildDigest(slice, prevSlice)
 
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) throw new Error('Не авторизован')
-
-  const supabaseUrl = (supabase as any).supabaseUrl as string
-  const res = await fetch(`${supabaseUrl}/functions/v1/analyze-health`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${session.access_token}`,
-    },
-    body: JSON.stringify({ digest, periodStart, periodEnd }),
-  })
-
-  if (!res.ok) {
-    const text = await res.text()
-    throw new Error(text || 'Ошибка сервера')
-  }
-
-  return res.json()
+  return callFunction<AiAnalysis>('analyze-health', { digest, periodStart, periodEnd })
 }
 
 export async function deleteAnalysis(id: string): Promise<void> {
