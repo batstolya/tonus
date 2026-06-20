@@ -531,6 +531,12 @@ export const translations: Record<string, { uk: string; en: string }> = {
   'Полный бэкап (JSON)': { uk: 'Повний бекап (JSON)', en: 'Full backup (JSON)' },
   'Метрики (CSV)': { uk: 'Метрики (CSV)', en: 'Metrics (CSV)' },
 
+  // ── Среда (Environment) ────────────────────────────────────────────────────
+  'Данные среды': { uk: 'Дані середовища', en: 'Environment data' },
+  'Температура, световой день, осадки — автоматически с Open-Meteo (Мюнхен).': { uk: 'Температура, тривалість дня, опади — автоматично з Open-Meteo (Мюнхен).', en: 'Temperature, daylight, precipitation — automatically from Open-Meteo (Munich).' },
+  'Синхронизировать среду': { uk: 'Синхронізувати середовище', en: 'Sync environment' },
+  'Синхронизирую…': { uk: 'Синхронізую…', en: 'Syncing…' },
+
   // ── MealLogger ─────────────────────────────────────────────────────────────
   'Фото': { uk: 'Фото', en: 'Photo' },
   'Текст': { uk: 'Текст', en: 'Text' },
