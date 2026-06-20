@@ -7,6 +7,7 @@ import {
   type Supplement, type SupplementLog, type ReminderSetting,
 } from '../../lib/supplements'
 import { useT } from '../../lib/i18n'
+import { TreatmentTracker } from './TreatmentTracker'
 
 interface Props {
   user: User
@@ -334,6 +335,9 @@ export function SupplementsScreen({ user }: Props) {
           </div>
         )
       })}
+
+      {/* ── 🔬 Работает ли? — Treatment tracker ───────────────── */}
+      <TreatmentTracker user={user} />
     </div>
   )
 }
