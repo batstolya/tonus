@@ -8,6 +8,7 @@ import { exportAllJSON, exportMetricsCSV } from '../../lib/exportData'
 import { AutoSyncSettings } from './AutoSyncSettings'
 import { useT, LANGS } from '../../lib/i18n'
 import { supabase } from '../../lib/supabase'
+import { callFunction } from '../../lib/edgeFunctions'
 import type { DeviceType } from '../../store/appStore'
 
 interface Props {
@@ -56,17 +57,10 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
     setEnvSyncing(true)
     setEnvMsg(null)
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const url = import.meta.env.VITE_SUPABASE_URL as string
-      const res = await fetch(`${url}/functions/v1/fetch-environment`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${session!.access_token}`, 'Content-Type': 'application/json' },
-        body: '{}',
-      })
-      const json = await res.json()
-      setEnvMsg(json.synced ? `✅ Синхронизировано ${json.synced} дней` : (json.error ?? 'Ошибка'))
+      const json = await callFunction<{ synced?: number }>('fetch-environment', {})
+      setEnvMsg(json.synced ? `✅ ${t('Синхронизировано')} ${json.synced} ${t('дн')}` : t('Ошибка'))
     } catch (e: any) {
-      setEnvMsg('Ошибка: ' + e.message)
+      setEnvMsg(`${t('Ошибка')}: ${e.message}`)
     }
     setEnvSyncing(false)
   }
@@ -140,21 +134,13 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
     setCalLoading(true)
     setCalMsg(null)
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
-      const res = await fetch(`${supabaseUrl}/functions/v1/fetch-cal`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session!.access_token}` },
-        body: JSON.stringify({ sessionToken: token }),
-      })
-      if (!res.ok) throw new Error(await res.text())
-      const { events, count } = await res.json()
+      const { events, count } = await callFunction<{ events: any[]; count: number }>('fetch-cal', { sessionToken: token })
       onCalEvents?.(events)
-      setCalMsg(`✓ Загружено ${count} событий`)
+      setCalMsg(`✓ ${t('Загружено')} ${count} ${t('событий')}`)
       setCalToken('')
       setTimeout(() => onNavigate?.('stress-map'), 1500)
     } catch (e: any) {
-      setCalMsg(`Ошибка: ${e.message}`)
+      setCalMsg(`${t('Ошибка')}: ${e.message}`)
     }
     setCalLoading(false)
   }

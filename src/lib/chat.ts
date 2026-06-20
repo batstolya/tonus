@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { callFunction } from './edgeFunctions'
 import type { DailyMetrics, HeartRateSample } from '../types'
 
 export interface ChatMessage {
@@ -241,16 +242,7 @@ export function buildContextSnapshot(
 // Профиль коуча (память). Пересобирает раз в сутки через edge-функцию, иначе из БД.
 export async function loadCoachProfile(): Promise<string> {
   try {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return ''
-    const url = import.meta.env.VITE_SUPABASE_URL as string
-    const res = await fetch(`${url}/functions/v1/coach-profile`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-      body: JSON.stringify({ force: false }),
-    })
-    if (!res.ok) return ''
-    const p = await res.json()
+    const p = await callFunction<{ summary?: string; facts?: string[] }>('coach-profile', { force: false })
     const facts = Array.isArray(p.facts) && p.facts.length ? `\nФакты: ${p.facts.join('; ')}` : ''
     return p.summary ? `${p.summary}${facts}` : ''
   } catch { return '' }
