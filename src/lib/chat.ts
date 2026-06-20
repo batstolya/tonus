@@ -45,6 +45,7 @@ export function buildContextSnapshot(
   concernsSummary?: string,
   hairSummary?: string,
   coachProfile?: string,
+  calendarSummary?: string,
 ): string {
   const sorted = [...daily].sort((a, b) => a.date.localeCompare(b.date))
   const cutoff = new Date()
@@ -236,6 +237,12 @@ export function buildContextSnapshot(
     lines.push(hairSummary)
   }
 
+  // Calendar (meetings/events) — load on the day vs stress/HR/sleep
+  if (calendarSummary) {
+    lines.push('\n=== КАЛЕНДАРЬ (встречи/события — нагрузка дня) ===')
+    lines.push(calendarSummary)
+  }
+
   return lines.join('\n')
 }
 
@@ -378,6 +385,23 @@ export async function loadLabSummary(userId: string): Promise<string> {
   }
 
   return summaryLines.join('\n')
+}
+
+// Календарь (встречи/события) — компактно: всего за период + по дням.
+// Это прямой сигнал нагрузки дня для связи со стрессом/пульсом/сном.
+export async function loadCalendarSummary(userId: string, periodDays: number): Promise<string> {
+  const since = new Date(); since.setDate(since.getDate() - periodDays)
+  const { data } = await supabase
+    .from('calendar_events')
+    .select('start_ts')
+    .eq('user_id', userId)
+    .gte('start_ts', since.toISOString())
+  if (!data?.length) return ''
+  const byDay: Record<string, number> = {}
+  for (const e of data) { const d = (e.start_ts as string).slice(0, 10); byDay[d] = (byDay[d] ?? 0) + 1 }
+  const perDay = Object.entries(byDay).sort((a, b) => b[0].localeCompare(a[0]))
+    .map(([d, c]) => `${d.slice(5)}—${c}`).join(', ')
+  return `Всего встреч за ${periodDays} дн: ${data.length}.\nПо дням (загруженность): ${perDay}`
 }
 
 export async function sendChatMessage(

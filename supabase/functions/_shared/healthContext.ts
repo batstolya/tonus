@@ -18,6 +18,7 @@ export interface HealthContext {
   intake: Record<string, any>[]
   supplementLogs: Record<string, any>[]
   notes: Record<string, any>[]
+  calendar: Record<string, any>[]
 }
 
 const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
@@ -33,7 +34,7 @@ export async function buildHealthContext(
   const since = new Date(); since.setDate(since.getDate() - periodDays)
   const sinceStr = since.toISOString().slice(0, 10)
 
-  const [profRes, scoreRes, mRes, sRes, labRes, supRes, intakeRes, logRes, notesRes] = await Promise.all([
+  const [profRes, scoreRes, mRes, sRes, labRes, supRes, intakeRes, logRes, notesRes, calRes] = await Promise.all([
     opts.includeCoachProfile
       ? supabase.from('coach_profile').select('summary, facts').eq('user_id', userId).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -59,6 +60,9 @@ export async function buildHealthContext(
     supabase.from('context_notes')
       .select('date, note')
       .eq('user_id', userId).gte('date', sinceStr).order('date', { ascending: false }),
+    supabase.from('calendar_events')
+      .select('start_ts')
+      .eq('user_id', userId).gte('start_ts', `${sinceStr}T00:00:00Z`).order('start_ts', { ascending: false }),
   ])
 
   const prof = profRes.data
@@ -73,6 +77,7 @@ export async function buildHealthContext(
     intake: intakeRes.data ?? [],
     supplementLogs: logRes.data ?? [],
     notes: notesRes.data ?? [],
+    calendar: calRes.data ?? [],
   }
 }
 
@@ -185,6 +190,13 @@ export function healthContextToText(ctx: HealthContext): string {
   if (ctx.notes.length) {
     parts.push('\nЗаметки дня (со слов пользователя):')
     for (const n of ctx.notes) parts.push(`${n.date}: ${n.note}`)
+  }
+
+  if (ctx.calendar.length) {
+    const byDay: Record<string, number> = {}
+    for (const e of ctx.calendar) { const d = (e.start_ts as string).slice(0, 10); byDay[d] = (byDay[d] ?? 0) + 1 }
+    const perDay = Object.entries(byDay).sort((a, b) => b[0].localeCompare(a[0])).map(([d, c]) => `${d.slice(5)}—${c}`).join(', ')
+    parts.push(`\nКалендарь (встречи — нагрузка дня): всего ${ctx.calendar.length}. По дням: ${perDay}`)
   }
 
   return parts.join('\n')
