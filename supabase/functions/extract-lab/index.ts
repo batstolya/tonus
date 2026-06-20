@@ -56,6 +56,7 @@ serve(async (req) => {
             generationConfig: {
               maxOutputTokens: 8192,
               temperature: 0,
+              thinkingConfig: { thinkingBudget: 0 },
               responseMimeType: 'application/json',
               responseSchema: {
                 type: 'object',
