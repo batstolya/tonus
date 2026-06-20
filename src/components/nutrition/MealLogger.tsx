@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '../../lib/supabase'
 import { useT } from '../../lib/i18n'
@@ -11,6 +11,21 @@ interface MealResult {
   fat_g: number | null
 }
 
+interface OFFProduct {
+  product_name: string
+  serving_size?: string
+  nutriments: {
+    'energy-kcal_serving'?: number
+    'proteins_serving'?: number
+    'carbohydrates_serving'?: number
+    'fat_serving'?: number
+    'energy-kcal_100g'?: number
+    proteins_100g?: number
+    carbohydrates_100g?: number
+    fat_100g?: number
+  }
+}
+
 interface Props {
   user: User
   onSaved: () => void
@@ -18,7 +33,7 @@ interface Props {
 
 export function MealLogger({ user, onSaved }: Props) {
   const { t } = useT()
-  const [tab, setTab] = useState<'photo' | 'text'>('photo')
+  const [tab, setTab] = useState<'photo' | 'text' | 'search'>('photo')
   const [text, setText] = useState('')
   const [preview, setPreview] = useState<string | null>(null)
   const [imageData, setImageData] = useState<{ base64: string; mime: string } | null>(null)
@@ -27,6 +42,13 @@ export function MealLogger({ user, onSaved }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  // Search tab state
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<OFFProduct[]>([])
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [searchError, setSearchError] = useState<string | null>(null)
+  const [searched, setSearched] = useState(false)
 
   function reset() { setEditResult(null); setError(null) }
 
@@ -78,16 +100,69 @@ export function MealLogger({ user, onSaved }: Props) {
     })
     setSaving(false)
     setEditResult(null); setPreview(null); setImageData(null); setText(''); setError(null)
+    setSearchQuery(''); setSearchResults([]); setSearched(false); setSearchError(null)
     onSaved()
   }
 
-  const switchTab = (t: 'photo' | 'text') => { setTab(t); reset() }
+  const switchTab = (newTab: 'photo' | 'text' | 'search') => { setTab(newTab); reset() }
   const canAnalyze = tab === 'photo' ? !!imageData : text.trim().length > 2
+
+  // Debounced search
+  useEffect(() => {
+    if (tab !== 'search') return
+    if (searchQuery.trim().length < 2) {
+      setSearchResults([])
+      setSearched(false)
+      setSearchError(null)
+      return
+    }
+    const timer = setTimeout(async () => {
+      setSearchLoading(true)
+      setSearchError(null)
+      setSearched(false)
+      try {
+        const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(searchQuery.trim())}&search_simple=1&action=process&json=1&page_size=10&fields=product_name,nutriments,serving_size`
+        const res = await fetch(url)
+        const json = await res.json()
+        const products: OFFProduct[] = (json.products ?? []).filter((p: OFFProduct) => {
+          const n = p.nutriments
+          const cal = n['energy-kcal_serving'] ?? n['energy-kcal_100g']
+          return p.product_name && cal != null
+        }).slice(0, 8)
+        setSearchResults(products)
+        setSearched(true)
+      } catch (e: any) {
+        setSearchError(e.message)
+      } finally {
+        setSearchLoading(false)
+      }
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [searchQuery, tab])
+
+  function handleSelectProduct(product: OFFProduct) {
+    const n = product.nutriments
+    const useServing = n['energy-kcal_serving'] != null
+    const calories = useServing ? (n['energy-kcal_serving'] ?? null) : (n['energy-kcal_100g'] ?? null)
+    const protein = useServing ? (n['proteins_serving'] ?? null) : (n['proteins_100g'] ?? null)
+    const carbs = useServing ? (n['carbohydrates_serving'] ?? null) : (n['carbohydrates_100g'] ?? null)
+    const fat = useServing ? (n['fat_serving'] ?? null) : (n['fat_100g'] ?? null)
+    const suffix = !useServing ? ` (${t('на 100г')})` : ''
+    setEditResult({
+      dish: product.product_name + suffix,
+      calories: calories != null ? Math.round(calories) : null,
+      protein_g: protein != null ? Math.round(protein * 10) / 10 : null,
+      carbs_g: carbs != null ? Math.round(carbs * 10) / 10 : null,
+      fat_g: fat != null ? Math.round(fat * 10) / 10 : null,
+    })
+    setError(null)
+  }
 
   return (
     <div className="meal-logger">
       <div className="meal-logger-tabs">
         <button className={`meal-tab${tab === 'photo' ? ' active' : ''}`} onClick={() => switchTab('photo')}>📸 {t('Фото')}</button>
+        <button className={`meal-tab${tab === 'search' ? ' active' : ''}`} onClick={() => switchTab('search')}>🔍 {t('Поиск')}</button>
         <button className={`meal-tab${tab === 'text' ? ' active' : ''}`} onClick={() => switchTab('text')}>✏️ {t('Текст')}</button>
       </div>
 
@@ -119,9 +194,53 @@ export function MealLogger({ user, onSaved }: Props) {
           value={text} onChange={e => setText(e.target.value)} />
       )}
 
+      {tab === 'search' && !editResult && (
+        <>
+          <input
+            className="log-input"
+            style={{ marginTop: 4 }}
+            type="text"
+            placeholder={t('Поиск продукта…')}
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            autoFocus
+          />
+          {searchLoading && (
+            <p className="settings-muted" style={{ fontSize: 13, marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span className="ai-spinner" style={{ borderColor: 'rgba(108,143,255,0.3)', borderTopColor: 'var(--accent)' }} />
+              {t('Ищу…')}
+            </p>
+          )}
+          {searchError && <p className="auth-error" style={{ marginTop: 8 }}>{searchError}</p>}
+          {!searchLoading && searched && searchResults.length === 0 && (
+            <p className="settings-muted" style={{ fontSize: 13, marginTop: 8 }}>{t('Ничего не найдено')}</p>
+          )}
+          {!searchLoading && searchResults.length > 0 && (
+            <div className="off-results">
+              {searchResults.map((product, i) => {
+                const n = product.nutriments
+                const useServing = n['energy-kcal_serving'] != null
+                const cal = useServing ? n['energy-kcal_serving'] : n['energy-kcal_100g']
+                const suffix = !useServing ? ` · ${t('на 100г')}` : ''
+                return (
+                  <button
+                    key={i}
+                    className="off-result-btn"
+                    onClick={() => handleSelectProduct(product)}
+                  >
+                    <span className="off-result-name">{product.product_name}</span>
+                    <span className="off-result-cal">{Math.round(cal!)} {t('ккал')}{suffix}</span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </>
+      )}
+
       {error && <p className="auth-error" style={{ marginTop: 8 }}>{error}</p>}
 
-      {!editResult && (
+      {!editResult && tab !== 'search' && (
         <button className="btn btn-primary" style={{ marginTop: 10, width: '100%' }}
           onClick={handleAnalyze} disabled={loading || !canAnalyze}>
           {loading ? <><span className="ai-spinner" /> {t('Анализирую…')}</> : t('Оценить калории (ИИ)')}
