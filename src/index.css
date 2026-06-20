@@ -1568,3 +1568,8 @@ body {
 .meal-result-fields { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 8px; }
 .meal-result-field { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--text-muted); }
 .meal-result-field input { padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 15px; font-weight: 600; width: 100%; box-sizing: border-box; }
+.off-results { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.off-result-btn { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-size: 13px; color: var(--text); text-align: left; transition: border-color 0.12s; }
+.off-result-btn:hover { border-color: var(--accent); }
+.off-result-name { font-weight: 500; }
+.off-result-cal { color: var(--text-muted); font-size: 12px; flex-shrink: 0; margin-left: 8px; }

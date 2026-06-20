@@ -532,6 +532,11 @@ export const translations: Record<string, { uk: string; en: string }> = {
   'Метрики (CSV)': { uk: 'Метрики (CSV)', en: 'Metrics (CSV)' },
 
   // ── MealLogger ─────────────────────────────────────────────────────────────
+  'Поиск': { uk: 'Пошук', en: 'Search' },
+  'Поиск продукта…': { uk: 'Пошук продукту…', en: 'Search product…' },
+  'Ничего не найдено': { uk: 'Нічого не знайдено', en: 'Nothing found' },
+  'Ищу…': { uk: 'Шукаю…', en: 'Searching…' },
+  'на 100г': { uk: 'на 100г', en: 'per 100g' },
   'Фото': { uk: 'Фото', en: 'Photo' },
   'Текст': { uk: 'Текст', en: 'Text' },
   'Нажми или перетащи фото блюда': { uk: 'Натисни або перетягни фото страви', en: 'Click or drop a food photo' },
