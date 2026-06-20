@@ -1568,3 +1568,15 @@ body {
 .meal-result-fields { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 8px; }
 .meal-result-field { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--text-muted); }
 .meal-result-field input { padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 15px; font-weight: 600; width: 100%; box-sizing: border-box; }
+
+/* ── Treatment tracker ───────────────────────────────────────────────────── */
+.treatment-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
+.treatment-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+.treatment-card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.treatment-name { font-weight: 600; font-size: 15px; }
+.treatment-days { font-size: 12px; color: var(--text-muted); }
+.treatment-results { display: flex; flex-direction: column; gap: 6px; }
+.treatment-metric { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+.treatment-metric-label { color: var(--text-muted); }
+.treatment-metric-delta { font-weight: 600; }
+.treatment-disclaimer { font-size: 11px; color: var(--text-muted); font-style: italic; margin-top: 8px; }
