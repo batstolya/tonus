@@ -46,14 +46,16 @@ export async function buildHealthContext(
       .eq('user_id', userId).gte('date', sinceStr).order('date', { ascending: false }),
     supabase.from('lab_results')
       .select('marker, value, unit, date')
-      .eq('user_id', userId).order('date', { ascending: false }).limit(60),
+      .eq('user_id', userId).order('date', { ascending: false }).limit(20),
     supabase.from('supplements').select('name').eq('user_id', userId),
     supabase.from('intake_events')
       .select('ts, type, amount, unit, note, calories, protein_g, carbs_g, fat_g')
-      .eq('user_id', userId).gte('ts', `${sinceStr}T00:00:00Z`).order('ts', { ascending: false }).limit(80),
+      .eq('user_id', userId).gte('ts', `${sinceStr}T00:00:00Z`)
+      .neq('type', 'water') // вода низкоинформативна, экономим токены
+      .order('ts', { ascending: false }).limit(40),
     supabase.from('supplement_logs')
       .select('date, taken, supplements(name)')
-      .eq('user_id', userId).gte('date', sinceStr).eq('taken', true).order('date', { ascending: false }).limit(100),
+      .eq('user_id', userId).gte('date', sinceStr).eq('taken', true).order('date', { ascending: false }).limit(40),
     supabase.from('context_notes')
       .select('date, note')
       .eq('user_id', userId).gte('date', sinceStr).order('date', { ascending: false }),
@@ -111,7 +113,7 @@ export function healthContextToText(ctx: HealthContext): string {
     if (steps.length) parts.push(`Шаги: средн ${Math.round(avg(steps)!).toLocaleString('ru-RU')}/день`)
     if (energy.length) parts.push(`Активные ккал: средн ${Math.round(avg(energy)!)}/день`)
     if (spo2.length) parts.push(`SpO2: средн ${(avg(spo2)! * 100).toFixed(0)}%`)
-    const daily = rows.slice(-7).map((r: any) =>
+    const daily = rows.slice(-5).map((r: any) =>
       `${r.date}: сон ${r.sleep_hours?.toFixed?.(1) ?? '—'}ч, ЧССп ${r.resting_heart_rate ?? '—'}, шаги ${r.steps ?? '—'}`
     ).join('\n')
     parts.push(`\nПоследние дни:\n${daily}`)
@@ -169,13 +171,15 @@ export function healthContextToText(ctx: HealthContext): string {
   }
 
   if (ctx.supplementLogs.length) {
-    const byDay: Record<string, string[]> = {}
+    // Сжимаем: считаем сколько дней принял каждый препарат, не перечисляем каждый день
+    const countByName: Record<string, number> = {}
     for (const l of ctx.supplementLogs) {
       const name = (l.supplements as any)?.name
-      if (name) (byDay[l.date] ??= []).push(name)
+      if (name) countByName[name] = (countByName[name] ?? 0) + 1
     }
-    parts.push('\nПриём препаратов (по дням):')
-    for (const [date, names] of Object.entries(byDay)) parts.push(`${date}: ${names.join(', ')}`)
+    const total = ctx.periodDays
+    const summary = Object.entries(countByName).map(([n, c]) => `${n}: ${c}/${total} дн`).join(', ')
+    parts.push(`\nПриём препаратов: ${summary}`)
   }
 
   if (ctx.notes.length) {

@@ -107,9 +107,8 @@ serve(async (req) => {
         body: JSON.stringify({
           contents: geminiContents,
           generationConfig: {
-            maxOutputTokens: 2048,
+            maxOutputTokens: 600, // чат-ответы короткие, 2048 — перерасход
             temperature: 0.5,
-            // без этого Gemini 2.5 тратит токены на «размышления» и обрезает ответ
             thinkingConfig: { thinkingBudget: 0 },
           },
         }),
