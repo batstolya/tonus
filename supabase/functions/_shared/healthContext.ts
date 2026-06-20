@@ -47,7 +47,7 @@ export async function buildHealthContext(
       .eq('user_id', userId).gte('date', sinceStr).order('date', { ascending: false }),
     supabase.from('lab_results')
       .select('marker, value, unit, ref_range, flag, date')
-      .eq('user_id', userId).order('date', { ascending: false }).limit(40),
+      .eq('user_id', userId).order('date', { ascending: false }).limit(200),
     supabase.from('supplements').select('name').eq('user_id', userId),
     supabase.from('intake_events')
       .select('ts, type, amount, unit, note, calories, protein_g, carbs_g, fat_g')
