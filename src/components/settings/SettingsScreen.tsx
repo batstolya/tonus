@@ -42,6 +42,9 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
   const [calToken, setCalToken] = useState('')
   const [calLoading, setCalLoading] = useState(false)
   const [calMsg, setCalMsg] = useState<string | null>(null)
+  const [calEmail, setCalEmail] = useState('')
+  const [calPassword, setCalPassword] = useState('')
+  const [calStatus, setCalStatus] = useState<{ last_sync_at: string | null; last_status: string | null; event_count: number | null; enabled: boolean } | null>(null)
   const [tgLinked, setTgLinked] = useState(false)
   const [tgUsername, setTgUsername] = useState<string | null>(null)
   const [tgLinking, setTgLinking] = useState(false)
@@ -144,6 +147,44 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
     }
     setCalLoading(false)
   }
+
+  async function handleCalSaveAndSync() {
+    if (!calEmail.trim() || !calPassword) return
+    setCalLoading(true); setCalMsg(null)
+    try {
+      const { count } = await callFunction<{ count: number }>('sync-cal', { email: calEmail.trim(), password: calPassword })
+      setCalMsg(`✓ ${t('Сохранено и загружено')} ${count} ${t('событий')}`)
+      setCalPassword('')
+      setTimeout(() => onNavigate?.('stress-map'), 1500)
+    } catch (e: any) {
+      setCalMsg(`${t('Ошибка')}: ${e.message}`)
+    }
+    setCalLoading(false)
+  }
+
+  async function handleCalSyncNow() {
+    setCalLoading(true); setCalMsg(null)
+    try {
+      const { count } = await callFunction<{ count: number }>('sync-cal', {})
+      setCalMsg(`✓ ${t('Загружено')} ${count} ${t('событий')}`)
+      setTimeout(() => onNavigate?.('stress-map'), 1500)
+    } catch (e: any) {
+      setCalMsg(`${t('Ошибка')}: ${e.message}`)
+    }
+    setCalLoading(false)
+  }
+
+  async function handleCalToggle(enabled: boolean) {
+    setCalStatus(s => s ? { ...s, enabled } : s)
+    try { await callFunction('sync-cal', { enabled }) } catch { /* status reloads on next mount */ }
+  }
+
+  useEffect(() => {
+    supabase.from('cal_sync')
+      .select('last_sync_at, last_status, event_count, enabled')
+      .eq('user_id', user.id).maybeSingle()
+      .then(({ data }) => setCalStatus(data ?? null))
+  }, [user.id])
 
   useEffect(() => {
     loadMonthUsage(user.id).then(u => {
@@ -333,6 +374,40 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
             {t('Последняя синхронизация:')} {calLastSync}
           </div>
         )}
+        <div className="settings-muted" style={{ marginBottom: 12, fontSize: 12, lineHeight: 1.5 }}>
+          {t('Введи логин и пароль cal.com — синхронизация будет автоматической раз в день. Пароль хранится зашифрованно.')}
+        </div>
+        <div className="settings-ics-row" style={{ flexDirection: 'column', gap: 8, alignItems: 'stretch' }}>
+          <input className="log-input" type="email" placeholder="email@cal.com"
+            value={calEmail} onChange={e => setCalEmail(e.target.value)} />
+          <input className="log-input" type="password" placeholder={t('Пароль cal.com')}
+            value={calPassword} onChange={e => setCalPassword(e.target.value)} />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn-primary" style={{ flex: 1 }} onClick={handleCalSaveAndSync}
+              disabled={calLoading || !calEmail.trim() || !calPassword}>
+              {calLoading ? t('Загрузка…') : t('Сохранить и синхронизировать')}
+            </button>
+            <button className="btn-secondary" onClick={handleCalSyncNow} disabled={calLoading}>
+              {t('Синхронизировать сейчас')}
+            </button>
+          </div>
+        </div>
+        {calStatus && (
+          <div style={{ marginTop: 10, fontSize: 12 }} className="settings-muted">
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              <input type="checkbox" checked={calStatus.enabled} onChange={e => handleCalToggle(e.target.checked)} />
+              {t('Авто-синк раз в день')}
+            </label>
+            {calStatus.last_sync_at && (
+              <div>{t('Последний синк:')} {new Date(calStatus.last_sync_at).toLocaleString('ru-RU')} · {calStatus.event_count ?? 0} {t('событий')}
+                {calStatus.last_status && calStatus.last_status !== 'ok' && <span style={{ color: 'var(--red)' }}> · {calStatus.last_status}</span>}
+              </div>
+            )}
+          </div>
+        )}
+        <div className="settings-muted" style={{ margin: '14px 0 6px', fontSize: 12, fontWeight: 600 }}>
+          {t('Резервный способ — вход по session-токену:')}
+        </div>
         <div className="settings-muted" style={{ marginBottom: 12, fontSize: 12, lineHeight: 1.5 }}>
           F12 → Application → Cookies → <b>__Secure-next-auth.session-token</b>. {t('Токен очищается после загрузки — можно вставить второй аккаунт следом.')}
         </div>
