@@ -1120,8 +1120,8 @@ body {
 
 /* Heatmap */
 .heat-hint { font-size: 13px; margin-bottom: 10px; min-height: 18px; color: var(--text); }
-.heatmap { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, 1fr); gap: 3px; width: 100%; }
-.heat-cell { aspect-ratio: 1; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; color: rgba(0,0,0,0.7); font-variant-numeric: tabular-nums; }
+.heatmap { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, 34px); grid-auto-columns: 34px; gap: 3px; overflow-x: auto; }
+.heat-cell { border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; color: rgba(0,0,0,0.7); font-variant-numeric: tabular-nums; }
 .heat-cell.empty { background: var(--surface2) !important; color: transparent; }
 [data-theme="light"] .heat-cell.empty { background: rgba(0,0,0,0.05) !important; }
 
