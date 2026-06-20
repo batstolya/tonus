@@ -1524,3 +1524,12 @@ body {
 .caffeine-bar { display: flex; align-items: center; gap: 8px; background: color-mix(in srgb, #92400e 10%, transparent); border: 1px solid color-mix(in srgb, #92400e 25%, transparent); border-radius: 8px; padding: 7px 12px; margin-bottom: 10px; font-size: 13px; }
 .caffeine-icon { font-size: 16px; }
 .caffeine-warn { color: var(--red); font-size: 12px; }
+
+/* Language picker dropdown */
+.lang-picker { position: relative; }
+.lang-overlay { position: fixed; inset: 0; z-index: 149; }
+.lang-menu { position: absolute; top: calc(100% + 6px); right: 0; z-index: 150; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.18); min-width: 160px; padding: 4px; display: flex; flex-direction: column; gap: 2px; }
+.lang-option { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: none; color: var(--text); font-size: 14px; padding: 8px 12px; border-radius: 7px; cursor: pointer; text-align: left; transition: background 0.12s; }
+.lang-option:hover { background: var(--surface2); }
+.lang-option.active { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.lang-check { margin-left: auto; color: var(--accent); font-weight: 700; }

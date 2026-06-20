@@ -115,6 +115,7 @@ export default function App() {
     try { return JSON.parse(localStorage.getItem('cal_sync_times') ?? '{}') } catch { return {} }
   })
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [langMenuOpen, setLangMenuOpen] = useState(false)
 
   const hasData = state.daily.length > 0
   const availableMetrics = React.useMemo(() => detectAvailableMetrics(state.daily), [state.daily])
@@ -258,13 +259,30 @@ export default function App() {
             </nav>
 
             <div className="topbar-right">
-              <button
-                className="theme-toggle lang-toggle"
-                onClick={() => setLang(lang === 'ru' ? 'uk' : lang === 'uk' ? 'en' : 'ru')}
-                title={t('Язык')}
-              >
-                {lang === 'ru' ? '🇷🇺' : lang === 'uk' ? '🇺🇦' : '🇬🇧'}
-              </button>
+              <div className="lang-picker">
+                <button
+                  className="theme-toggle lang-toggle"
+                  onClick={() => setLangMenuOpen(o => !o)}
+                  title={t('Язык')}
+                >
+                  {lang === 'ru' ? '🇷🇺' : lang === 'uk' ? '🇺🇦' : '🇬🇧'}
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style={{ marginLeft: 2, opacity: 0.5 }}><path d="M1 3l4 4 4-4"/></svg>
+                </button>
+                {langMenuOpen && (
+                  <>
+                    <div className="lang-overlay" onClick={() => setLangMenuOpen(false)} />
+                    <div className="lang-menu">
+                      {([['ru','🇷🇺','Русский'],['uk','🇺🇦','Українська'],['en','🇬🇧','English']] as const).map(([code, flag, label]) => (
+                        <button key={code} className={`lang-option${lang === code ? ' active' : ''}`}
+                          onClick={() => { setLang(code); setLangMenuOpen(false) }}>
+                          <span>{flag}</span><span>{label}</span>
+                          {lang === code && <span className="lang-check">✓</span>}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
               <button className="theme-toggle" onClick={toggleTheme} title={t('Сменить тему')}>
                 {theme === 'dark' ? '☀️' : '🌙'}
               </button>
