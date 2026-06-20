@@ -49,6 +49,27 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
   const [noteTime, setNoteTime] = useState('21:00')
   const [rep, setRep] = useState<ReportSettings | null>(null)
   const [exporting, setExporting] = useState<'json' | 'csv' | null>(null)
+  const [envSyncing, setEnvSyncing] = useState(false)
+  const [envMsg, setEnvMsg] = useState<string | null>(null)
+
+  async function handleSyncEnvironment() {
+    setEnvSyncing(true)
+    setEnvMsg(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const url = import.meta.env.VITE_SUPABASE_URL as string
+      const res = await fetch(`${url}/functions/v1/fetch-environment`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${session!.access_token}`, 'Content-Type': 'application/json' },
+        body: '{}',
+      })
+      const json = await res.json()
+      setEnvMsg(json.synced ? `✅ Синхронизировано ${json.synced} дней` : (json.error ?? 'Ошибка'))
+    } catch (e: any) {
+      setEnvMsg('Ошибка: ' + e.message)
+    }
+    setEnvSyncing(false)
+  }
 
   async function handleExport(kind: 'json' | 'csv') {
     setExporting(kind)
@@ -422,6 +443,17 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
       </section>
 
       <AutoSyncSettings user={user} />
+
+      <section className="settings-section">
+        <h3 className="settings-section-title">🌤 {t('Данные среды')}</h3>
+        <p className="settings-muted" style={{ marginBottom: 10 }}>
+          {t('Температура, световой день, осадки — автоматически с Open-Meteo (Мюнхен).')}
+        </p>
+        <button className="btn-secondary" onClick={handleSyncEnvironment} disabled={envSyncing}>
+          {envSyncing ? t('Синхронизирую…') : t('Синхронизировать среду')}
+        </button>
+        {envMsg && <p className="settings-muted" style={{ marginTop: 6 }}>{envMsg}</p>}
+      </section>
 
       {onDeviceTypeChange && (
         <section className="settings-section">
