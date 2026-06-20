@@ -22,6 +22,8 @@ export const translations: Record<string, { uk: string; en: string }> = {
   'Настройки': { uk: 'Налаштування', en: 'Settings' },
   'Выйти': { uk: 'Вийти', en: 'Sign out' },
   'Сменить тему': { uk: 'Змінити тему', en: 'Toggle theme' },
+  'Светлая тема': { uk: 'Світла тема', en: 'Light theme' },
+  'Тёмная тема': { uk: 'Темна тема', en: 'Dark theme' },
   'Загружаем данные…': { uk: 'Завантажуємо дані…', en: 'Loading data…' },
   'Синхронизируем…': { uk: 'Синхронізуємо…', en: 'Syncing…' },
   'Данные актуальны': { uk: 'Дані актуальні', en: 'Data is up to date' },
@@ -505,12 +507,15 @@ export const translations: Record<string, { uk: string; en: string }> = {
   'Архив не сохраняется — запусти research.sql в Supabase SQL Editor.': { uk: 'Архів не зберігається — запусти research.sql у Supabase SQL Editor.', en: "Archive isn't saved — run research.sql in the Supabase SQL Editor." },
 
   // ── Инсайты (расширенные) ──────────────────────────────────
+  'Наблюдения': { uk: 'Спостереження', en: 'Observations' },
   'за 2 недели': { uk: 'за 2 тижні', en: 'over 2 weeks' },
   'Рекорды и серии': { uk: 'Рекорди та серії', en: 'Records & streaks' },
   'дней подряд ≥8к шагов': { uk: 'днів поспіль ≥8к кроків', en: 'days in a row ≥8k steps' },
   'ночей подряд сон ≥7ч': { uk: 'ночей поспіль сон ≥7год', en: 'nights in a row ≥7h sleep' },
   'Дни-выбросы': { uk: 'Дні-викиди', en: 'Outlier days' },
   'Календарь': { uk: 'Календар', en: 'Calendar' },
+  'Загружено': { uk: 'Завантажено', en: 'Loaded' },
+  'событий': { uk: 'подій', en: 'events' },
   'Паттерны по дням недели': { uk: 'Патерни за днями тижня', en: 'Weekday patterns' },
   'выше': { uk: 'вище', en: 'higher' },
   'ниже': { uk: 'нижче', en: 'lower' },
@@ -538,6 +543,7 @@ export const translations: Record<string, { uk: string; en: string }> = {
   'Синхронизирую…': { uk: 'Синхронізую…', en: 'Syncing…' },
 
   // ── MealLogger ─────────────────────────────────────────────────────────────
+  'Еда': { uk: 'Їжа', en: 'Meal' },
   'Поиск': { uk: 'Пошук', en: 'Search' },
   'Поиск продукта…': { uk: 'Пошук продукту…', en: 'Search product…' },
   'Ничего не найдено': { uk: 'Нічого не знайдено', en: 'Nothing found' },
