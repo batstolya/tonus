@@ -171,7 +171,8 @@ export function MealLogger({ user, onSaved }: Props) {
           {preview
             ? <img src={preview} alt="" className="meal-preview" onClick={() => fileRef.current?.click()} />
             : <div className="meal-drop-hint"><span>📷</span><span>{t('Нажми или перетащи фото блюда')}</span></div>}
-          <input ref={fileRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
+          {/* без capture — на телефоне OS даёт выбор: камера или галерея */}
+          <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
             onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = '' }} />
         </div>
       )}
