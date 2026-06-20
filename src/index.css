@@ -1551,3 +1551,20 @@ body {
 .lang-option:hover { background: var(--surface2); }
 .lang-option.active { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 .lang-check { margin-left: auto; color: var(--accent); font-weight: 700; }
+
+/* ── MealLogger ──────────────────────────────────────────────────────────── */
+.meal-logger { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 20px; }
+.meal-logger-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+.meal-tab { flex: 1; padding: 7px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface2); color: var(--text-muted); cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.15s; }
+.meal-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.meal-drop { border: 2px dashed var(--border); border-radius: 10px; cursor: pointer; min-height: 120px; display: flex; align-items: center; justify-content: center; transition: border-color 0.15s; overflow: hidden; }
+.meal-drop:hover { border-color: var(--accent); }
+.meal-drop-hint { display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--text-muted); font-size: 13px; }
+.meal-drop-hint span:first-child { font-size: 32px; }
+.meal-preview { max-width: 100%; max-height: 240px; object-fit: cover; cursor: pointer; }
+.meal-text-input { width: 100%; box-sizing: border-box; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 14px; color: var(--text); resize: vertical; font-family: inherit; }
+.meal-result { margin-top: 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+.meal-result-dish { font-size: 15px; margin-bottom: 10px; }
+.meal-result-fields { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 8px; }
+.meal-result-field { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--text-muted); }
+.meal-result-field input { padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 15px; font-weight: 600; width: 100%; box-sizing: border-box; }
