@@ -46,8 +46,8 @@ export async function buildHealthContext(
       .select('date, duration_hours, deep_hours, rem_hours, core_hours')
       .eq('user_id', userId).gte('date', sinceStr).order('date', { ascending: false }),
     supabase.from('lab_results')
-      .select('marker, value, unit, date')
-      .eq('user_id', userId).order('date', { ascending: false }).limit(20),
+      .select('marker, value, unit, ref_range, flag, date')
+      .eq('user_id', userId).order('date', { ascending: false }).limit(40),
     supabase.from('supplements').select('name').eq('user_id', userId),
     supabase.from('intake_events')
       .select('ts, type, amount, unit, note, calories, protein_g, carbs_g, fat_g')
@@ -141,15 +141,18 @@ export function healthContextToText(ctx: HealthContext): string {
   if (ctx.labs.length) {
     const byMarker: Record<string, any[]> = {}
     for (const r of ctx.labs) (byMarker[r.marker] ??= []).push(r)
-    parts.push('\nАнализы (последние значения):')
+    parts.push('\nАнализы (последние значения; ⚠️ = вне нормы):')
+    const flagTxt = (f: string | null) => f === 'high' ? ' ⚠️ВЫШЕ' : f === 'low' ? ' ⚠️НИЖЕ' : ''
     for (const [marker, entries] of Object.entries(byMarker)) {
       const latest = entries[0]
       const unit = latest.unit ? ` ${latest.unit}` : ''
+      const ref = latest.ref_range ? ` [норма ${latest.ref_range}]` : ''
+      const fl = flagTxt(latest.flag)
       if (entries.length >= 2) {
         const d = latest.value - entries[1].value
-        parts.push(`${marker}: ${latest.value}${unit} (${latest.date}, ${d > 0 ? '+' : ''}${d.toFixed(1)} к ${entries[1].date})`)
+        parts.push(`${marker}: ${latest.value}${unit}${fl}${ref} (${latest.date}, ${d > 0 ? '+' : ''}${d.toFixed(1)} к ${entries[1].date})`)
       } else {
-        parts.push(`${marker}: ${latest.value}${unit} (${latest.date})`)
+        parts.push(`${marker}: ${latest.value}${unit}${fl}${ref} (${latest.date})`)
       }
     }
   }
