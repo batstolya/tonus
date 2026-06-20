@@ -94,13 +94,14 @@ function normalizeBookings(bookings: any[], userId: string) {
 }
 
 async function syncOne(admin: any, row: { user_id: string; cal_email: string; cal_password_enc: string }) {
-  let status = 'ok'; let count = 0
+  let status = 'ok'; let count = 0; let outRows: any[] = []
   try {
     const password = await decrypt(row.cal_password_enc)
     const token = await calLogin(row.cal_email, password)
     const bookings = await fetchBookings(token)
     const rows = normalizeBookings(bookings, row.user_id)
     count = rows.length
+    outRows = rows
     for (let i = 0; i < rows.length; i += 200) {
       const { error } = await admin.from('calendar_events').upsert(rows.slice(i, i + 200), { onConflict: 'user_id,uid' })
       if (error) throw new Error(`calendar_events upsert: ${error.message}`)
@@ -111,7 +112,7 @@ async function syncOne(admin: any, row: { user_id: string; cal_email: string; ca
   await admin.from('cal_sync').update({
     last_sync_at: new Date().toISOString(), last_status: status, event_count: count,
   }).eq('user_id', row.user_id)
-  return { status, count }
+  return { status, count, rows: outRows }
 }
 
 serve(async (req) => {
@@ -155,7 +156,12 @@ serve(async (req) => {
 
     const result = await syncOne(admin, row)
     if (result.status !== 'ok') return new Response(JSON.stringify({ error: result.status }), { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } })
-    return new Response(JSON.stringify({ count: result.count }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
+    // Return events so the client can refresh the stress map without a page reload.
+    const events = result.rows.map((r: any) => ({
+      uid: r.uid, title: r.title, start: r.start_ts, end: r.end_ts,
+      description: r.description, location: r.location, source: r.source,
+    }))
+    return new Response(JSON.stringify({ count: result.count, events }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
   } catch (e: any) {
     return new Response(JSON.stringify({ error: e.message ?? 'Error' }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } })
   }

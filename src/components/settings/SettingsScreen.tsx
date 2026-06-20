@@ -152,7 +152,8 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
     if (!calEmail.trim() || !calPassword) return
     setCalLoading(true); setCalMsg(null)
     try {
-      const { count } = await callFunction<{ count: number }>('sync-cal', { email: calEmail.trim(), password: calPassword })
+      const { count, events } = await callFunction<{ count: number; events: any[] }>('sync-cal', { email: calEmail.trim(), password: calPassword })
+      onCalEvents?.(events)
       setCalMsg(`✓ ${t('Сохранено и загружено')} ${count} ${t('событий')}`)
       setCalPassword('')
       setTimeout(() => onNavigate?.('stress-map'), 1500)
@@ -165,7 +166,8 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
   async function handleCalSyncNow() {
     setCalLoading(true); setCalMsg(null)
     try {
-      const { count } = await callFunction<{ count: number }>('sync-cal', {})
+      const { count, events } = await callFunction<{ count: number; events: any[] }>('sync-cal', {})
+      onCalEvents?.(events)
       setCalMsg(`✓ ${t('Загружено')} ${count} ${t('событий')}`)
       setTimeout(() => onNavigate?.('stress-map'), 1500)
     } catch (e: any) {

@@ -43,9 +43,10 @@ serve(async (req) => {
           body: JSON.stringify({
             systemInstruction: {
               parts: [{ text: `Ты — ассистент для оцифровки бланков медицинских анализов (любой язык: укр/рус/польский/английский/испанский).
-Извлеки КАЖДУЮ строку таблицы результатов с числовым значением — ВСЕ показатели, а не только важные.
-Для каждого: marker (название как в бланке), value (число; десятичную запятую переведи в точку; диапазоны/«<5» вынеси в ref_range, а value поставь как есть если число), unit, ref_range (референсные значения если есть), flag ("low"/"high"/"normal" если бланк помечает отклонение).
-Не выдумывай показатели. В поле summary дай 1-2 предложения с общей картиной.` }]
+НЕ переписывай шапку бланка, реквизиты лаборатории и данные пациента. Не транскрибируй документ.
+Извлекай ТОЛЬКО строки таблицы результатов с числовым значением — КАЖДУЮ, все показатели на всех страницах, а не только важные.
+Для каждого: marker (название как в бланке), value (число; десятичную запятую переведи в точку; диапазоны/«<5» вынеси в ref_range), unit, ref_range (референсные значения если есть), flag ("low"/"high"/"normal" если бланк помечает отклонение).
+Не выдумывай показатели.` }]
             },
             contents: [{
               parts: [
@@ -54,14 +55,13 @@ serve(async (req) => {
               ]
             }],
             generationConfig: {
-              maxOutputTokens: 8192,
+              maxOutputTokens: 16384,
               temperature: 0,
               thinkingConfig: { thinkingBudget: 0 },
               responseMimeType: 'application/json',
               responseSchema: {
                 type: 'object',
                 properties: {
-                  summary: { type: 'string' },
                   markers: {
                     type: 'array',
                     items: {
@@ -87,7 +87,9 @@ serve(async (req) => {
       if (!geminiRes.ok) throw new Error(`Gemini error: ${await geminiRes.text()}`)
 
       const geminiData = await geminiRes.json()
-      const raw = geminiData.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}'
+      const cand = geminiData.candidates?.[0]
+      const raw = cand?.content?.parts?.[0]?.text ?? '{}'
+      const finishReason = cand?.finishReason ?? 'unknown'
       const tokensUsed = geminiData.usageMetadata?.totalTokenCount ?? null
       if (tokensUsed) await supabase.from('ai_usage').insert({ user_id: user.id, source: 'extract-lab', tokens_used: tokensUsed })
 
@@ -95,10 +97,11 @@ serve(async (req) => {
         const parsed = JSON.parse(raw)
         biomarkers = Array.isArray(parsed.markers) ? parsed.markers : []
         const lines = biomarkers.map(b => `${b.marker}: ${b.value}${b.unit ? ' ' + b.unit : ''}${b.ref_range ? ` (норма ${b.ref_range})` : ''}${b.flag && b.flag !== 'normal' ? ` [${b.flag}]` : ''}`)
-        extractedText = `${parsed.summary ? parsed.summary + '\n\n' : ''}${lines.join('\n')}`
+        extractedText = lines.join('\n')
+        if (biomarkers.length === 0) extractedText = `[Не распознано ни одного показателя. finishReason=${finishReason}]`
       } catch {
-        // не распарсилось — сохраним сырой ответ, чтобы не потерять
-        extractedText = raw
+        // JSON обрезан/невалиден (часто finishReason=MAX_TOKENS) — сохраняем диагностику
+        extractedText = `[Ответ ИИ не разобран, finishReason=${finishReason}]\n\n${raw.slice(0, 2000)}`
       }
     }
 
