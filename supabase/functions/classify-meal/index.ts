@@ -41,18 +41,28 @@ serve(async (req) => {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts }],
-          generationConfig: { temperature: 0.2, maxOutputTokens: 256, responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } },
+          // 256 не хватало gemini-2.5-flash: остаток «мышления» + кириллица в ответе
+          // упирались в MAX_TOKENS, модель отдавала пустой parts → все поля null.
+          generationConfig: { temperature: 0.2, maxOutputTokens: 1024, responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } },
         }),
       }
     )
     if (!res.ok) throw new Error(`Gemini ${res.status}`)
     const data = await res.json()
     const tokens = data.usageMetadata?.totalTokenCount ?? 0
-    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}'
+    const cand = data.candidates?.[0]
+    const raw = cand?.content?.parts?.[0]?.text ?? '{}'
     const parsed = JSON.parse(raw)
 
     if (parsed.is_food === false) {
       return new Response(JSON.stringify({ error: 'not_food' }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
+    }
+
+    // Пустой/обрезанный ответ Gemini (при MAX_TOKENS parts приходит пустым) — раньше
+    // это молча отдавало карточку со всеми null. Теперь возвращаем понятную ошибку.
+    if (parsed.calories == null) {
+      console.error('classify-meal: empty result', { finishReason: cand?.finishReason, tokens })
+      return new Response(JSON.stringify({ error: 'Не удалось распознать блюдо — уточни описание и попробуй ещё раз.' }), { status: 422, headers: { ...CORS, 'Content-Type': 'application/json' } })
     }
 
     await supabase.from('ai_usage').insert({ user_id: user.id, source: 'meal-classify', tokens_used: tokens })
