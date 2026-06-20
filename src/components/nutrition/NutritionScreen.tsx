@@ -5,6 +5,7 @@ import {
 } from 'recharts'
 import { supabase } from '../../lib/supabase'
 import { useT } from '../../lib/i18n'
+import { MealLogger } from './MealLogger'
 
 interface Meal {
   ts: string
@@ -26,14 +27,16 @@ export function NutritionScreen({ user }: { user: User }) {
   const [goal, setGoal] = useState<number>(() => Number(localStorage.getItem(GOAL_KEY)) || 2000)
   const [editGoal, setEditGoal] = useState(false)
 
-  useEffect(() => {
+  function loadMeals() {
     const since = new Date(Date.now() - 30 * 86400000).toISOString()
     supabase.from('intake_events')
       .select('ts, note, calories, protein_g, carbs_g, fat_g')
       .eq('user_id', user.id).eq('type', 'meal')
       .gte('ts', since).order('ts', { ascending: false })
       .then(({ data }) => { setMeals((data ?? []) as Meal[]); setLoading(false) })
-  }, [user.id])
+  }
+
+  useEffect(() => { loadMeals() }, [user.id])
 
   const locale = lang === 'en' ? 'en-GB' : lang === 'uk' ? 'uk-UA' : 'ru-RU'
   const days = useMemo<DayAgg[]>(() => {
@@ -76,7 +79,7 @@ export function NutritionScreen({ user }: { user: User }) {
   if (!meals.length) return (
     <div className="screen">
       <h2>{t('Питание')}</h2>
-      <p className="settings-muted">{t('Пока нет записей о еде. Отправь боту фото блюда или напиши что съел — калории посчитаются автоматически.')}</p>
+      <MealLogger user={user} onSaved={loadMeals} />
     </div>
   )
 
@@ -87,6 +90,8 @@ export function NutritionScreen({ user }: { user: User }) {
   return (
     <div className="screen">
       <h2>{t('Питание')}</h2>
+
+      <MealLogger user={user} onSaved={loadMeals} />
 
       {/* Сегодня */}
       <div className="nutr-today">
