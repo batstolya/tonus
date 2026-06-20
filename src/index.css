@@ -38,6 +38,9 @@ body {
   color: var(--text);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  /* защита от случайного горизонтального скролла на мобилке;
+     clip (не hidden) не создаёт scroll-контейнер → sticky-навигация работает */
+  overflow-x: clip;
 }
 
 .app { display: flex; flex-direction: column; min-height: 100vh; }
