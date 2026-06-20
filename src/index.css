@@ -1517,6 +1517,9 @@ body {
 .research-run-meta { display: block; font-size: 12px; color: var(--text-muted); }
 .research-detail { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
 @media (max-width: 768px) { .research-layout { grid-template-columns: 1fr; } }
+.exp-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; padding: 48px 20px; margin-top: 20px; color: var(--text-muted); background: var(--surface); border: 1px dashed var(--border); border-radius: 14px; }
+.exp-empty-emoji { font-size: 32px; opacity: 0.7; }
+.exp-empty p { max-width: 360px; margin: 0; font-size: 14px; line-height: 1.5; }
 
 /* Experiment form */
 .exp-form { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 14px; }
