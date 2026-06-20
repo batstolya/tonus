@@ -58,7 +58,7 @@ serve(async (req) => {
         body: JSON.stringify({
           system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
           contents: [{ parts: [{ text: `Данные здоровья за период ${periodStart} — ${periodEnd}:\n\n${digest}` }] }],
-          generationConfig: { temperature: 0.4, maxOutputTokens: 2048, responseMimeType: 'application/json' },
+          generationConfig: { temperature: 0.4, maxOutputTokens: 2048, responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } },
         }),
       }
     )

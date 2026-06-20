@@ -57,7 +57,7 @@ ${notes ? `\nЗАМЕТКИ ДНЯ (контекст со слов пользо�
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.4, maxOutputTokens: 4096 } }),
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.4, maxOutputTokens: 2048, thinkingConfig: { thinkingBudget: 0 } } }),
       }
     )
     if (!res.ok) throw new Error(`Gemini error: ${await res.text()}`)
