@@ -15,7 +15,9 @@ interface MealResult {
 interface OFFProduct {
   product_name: string
   serving_size?: string
-  nutriments: {
+  // OpenFoodFacts returns some products with no `nutriments` field at all — keep it optional
+  // so every access is forced to guard against undefined (was the source of the search crash).
+  nutriments?: {
     'energy-kcal_serving'?: number
     'proteins_serving'?: number
     'carbohydrates_serving'?: number
@@ -121,6 +123,7 @@ export function MealLogger({ user, onSaved }: Props) {
         const json = await res.json()
         const products: OFFProduct[] = (json.products ?? []).filter((p: OFFProduct) => {
           const n = p.nutriments
+          if (!n) return false
           const cal = n['energy-kcal_serving'] ?? n['energy-kcal_100g']
           return p.product_name && cal != null
         }).slice(0, 8)
@@ -137,6 +140,7 @@ export function MealLogger({ user, onSaved }: Props) {
 
   function handleSelectProduct(product: OFFProduct) {
     const n = product.nutriments
+    if (!n) return
     const useServing = n['energy-kcal_serving'] != null
     const calories = useServing ? (n['energy-kcal_serving'] ?? null) : (n['energy-kcal_100g'] ?? null)
     const protein = useServing ? (n['proteins_serving'] ?? null) : (n['proteins_100g'] ?? null)
@@ -215,8 +219,8 @@ export function MealLogger({ user, onSaved }: Props) {
             <div className="off-results">
               {searchResults.map((product, i) => {
                 const n = product.nutriments
-                const useServing = n['energy-kcal_serving'] != null
-                const cal = useServing ? n['energy-kcal_serving'] : n['energy-kcal_100g']
+                const useServing = n?.['energy-kcal_serving'] != null
+                const cal = useServing ? n?.['energy-kcal_serving'] : n?.['energy-kcal_100g']
                 const suffix = !useServing ? ` · ${t('на 100г')}` : ''
                 return (
                   <button
