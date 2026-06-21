@@ -88,6 +88,8 @@ async function setupCommands() {
       { command: 'resume', description: '▶️ Возобновить отчёты' },
       { command: 'usage', description: '🤖 Лимиты Claude' },
       { command: 'tokens', description: '✨ Токены Gemini' },
+      { command: 'idea', description: '💡 Записать идею' },
+      { command: 'ideas', description: '💡 Список идей' },
     ],
   })
 }
@@ -962,6 +964,34 @@ serve(async (req) => {
       footer,
       { parse_mode: 'Markdown', reply_markup: BACK_MENU }
     )
+    return new Response('ok')
+  }
+
+  // Идеи: личный «ящик» заметок по проекту (не показывается на сайте)
+  if (text === '/ideas') {
+    const { data: ideas } = await supabase
+      .from('ideas')
+      .select('text, created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(50)
+    if (!ideas || ideas.length === 0) {
+      await tgSend(chatId, '💡 Идей пока нет. Добавь: /idea твоя идея', { reply_markup: BACK_MENU })
+      return new Response('ok')
+    }
+    const fmt = (iso: string) => new Date(iso).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })
+    const lines = ideas.map((it: any, i: number) => `${i + 1}. ${it.text}  (${fmt(it.created_at)})`)
+    await tgSend(chatId, `💡 Твои идеи (${ideas.length}):\n\n${lines.join('\n')}`, { reply_markup: BACK_MENU })
+    return new Response('ok')
+  }
+  if (text === '/idea' || text.startsWith('/idea ')) {
+    const idea = text.slice('/idea'.length).trim()
+    if (!idea) {
+      await tgSend(chatId, '✍️ Напиши текст после команды, например:\n/idea добавить график веса')
+      return new Response('ok')
+    }
+    const { error } = await supabase.from('ideas').insert({ user_id: userId, text: idea })
+    await tgSend(chatId, error ? '❌ Не удалось сохранить, попробуй ещё раз.' : '💡 Записал. Все идеи — /ideas', { reply_markup: BACK_MENU })
     return new Response('ok')
   }
 
