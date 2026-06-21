@@ -1030,46 +1030,82 @@ serve(async (req) => {
     return new Response('ok')
   }
 
-  // Ответ на вечерний вопрос → заметка дня (N2 + N4, SPEC-DAILY-NOTE)
-  if (link.awaiting_note_date) {
-    const noteDate = link.awaiting_note_date
-    // дополняем существующую заметку, не затираем
-    const { data: existing } = await supabase
-      .from('context_notes')
-      .select('note')
-      .eq('user_id', userId)
-      .eq('date', noteDate)
-      .maybeSingle()
-    const merged = existing?.note ? `${existing.note}\n${text}` : text
-    await supabase.from('context_notes').upsert(
-      { user_id: userId, date: noteDate, note: merged, updated_at: new Date().toISOString() },
-      { onConflict: 'user_id,date' }
-    )
-    await supabase.from('telegram_links')
-      .update({ awaiting_note_date: null })
-      .eq('telegram_chat_id', String(chatId))
-    await tgSend(chatId, '📝 Записал в заметку дня. Спасибо!\n\nТеперь можешь задать любой вопрос — отвечу по твоим данным.')
+  // Естественный ввод идеи: «идея ...», «запиши идею ...», «добавь в идею ...»
+  // (команда /idea обрабатывается выше; здесь — свободный текст, чтобы идея реально сохранялась,
+  //  а не «терялась» в ИИ-чате, который раньше выдумывал подтверждение «📝 Записал»).
+  // Без \b: в JS он только по ASCII и для кириллицы не работает — опираемся на [ияю] и якорь ^.
+  const ideaMatch = text.match(/^\s*(?:(?:запиши|сохрани|добавь|добавить|как|в|новая|новую)\s+){0,3}иде[ияю]\s*[:;,.\-—]?\s*([\s\S]*)$/i)
+  if (ideaMatch) {
+    const ideaText = ideaMatch[1].trim()
+    if (!ideaText) {
+      await tgSend(chatId, '✍️ Что записать? Напиши: идея <текст>')
+      return new Response('ok')
+    }
+    const { error } = await supabase.from('ideas').insert({ user_id: userId, text: ideaText })
+    await tgSend(chatId, error ? '❌ Не удалось сохранить, попробуй ещё раз.' : '💡 Записал. Все идеи — /ideas', { reply_markup: BACK_MENU })
     return new Response('ok')
   }
 
-  // Естественный ввод: "принял финастерид 1мг", "пил кофе в 14:00", "съел макдак"
-  // Дешёвый keyword-фильтр: классификатор (доп. Gemini-вызов) только если похоже на лог
-  const looksLikeLog = /запиш|записа|добав|отмет|прин(я|и)л|выпил|пил|съел|поел|\bел\b|кушал|покушал|сожрал|ужин|обед|завтрак|перекус|кофе|алкогол|вин[оа]|пив[оа]|водк|воды|выпь|таблетк|капсул|\bмг\b|\bмл\b|\bгра?мм?\b|макдак|макдональ|еду|еды/i.test(text)
-  if (looksLikeLog) {
-  const { data: supList } = await supabase
-    .from('supplements').select('name').eq('user_id', userId).eq('active', true)
-  const supNames = (supList ?? []).map((s: any) => s.name)
-  const act = await classifyLog(text, supNames)
+  // Классифицируем КАЖДОЕ свободное сообщение единым роутером. Классификатор распознаёт
+  // даже голые названия продуктов («груша», «творог»), которые прежний keyword-фильтр
+  // пропускал — и они утекали в ИИ-чат, а flash выдумывал «📝 Записал», ничего не сохраняя
+  // (промпт это запрещает, но модель правило игнорит — поэтому фикс структурный, не в промпте).
+  // act != null → это лог (еда/приём/препарат); null → вопрос/чат.
+  // Классификатор — это AI-вызов, поэтому за бюджетом: при превышении не классифицируем,
+  // сообщение уйдёт в ИИ-чат, который сам покажет сообщение о лимите.
+  const budget = await checkBudget(supabase, userId)
+  let act: any = null
+  if (budget.ok) {
+    const { data: supList } = await supabase
+      .from('supplements').select('name').eq('user_id', userId).eq('active', true)
+    const supNames = (supList ?? []).map((s: any) => s.name)
+    act = await classifyLog(text, supNames)
+  }
+
+  // Таймзона нужна для срока годности заметки и для лога
+  const { data: noteSet } = await supabase
+    .from('daily_note_settings').select('timezone').eq('user_id', userId).maybeSingle()
+  const tz = noteSet?.timezone || 'Europe/Kyiv'
+
+  // Ответ на вечерний вопрос → заметка дня (N2 + N4, SPEC-DAILY-NOTE)
+  // Фикс: (1) флаг протухает к следующим суткам; (2) лог еды/приёма НЕ съедается как заметка.
+  if (link.awaiting_note_date) {
+    const noteDate = link.awaiting_note_date
+    const stale = noteDate < localDate(tz)
+    if (stale || act) {
+      // протухший вопрос ИЛИ это лог → не заметка: сбрасываем флаг, обрабатываем как обычно
+      await supabase.from('telegram_links')
+        .update({ awaiting_note_date: null })
+        .eq('telegram_chat_id', String(chatId))
+    } else {
+      // обычный ответ → заметка дня (дополняем существующую, не затираем)
+      const { data: existing } = await supabase
+        .from('context_notes')
+        .select('note')
+        .eq('user_id', userId)
+        .eq('date', noteDate)
+        .maybeSingle()
+      const merged = existing?.note ? `${existing.note}\n${text}` : text
+      await supabase.from('context_notes').upsert(
+        { user_id: userId, date: noteDate, note: merged, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id,date' }
+      )
+      await supabase.from('telegram_links')
+        .update({ awaiting_note_date: null })
+        .eq('telegram_chat_id', String(chatId))
+      await tgSend(chatId, '📝 Записал в заметку дня. Спасибо!\n\nТеперь можешь задать любой вопрос — отвечу по твоим данным.')
+      return new Response('ok')
+    }
+  }
+
+  // Лог еды/приёма/препарата (распознан классификатором): "груша", "съел макдак",
+  // "принял финастерид 1мг", "пил кофе в 14:00"
   if (act) {
-    const { data: noteSet } = await supabase
-      .from('daily_note_settings').select('timezone').eq('user_id', userId).maybeSingle()
-    const tz = noteSet?.timezone || 'Europe/Kyiv'
     const confirm = await execLog(chatId, userId, act, tz, supabase)
     if (confirm) {
       await tgSend(chatId, confirm, { reply_markup: BACK_MENU })
       return new Response('ok')
     }
-  }
   }
 
   // Any other text → AI chat (B3)
