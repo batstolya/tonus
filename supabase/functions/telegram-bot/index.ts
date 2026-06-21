@@ -157,6 +157,7 @@ const CHAT_SYSTEM_PROMPT = `Ты — персональный ассистент
 - Никаких медицинских диагнозов. Только наблюдения по данным.
 - Если есть тревожные значения — мягко советуй обратиться к врачу.
 - Не выдумывай данные, которых нет в контексте.
+- Ты НЕ умеешь записывать в дневник или базу. НИКОГДА не говори «записал/добавил/сохранил/зафиксировал». Если пользователь хочет что-то записать (еда, кофе, препарат, событие) — попроси написать это одной ясной фразой (напр. «съел 30 г шоколада») или прислать фото блюда; система запишет сама и пришлёт подтверждение «📸🍽 … Записал в дневник».
 - Отвечай кратко (2-4 предложения), это мессенджер.
 - Опирайся на личные тренды пользователя, не на абсолютные нормы.`
 
@@ -186,7 +187,15 @@ function localToIso(tz: string, time: string | null, dateStr?: string | null): s
     }).formatToParts(now).map(x => [x.type, x.value]))
     day = `${p.year}-${p.month}-${p.day}`
   }
-  const naiveUTC = Date.parse(`${day}T${time ?? '12:00'}:00Z`)
+  let hhmm = time
+  if (!hhmm) {
+    // время не указано (напр. «сейчас») → текущее локальное, НЕ полдень
+    const tp = Object.fromEntries(new Intl.DateTimeFormat('en-GB', {
+      timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false,
+    }).formatToParts(now).map(x => [x.type, x.value]))
+    hhmm = `${tp.hour}:${tp.minute}`
+  }
+  const naiveUTC = Date.parse(`${day}T${hhmm}:00Z`)
   return new Date(naiveUTC - off * 60000).toISOString()
 }
 
@@ -282,11 +291,13 @@ async function classifyLog(text: string, supplementNames: string[]): Promise<any
   "calories": для intake_type="meal" — оценка калорий (целое число) по описанию еды и порциям, иначе null,
   "protein_g": для meal — белки в граммах (число) или null,
   "carbs_g": для meal — углеводы в граммах (число) или null,
-  "fat_g": для meal — жиры в граммах (число) или null
+  "fat_g": для meal — жиры в граммах (число) или null,
+  "coffee_in_meal": true если в приёме пищи (meal) упомянут кофе, иначе false
 }
 
 Правила:
 - ЗАПИСЬ еды — это ВСЕГДА action="intake", intake_type="meal", НИКОГДА не "chat". Команды «запиши/добавь/отметь/записать», перечисление съеденного, «на завтрак/обед/ужин …», «съел/ел …» → intake meal.
+- Даже БЕЗ глагола: название продукта/блюда с количеством или граммами («30 шоколада», «грам 30 шоколада», «2 банана», «кусок пиццы», «100г творога») → action="intake", intake_type="meal". При сомнении между "chat" и едой — выбирай meal.
 - Если в одном сообщении НЕСКОЛЬКО блюд — это ОДИН приём пищи: note = перечисли блюда через запятую, а calories/protein_g/carbs_g/fat_g = СУММА по ВСЕМ блюдам.
 - Оцени калории и БЖУ по типичным порциям (напр. "бигмак и кола" ≈ 750 ккал). Если размыто — разумная средняя оценка. Не возвращай null для calories у явной еды.
 - "принял/выпил <препарат>" → action="supplement", supplement ТОЧНО из списка (исправь опечатку: "финатерид"→"Финастерид").
@@ -294,7 +305,9 @@ async function classifyLog(text: string, supplementNames: string[]): Promise<any
 - Только настоящий ВОПРОС про данные/совет ("как мой сон?", "что ты знаешь?") → action="chat". Просьба записать едой/событие — это НЕ вопрос.
 - "N числа" / "20 числа" → date="${todayStr.slice(0, 7)}-NN" (NN — день месяца с ведущим нулём).
 - Число без контекста после препарата ("финастерид 18") — это ДЕНЬ месяца: date="${todayStr.slice(0,7)}-18". "1мг"/"5000" рядом с дозой — это доза, не дата.
-- Время словами: "в обед"≈13:00, "утром"≈09:00, "вечером"≈20:00 → ЧЧ:ММ.`
+- Время словами: "в обед"≈13:00, "утром"≈09:00, "вечером"≈20:00 → ЧЧ:ММ.
+- «сейчас»/«только что»/«щас»/«прямо сейчас»/«выпил/съел сейчас» → date=null И time=null (система запишет на текущий момент). НЕ выдумывай время, если оно не указано явно.
+- Если в приёме пищи (meal) упомянут кофе («кофе, яйца, суп») — в note оставь только еду БЕЗ кофе, а coffee_in_meal=true (система создаст отдельную запись кофе для модели кофеина).`
 
   try {
     const res = await fetch(
@@ -373,6 +386,12 @@ async function execLog(chatId: number | string, userId: string, act: any, tz: st
     const withNutr = { ...base, calories: isMeal ? act.calories ?? null : null, protein_g: isMeal ? act.protein_g ?? null : null, carbs_g: isMeal ? act.carbs_g ?? null : null, fat_g: isMeal ? act.fat_g ?? null : null }
     const ins = await supabase.from('intake_events').insert(withNutr)
     if (ins.error) await supabase.from('intake_events').insert(base) // фолбэк, если колонок ещё нет
+    // кофе внутри еды → отдельная запись coffee (для модели кофеина)
+    let coffeeNote = ''
+    if (isMeal && act.coffee_in_meal) {
+      await supabase.from('intake_events').insert({ user_id: userId, ts, type: 'coffee' })
+      coffeeNote = '\n☕ Кофе записал отдельно.'
+    }
     const timeStr = new Date(ts).toLocaleTimeString('ru-RU', { timeZone: tz, hour: '2-digit', minute: '2-digit' })
     const extra = [act.amount ? `${act.amount}${act.unit ?? ''}` : '', act.note ?? ''].filter(Boolean).join(', ')
     let nutr = ''
@@ -380,7 +399,7 @@ async function execLog(chatId: number | string, userId: string, act: any, tz: st
       const macros = [act.protein_g ? `Б ${Math.round(act.protein_g)}` : '', act.carbs_g ? `У ${Math.round(act.carbs_g)}` : '', act.fat_g ? `Ж ${Math.round(act.fat_g)}` : ''].filter(Boolean).join(' · ')
       nutr = `\n≈ ${act.calories} ккал${macros ? ` (${macros} г)` : ''}`
     }
-    return `📝 Записал: ${labels[act.intake_type] ?? act.intake_type}${extra ? ` (${extra})` : ''} в ${timeStr}${nutr}`
+    return `📝 Записал: ${labels[act.intake_type] ?? act.intake_type}${extra ? ` (${extra})` : ''} в ${timeStr}${nutr}${coffeeNote}`
   }
 
   return null
