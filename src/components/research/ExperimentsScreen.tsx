@@ -3,6 +3,7 @@ import type { User } from '@supabase/supabase-js'
 import type { DailyMetrics } from '../../types'
 import { supabase } from '../../lib/supabase'
 import { callFunction } from '../../lib/edgeFunctions'
+import { EXPERIMENT_PREFILL_KEY, type ExperimentPrefill } from '../../lib/levers'
 import { useT } from '../../lib/i18n'
 
 interface Props { user: User; daily: DailyMetrics[] }
@@ -191,6 +192,22 @@ export function ExperimentsScreen({ user, daily }: Props) {
     supabase.from('experiments').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
       .then(({ data }) => setExps((data ?? []) as Experiment[]))
   }, [user.id])
+
+  useEffect(() => {
+    const raw = sessionStorage.getItem(EXPERIMENT_PREFILL_KEY)
+    if (!raw) return
+    sessionStorage.removeItem(EXPERIMENT_PREFILL_KEY)
+    try {
+      const p = JSON.parse(raw) as ExperimentPrefill
+      setForm(prev => ({
+        ...prev,
+        hypothesis: p.hypothesis,
+        change_rule: p.change_rule,
+        target_metric: isValidMetric(p.target_metric) ? p.target_metric : prev.target_metric,
+      }))
+      setShowForm(true)
+    } catch { /* битый prefill — игнорируем */ }
+  }, [])
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
