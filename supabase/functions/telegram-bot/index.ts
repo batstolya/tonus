@@ -24,6 +24,17 @@ async function tgSend(chatId: number | string, text: string, extra: Record<strin
   return tgCall('sendMessage', { chat_id: chatId, text, ...extra })
 }
 
+// Конвертирует markdown ответа ИИ (Gemini пишет **жирным**, * списками) в Telegram-HTML.
+// Только парные **…** / __…__ → <b> (нет незакрытых тегов → нет ошибок 400 от Telegram).
+function mdToTgHtml(s: string): string {
+  let t = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')   // экранируем спецсимволы
+  t = t.replace(/^[ \t]*[*-] +/gm, '• ')                                          // пункты "* " / "- " → "• "
+  t = t.replace(/^#{1,6}[ \t]+(.+)$/gm, '<b>$1</b>')                              // заголовки # → жирная строка
+  t = t.replace(/\*\*([^\n]+?)\*\*/g, '<b>$1</b>').replace(/__([^\n]+?)__/g, '<b>$1</b>') // жирный (парный)
+  t = t.replace(/`([^`\n]+?)`/g, '<code>$1</code>')                              // инлайн-код
+  return t
+}
+
 async function tgEdit(chatId: number | string, messageId: number, text: string, extra: Record<string, any> = {}) {
   return tgCall('editMessageText', { chat_id: chatId, message_id: messageId, text, ...extra })
 }
@@ -452,7 +463,7 @@ async function handleAiChat(chatId: number | string, userId: string, text: strin
       await supabase.from('ai_usage').insert({ user_id: userId, source: 'chat', tokens_used: tokens, prompt_version: sys.version })
     }
 
-    await tgSend(chatId, reply, { reply_markup: BACK_MENU })
+    await tgSend(chatId, mdToTgHtml(reply), { parse_mode: 'HTML', reply_markup: BACK_MENU })
   } catch (_e) {
     await tgSend(chatId, '❌ Ошибка ИИ. Попробуй позже.', { reply_markup: BACK_MENU })
   }
