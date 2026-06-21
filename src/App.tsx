@@ -406,7 +406,7 @@ export default function App() {
         ) : state.view === 'insights' ? (
           <InsightsScreen daily={state.daily} />
         ) : state.view === 'research' ? (
-          <ResearchScreen user={user} daily={state.daily} />
+          <ResearchScreen user={user} daily={state.daily} onNavigate={setView} />
         ) : state.view === 'experiments' ? (
           <ExperimentsScreen user={user} daily={state.daily} />
         ) : state.view === 'supplements' ? (
