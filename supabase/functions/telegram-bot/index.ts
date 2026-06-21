@@ -650,6 +650,16 @@ serve(async (req) => {
     } else if (data === 'disconnect') {
       await supabase.from('telegram_links').update({ status: 'paused' }).eq('user_id', userId)
       await tgSend(chatId, '🔌 Telegram отключён от Tonus. Для повторного подключения зайди в настройки приложения.')
+    } else if (data.startsWith('wb:')) {
+      const [, date, scoreStr] = data.split(':')
+      const score = Number(scoreStr)
+      if (date && score >= 1 && score <= 5) {
+        await supabase.from('context_notes').upsert(
+          { user_id: userId, date, wellbeing: score, updated_at: new Date().toISOString() },
+          { onConflict: 'user_id,date' }
+        )
+        await tgSend(chatId, `🙂 Записал самочувствие: ${score}/5 за ${date}.`)
+      }
     } else if (data.startsWith('take_')) {
       const supId = data.replace('take_', '')
       const today = new Date().toISOString().slice(0, 10)
