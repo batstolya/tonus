@@ -103,10 +103,12 @@ export async function loadResearchData(userId: string, daily: DailyMetrics[], pe
     if (ev.type === 'stress') row['ev_stress'] = 1
     if (ev.type === 'workout') row['ev_workout'] = 1
     if (ev.type === 'travel') row['ev_travel'] = 1
+    // поздняя еда: приём пищи после 21:00 (локальное время браузера)
+    if (ev.type === 'meal' && new Date(ev.ts as string).getHours() >= 21) row['ev_late_meal'] = 1
   }
   // дни без события считаем 0 — для дней, где вообще есть данные
   for (const row of byDate.values()) {
-    for (const k of ['ev_alcohol', 'ev_coffee', 'ev_illness', 'ev_stress', 'ev_workout', 'ev_travel']) {
+    for (const k of ['ev_alcohol', 'ev_coffee', 'ev_illness', 'ev_stress', 'ev_workout', 'ev_travel', 'ev_late_meal']) {
       if (row[k] == null) row[k] = 0
     }
   }
@@ -149,6 +151,7 @@ export async function loadResearchData(userId: string, daily: DailyMetrics[], pe
     { key: 'ev_stress', label: 'Стресс (день)' },
     { key: 'ev_workout', label: 'Тренировка (день)' },
     { key: 'ev_travel', label: 'Поездка (день)' },
+    { key: 'ev_late_meal', label: 'Поздняя еда (после 21:00)' },
     ...sups.map((s: any) => ({ key: `sup_${s.id}`, label: `Приём: ${s.name}` })),
   ]
   const concernKeys = concerns
