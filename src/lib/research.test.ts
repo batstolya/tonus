@@ -41,3 +41,26 @@ describe('computeFindings — среда', () => {
     expect(findingsToText(computeFindings(data))).toContain('внешний фактор')
   })
 })
+
+describe('computeFindings — outcome keys', () => {
+  // 12 дней: дни с кофе → самочувствие 2, без кофе → 4 (сильный эффект)
+  const wbRows = Array.from({ length: 12 }, (_, i) => {
+    const coffee = i % 2 === 0 ? 1 : 0
+    return { date: `2026-06-${String(i + 1).padStart(2, '0')}`, ev_coffee: coffee, wellbeing: coffee ? 2 : 4 }
+  })
+  const wbData: ResearchData = {
+    rows: wbRows,
+    eventKeys: [{ key: 'ev_coffee', label: 'Кофе (кол-во)' }],
+    metricKeys: [{ key: 'wellbeing', label: 'Самочувствие', betterHigh: true }],
+    concernKeys: [],
+    envKeys: [],
+  }
+
+  it('помечает событийную находку factorKey и outcomeKey', () => {
+    const f = computeFindings(wbData).find(x => x.a === 'Кофе (кол-во)' && x.b === 'Самочувствие')
+    expect(f).toBeDefined()
+    expect(f!.kind).toBe('event')
+    expect(f!.factorKey).toBe('ev_coffee')
+    expect(f!.outcomeKey).toBe('wellbeing')
+  })
+})

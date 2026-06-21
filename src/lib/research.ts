@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import type { DailyMetrics } from '../types'
+import { computeDailyScores } from './scores'
 
 // ── Типы ────────────────────────────────────────────────────────────────────
 export interface Finding {
@@ -18,6 +19,8 @@ export interface Finding {
   direction: 'pos' | 'neg'
   strength: number               // |r| или нормированная |дельта| — для ранжирования
   modifiable?: boolean           // false для факторов среды (учитывать, но не «целить»)
+  factorKey?: string             // стабильный ключ фактора (для классификации рычагов)
+  outcomeKey?: string            // стабильный ключ исхода
 }
 
 interface DayRow { date: string; [k: string]: number | string | null }
@@ -70,13 +73,14 @@ export async function loadResearchData(userId: string, daily: DailyMetrics[], pe
   const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - periodDays)
   const sinceStr = cutoff.toISOString().slice(0, 10)
 
-  const [intakeRes, supRes, logRes, concernRes, concernLogRes, envRes] = await Promise.all([
+  const [intakeRes, supRes, logRes, concernRes, concernLogRes, envRes, noteRes] = await Promise.all([
     supabase.from('intake_events').select('ts, type').eq('user_id', userId).gte('ts', `${sinceStr}T00:00:00Z`),
     supabase.from('supplements').select('id, name').eq('user_id', userId).eq('active', true),
     supabase.from('supplement_logs').select('supplement_id, date, taken').eq('user_id', userId).gte('date', sinceStr).eq('taken', true),
     supabase.from('health_concerns').select('id, name').eq('user_id', userId),
     supabase.from('concern_logs').select('concern_id, date, severity').eq('user_id', userId).gte('date', sinceStr),
     supabase.from('environment_daily').select('date, temp_c, pressure_hpa, daylight_minutes, air_quality, pollen').eq('user_id', userId).gte('date', sinceStr),
+    supabase.from('context_notes').select('date, wellbeing').eq('user_id', userId).gte('date', sinceStr),
   ])
 
   const sups = supRes.data ?? []
@@ -144,6 +148,18 @@ export async function loadResearchData(userId: string, daily: DailyMetrics[], pe
   for (const row of byDate.values()) for (const f of ENV_FACTORS) if (row[f.key] != null) envPresent.add(f.key)
   const envKeys = ENV_FACTORS.filter(f => envPresent.has(f.key)).map(f => ({ key: f.key, label: f.label }))
 
+  // самочувствие 1–5 (субъективный исход) из context_notes
+  for (const n of noteRes.data ?? []) {
+    if (typeof (n as any).wellbeing === 'number') ensure(n.date as string)['wellbeing'] = (n as any).wellbeing
+  }
+  // готовность (композит) per-day — переиспользуем канонический расчёт
+  for (const s of computeDailyScores(daily)) {
+    if (s.readiness != null && s.date >= sinceStr) ensure(s.date)['readiness'] = s.readiness
+  }
+  const extraOutcomes: { key: string; label: string; betterHigh: boolean }[] = []
+  if ([...byDate.values()].some(r => typeof r['wellbeing'] === 'number')) extraOutcomes.push({ key: 'wellbeing', label: 'Самочувствие', betterHigh: true })
+  if ([...byDate.values()].some(r => typeof r['readiness'] === 'number')) extraOutcomes.push({ key: 'readiness', label: 'Готовность', betterHigh: true })
+
   const eventKeys = [
     { key: 'ev_alcohol', label: 'Алкоголь (день)' },
     { key: 'ev_coffee', label: 'Кофе (кол-во)' },
@@ -159,7 +175,7 @@ export async function loadResearchData(userId: string, daily: DailyMetrics[], pe
     .map((c: any) => ({ key: `cn_${c.id}`, label: `Проблема: ${c.name}` }))
 
   const rows = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date))
-  return { rows, eventKeys, metricKeys: METRICS.map(m => ({ key: m.key as string, label: m.label, betterHigh: m.betterHigh })), concernKeys, envKeys }
+  return { rows, eventKeys, metricKeys: [...METRICS.map(m => ({ key: m.key as string, label: m.label, betterHigh: m.betterHigh })), ...extraOutcomes], concernKeys, envKeys }
 }
 
 // ── Расчёт находок ──────────────────────────────────────────────────────────
@@ -221,6 +237,7 @@ export function computeFindings(data: ResearchData): Finding[] {
               kind: 'event', a: ev.label, b: m.label, n: withV.length + withoutV.length,
               withMean: mw, withoutMean: mo, delta, deltaPct: mo ? (delta / mo) * 100 : undefined,
               lag, direction: delta > 0 ? 'pos' : 'neg', strength: effect,
+              factorKey: ev.key, outcomeKey: m.key,
             })
           }
         }
