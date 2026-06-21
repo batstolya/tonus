@@ -8,7 +8,8 @@ import { DataGaps } from '../ui/DataGaps'
 import { computeReadiness, computeEarlyWarning } from '../../lib/readiness'
 import { baselineDeviations } from '../../lib/scores'
 import { loadTodayNote, saveNote } from '../../lib/contextNotes'
-import { loadFocus, loadCheckins, checkInToday, removeCheckinToday, type CoachFocus } from '../../lib/coach'
+import { loadFocus, loadCheckins, checkInToday, removeCheckinToday, loadFocusInputs, type CoachFocus } from '../../lib/coach'
+import { evaluateFocus, type FocusData } from '../../lib/focusAdherence'
 import { useT } from '../../lib/i18n'
 
 interface Props {
@@ -196,22 +197,48 @@ function EarlyWarningBanner({ daily }: { daily: DailyMetrics[] }) {
   )
 }
 
-function CoachFocusCard({ user }: { user: User }) {
+function CoachFocusCard({ user, daily }: { user: User; daily: DailyMetrics[] }) {
   const { t } = useT()
   const [focus, setFocus] = useState<CoachFocus | null>(null)
   const [checkins, setCheckins] = useState<string[]>([])
+  const [inputs, setInputs] = useState<{ intake: { ts: string; type: string }[]; wellbeingByDate: Record<string, number> } | null>(null)
   const today = new Date().toISOString().slice(0, 10)
 
   useEffect(() => {
     loadFocus(user.id).then(f => {
       setFocus(f)
-      if (f) loadCheckins(user.id, f.set_at).then(setCheckins)
+      if (!f) return
+      if (f.check) loadFocusInputs(user.id, f.set_at.slice(0, 10)).then(setInputs)
+      else loadCheckins(user.id, f.set_at).then(setCheckins)
     })
   }, [user.id])
 
   if (!focus) return null
-  const doneToday = checkins.includes(today)
 
+  // ── Авто-режим: есть машинное условие ──
+  if (focus.check) {
+    const data: FocusData = { daily, intake: inputs?.intake ?? [], wellbeingByDate: inputs?.wellbeingByDate ?? {} }
+    const p = evaluateFocus(focus.check, focus.set_at, data)
+    const count = p.mode === 'weekly' ? `${p.daysMet}/${p.denom} ${t('за неделю')}` : `${p.daysMet}/7`
+    return (
+      <div className="coach-focus-card">
+        <div className="coach-focus-head">
+          <span className="coach-focus-label">🎯 {t('Фокус недели')}</span>
+          <span className="coach-focus-count">{count}</span>
+        </div>
+        <div className="coach-focus-text">{focus.text}</div>
+        <div className="coach-focus-dots" style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+          {p.perDay.map((d, i) => (
+            <span key={i} title={d.date} style={{ opacity: d.future ? 0.3 : 1 }}>{d.met ? '🟢' : '⚪'}</span>
+          ))}
+        </div>
+        <div className="coach-focus-auto" style={{ marginTop: 6, fontSize: 12, opacity: 0.6 }}>🔄 {t('по данным')}</div>
+      </div>
+    )
+  }
+
+  // ── Ручной fallback: цель не выражается через данные ──
+  const doneToday = checkins.includes(today)
   async function toggle() {
     if (doneToday) {
       setCheckins(c => c.filter(d => d !== today))
@@ -221,7 +248,6 @@ function CoachFocusCard({ user }: { user: User }) {
       await checkInToday(user.id)
     }
   }
-
   return (
     <div className="coach-focus-card">
       <div className="coach-focus-head">
@@ -366,7 +392,7 @@ export function Dashboard({ daily, events, onNavigate, user, quickLog }: Props) 
       <h2>{t('Дашборд')}</h2>
 
       <EarlyWarningBanner daily={daily} />
-      {user && <CoachFocusCard user={user} />}
+      {user && <CoachFocusCard user={user} daily={daily} />}
       <ReadinessCard daily={daily} />
       <StressDaysCard daily={daily} />
 
