@@ -17,6 +17,7 @@ export interface Finding {
   lag?: 0 | 1                     // 0 — тот же день, 1 — следующий день
   direction: 'pos' | 'neg'
   strength: number               // |r| или нормированная |дельта| — для ранжирования
+  modifiable?: boolean           // false для факторов среды (учитывать, но не «целить»)
 }
 
 interface DayRow { date: string; [k: string]: number | string | null }
@@ -47,24 +48,35 @@ const METRICS: { key: keyof DailyMetrics; label: string; betterHigh: boolean }[]
   { key: 'oxygenSaturation', label: 'SpO₂', betterHigh: true },
 ]
 
+// Факторы среды (непрерывные, немодифицируемые) — колонка в environment_daily → фактор дня
+const ENV_FACTORS: { col: string; key: string; label: string }[] = [
+  { col: 'temp_c', key: 'env_temp', label: 'Погода: температура' },
+  { col: 'pressure_hpa', key: 'env_pressure', label: 'Погода: давление' },
+  { col: 'daylight_minutes', key: 'env_daylight', label: 'Среда: световой день' },
+  { col: 'air_quality', key: 'env_aqi', label: 'Среда: AQI' },
+  { col: 'pollen', key: 'env_pollen', label: 'Среда: пыльца' },
+]
+
 // ── Сбор факторов по дням ───────────────────────────────────────────────────
 export interface ResearchData {
   rows: DayRow[]                 // по одной строке на день, со всеми факторами
   eventKeys: { key: string; label: string }[]   // бинарные/счётные события
   metricKeys: { key: string; label: string; betterHigh: boolean }[]
   concernKeys: { key: string; label: string }[]
+  envKeys: { key: string; label: string }[]      // непрерывные немодифицируемые факторы среды
 }
 
 export async function loadResearchData(userId: string, daily: DailyMetrics[], periodDays: number): Promise<ResearchData> {
   const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - periodDays)
   const sinceStr = cutoff.toISOString().slice(0, 10)
 
-  const [intakeRes, supRes, logRes, concernRes, concernLogRes] = await Promise.all([
+  const [intakeRes, supRes, logRes, concernRes, concernLogRes, envRes] = await Promise.all([
     supabase.from('intake_events').select('ts, type').eq('user_id', userId).gte('ts', `${sinceStr}T00:00:00Z`),
     supabase.from('supplements').select('id, name').eq('user_id', userId).eq('active', true),
     supabase.from('supplement_logs').select('supplement_id, date, taken').eq('user_id', userId).gte('date', sinceStr).eq('taken', true),
     supabase.from('health_concerns').select('id, name').eq('user_id', userId),
     supabase.from('concern_logs').select('concern_id, date, severity').eq('user_id', userId).gte('date', sinceStr),
+    supabase.from('environment_daily').select('date, temp_c, pressure_hpa, daylight_minutes, air_quality, pollen').eq('user_id', userId).gte('date', sinceStr),
   ])
 
   const sups = supRes.data ?? []
@@ -119,6 +131,17 @@ export async function loadResearchData(userId: string, daily: DailyMetrics[], pe
     for (const [d, sev] of Object.entries(map)) ensure(d)[`cn_${c.id}`] = sev
   }
 
+  // среда: непрерывные немодифицируемые факторы
+  for (const er of envRes.data ?? []) {
+    const d = er.date as string
+    if (d < sinceStr) continue
+    const row = ensure(d)
+    for (const f of ENV_FACTORS) { const v = (er as any)[f.col]; if (typeof v === 'number') row[f.key] = v }
+  }
+  const envPresent = new Set<string>()
+  for (const row of byDate.values()) for (const f of ENV_FACTORS) if (row[f.key] != null) envPresent.add(f.key)
+  const envKeys = ENV_FACTORS.filter(f => envPresent.has(f.key)).map(f => ({ key: f.key, label: f.label }))
+
   const eventKeys = [
     { key: 'ev_alcohol', label: 'Алкоголь (день)' },
     { key: 'ev_coffee', label: 'Кофе (кол-во)' },
@@ -133,12 +156,12 @@ export async function loadResearchData(userId: string, daily: DailyMetrics[], pe
     .map((c: any) => ({ key: `cn_${c.id}`, label: `Проблема: ${c.name}` }))
 
   const rows = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date))
-  return { rows, eventKeys, metricKeys: METRICS.map(m => ({ key: m.key as string, label: m.label, betterHigh: m.betterHigh })), concernKeys }
+  return { rows, eventKeys, metricKeys: METRICS.map(m => ({ key: m.key as string, label: m.label, betterHigh: m.betterHigh })), concernKeys, envKeys }
 }
 
 // ── Расчёт находок ──────────────────────────────────────────────────────────
 export function computeFindings(data: ResearchData): Finding[] {
-  const { rows, eventKeys, metricKeys, concernKeys } = data
+  const { rows, eventKeys, metricKeys, concernKeys, envKeys } = data
   const out: Finding[] = []
   const col = (k: string) => rows.map(r => (typeof r[k] === 'number' ? r[k] as number : null))
 
@@ -152,6 +175,21 @@ export function computeFindings(data: ResearchData): Finding[] {
       const r = pearson(xs, ys)
       if (r != null && Math.abs(r) >= 0.3 && xs.length >= 7) {
         out.push({ kind: 'corr', a: contKeys[i].label, b: contKeys[j].label, n: xs.length, r, direction: r > 0 ? 'pos' : 'neg', strength: Math.abs(r) })
+      }
+    }
+  }
+
+  // 1b) Корреляции факторов среды × (метрики + проблемы) — env×env не считаем
+  const envTargets = [...metricKeys, ...concernKeys]
+  for (const e of envKeys) {
+    const xa = col(e.key)
+    for (const m of envTargets) {
+      const ya = col(m.key)
+      const xs: number[] = [], ys: number[] = []
+      for (let k = 0; k < rows.length; k++) if (xa[k] != null && ya[k] != null) { xs.push(xa[k]!); ys.push(ya[k]!) }
+      const r = pearson(xs, ys)
+      if (r != null && Math.abs(r) >= 0.3 && xs.length >= 7) {
+        out.push({ kind: 'corr', a: e.label, b: m.label, n: xs.length, r, direction: r > 0 ? 'pos' : 'neg', strength: Math.abs(r), modifiable: false })
       }
     }
   }
@@ -225,12 +263,13 @@ export async function deleteResearchRun(id: string): Promise<void> {
 // Человекочитаемый текст находок — для отправки в ИИ
 export function findingsToText(findings: Finding[]): string {
   return findings.map(f => {
+    const ext = f.modifiable === false ? ' — внешний фактор' : ''
     if (f.kind === 'corr') {
       const dir = f.direction === 'pos' ? 'растут вместе' : 'движутся в противоположные стороны'
-      return `• ${f.a} ↔ ${f.b}: r=${f.r!.toFixed(2)} (${dir}), n=${f.n}`
+      return `• ${f.a} ↔ ${f.b}: r=${f.r!.toFixed(2)} (${dir}), n=${f.n}${ext}`
     }
     const lag = f.lag === 1 ? ' на следующий день' : ''
     const sign = f.delta! > 0 ? '+' : ''
-    return `• ${f.a} → ${f.b}${lag}: ${sign}${f.delta!.toFixed(1)} (${f.withMean!.toFixed(1)} vs ${f.withoutMean!.toFixed(1)}), n=${f.n}`
+    return `• ${f.a} → ${f.b}${lag}: ${sign}${f.delta!.toFixed(1)} (${f.withMean!.toFixed(1)} vs ${f.withoutMean!.toFixed(1)}), n=${f.n}${ext}`
   }).join('\n')
 }
