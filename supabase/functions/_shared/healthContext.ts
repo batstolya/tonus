@@ -58,7 +58,7 @@ export async function buildHealthContext(
       .select('date, taken, supplements(name)')
       .eq('user_id', userId).gte('date', sinceStr).eq('taken', true).order('date', { ascending: false }).limit(40),
     supabase.from('context_notes')
-      .select('date, note')
+      .select('date, note, wellbeing')
       .eq('user_id', userId).gte('date', sinceStr).order('date', { ascending: false }),
     supabase.from('calendar_events')
       .select('start_ts')
@@ -192,7 +192,11 @@ export function healthContextToText(ctx: HealthContext): string {
 
   if (ctx.notes.length) {
     parts.push('\nЗаметки дня (со слов пользователя):')
-    for (const n of ctx.notes) parts.push(`${n.date}: ${n.note}`)
+    for (const n of ctx.notes) {
+      const wb = typeof n.wellbeing === 'number' ? ` [самочувствие ${n.wellbeing}/5]` : ''
+      const text = n.note ? `: ${n.note}` : ''
+      if (text || wb) parts.push(`${n.date}${text}${wb}`)
+    }
   }
 
   if (ctx.calendar.length) {
