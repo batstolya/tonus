@@ -10,6 +10,31 @@ const TG_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') ?? ''
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' }
 const avg = (a: number[]) => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null
 
+// Машинно-проверяемое условие фокуса (зеркало validateFocusCheck из src/lib/coach.ts; Deno не импортит из src).
+const FOCUS_EVENT_TYPES = ['coffee', 'alcohol', 'meal', 'water', 'meds', 'workout', 'illness', 'stress', 'travel', 'custom']
+function validateFocusCheck(obj: any): any | null {
+  if (!obj || typeof obj !== 'object') return null
+  const p = obj.predicate
+  if (!p || typeof p !== 'object') return null
+  const numOk = (v: any) => typeof v === 'number' && isFinite(v)
+  const timeOk = (v: any) => typeof v === 'string' && /^\d{1,2}:\d{2}$/.test(v)
+  const evOk = (v: any) => typeof v === 'string' && FOCUS_EVENT_TYPES.includes(v)
+  let ok = false
+  switch (p.kind) {
+    case 'steps_gte': case 'sleep_hours_gte': case 'meals_gte': case 'wellbeing_gte': ok = numOk(p.value); break
+    case 'bedtime_before': ok = timeOk(p.time); break
+    case 'event_count_lte': ok = evOk(p.event) && numOk(p.value); break
+    case 'event_absent_after': ok = evOk(p.event) && timeOk(p.time); break
+    case 'event_present': case 'event_absent': ok = evOk(p.event); break
+    default: ok = false
+  }
+  if (!ok) return null
+  const out: any = { predicate: p }
+  if (obj.target != null) { if (!numOk(obj.target) || obj.target < 1 || obj.target > 7) return null; out.target = Math.round(obj.target) }
+  if (typeof obj.label === 'string') out.label = obj.label
+  return out
+}
+
 async function tgSend(chatId: string, text: string) {
   if (!TG_TOKEN) return
   await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
@@ -75,7 +100,20 @@ ${notes || 'нет'}
 🎯 ОДИН фокус на следующую неделю — конкретный и измеримый (напр. «лечь до 00:00 хотя бы 5 ночей»). Если прошлый фокус был — оцени его и поставь следующий.
 ❓ Тёплый вопрос пользователю
 
-В конце ОТДЕЛЬНОЙ строкой: FOCUS: <одна фраза фокуса для трекинга>
+В конце ДВЕ ОТДЕЛЬНЫЕ строки:
+FOCUS: <одна фраза фокуса для трекинга>
+CHECK: <JSON условия выполнения за ОДИН день, или none>
+JSON строго одной из форм (target — добавь только если цель «N раз в неделю», 1..7):
+{"predicate":{"kind":"steps_gte","value":8000}}
+{"predicate":{"kind":"sleep_hours_gte","value":7}}
+{"predicate":{"kind":"bedtime_before","time":"23:00"}}
+{"predicate":{"kind":"meals_gte","value":3}}
+{"predicate":{"kind":"event_count_lte","event":"coffee","value":1}}
+{"predicate":{"kind":"event_absent_after","event":"coffee","time":"16:00"}}
+{"predicate":{"kind":"event_present","event":"workout"},"target":3}
+{"predicate":{"kind":"event_absent","event":"alcohol"}}
+{"predicate":{"kind":"wellbeing_gte","value":4}}
+event ∈ coffee|alcohol|meal|water|meds|workout|illness|stress|travel. Если фокус нельзя выразить — CHECK: none. Не выдумывай поля.
 Без диагнозов. Опирайся на цифры, не выдумывай. На русском.`
 
   const res = await fetch(
@@ -96,10 +134,19 @@ ${notes || 'нет'}
   const focusText = focusMatch ? focusMatch[1].trim() : null
   text = text.replace(/\n?FOCUS:.*$/m, '').trim()
 
+  // вытащить машинное условие выполнения
+  const checkMatch = text.match(/CHECK:\s*(.+)$/m)
+  let focusCheck: any = null
+  if (checkMatch) {
+    const raw = checkMatch[1].trim()
+    if (raw.toLowerCase() !== 'none') { try { focusCheck = validateFocusCheck(JSON.parse(raw)) } catch { focusCheck = null } }
+  }
+  text = text.replace(/\n?CHECK:.*$/m, '').trim()
+
   // сохранить фокус в профиль + событие
   if (focusText) {
     await supabase.from('coach_profile').upsert(
-      { user_id: userId, focus: { text: focusText, set_at: new Date().toISOString() }, updated_at: new Date().toISOString() },
+      { user_id: userId, focus: { text: focusText, set_at: new Date().toISOString(), check: focusCheck }, updated_at: new Date().toISOString() },
       { onConflict: 'user_id' }
     )
   }
