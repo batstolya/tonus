@@ -73,26 +73,77 @@ ${metricList}
 - rationale — 1 предложение: почему это разумно проверить.
 - Реалистичное, безопасное изменение. Тон поддерживающий. Язык — русский.`
     } else {
-      // generate из данных за 30 дней
+      // generate из данных за 30 дней — метрики + ПОВЕДЕНИЕ + среда + тайминг сна
       const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 30)
-      const { data: metrics } = await supabase.from('daily_metrics').select('*')
-        .eq('user_id', user.id).gte('date', cutoff.toISOString().slice(0, 10)).order('date')
+      const since = cutoff.toISOString().slice(0, 10)
 
+      const [metricsRes, sleepsRes, eventsRes, envRes, noteRes] = await Promise.all([
+        supabase.from('daily_metrics').select('*').eq('user_id', user.id).gte('date', since).order('date'),
+        supabase.from('sleep_sessions').select('date, bedtime, wake_time, deep_hours, rem_hours').eq('user_id', user.id).gte('date', since),
+        supabase.from('intake_events').select('ts, type').eq('user_id', user.id).gte('ts', `${since}T00:00:00Z`),
+        supabase.from('environment_daily').select('date, temp_c, daylight_minutes, air_quality, pollen').eq('user_id', user.id).gte('date', since),
+        supabase.from('daily_note_settings').select('timezone').eq('user_id', user.id).maybeSingle(),
+      ])
+      const metrics = metricsRes.data
       if (!metrics?.length || metrics.length < 5) {
         return new Response(JSON.stringify({ suggestions: [], message: 'Пока недостаточно данных. Нужно хотя бы несколько дней метрик.' }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
+      }
+      const sleeps = sleepsRes.data ?? []
+      const events = eventsRes.data ?? []
+      const env = envRes.data ?? []
+      const tz = noteRes.data?.timezone || 'Europe/Kyiv'
+      const localHour = (iso: string) => {
+        const p = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', hour12: false }).formatToParts(new Date(iso)).find(x => x.type === 'hour')?.value
+        return p != null ? parseInt(p, 10) : new Date(iso).getUTCHours()
       }
 
       const rhr = metrics.map((r: any) => r.resting_heart_rate).filter(Boolean)
       const hrv = metrics.map((r: any) => r.hrv).filter(Boolean)
       const sleep = metrics.map((r: any) => r.sleep_hours).filter(Boolean)
       const steps = metrics.map((r: any) => r.steps).filter(Boolean)
-      const deep = metrics.map((r: any) => r.sleep_deep).filter(Boolean)
+      const deep = sleeps.map((s: any) => s.deep_hours).filter(Boolean)
 
       const mid = Math.floor(metrics.length / 2)
       const first = metrics.slice(0, mid)
       const last = metrics.slice(mid)
       const trend = (col: string, digits = 0) =>
         `${avg(first.map((r: any) => r[col]).filter(Boolean))?.toFixed(digits) ?? '—'} → ${avg(last.map((r: any) => r[col]).filter(Boolean))?.toFixed(digits) ?? '—'}`
+
+      // тайминг сна: средний локальный час засыпания/пробуждения (с круговым сдвигом)
+      const bedH = sleeps.filter((s: any) => s.bedtime).map((s: any) => localHour(s.bedtime))
+      const wakeH = sleeps.filter((s: any) => s.wake_time).map((s: any) => localHour(s.wake_time))
+      const avgClock = (hrs: number[], shift: number) => {
+        if (!hrs.length) return '—'
+        const adj = hrs.map(h => (h < shift ? h + 24 : h))
+        const m = (adj.reduce((a, b) => a + b, 0) / adj.length) % 24
+        const hh = Math.floor(m), mm = Math.round((m - hh) * 60)
+        return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`
+      }
+
+      // поведение (управляемые рычаги)
+      const evOf = (t: string) => events.filter((e: any) => e.type === t)
+      const coffee = evOf('coffee'), lateCoffee = coffee.filter((e: any) => localHour(e.ts) >= 16)
+      const meals = evOf('meal'), lateMeals = meals.filter((e: any) => localHour(e.ts) >= 21)
+      const alcoholDays = new Set(evOf('alcohol').map((e: any) => e.ts.slice(0, 10))).size
+      const workoutDays = new Set(evOf('workout').map((e: any) => e.ts.slice(0, 10))).size
+
+      // среда (контекст, не цель)
+      const temps = env.map((e: any) => e.temp_c).filter((v: any) => v != null)
+      const pollens = env.map((e: any) => e.pollen).filter((v: any) => v != null)
+      const aqis = env.map((e: any) => e.air_quality).filter((v: any) => v != null)
+      const hotDays = temps.filter((t: number) => t >= 25).length
+
+      const behaviorLines: string[] = []
+      if (coffee.length) behaviorLines.push(`Кофе: ${coffee.length} за период, из них ${lateCoffee.length} после 16:00`)
+      if (meals.length) behaviorLines.push(`Приёмы пищи (логируются): ${meals.length}, поздних после 21:00: ${lateMeals.length}`)
+      if (alcoholDays) behaviorLines.push(`Алкоголь: ${alcoholDays} дн из ${metrics.length}`)
+      if (workoutDays) behaviorLines.push(`Тренировки: ${workoutDays} дн`)
+      if (bedH.length) behaviorLines.push(`Время засыпания: ~${avgClock(bedH, 12)}, пробуждение: ~${avgClock(wakeH, 4)}`)
+
+      const envLines: string[] = []
+      if (temps.length) envLines.push(`Температура: ${avg(temps)?.toFixed(0)}°C (жарких дней ≥25°: ${hotDays})`)
+      if (aqis.length) envLines.push(`Качество воздуха AQI: ${avg(aqis)?.toFixed(0)}`)
+      if (pollens.length) envLines.push(`Пыльца: ${avg(pollens)?.toFixed(0)} (ср.)`)
 
       const digest = `ДАННЫЕ ЗА ${metrics.length} ДНЕЙ (${metrics[0].date} — ${metrics[metrics.length - 1].date}):
 Пульс покоя: ${avg(rhr)?.toFixed(0) ?? '—'} уд/мин
@@ -105,27 +156,32 @@ HRV: ${avg(hrv)?.toFixed(0) ?? '—'} мс
 Пульс покоя: ${trend('resting_heart_rate')}
 HRV: ${trend('hrv')}
 Сон: ${trend('sleep_hours', 1)}
-Глубокий сон: ${trend('sleep_deep', 1)}
-Шаги: ${trend('steps')}`
+Шаги: ${trend('steps')}
 
-      prompt = `Ты — персональный ИИ-коуч по здоровью. На основе данных пользователя предложи 2-3 эксперимента-самонаблюдения: изменить одну привычку и отследить, как меняется метрика.
+ПОВЕДЕНИЕ (управляемые рычаги для экспериментов):
+${behaviorLines.length ? behaviorLines.join('\n') : '(событий мало — предлагай эксперименты по таймингу сна и активности)'}
+
+СРЕДА (НЕ управляется, только контекст для rationale):
+${envLines.length ? envLines.join('\n') : '(нет данных среды)'}`
+
+      prompt = `Ты — персональный ИИ-коуч по здоровью. Предложи 2-3 СЕРЬЁЗНЫХ эксперимента-самонаблюдения по схеме «изменить ОДНУ управляемую привычку → отследить измеримый исход».
 
 ${digest}
 
-Доступные метрики (target_metric ДОЛЖЕН быть ровно одним из этих ключей):
+Доступные метрики-исходы (target_metric ДОЛЖЕН быть ровно одним из этих ключей):
 ${metricList}
 
-Ответь СТРОГО JSON-массивом, без markdown и пояснений:
+Ответь СТРОГО JSON-массивом, без markdown:
 [{ "hypothesis": "...", "change_rule": "...", "target_metric": "ключ", "rationale": "..." }]
 
-Правила:
-- 2-3 эксперимента, каждый про РАЗНУЮ метрику.
-- hypothesis — короткая проверяемая формулировка ожидаемого эффекта, 1 предложение.
-- change_rule — конкретное ежедневное действие, которое человек меняет.
-- target_metric — ровно один ключ из списка.
-- rationale — 1 предложение со ссылкой на конкретные цифры из данных выше.
-- Опирайся на то, что в данных выглядит слабым местом или явным трендом.
-- Реалистичные, безопасные изменения. Тон поддерживающий. Язык — русский.`
+ЖЁСТКИЕ ПРАВИЛА:
+- Каждый эксперимент меняет КОНКРЕТНУЮ привычку из раздела ПОВЕДЕНИЕ (тайминг кофе, поздняя еда, время отбоя/подъёма, алкоголь, активность). НЕ предлагай абстрактное «делай больше метрики Y».
+- change_rule — точное ежедневное действие с цифрой/временем (напр. «последняя чашка кофе до 14:00», «отбой до 23:30», «ужин до 20:00»).
+- target_metric — измеримый исход, на который эта привычка реально влияет (кофе/еда/отбой → глубокий сон, HRV, длительность сна; активность → пульс покоя).
+- Среда (жара, пыльца) — НЕ цель эксперимента (её нельзя менять), упоминай только в rationale как возможное объяснение.
+- rationale — 1 предложение со ссылкой на КОНКРЕТНЫЕ цифры поведения/исходов выше.
+- hypothesis — 1 предложение: привычка X влияет на исход Y.
+- 2-3 эксперимента про разные привычки. Реалистично, безопасно. Язык — русский.`
     }
 
     const geminiRes = await fetch(
