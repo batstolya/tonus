@@ -141,6 +141,8 @@ export const translations: Record<string, { uk: string; en: string }> = {
   'из 7 дней': { uk: 'із 7 днів', en: 'of 7 days' },
   'Сегодня держусь': { uk: 'Сьогодні тримаюсь', en: 'On track today' },
   'Отметить сегодня': { uk: 'Відмітити сьогодні', en: 'Mark today' },
+  'за неделю': { uk: 'за тиждень', en: 'this week' },
+  'по данным': { uk: 'за даними', en: 'from data' },
   'ЧСС': { uk: 'ЧСС', en: 'HR' },
   'мс': { uk: 'мс', en: 'ms' },
   'Самый стрессовый': { uk: 'Найстресовіший', en: 'Most stressful' },
