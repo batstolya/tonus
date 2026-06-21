@@ -154,7 +154,8 @@ serve(async () => {
     if (!link?.telegram_chat_id) continue
 
     const q = EVENING_QUESTIONS[Math.floor(Math.random() * EVENING_QUESTIONS.length)]
-    await tgSend(link.telegram_chat_id, q)
+    const wbKeyboard = { inline_keyboard: [[1, 2, 3, 4, 5].map(n => ({ text: String(n), callback_data: `wb:${dateStr}:${n}` }))] }
+    await tgSend(link.telegram_chat_id, `${q}\n\nОцени самочувствие 1–5:`, wbKeyboard)
     // следующий свободный ответ → заметка дня за сегодня (N4)
     await supabase.from('telegram_links')
       .update({ awaiting_note_date: dateStr })
