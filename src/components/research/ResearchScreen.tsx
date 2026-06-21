@@ -29,7 +29,10 @@ function FindingRow({ f }: { f: Finding }) {
   return (
     <div className="research-finding">
       <div className="research-finding-main">
-        <span className="research-finding-pair">{f.a} {f.kind === 'corr' ? '↔' : '→'} {f.b}</span>
+        <span className="research-finding-pair">
+          {f.a} {f.kind === 'corr' ? '↔' : '→'} {f.b}
+          {f.modifiable === false && <span title={t('внешний фактор')} style={{ marginLeft: 4 }}>🌍</span>}
+        </span>
         <span className="research-finding-metric" style={{ color }}>{metric}</span>
       </div>
       <span className="research-finding-n">n={f.n}</span>

@@ -37,6 +37,43 @@ serve(async (req) => {
     const precips: number[] = data.daily?.precipitation_sum ?? []
     const daylights: number[] = data.daily?.daylight_duration ?? [] // seconds
 
+    // ── Air Quality + pollen (best-effort: сбой не ломает синк погоды) ──
+    const airByDate: Record<string, { aqiSum: number; aqiN: number; polSum: number; polN: number }> = {}
+    try {
+      const aqUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}` +
+        `&hourly=european_aqi,alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,ragweed_pollen,olive_pollen` +
+        `&start_date=${start}&end_date=${end}&timezone=auto`
+      const aqRes = await fetch(aqUrl)
+      if (aqRes.ok) {
+        const aq = await aqRes.json()
+        const times: string[] = aq.hourly?.time ?? []
+        const aqi: (number | null)[] = aq.hourly?.european_aqi ?? []
+        const pollenKeys = ['alder_pollen', 'birch_pollen', 'grass_pollen', 'mugwort_pollen', 'ragweed_pollen', 'olive_pollen']
+        const pollenSeries: (number | null)[][] = pollenKeys.map((k) => aq.hourly?.[k] ?? [])
+        for (let i = 0; i < times.length; i++) {
+          const d = times[i].slice(0, 10)
+          const bucket = (airByDate[d] ??= { aqiSum: 0, aqiN: 0, polSum: 0, polN: 0 })
+          if (typeof aqi[i] === 'number') { bucket.aqiSum += aqi[i] as number; bucket.aqiN++ }
+          let hourPollen = 0, hasPollen = false
+          for (const series of pollenSeries) {
+            const v = series[i]
+            if (typeof v === 'number') { hourPollen += v; hasPollen = true }
+          }
+          if (hasPollen) { bucket.polSum += hourPollen; bucket.polN++ }
+        }
+      }
+    } catch (_e) {
+      // воздух недоступен — продолжаем без него
+    }
+    const dailyAqi = (d: string): number | null => {
+      const b = airByDate[d]
+      return b && b.aqiN ? Math.round(b.aqiSum / b.aqiN) : null
+    }
+    const dailyPollen = (d: string): number | null => {
+      const b = airByDate[d]
+      return b && b.polN ? Math.round((b.polSum / b.polN) * 10) / 10 : null
+    }
+
     const rows = dates.map((date, i) => ({
       user_id: user.id,
       date,
@@ -44,6 +81,8 @@ serve(async (req) => {
       pressure_hpa: pressures[i] ?? null,
       daylight_minutes: daylights[i] != null ? Math.round(daylights[i] / 60) : null,
       precipitation_mm: precips[i] ?? null,
+      air_quality: dailyAqi(date),
+      pollen: dailyPollen(date),
     }))
 
     const { error } = await supabase.from('environment_daily').upsert(rows, { onConflict: 'user_id,date' })
