@@ -1,0 +1,35 @@
+project_id = "mxnmubakfzqoosgsqmhh"
+
+# ── Edge functions ───────────────────────────────────────────────────────────
+# verify_jwt = false для функций, которые НЕ получают Supabase-JWT и
+# аутентифицируются сами (webhook/cron). Без этого шлюз Supabase отбивает их
+# вызовы 401 (UNAUTHORIZED_NO_AUTH_HEADER) ещё до запуска кода.
+# Держим флаг здесь, чтобы он не слетал при `functions deploy`.
+#
+# Список ПОЛНЫЙ — отражает реальные verify_jwt=false на платформе (сверено
+# 2026-06-21 через Management API). Все НЕперечисленные функции получают
+# verify_jwt=true (дефолт) — это правильно для вызываемых из UI/сервера с JWT
+# (analyze-health, chat-health, fetch-environment, classify-meal, deep-research,
+#  biweekly-report, extract-lab, generate-recommendations, suggest-experiments,
+#  fetch-cal, fetch-ics). Полнота списка делает безопасным даже deploy-all.
+
+[functions.ingest-health]
+verify_jwt = false   # HAE webhook, авторизуется по ?token=
+
+[functions.send-reminders]
+verify_jwt = false   # pg_cron каждые 5 мин, без Authorization
+
+[functions.sync-cal]
+verify_jwt = false   # cron (x-cron-secret) + UI (user JWT) — делает свою авторизацию
+
+[functions.telegram-bot]
+verify_jwt = false   # Telegram webhook, не Supabase JWT
+
+[functions.coach-weekly]
+verify_jwt = false   # pg_cron (coach-cron), без Authorization
+
+[functions.coach-profile]
+verify_jwt = false   # вызывается из coach-weekly/cron без user-JWT
+
+[functions.register-webhook]
+verify_jwt = false   # установка вебхука, без user-JWT
