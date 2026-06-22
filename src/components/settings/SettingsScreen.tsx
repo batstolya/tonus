@@ -44,7 +44,7 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
   const [calMsg, setCalMsg] = useState<string | null>(null)
   const [calEmail, setCalEmail] = useState('')
   const [calPassword, setCalPassword] = useState('')
-  const [calStatus, setCalStatus] = useState<{ last_sync_at: string | null; last_status: string | null; event_count: number | null; enabled: boolean } | null>(null)
+  const [calStatus, setCalStatus] = useState<{ cal_email: string | null; last_sync_at: string | null; last_status: string | null; event_count: number | null; enabled: boolean } | null>(null)
   const [tgLinked, setTgLinked] = useState(false)
   const [tgUsername, setTgUsername] = useState<string | null>(null)
   const [tgLinking, setTgLinking] = useState(false)
@@ -242,7 +242,7 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
 
   useEffect(() => {
     supabase.from('cal_sync')
-      .select('last_sync_at, last_status, event_count, enabled')
+      .select('cal_email, last_sync_at, last_status, event_count, enabled')
       .eq('user_id', user.id).maybeSingle()
       .then(({ data }) => setCalStatus(data ?? null))
   }, [user.id])
@@ -430,16 +430,23 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: 8 }}><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01M12 14h.01M16 14h.01"/></svg>
           Cal.beskarstaff.com
         </h3>
+        {calStatus?.cal_email && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, color: 'var(--green)', fontWeight: 600, fontSize: 14 }}>
+            ✓ {t('Подключён:')} {calStatus.cal_email}
+          </div>
+        )}
         {calLastSync && (
           <div className="settings-muted" style={{ fontSize: 12, marginBottom: 8 }}>
             {t('Последняя синхронизация:')} {calLastSync}
           </div>
         )}
         <div className="settings-muted" style={{ marginBottom: 12, fontSize: 12, lineHeight: 1.5 }}>
-          {t('Введи логин и пароль cal.com — синхронизация будет автоматической раз в день. Пароль хранится зашифрованно.')}
+          {calStatus?.cal_email
+            ? t('Аккаунт подключён, синхронизация раз в день. Чтобы сменить аккаунт — введи новые данные ниже.')
+            : t('Введи логин и пароль cal.com — синхронизация будет автоматической раз в день. Пароль хранится зашифрованно.')}
         </div>
         <div className="settings-ics-row" style={{ flexDirection: 'column', gap: 8, alignItems: 'stretch' }}>
-          <input className="log-input" type="email" placeholder="email@cal.com"
+          <input className="log-input" type="email" placeholder={calStatus?.cal_email || 'email@cal.com'}
             value={calEmail} onChange={e => setCalEmail(e.target.value)} />
           <input className="log-input" type="password" placeholder={t('Пароль cal.com')}
             value={calPassword} onChange={e => setCalPassword(e.target.value)} />
