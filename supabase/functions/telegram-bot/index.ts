@@ -593,54 +593,60 @@ serve(async (req) => {
       )
       const { data: sup } = await supabase.from('supplements').select('name').eq('id', supId).single()
       await tgSend(chatId, `✅ ${sup?.name ?? 'Препарат'} отмечен как принятый сегодня.`, { reply_markup: BACK_MENU })
-    } else if (data.startsWith('rem_take_')) {
-      // Напоминание: принял → запись в supplement_logs + статус taken
-      const evId = data.replace('rem_take_', '')
+    } else if (data.startsWith('rem_take_') || data.startsWith('rem_snz_') || data.startsWith('rem_skip_')) {
+      // ── Напоминание о приёме: принял / отложить / пропустить ──
+      // Во всех ветках РЕДАКТИРУЕМ исходное сообщение (без reply_markup → кнопки
+      // убираются), чтобы его нельзя было нажать повторно и плодить дубли ответов.
+      const msgId = cq.message.message_id as number
+      const resolve = (text: string) => tgEdit(chatId, msgId, text, { parse_mode: 'HTML' })
+
+      let action: 'take' | 'snz' | 'skip' = 'take'
+      let evId = ''
+      let mins = 60
+      if (data.startsWith('rem_skip_')) { action = 'skip'; evId = data.replace('rem_skip_', '') }
+      else if (data.startsWith('rem_snz_')) {
+        action = 'snz'
+        const rest = data.replace('rem_snz_', '')
+        const idx = rest.lastIndexOf('_')
+        evId = rest.slice(0, idx)
+        mins = parseInt(rest.slice(idx + 1), 10) || 60
+      } else { evId = data.replace('rem_take_', '') }
+
       const { data: ev } = await supabase
         .from('reminder_events')
-        .select('supplement_id, supplements(name)')
-        .eq('id', evId).eq('user_id', userId).single()
-      if (ev) {
-        const today = new Date().toISOString().slice(0, 10)
+        .select('status, supplement_id, due_at, supplements(name)')
+        .eq('id', evId).eq('user_id', userId).maybeSingle()
+      const name = (ev?.supplements as any)?.name ?? 'Препарат'
+      const now = new Date().toISOString()
+
+      if (!ev) {
+        await resolve('⚠️ Напоминание не найдено.')
+      } else if (ev.status === 'taken' || ev.status === 'skipped') {
+        // уже обработано (повторное нажатие) — просто убираем кнопки, без новых записей
+        await resolve(`${ev.status === 'taken' ? '✅' : '⏭'} <b>${name}</b> — уже отмечено сегодня.`)
+      } else if (action === 'take') {
+        const today = now.slice(0, 10)
         await supabase.from('supplement_logs').upsert(
           { user_id: userId, supplement_id: ev.supplement_id, date: today, taken: true },
           { onConflict: 'user_id,supplement_id,date' }
         )
-        await supabase.from('reminder_events')
-          .update({ status: 'taken', responded_at: new Date().toISOString() })
-          .eq('id', evId)
-        const name = (ev.supplements as any)?.name ?? 'Препарат'
-        await tgSend(chatId, `✅ <b>${name}</b> отмечен как принятый. Молодец!`)
-      }
-    } else if (data.startsWith('rem_snz_')) {
-      // Напоминание: snooze на N минут (R4: предел переносов — не дальше 4ч от исходной дозы)
-      const rest = data.replace('rem_snz_', '')
-      const idx = rest.lastIndexOf('_')
-      const evId = rest.slice(0, idx)
-      const mins = parseInt(rest.slice(idx + 1), 10) || 60
-      const until = new Date(Date.now() + mins * 60000)
-      const { data: ev } = await supabase
-        .from('reminder_events').select('due_at').eq('id', evId).eq('user_id', userId).maybeSingle()
-      const deadline = ev?.due_at ? new Date(ev.due_at).getTime() + 4 * 3600 * 1000 : Infinity
-      if (until.getTime() > deadline) {
-        // дальше переносить некуда — помечаем пропущенным, чтобы не нытьё без конца
-        await supabase.from('reminder_events')
-          .update({ status: 'skipped', responded_at: new Date().toISOString() })
-          .eq('id', evId).eq('user_id', userId)
-        await tgSend(chatId, '⏭ Лимит переносов исчерпан — отметил как пропущено на сегодня.')
+        await supabase.from('reminder_events').update({ status: 'taken', responded_at: now }).eq('id', evId)
+        await resolve(`✅ <b>${name}</b> — принято. Молодец!`)
+      } else if (action === 'snz') {
+        // R4: предел переносов — не дальше 4ч от исходной дозы
+        const until = new Date(Date.now() + mins * 60000)
+        const deadline = ev.due_at ? new Date(ev.due_at).getTime() + 4 * 3600 * 1000 : Infinity
+        if (until.getTime() > deadline) {
+          await supabase.from('reminder_events').update({ status: 'skipped', responded_at: now }).eq('id', evId)
+          await resolve(`⏭ <b>${name}</b> — лимит переносов исчерпан, пропущено на сегодня.`)
+        } else {
+          await supabase.from('reminder_events').update({ status: 'snoozed', snooze_until: until.toISOString() }).eq('id', evId)
+          await resolve(`⏰ <b>${name}</b> — напомню через ${mins >= 120 ? '2 часа' : '1 час'}.`)
+        }
       } else {
-        await supabase.from('reminder_events')
-          .update({ status: 'snoozed', snooze_until: until.toISOString() })
-          .eq('id', evId).eq('user_id', userId)
-        await tgSend(chatId, `⏰ Напомню через ${mins >= 120 ? '2 часа' : '1 час'}.`)
+        await supabase.from('reminder_events').update({ status: 'skipped', responded_at: now }).eq('id', evId)
+        await resolve(`⏭ <b>${name}</b> — пропущено на сегодня.`)
       }
-    } else if (data.startsWith('rem_skip_')) {
-      // Напоминание: пропустить сегодня
-      const evId = data.replace('rem_skip_', '')
-      await supabase.from('reminder_events')
-        .update({ status: 'skipped', responded_at: new Date().toISOString() })
-        .eq('id', evId).eq('user_id', userId)
-      await tgSend(chatId, '⏭ Пропущено на сегодня.')
     } else if (data.startsWith('nudge_acc:')) {
       // Коуч: пользователь берёт совет в работу → ставим follow-up через 5 дней
       const subtype = data.replace('nudge_acc:', '')
