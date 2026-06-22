@@ -5,7 +5,7 @@ import type { AppView } from '../../store/appStore'
 import { generateInsights } from '../../utils/insights'
 import { AiAnalysisBlock } from './AiAnalysisBlock'
 import { DataGaps } from '../ui/DataGaps'
-import { computeReadiness, computeEarlyWarning } from '../../lib/readiness'
+import { computeReadiness, computeEarlyWarning, readinessVerdict } from '../../lib/readiness'
 import { baselineDeviations } from '../../lib/scores'
 import { loadTodayNote, saveNote } from '../../lib/contextNotes'
 import { loadFocus, loadCheckins, checkInToday, removeCheckinToday, loadFocusInputs, type CoachFocus } from '../../lib/coach'
@@ -87,7 +87,8 @@ function ReadinessCard({ daily }: { daily: DailyMetrics[] }) {
   if (!r) return null
 
   const devs = baselineDeviations(daily)
-  const labels: Record<string, string> = { hrv: 'HRV', rhr: t('Пульс покоя'), sleep: t('Сон'), steps: t('Шаги') }
+  const verdict = readinessVerdict(r)
+  const labels: Record<string, string> = { hrv: t('Восстановление'), rhr: t('Пульс покоя'), sleep: t('Сон'), steps: t('Шаги') }
   // для HRV/сна/шагов рост = хорошо (зелёный), для пульса покоя рост = плохо (красный)
   const goodUp: Record<string, boolean> = { hrv: true, sleep: true, steps: true, rhr: false }
 
@@ -102,13 +103,13 @@ function ReadinessCard({ daily }: { daily: DailyMetrics[] }) {
         <div className="readiness-bars">
           {r.components.hrv != null && (
             <div className="r-bar-row">
-              <span>HRV</span>
+              <span>{t('Восстановление')}</span>
               <div className="r-bar-track"><div className="r-bar-fill" style={{ width: `${(r.components.hrv / 40) * 100}%`, background: r.color }} /></div>
             </div>
           )}
           {r.components.rhr != null && (
             <div className="r-bar-row">
-              <span>{t('ЧСС')}</span>
+              <span>{t('Пульс покоя')}</span>
               <div className="r-bar-track"><div className="r-bar-fill" style={{ width: `${(r.components.rhr / 30) * 100}%`, background: r.color }} /></div>
             </div>
           )}
@@ -120,9 +121,12 @@ function ReadinessCard({ daily }: { daily: DailyMetrics[] }) {
           )}
         </div>
       </div>
+      <div className="readiness-verdict">
+        {t(verdict.bandKey)}{verdict.driverKey ? ` ${t(verdict.driverKey)}.` : ''}
+      </div>
       {devs.length > 0 && (
         <div className="readiness-baseline">
-          <div className="readiness-baseline-title">{t('Относительно вашей нормы (30 дней)')}</div>
+          <div className="readiness-baseline-title">{t('В сравнении с вашей нормой (30 дней)')}</div>
           <div className="readiness-baseline-row">
             {devs.filter(d => Math.abs(d.pct) >= 5).map(d => {
               const positive = goodUp[d.metric] ? d.pct > 0 : d.pct < 0
