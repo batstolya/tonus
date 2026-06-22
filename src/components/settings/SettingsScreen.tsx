@@ -55,6 +55,11 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
   const [exporting, setExporting] = useState<'json' | 'csv' | null>(null)
   const [envSyncing, setEnvSyncing] = useState(false)
   const [envMsg, setEnvMsg] = useState<string | null>(null)
+  const [locLabel, setLocLabel] = useState<string | null>(null)
+  const [locQuery, setLocQuery] = useState('')
+  const [locResults, setLocResults] = useState<Array<{ name: string; country?: string; admin1?: string; latitude: number; longitude: number }>>([])
+  const [locSearching, setLocSearching] = useState(false)
+  const [locMsg, setLocMsg] = useState<string | null>(null)
 
   async function handleSyncEnvironment() {
     setEnvSyncing(true)
@@ -66,6 +71,29 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
       setEnvMsg(`${t('Ошибка')}: ${e.message}`)
     }
     setEnvSyncing(false)
+  }
+
+  async function handleLocationSearch() {
+    const q = locQuery.trim()
+    if (!q) return
+    setLocSearching(true); setLocMsg(null); setLocResults([])
+    try {
+      const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=ru&format=json`)
+      const data = await res.json()
+      const results = (data.results ?? []).map((r: { name: string; country?: string; admin1?: string; latitude: number; longitude: number }) => ({ name: r.name, country: r.country, admin1: r.admin1, latitude: r.latitude, longitude: r.longitude }))
+      setLocResults(results)
+      if (!results.length) setLocMsg(t('Город не найден'))
+    } catch {
+      setLocMsg(t('Ошибка'))
+    }
+    setLocSearching(false)
+  }
+
+  async function handleLocationPick(r: { name: string; country?: string; admin1?: string; latitude: number; longitude: number }) {
+    const label = [r.name, r.admin1, r.country].filter(Boolean).join(', ')
+    const { error } = await supabase.from('profiles').upsert({ id: user.id, latitude: r.latitude, longitude: r.longitude, location_label: label })
+    if (error) { setLocMsg(`${t('Ошибка')}: ${error.message}`); return }
+    setLocLabel(label); setLocResults([]); setLocQuery(''); setLocMsg(t('Локация сохранена — нажми «Синхронизировать среду»'))
   }
 
   async function handleExport(kind: 'json' | 'csv') {
@@ -85,6 +113,8 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
       })
     loadDailyNoteSettings(user.id).then(s => { setNoteEnabled(s.enabled); setNoteTime(s.time) }).catch(() => {})
     loadReportSettings(user.id).then(setRep).catch(() => {})
+    supabase.from('profiles').select('location_label').eq('id', user.id).maybeSingle()
+      .then(({ data }) => { if (data?.location_label) setLocLabel(data.location_label) })
   }, [user.id])
 
   function patchRep(patch: Partial<ReportSettings>) {
@@ -510,11 +540,34 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
       <section className="settings-section">
         <h3 className="settings-section-title">🌤 {t('Данные среды')}</h3>
         <p className="settings-muted" style={{ marginBottom: 10 }}>
-          {t('Температура, световой день, осадки — автоматически с Open-Meteo (Мюнхен).')}
+          {t('Температура, давление, световой день, осадки — с Open-Meteo по твоей локации.')}
         </p>
+        <div className="settings-muted" style={{ marginBottom: 8, fontSize: 13 }}>
+          📍 {t('Локация:')} <b>{locLabel || t('Мюнхен (по умолчанию)')}</b>
+        </div>
+        <div className="settings-ics-row" style={{ flexDirection: 'column', gap: 8, alignItems: 'stretch', marginBottom: 10 }}>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input className="log-input" style={{ flex: 1 }} placeholder={t('Введите город')}
+              value={locQuery} onChange={e => setLocQuery(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleLocationSearch() }} />
+            <button className="btn-secondary" onClick={handleLocationSearch} disabled={locSearching || !locQuery.trim()}>
+              {locSearching ? t('Ищу…') : t('Найти')}
+            </button>
+          </div>
+          {locResults.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {locResults.map((r, i) => (
+                <button key={i} className="btn-secondary" style={{ textAlign: 'left' }} onClick={() => handleLocationPick(r)}>
+                  {[r.name, r.admin1, r.country].filter(Boolean).join(', ')}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <button className="btn-secondary" onClick={handleSyncEnvironment} disabled={envSyncing}>
           {envSyncing ? t('Синхронизирую…') : t('Синхронизировать среду')}
         </button>
+        {locMsg && <p className="settings-muted" style={{ marginTop: 6 }}>{locMsg}</p>}
         {envMsg && <p className="settings-muted" style={{ marginTop: 6 }}>{envMsg}</p>}
       </section>
 

@@ -17,9 +17,18 @@ serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
     if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS })
 
-    // Use Munich defaults (profiles table may not have lat/lon columns)
-    const lat = DEFAULT_LAT
-    const lon = DEFAULT_LON
+    // Координаты из профиля пользователя; если не заданы — фолбэк на Мюнхен
+    let lat = DEFAULT_LAT
+    let lon = DEFAULT_LON
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('latitude, longitude')
+      .eq('id', user.id)
+      .maybeSingle()
+    if (profile && typeof profile.latitude === 'number' && typeof profile.longitude === 'number') {
+      lat = profile.latitude
+      lon = profile.longitude
+    }
 
     // Fetch last 30 days from Open-Meteo (free, no key)
     const end = new Date().toISOString().slice(0, 10)
