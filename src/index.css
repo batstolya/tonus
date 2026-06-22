@@ -1170,6 +1170,7 @@ body {
 .chart-event-chip { white-space: nowrap; }
 
 /* Readiness baseline deviation */
+.readiness-verdict { margin-top: 14px; font-size: 14px; line-height: 1.5; color: var(--text); }
 .readiness-baseline { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
 .readiness-baseline-title { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
 .readiness-baseline-row { display: flex; flex-wrap: wrap; gap: 12px; }

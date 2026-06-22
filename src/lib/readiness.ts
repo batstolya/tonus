@@ -90,6 +90,53 @@ export function computeReadiness(daily: DailyMetrics[]): ReadinessScore | null {
   }
 }
 
+export interface ReadinessVerdict {
+  bandKey: string            // i18n key: plain-language sentence for the score band
+  driverKey: string | null   // i18n key: clause naming the standout factor, or null
+}
+
+const BAND_SENTENCE: Record<string, string> = {
+  'Отличная': 'Организм отлично восстановился — хороший день для нагрузки и важных дел.',
+  'Хорошая': 'Ты в хорошей форме — можно работать в обычном ритме.',
+  'Средняя': 'Восстановление неполное — лучше умеренная нагрузка и лечь пораньше.',
+  'Низкая': 'Организм не восстановился — сегодня отдых, без перегрузок.',
+}
+
+const DRIVER_POSITIVE: Record<'hrv' | 'rhr' | 'sleep', string> = {
+  hrv: 'Главный плюс — высокое восстановление',
+  rhr: 'Главный плюс — низкий пульс покоя',
+  sleep: 'Главный плюс — крепкий сон',
+}
+const DRIVER_NEGATIVE: Record<'hrv' | 'rhr' | 'sleep', string> = {
+  hrv: 'Слабое место — сниженное восстановление',
+  rhr: 'Слабое место — повышенный пульс покоя',
+  sleep: 'Слабое место — нехватка сна',
+}
+
+// Plain-language verdict for the readiness card: a band sentence + a clause naming
+// the day's standout factor. The driver is the component with the highest (good band)
+// or lowest (weak band) normalised score contribution — hrv/40, rhr/30, sleep/30.
+export function readinessVerdict(r: ReadinessScore): ReadinessVerdict {
+  const bandKey = BAND_SENTENCE[r.label] ?? BAND_SENTENCE['Средняя']
+  const good = r.label === 'Отличная' || r.label === 'Хорошая'
+
+  const norm = ([
+    ['hrv', r.components.hrv, 40],
+    ['rhr', r.components.rhr, 30],
+    ['sleep', r.components.sleep, 30],
+  ] as const)
+    .filter(([, v]) => v != null)
+    .map(([k, v, max]) => ({ k, v: (v as number) / max }))
+
+  if (!norm.length) return { bandKey, driverKey: null }
+
+  const pick = norm.reduce((best, cur) =>
+    (good ? cur.v > best.v : cur.v < best.v) ? cur : best
+  )
+  const driverKey = (good ? DRIVER_POSITIVE : DRIVER_NEGATIVE)[pick.k]
+  return { bandKey, driverKey }
+}
+
 export function computeEarlyWarning(daily: DailyMetrics[]): EarlyWarning {
   if (daily.length < 14) return { active: false, signals: [] }
 
