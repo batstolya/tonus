@@ -113,7 +113,7 @@ JSON строго одной из форм (target — добавь только
 {"predicate":{"kind":"event_present","event":"workout"},"target":3}
 {"predicate":{"kind":"event_absent","event":"alcohol"}}
 {"predicate":{"kind":"wellbeing_gte","value":4}}
-event ∈ coffee|alcohol|meal|water|meds|workout|illness|stress|travel. Если фокус нельзя выразить — CHECK: none. Не выдумывай поля.
+event ∈ coffee|alcohol|meal|water|meds|workout|illness|stress|travel. ВСЕГДА привязывай CHECK, если фокус хоть как-то выразим этими формами — цели про еду/сон/шаги/время отбоя/кофе/алкоголь/тренировки/самочувствие почти всегда выразимы. CHECK: none — только когда измерить действительно невозможно. Не выдумывай поля.
 Без диагнозов. Опирайся на цифры, не выдумывай. На русском.`
 
   const res = await fetch(

@@ -4,6 +4,7 @@ import { useT } from '../../lib/i18n'
 import { buildStressMap } from '../../utils/stressMap'
 import { parseICS } from '../../parsers/icsParser'
 import { parseCalBookings } from '../../parsers/calBookingsParser'
+import { StressCharts } from './StressCharts'
 
 interface Props {
   heartRateSamples: HeartRateSample[]
@@ -19,16 +20,16 @@ function fmtDate(d: Date): string {
   return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
-type SortMode = 'stress' | 'date'
+type Mode = 'stress' | 'date' | 'charts'
 
 export function StressMapScreen({ heartRateSamples, events, onEvents, onGoogleCalendar, googleConnected = false, showGoogle = true, onToggleGoogle }: Props) {
   const { t } = useT()
-  const [sortMode, setSortMode] = useState<SortMode>('stress')
+  const [mode, setMode] = useState<Mode>('stress')
   const rawEntries = useMemo(() => buildStressMap(events, heartRateSamples), [events, heartRateSamples])
   const entries = useMemo(() => {
-    if (sortMode === 'date') return [...rawEntries].sort((a, b) => b.event.start.getTime() - a.event.start.getTime())
+    if (mode === 'date') return [...rawEntries].sort((a, b) => b.event.start.getTime() - a.event.start.getTime())
     return rawEntries
-  }, [rawEntries, sortMode])
+  }, [rawEntries, mode])
   const icsRef = useRef<HTMLInputElement>(null)
   const calRef = useRef<HTMLInputElement>(null)
 
@@ -83,11 +84,14 @@ export function StressMapScreen({ heartRateSamples, events, onEvents, onGoogleCa
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
           <div className="stress-sort-tabs">
-            <button className={`stress-sort-btn${sortMode === 'stress' ? ' active' : ''}`} onClick={() => setSortMode('stress')}>
+            <button className={`stress-sort-btn${mode === 'stress' ? ' active' : ''}`} onClick={() => setMode('stress')}>
               {t('По стрессу')}
             </button>
-            <button className={`stress-sort-btn${sortMode === 'date' ? ' active' : ''}`} onClick={() => setSortMode('date')}>
+            <button className={`stress-sort-btn${mode === 'date' ? ' active' : ''}`} onClick={() => setMode('date')}>
               {t('По дате')}
+            </button>
+            <button className={`stress-sort-btn${mode === 'charts' ? ' active' : ''}`} onClick={() => setMode('charts')}>
+              📊 {t('Графики')}
             </button>
           </div>
           {googleConnected && onToggleGoogle && (
@@ -101,6 +105,9 @@ export function StressMapScreen({ heartRateSamples, events, onEvents, onGoogleCa
         </div>
       </div>
 
+      {mode === 'charts' ? (
+        <StressCharts entries={rawEntries} />
+      ) : (
       <div className="stress-list">
         {entries.map(entry => (
           <div
@@ -133,6 +140,7 @@ export function StressMapScreen({ heartRateSamples, events, onEvents, onGoogleCa
           </div>
         ))}
       </div>
+      )}
     </div>
   )
 }

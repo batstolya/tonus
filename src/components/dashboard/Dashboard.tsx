@@ -8,7 +8,7 @@ import { DataGaps } from '../ui/DataGaps'
 import { computeReadiness, computeEarlyWarning, readinessVerdict } from '../../lib/readiness'
 import { baselineDeviations } from '../../lib/scores'
 import { loadTodayNote, saveNote } from '../../lib/contextNotes'
-import { loadFocus, loadCheckins, checkInToday, removeCheckinToday, loadFocusInputs, type CoachFocus } from '../../lib/coach'
+import { loadFocus, loadCheckins, checkInToday, removeCheckinToday, loadFocusInputs, inferFocusCheck, type CoachFocus } from '../../lib/coach'
 import { evaluateFocus, type FocusData } from '../../lib/focusAdherence'
 import { useT } from '../../lib/i18n'
 
@@ -146,14 +146,17 @@ function ReadinessCard({ daily }: { daily: DailyMetrics[] }) {
 
 function StressDaysCard({ daily }: { daily: DailyMetrics[] }) {
   const { t, lang } = useT()
-  const now = new Date()
-  const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
-  const monthDays = daily.filter(d => d.date >= monthStart && d.hrv != null)
-  if (monthDays.length < 3) return null
+  // Скользящее окно за последние 30 дней — чтобы карточка отражала недавнее
+  // и обновлялась каждый день, а не «застывала» на минимуме календарного месяца.
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() - 30)
+  const cutoffStr = cutoff.toISOString().slice(0, 10)
+  const windowDays = daily.filter(d => d.date >= cutoffStr && d.hrv != null)
+  if (windowDays.length < 3) return null
 
-  const sorted = [...monthDays].sort((a, b) => (a.hrv ?? 0) - (b.hrv ?? 0))
-  const mostStressed = sorted[0]
-  const leastStressed = sorted[sorted.length - 1]
+  const sorted = [...windowDays].sort((a, b) => (a.hrv ?? 0) - (b.hrv ?? 0))
+  const mostStressed = sorted[0]      // наименьший HRV = наименьшее восстановление
+  const leastStressed = sorted[sorted.length - 1] // наибольший HRV = самый спокойный
 
   const locale = lang === 'en' ? 'en-GB' : lang === 'uk' ? 'uk-UA' : 'ru-RU'
   function fmtDate(d: string) {
@@ -167,7 +170,7 @@ function StressDaysCard({ daily }: { daily: DailyMetrics[] }) {
         <div className="sd-info">
           <div className="sd-label">{t('Самый стрессовый')}</div>
           <div className="sd-date">{fmtDate(mostStressed.date)}</div>
-          <div className="sd-hrv">HRV {mostStressed.hrv!.toFixed(0)} {t('мс')}{mostStressed.restingHeartRate ? ` · ${t('ЧСС')} ${Math.round(mostStressed.restingHeartRate)}` : ''}</div>
+          <div className="sd-hrv">{t('HRV')} {mostStressed.hrv!.toFixed(0)} {t('мс')}{mostStressed.restingHeartRate ? ` · ${t('ЧСС')} ${Math.round(mostStressed.restingHeartRate)}` : ''}</div>
         </div>
       </div>
       <div className="sd-divider" />
@@ -176,7 +179,7 @@ function StressDaysCard({ daily }: { daily: DailyMetrics[] }) {
         <div className="sd-info">
           <div className="sd-label">{t('Самый спокойный')}</div>
           <div className="sd-date">{fmtDate(leastStressed.date)}</div>
-          <div className="sd-hrv">HRV {leastStressed.hrv!.toFixed(0)} {t('мс')}{leastStressed.restingHeartRate ? ` · ${t('ЧСС')} ${Math.round(leastStressed.restingHeartRate)}` : ''}</div>
+          <div className="sd-hrv">{t('HRV')} {leastStressed.hrv!.toFixed(0)} {t('мс')}{leastStressed.restingHeartRate ? ` · ${t('ЧСС')} ${Math.round(leastStressed.restingHeartRate)}` : ''}</div>
         </div>
       </div>
     </div>
@@ -212,17 +215,21 @@ function CoachFocusCard({ user, daily }: { user: User; daily: DailyMetrics[] }) 
     loadFocus(user.id).then(f => {
       setFocus(f)
       if (!f) return
-      if (f.check) loadFocusInputs(user.id, f.set_at.slice(0, 10)).then(setInputs)
+      const eff = f.check ?? inferFocusCheck(f.text)
+      if (eff) loadFocusInputs(user.id, f.set_at.slice(0, 10)).then(setInputs)
       else loadCheckins(user.id, f.set_at).then(setCheckins)
     })
   }, [user.id])
 
   if (!focus) return null
 
+  // Машинное условие от коуча в приоритете; иначе — выводим из текста цели.
+  const effectiveCheck = focus.check ?? inferFocusCheck(focus.text)
+
   // ── Авто-режим: есть машинное условие ──
-  if (focus.check) {
+  if (effectiveCheck) {
     const data: FocusData = { daily, intake: inputs?.intake ?? [], wellbeingByDate: inputs?.wellbeingByDate ?? {} }
-    const p = evaluateFocus(focus.check, focus.set_at, data)
+    const p = evaluateFocus(effectiveCheck, focus.set_at, data)
     const count = p.mode === 'weekly' ? `${p.daysMet}/${p.denom} ${t('за неделю')}` : `${p.daysMet}/7`
     return (
       <div className="coach-focus-card">
