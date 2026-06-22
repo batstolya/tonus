@@ -48,6 +48,39 @@ export function validateFocusCheck(obj: any): FocusCheck | null {
   return out
 }
 
+// Эвристика на фронте: если коуч не приложил машинный check, попробовать вывести его
+// из текста фокуса, чтобы частые ежедневные цели (еда/сон/шаги/отбой) считались автоматически.
+// Используется как запасной вариант — машинный check от коуча всегда в приоритете.
+export function inferFocusCheck(text: string): FocusCheck | null {
+  const s = text.toLowerCase()
+
+  // Время отхода ко сну: «лечь до 23:00», «отбой до 00:30»
+  const bed = s.match(/(?:леч|ложит|ложус|отбой|в постел|спать).{0,24}?(\d{1,2})[:.](\d{2})/)
+  if (bed) return { predicate: { kind: 'bedtime_before', time: `${bed[1].padStart(2, '0')}:${bed[2]}` } }
+
+  // Сон в часах: «спать 7 часов», «высыпаться»
+  if (/(?:сон|выспат|высыпат|спать|sleep)/.test(s)) {
+    const m = s.match(/(\d{1,2})\s*(?:ч|h)/)
+    const h = m ? parseInt(m[1], 10) : 7
+    if (h >= 4 && h <= 12) return { predicate: { kind: 'sleep_hours_gte', value: h } }
+  }
+
+  // Шаги: «10000 шагов», «больше ходить»
+  if (/(?:шаг|ходьб|пройти|проход|steps|walk)/.test(s)) {
+    const m = s.match(/(\d[\d\s]{2,}\d)/)
+    const v = m ? parseInt(m[1].replace(/\s/g, ''), 10) : 8000
+    if (v >= 1000 && v <= 30000) return { predicate: { kind: 'steps_gte', value: v } }
+  }
+
+  // Полноценные приёмы пищи: «есть 3 раза», «полноценный приём пищи»
+  if (/при[ёе]м(?:ов|а)?\s+пищи|полноцен|поесть|поешь|регулярн.{0,12}(?:ед|пита)|завтрак|\bmeal/.test(s)) {
+    const m = s.match(/\b([1-6])\b/)
+    return { predicate: { kind: 'meals_gte', value: m ? parseInt(m[1], 10) : 3 } }
+  }
+
+  return null
+}
+
 export async function loadFocus(userId: string): Promise<CoachFocus | null> {
   const { data } = await supabase.from('coach_profile').select('focus').eq('user_id', userId).maybeSingle()
   const f = data?.focus

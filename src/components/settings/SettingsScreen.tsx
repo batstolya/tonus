@@ -61,6 +61,7 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
   const [locSearching, setLocSearching] = useState(false)
   const [locLocating, setLocLocating] = useState(false)
   const [locMsg, setLocMsg] = useState<string | null>(null)
+  const [editingLoc, setEditingLoc] = useState(false)
 
   async function handleSyncEnvironment() {
     setEnvSyncing(true)
@@ -79,7 +80,7 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
     if (!q) return
     setLocSearching(true); setLocMsg(null); setLocResults([])
     try {
-      const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=ru&format=json`)
+      const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=${lang}&format=json`)
       const data = await res.json()
       const results = (data.results ?? []).map((r: { name: string; country?: string; admin1?: string; latitude: number; longitude: number }) => ({ name: r.name, country: r.country, admin1: r.admin1, latitude: r.latitude, longitude: r.longitude }))
       setLocResults(results)
@@ -94,7 +95,7 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
     const label = [r.name, r.admin1, r.country].filter(Boolean).join(', ')
     const { error } = await supabase.from('profiles').upsert({ id: user.id, latitude: r.latitude, longitude: r.longitude, location_label: label })
     if (error) { setLocMsg(`${t('Ошибка')}: ${error.message}`); return }
-    setLocLabel(label); setLocResults([]); setLocQuery(''); setLocMsg(t('Локация сохранена — нажми «Синхронизировать среду»'))
+    setLocLabel(label); setLocResults([]); setLocQuery(''); setEditingLoc(false); setLocMsg(`✅ ${t('Локация определена')}`)
   }
 
   // Запрашиваем доступ к геолокации браузера и сами определяем место (обратный геокодер)
@@ -107,7 +108,7 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
         let label = `${latitude.toFixed(3)}, ${longitude.toFixed(3)}`
         try {
           // BigDataCloud reverse-geocode — бесплатно, без ключа, CORS-friendly
-          const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=ru`)
+          const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=${lang}`)
           const g = await res.json()
           const parts = [g.city || g.locality, g.principalSubdivision, g.countryName].filter(Boolean)
           if (parts.length) label = parts.join(', ')
@@ -115,7 +116,7 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
         const { error } = await supabase.from('profiles').upsert({ id: user.id, latitude, longitude, location_label: label })
         setLocLocating(false)
         if (error) { setLocMsg(`${t('Ошибка')}: ${error.message}`); return }
-        setLocLabel(label); setLocResults([]); setLocQuery(''); setLocMsg(t('Локация сохранена — нажми «Синхронизировать среду»'))
+        setLocLabel(label); setLocResults([]); setLocQuery(''); setEditingLoc(false); setLocMsg(`✅ ${t('Локация определена')}`)
       },
       (err) => {
         setLocLocating(false)
@@ -578,35 +579,50 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
         <p className="settings-muted" style={{ marginBottom: 10 }}>
           {t('Температура, давление, световой день, осадки — с Open-Meteo по твоей локации.')}
         </p>
-        <div className="settings-muted" style={{ marginBottom: 8, fontSize: 13 }}>
-          📍 {t('Локация:')} <b>{locLabel || t('Мюнхен (по умолчанию)')}</b>
-        </div>
-        <button className="btn-primary" style={{ marginBottom: 8 }} onClick={handleUseMyLocation} disabled={locLocating}>
-          {locLocating ? t('Определяю…') : `📍 ${t('Определить автоматически')}`}
-        </button>
-        <div className="settings-muted" style={{ marginBottom: 6, fontSize: 12 }}>{t('…или найди город вручную:')}</div>
-        <div className="settings-ics-row" style={{ flexDirection: 'column', gap: 8, alignItems: 'stretch', marginBottom: 10 }}>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input className="log-input" style={{ flex: 1 }} placeholder={t('Введите город')}
-              value={locQuery} onChange={e => setLocQuery(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handleLocationSearch() }} />
-            <button className="btn-secondary" onClick={handleLocationSearch} disabled={locSearching || !locQuery.trim()}>
-              {locSearching ? t('Ищу…') : t('Найти')}
-            </button>
-          </div>
-          {locResults.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {locResults.map((r, i) => (
-                <button key={i} className="btn-secondary" style={{ textAlign: 'left' }} onClick={() => handleLocationPick(r)}>
-                  {[r.name, r.admin1, r.country].filter(Boolean).join(', ')}
-                </button>
-              ))}
+
+        {locLabel && !editingLoc ? (
+          // Локация уже выбрана — показываем только её и кнопку синхронизации
+          <>
+            <div className="settings-muted" style={{ marginBottom: 10, fontSize: 13 }}>
+              📍 {t('Локация:')} <b>{locLabel}</b>
+              {' · '}
+              <button className="link-btn" onClick={() => { setEditingLoc(true); setLocMsg(null) }}>{t('Изменить')}</button>
             </div>
-          )}
-        </div>
-        <button className="btn-secondary" onClick={handleSyncEnvironment} disabled={envSyncing}>
-          {envSyncing ? t('Синхронизирую…') : t('Синхронизировать среду')}
-        </button>
+            <button className="btn-secondary" onClick={handleSyncEnvironment} disabled={envSyncing}>
+              {envSyncing ? t('Синхронизирую…') : t('Синхронизировать среду')}
+            </button>
+          </>
+        ) : (
+          // Локация не выбрана (или режим изменения) — показываем выбор
+          <>
+            <button className="btn-primary" style={{ marginBottom: 8 }} onClick={handleUseMyLocation} disabled={locLocating}>
+              {locLocating ? t('Определяю…') : `📍 ${t('Определить автоматически')}`}
+            </button>
+            <div className="settings-muted" style={{ marginBottom: 6, fontSize: 12 }}>{t('…или найди город вручную:')}</div>
+            <div className="settings-ics-row" style={{ flexDirection: 'column', gap: 8, alignItems: 'stretch', marginBottom: 10 }}>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input className="log-input" style={{ flex: 1 }} placeholder={t('Введите город')}
+                  value={locQuery} onChange={e => setLocQuery(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleLocationSearch() }} />
+                <button className="btn-secondary" onClick={handleLocationSearch} disabled={locSearching || !locQuery.trim()}>
+                  {locSearching ? t('Ищу…') : t('Найти')}
+                </button>
+              </div>
+              {locResults.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {locResults.map((r, i) => (
+                    <button key={i} className="btn-secondary" style={{ textAlign: 'left' }} onClick={() => handleLocationPick(r)}>
+                      {[r.name, r.admin1, r.country].filter(Boolean).join(', ')}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            {locLabel && editingLoc && (
+              <button className="link-btn" onClick={() => { setEditingLoc(false); setLocResults([]); setLocQuery('') }}>{t('Отмена')}</button>
+            )}
+          </>
+        )}
         {locMsg && <p className="settings-muted" style={{ marginTop: 6 }}>{locMsg}</p>}
         {envMsg && <p className="settings-muted" style={{ marginTop: 6 }}>{envMsg}</p>}
       </section>
