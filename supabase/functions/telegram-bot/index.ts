@@ -3,6 +3,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { buildHealthContext, healthContextToText } from '../_shared/healthContext.ts'
 import { checkBudget, budgetExceededMessage } from '../_shared/costGuard.ts'
 import { getPrompt } from '../_shared/prompts.ts'
+import { localToIso, localDate } from '../_shared/time.ts'
+import { buildClassifyPrompt } from '../_shared/classifyPrompt.ts'
 
 const TG_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -163,48 +165,7 @@ const CHAT_SYSTEM_PROMPT = `Ты — персональный ассистент
 
 // ── Natural-language logging (приём препарата / событие из текста) ─────────────
 
-// Смещение таймзоны (минуты к востоку от UTC) на конкретный момент
-function tzOffsetMin(tz: string, date: Date): number {
-  const dtf = new Intl.DateTimeFormat('en-US', {
-    timeZone: tz, hour12: false,
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', second: '2-digit',
-  })
-  const p = Object.fromEntries(dtf.formatToParts(date).map(x => [x.type, x.value]))
-  const asUTC = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second)
-  return (asUTC - date.getTime()) / 60000
-}
-
-// Локальные дата/время (HH:MM) в этой tz → ISO (UTC). time=null → сейчас.
-function localToIso(tz: string, time: string | null, dateStr?: string | null): string {
-  const now = new Date()
-  if (!time && !dateStr) return now.toISOString()
-  const off = tzOffsetMin(tz, now)
-  let day = dateStr
-  if (!day || !/^\d{4}-\d{2}-\d{2}$/.test(day)) {
-    const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', {
-      timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
-    }).formatToParts(now).map(x => [x.type, x.value]))
-    day = `${p.year}-${p.month}-${p.day}`
-  }
-  let hhmm = time
-  if (!hhmm) {
-    // время не указано (напр. «сейчас») → текущее локальное, НЕ полдень
-    const tp = Object.fromEntries(new Intl.DateTimeFormat('en-GB', {
-      timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false,
-    }).formatToParts(now).map(x => [x.type, x.value]))
-    hhmm = `${tp.hour}:${tp.minute}`
-  }
-  const naiveUTC = Date.parse(`${day}T${hhmm}:00Z`)
-  return new Date(naiveUTC - off * 60000).toISOString()
-}
-
-function localDate(tz: string): string {
-  const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', {
-    timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
-  }).formatToParts(new Date()).map(x => [x.type, x.value]))
-  return `${p.year}-${p.month}-${p.day}`
-}
+// tzOffsetMin / localToIso / localDate вынесены в ../_shared/time.ts (тестируются vitest).
 
 // Классифицирует свободный текст: это действие-лог или вопрос?
 // Возвращает действие, либо null если это обычный вопрос (→ чат).
@@ -268,46 +229,9 @@ async function handleMealPhoto(chatId: number | string, userId: string, fileId: 
   await tgSend(chatId, `📸🍽 <b>${r.dish ?? 'Еда'}</b>\n≈ ${r.calories ?? '?'} ккал${macros ? ` (${macros} г)` : ''}\nЗаписал в дневник.`, { parse_mode: 'HTML', reply_markup: BACK_MENU })
 }
 
-async function classifyLog(text: string, supplementNames: string[]): Promise<any | null> {
+async function classifyLog(text: string, supplementNames: string[], now: Date, tz: string): Promise<any | null> {
   if (!GEMINI_KEY) return null
-  const todayStr = new Date().toISOString().slice(0, 10)
-  const prompt = `Пользователь пишет сообщение боту здоровья. Определи, это ЗАПИСЬ события или ВОПРОС.
-Препараты пользователя: ${supplementNames.length ? supplementNames.join(', ') : '(нет)'}
-Сегодня: ${todayStr}
-
-Сообщение: "${text}"
-
-Верни ТОЛЬКО JSON:
-{
-  "action": "supplement" | "intake" | "chat",
-  "supplement": название препарата ТОЧНО как в списке пользователя (исправь опечатки на ближайший из списка) или null,
-  "dose": доза текстом (напр. "1мг") или null,
-  "intake_type": "coffee" | "alcohol" | "meal" | "water" | "meds" | "custom" | null,
-  "amount": число или null,
-  "unit": "мл" или null,
-  "date": "ГГГГ-ММ-ДД" если указана дата/число дня, иначе null,
-  "time": "ЧЧ:ММ" если указано время, иначе null,
-  "note": краткая заметка (напр. "Макдональдс") или null,
-  "calories": для intake_type="meal" — оценка калорий (целое число) по описанию еды и порциям, иначе null,
-  "protein_g": для meal — белки в граммах (число) или null,
-  "carbs_g": для meal — углеводы в граммах (число) или null,
-  "fat_g": для meal — жиры в граммах (число) или null,
-  "coffee_in_meal": true если в приёме пищи (meal) упомянут кофе, иначе false
-}
-
-Правила:
-- ЗАПИСЬ еды — это ВСЕГДА action="intake", intake_type="meal", НИКОГДА не "chat". Команды «запиши/добавь/отметь/записать», перечисление съеденного, «на завтрак/обед/ужин …», «съел/ел …» → intake meal.
-- Даже БЕЗ глагола: название продукта/блюда с количеством или граммами («30 шоколада», «грам 30 шоколада», «2 банана», «кусок пиццы», «100г творога») → action="intake", intake_type="meal". При сомнении между "chat" и едой — выбирай meal.
-- Если в одном сообщении НЕСКОЛЬКО блюд — это ОДИН приём пищи: note = перечисли блюда через запятую, а calories/protein_g/carbs_g/fat_g = СУММА по ВСЕМ блюдам.
-- Оцени калории и БЖУ по типичным порциям (напр. "бигмак и кола" ≈ 750 ккал). Если размыто — разумная средняя оценка. Не возвращай null для calories у явной еды.
-- "принял/выпил <препарат>" → action="supplement", supplement ТОЧНО из списка (исправь опечатку: "финатерид"→"Финастерид").
-- "пил кофе", "выпил вина", "выпил воды" → action="intake" с нужным intake_type.
-- Только настоящий ВОПРОС про данные/совет ("как мой сон?", "что ты знаешь?") → action="chat". Просьба записать едой/событие — это НЕ вопрос.
-- "N числа" / "20 числа" → date="${todayStr.slice(0, 7)}-NN" (NN — день месяца с ведущим нулём).
-- Число без контекста после препарата ("финастерид 18") — это ДЕНЬ месяца: date="${todayStr.slice(0,7)}-18". "1мг"/"5000" рядом с дозой — это доза, не дата.
-- Время словами: "в обед"≈13:00, "утром"≈09:00, "вечером"≈20:00 → ЧЧ:ММ.
-- «сейчас»/«только что»/«щас»/«прямо сейчас»/«выпил/съел сейчас» → date=null И time=null (система запишет на текущий момент). НЕ выдумывай время, если оно не указано явно.
-- Если в приёме пищи (meal) упомянут кофе («кофе, яйца, суп») — в note оставь только еду БЕЗ кофе, а coffee_in_meal=true (система создаст отдельную запись кофе для модели кофеина).`
+  const prompt = buildClassifyPrompt(text, supplementNames, now, tz)
 
   try {
     const res = await fetch(
@@ -330,7 +254,7 @@ async function classifyLog(text: string, supplementNames: string[]): Promise<any
 }
 
 // Выполняет распознанное действие. Возвращает текст подтверждения или null.
-async function execLog(chatId: number | string, userId: string, act: any, tz: string, supabase: any): Promise<string | null> {
+async function execLog(chatId: number | string, userId: string, act: any, tz: string, supabase: any, now: Date = new Date()): Promise<string | null> {
   if (act.action === 'supplement') {
     // нестрогий матч: точное ilike, иначе по началу слова
     // select без stock_count — колонка может отсутствовать в БД (иначе запрос падает)
@@ -380,7 +304,7 @@ async function execLog(chatId: number | string, userId: string, act: any, tz: st
 
   if (act.action === 'intake' && act.intake_type) {
     const labels: Record<string, string> = { coffee: '☕ Кофе', alcohol: '🍷 Алкоголь', meal: '🍽 Еда', water: '💧 Вода', meds: '💊 Лекарства', custom: '📝 Заметка' }
-    const ts = localToIso(tz, act.time, act.date)
+    const ts = localToIso(tz, act.time, act.date, { now, minutesAgo: act.minutes_ago })
     const isMeal = act.intake_type === 'meal'
     const base = { user_id: userId, ts, type: act.intake_type, amount: act.amount ?? null, unit: act.unit ?? null, note: act.note ?? null }
     const withNutr = { ...base, calories: isMeal ? act.calories ?? null : null, protein_g: isMeal ? act.protein_g ?? null : null, carbs_g: isMeal ? act.carbs_g ?? null : null, fat_g: isMeal ? act.fat_g ?? null : null }
@@ -1053,19 +977,21 @@ serve(async (req) => {
   // act != null → это лог (еда/приём/препарат); null → вопрос/чат.
   // Классификатор — это AI-вызов, поэтому за бюджетом: при превышении не классифицируем,
   // сообщение уйдёт в ИИ-чат, который сам покажет сообщение о лимите.
+  // Таймзона нужна для срока годности заметки и для лога. Якорь «сейчас» — время отправки
+  // сообщения (msg.date, сек UTC), чтобы относительное время («час назад») считалось от него.
+  const { data: noteSet } = await supabase
+    .from('daily_note_settings').select('timezone').eq('user_id', userId).maybeSingle()
+  const tz = noteSet?.timezone || 'Europe/Kyiv'
+  const now = msg.date ? new Date(msg.date * 1000) : new Date()
+
   const budget = await checkBudget(supabase, userId)
   let act: any = null
   if (budget.ok) {
     const { data: supList } = await supabase
       .from('supplements').select('name').eq('user_id', userId).eq('active', true)
     const supNames = (supList ?? []).map((s: any) => s.name)
-    act = await classifyLog(text, supNames)
+    act = await classifyLog(text, supNames, now, tz)
   }
-
-  // Таймзона нужна для срока годности заметки и для лога
-  const { data: noteSet } = await supabase
-    .from('daily_note_settings').select('timezone').eq('user_id', userId).maybeSingle()
-  const tz = noteSet?.timezone || 'Europe/Kyiv'
 
   // Ответ на вечерний вопрос → заметка дня (N2 + N4, SPEC-DAILY-NOTE)
   // Фикс: (1) флаг протухает к следующим суткам; (2) лог еды/приёма НЕ съедается как заметка.
@@ -1101,7 +1027,7 @@ serve(async (req) => {
   // Лог еды/приёма/препарата (распознан классификатором): "груша", "съел макдак",
   // "принял финастерид 1мг", "пил кофе в 14:00"
   if (act) {
-    const confirm = await execLog(chatId, userId, act, tz, supabase)
+    const confirm = await execLog(chatId, userId, act, tz, supabase, now)
     if (confirm) {
       await tgSend(chatId, confirm, { reply_markup: BACK_MENU })
       return new Response('ok')
