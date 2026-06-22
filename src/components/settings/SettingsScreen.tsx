@@ -59,6 +59,7 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
   const [locQuery, setLocQuery] = useState('')
   const [locResults, setLocResults] = useState<Array<{ name: string; country?: string; admin1?: string; latitude: number; longitude: number }>>([])
   const [locSearching, setLocSearching] = useState(false)
+  const [locLocating, setLocLocating] = useState(false)
   const [locMsg, setLocMsg] = useState<string | null>(null)
 
   async function handleSyncEnvironment() {
@@ -94,6 +95,34 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
     const { error } = await supabase.from('profiles').upsert({ id: user.id, latitude: r.latitude, longitude: r.longitude, location_label: label })
     if (error) { setLocMsg(`${t('Ошибка')}: ${error.message}`); return }
     setLocLabel(label); setLocResults([]); setLocQuery(''); setLocMsg(t('Локация сохранена — нажми «Синхронизировать среду»'))
+  }
+
+  // Запрашиваем доступ к геолокации браузера и сами определяем место (обратный геокодер)
+  function handleUseMyLocation() {
+    if (!navigator.geolocation) { setLocMsg(t('Геолокация недоступна в браузере')); return }
+    setLocLocating(true); setLocMsg(t('Запрашиваю доступ к геолокации…')); setLocResults([])
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords
+        let label = `${latitude.toFixed(3)}, ${longitude.toFixed(3)}`
+        try {
+          // BigDataCloud reverse-geocode — бесплатно, без ключа, CORS-friendly
+          const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=ru`)
+          const g = await res.json()
+          const parts = [g.city || g.locality, g.principalSubdivision, g.countryName].filter(Boolean)
+          if (parts.length) label = parts.join(', ')
+        } catch { /* без названия — оставим координаты */ }
+        const { error } = await supabase.from('profiles').upsert({ id: user.id, latitude, longitude, location_label: label })
+        setLocLocating(false)
+        if (error) { setLocMsg(`${t('Ошибка')}: ${error.message}`); return }
+        setLocLabel(label); setLocResults([]); setLocQuery(''); setLocMsg(t('Локация сохранена — нажми «Синхронизировать среду»'))
+      },
+      (err) => {
+        setLocLocating(false)
+        setLocMsg(err.code === err.PERMISSION_DENIED ? t('Доступ к геолокации запрещён') : t('Не удалось определить местоположение'))
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+    )
   }
 
   async function handleExport(kind: 'json' | 'csv') {
@@ -545,6 +574,10 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
         <div className="settings-muted" style={{ marginBottom: 8, fontSize: 13 }}>
           📍 {t('Локация:')} <b>{locLabel || t('Мюнхен (по умолчанию)')}</b>
         </div>
+        <button className="btn-primary" style={{ marginBottom: 8 }} onClick={handleUseMyLocation} disabled={locLocating}>
+          {locLocating ? t('Определяю…') : `📍 ${t('Определить автоматически')}`}
+        </button>
+        <div className="settings-muted" style={{ marginBottom: 6, fontSize: 12 }}>{t('…или найди город вручную:')}</div>
         <div className="settings-ics-row" style={{ flexDirection: 'column', gap: 8, alignItems: 'stretch', marginBottom: 10 }}>
           <div style={{ display: 'flex', gap: 8 }}>
             <input className="log-input" style={{ flex: 1 }} placeholder={t('Введите город')}
