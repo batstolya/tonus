@@ -24,14 +24,15 @@ import { ChatWidget } from './components/chat/ChatWidget'
 import { AppLoader } from './components/ui/Spinner'
 import type { AppView } from './store/appStore'
 import type { CalendarEvent, DailyMetrics, HeartRateSample } from './types'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useAuth } from './hooks/useAuth'
 import { useTheme } from './hooks/useTheme'
 import { supabase } from './lib/supabase'
-import { syncMetricsToSupabase, loadMetricsFromSupabase, getLastSyncInfo, syncHRSamples, loadHRSamples } from './lib/sync'
+import { syncMetricsToSupabase, loadMetricsFromSupabase, syncHRSamples, loadHRSamples } from './lib/sync'
 import { persistDailyScores } from './lib/scores'
 import { saveCalendarEvents, loadCalendarEvents } from './lib/calendarSync'
-import { connectGoogleCalendar, isGoogleCalendarAvailable } from './lib/googleCalendar'
+import { connectGoogleCalendar, silentGoogleCalendarSync, isGoogleCalendarAvailable } from './lib/googleCalendar'
+import { shouldAutoSync } from './lib/syncSchedule'
 import { detectAvailableMetrics } from './lib/availableMetrics'
 import { useT } from './lib/i18n'
 import './index.css'
@@ -106,7 +107,6 @@ export default function App() {
   const { user, loading, passwordRecovery, setPasswordRecovery } = useAuth()
   const { theme, toggle: toggleTheme } = useTheme()
   const [syncMsg, setSyncMsg] = useState<string | null>(null)
-  const [lastSync, setLastSync] = useState<string | null>(null)
   const [intakeEvents, setIntakeEvents] = useState<Parameters<typeof QuickLog>[0]['events']>([])
   const [dbLoading, setDbLoading] = useState(true)
   const [googleLoading, setGoogleLoading] = useState(false)
@@ -130,9 +130,8 @@ export default function App() {
     setDbLoading(true)
 
     async function init() {
-      const [stored, syncInfo, intakeRes, calEvents] = await Promise.all([
+      const [stored, intakeRes, calEvents] = await Promise.all([
         loadMetricsFromSupabase(user!.id),
-        getLastSyncInfo(user!.id),
         supabase.from('intake_events').select('*').eq('user_id', user!.id)
           .order('ts', { ascending: false }).limit(100),
         loadCalendarEvents(user!.id),
@@ -147,10 +146,6 @@ export default function App() {
         setDaily(stored, hrSamples, true)
         persistDailyScores(user!.id, stored).catch(() => {})
       }
-      if (syncInfo?.imported_at) {
-        const d = new Date(syncInfo.imported_at)
-        setLastSync(d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))
-      }
       if (intakeRes.data) setIntakeEvents(intakeRes.data as typeof intakeEvents)
       if (calEvents.length > 0) setEvents(calEvents)
       setDbLoading(false)
@@ -160,6 +155,22 @@ export default function App() {
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id])
+
+  // Авто-синхронизация Google Calendar «хотя бы раз в день»: при открытии приложения,
+  // если в этом браузере уже был грант Google и прошло >24ч — тихо обновляем без попапа.
+  // Серверный cron невозможен (браузерный OAuth-токен без refresh-token).
+  const googleAutoSyncedRef = useRef(false)
+  useEffect(() => {
+    if (!user || dbLoading || googleAutoSyncedRef.current) return
+    if (!isGoogleCalendarAvailable()) return
+    const lastIso = localStorage.getItem('google_last_sync_iso')
+    if (!lastIso || !shouldAutoSync(lastIso)) return // ещё не подключали тут / синк свежий
+    googleAutoSyncedRef.current = true
+    silentGoogleCalendarSync()
+      .then(events => { if (events && events.length) handleEvents(events, 'google') })
+      .catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, dbLoading])
 
   async function handleDone(daily: DailyMetrics[], samples: HeartRateSample[], filename = 'export') {
     setDaily(daily, samples)
@@ -178,7 +189,6 @@ export default function App() {
       }
       if (result.daysAdded > 0) {
         setSyncMsg(`Добавлено ${result.daysAdded} новых дней`)
-        setLastSync(new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))
       } else {
         setSyncMsg('Данные актуальны')
       }
@@ -196,6 +206,8 @@ export default function App() {
     const updated = { ...calSyncTimes, [source]: now }
     setCalSyncTimes(updated)
     localStorage.setItem('cal_sync_times', JSON.stringify(updated))
+    // ISO-метка для гейта авто-синка (локализованную строку выше распарсить нельзя)
+    if (source === 'google') localStorage.setItem('google_last_sync_iso', new Date().toISOString())
     if (!user) return
     const ok = await saveCalendarEvents(user.id, tagged, source)
     if (!ok) {
@@ -427,7 +439,7 @@ export default function App() {
             onGoogleSync={isGoogleCalendarAvailable() ? handleGoogleCalendar : undefined}
             googleLoading={googleLoading}
             googleConnected={googleConnected}
-            lastSync={lastSync}
+            lastSync={calSyncTimes['google'] ?? null}
             calLastSync={calSyncTimes['cal'] ?? null}
             onNavigate={setView}
             onCalEvents={e => handleEvents(e.map(ev => ({
