@@ -30,7 +30,7 @@ const SOURCE_LABELS: Record<string, string> = {
   'extract-lab': '🔬 OCR анализов',
 }
 
-export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnected, lastSync, calLastSync, onCalEvents, onNavigate, deviceType, onDeviceTypeChange }: Props) {
+export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnected, lastSync, onCalEvents, onNavigate, deviceType, onDeviceTypeChange }: Props) {
   const { t, lang, setLang } = useT()
   const [cost, setCost] = useState<number | null>(null)
   const [tokens, setTokens] = useState(0)
@@ -45,6 +45,7 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
   const [calEmail, setCalEmail] = useState('')
   const [calPassword, setCalPassword] = useState('')
   const [calStatus, setCalStatus] = useState<{ cal_email: string | null; last_sync_at: string | null; last_status: string | null; event_count: number | null; enabled: boolean } | null>(null)
+  const [editingCal, setEditingCal] = useState(false)
   const [tgLinked, setTgLinked] = useState(false)
   const [tgUsername, setTgUsername] = useState<string | null>(null)
   const [tgLinking, setTgLinking] = useState(false)
@@ -208,6 +209,13 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
     setCalLoading(false)
   }
 
+  async function refreshCalStatus() {
+    const { data } = await supabase.from('cal_sync')
+      .select('cal_email, last_sync_at, last_status, event_count, enabled')
+      .eq('user_id', user.id).maybeSingle()
+    setCalStatus(data ?? null)
+  }
+
   async function handleCalSaveAndSync() {
     if (!calEmail.trim() || !calPassword) return
     setCalLoading(true); setCalMsg(null)
@@ -216,6 +224,8 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
       onCalEvents?.(events)
       setCalMsg(`✓ ${t('Сохранено и загружено')} ${count} ${t('событий')}`)
       setCalPassword('')
+      setEditingCal(false)
+      await refreshCalStatus()
       setTimeout(() => onNavigate?.('stress-map'), 1500)
     } catch (e: any) {
       setCalMsg(`${t('Ошибка')}: ${e.message}`)
@@ -431,68 +441,76 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: 8 }}><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01M12 14h.01M16 14h.01"/></svg>
           Cal.beskarstaff.com
         </h3>
-        {calStatus?.cal_email && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, color: 'var(--green)', fontWeight: 600, fontSize: 14 }}>
-            ✓ {t('Подключён:')} {calStatus.cal_email}
-          </div>
-        )}
-        {calLastSync && (
-          <div className="settings-muted" style={{ fontSize: 12, marginBottom: 8 }}>
-            {t('Последняя синхронизация:')} {calLastSync}
-          </div>
-        )}
-        <div className="settings-muted" style={{ marginBottom: 12, fontSize: 12, lineHeight: 1.5 }}>
-          {calStatus?.cal_email
-            ? t('Аккаунт подключён, синхронизация раз в день. Чтобы сменить аккаунт — введи новые данные ниже.')
-            : t('Введи логин и пароль cal.com — синхронизация будет автоматической раз в день. Пароль хранится зашифрованно.')}
-        </div>
-        <div className="settings-ics-row" style={{ flexDirection: 'column', gap: 8, alignItems: 'stretch' }}>
-          <input className="log-input" type="email" placeholder={calStatus?.cal_email || 'email@cal.com'}
-            value={calEmail} onChange={e => setCalEmail(e.target.value)} />
-          <input className="log-input" type="password" placeholder={t('Пароль cal.com')}
-            value={calPassword} onChange={e => setCalPassword(e.target.value)} />
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn-primary" style={{ flex: 1 }} onClick={handleCalSaveAndSync}
-              disabled={calLoading || !calEmail.trim() || !calPassword}>
-              {calLoading ? t('Загрузка…') : t('Сохранить и синхронизировать')}
-            </button>
-            <button className="btn-secondary" onClick={handleCalSyncNow} disabled={calLoading}>
-              {t('Синхронизировать сейчас')}
-            </button>
-          </div>
-        </div>
-        {calStatus && (
-          <div style={{ marginTop: 10, fontSize: 12 }} className="settings-muted">
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-              <input type="checkbox" checked={calStatus.enabled} onChange={e => handleCalToggle(e.target.checked)} />
-              {t('Авто-синк раз в день')}
-            </label>
+        {calStatus?.cal_email && !editingCal ? (
+          // ── Подключено: компактный вид (без логин-формы) ──
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, color: 'var(--green)', fontWeight: 600, fontSize: 14 }}>
+              ✓ {t('Подключён:')} {calStatus.cal_email}
+            </div>
             {calStatus.last_sync_at && (
-              <div>{t('Последний синк:')} {new Date(calStatus.last_sync_at).toLocaleString('ru-RU')} · {calStatus.event_count ?? 0} {t('событий')}
+              <div className="settings-muted" style={{ fontSize: 12, marginBottom: 10 }}>
+                {t('Последняя синхронизация:')} {new Date(calStatus.last_sync_at).toLocaleString(lang === 'en' ? 'en-GB' : lang === 'uk' ? 'uk-UA' : 'ru-RU')} · {calStatus.event_count ?? 0} {t('событий')}
                 {calStatus.last_status && calStatus.last_status !== 'ok' && <span style={{ color: 'var(--red)' }}> · {calStatus.last_status}</span>}
               </div>
             )}
-          </div>
+            <label className="settings-muted" style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, fontSize: 12 }}>
+              <input type="checkbox" checked={calStatus.enabled} onChange={e => handleCalToggle(e.target.checked)} />
+              {t('Авто-синк раз в день')}
+            </label>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+              <button className="btn-secondary" onClick={handleCalSyncNow} disabled={calLoading}>
+                {calLoading ? t('Загрузка…') : t('Синхронизировать сейчас')}
+              </button>
+              <button className="link-btn" onClick={() => { setEditingCal(true); setCalMsg(null) }}>{t('Сменить аккаунт')}</button>
+            </div>
+          </>
+        ) : (
+          // ── Не подключено или смена аккаунта: форма входа ──
+          <>
+            <div className="settings-muted" style={{ marginBottom: 12, fontSize: 12, lineHeight: 1.5 }}>
+              {calStatus?.cal_email
+                ? t('Аккаунт подключён, синхронизация раз в день. Чтобы сменить аккаунт — введи новые данные ниже.')
+                : t('Введи логин и пароль cal.com — синхронизация будет автоматической раз в день. Пароль хранится зашифрованно.')}
+            </div>
+            <div className="settings-ics-row" style={{ flexDirection: 'column', gap: 8, alignItems: 'stretch' }}>
+              <input className="log-input" type="email" placeholder={calStatus?.cal_email || 'email@cal.com'}
+                value={calEmail} onChange={e => setCalEmail(e.target.value)} />
+              <input className="log-input" type="password" placeholder={t('Пароль cal.com')}
+                value={calPassword} onChange={e => setCalPassword(e.target.value)} />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn-primary" style={{ flex: 1 }} onClick={handleCalSaveAndSync}
+                  disabled={calLoading || !calEmail.trim() || !calPassword}>
+                  {calLoading ? t('Загрузка…') : t('Сохранить и синхронизировать')}
+                </button>
+                <button className="btn-secondary" onClick={handleCalSyncNow} disabled={calLoading}>
+                  {t('Синхронизировать сейчас')}
+                </button>
+              </div>
+            </div>
+            <div className="settings-muted" style={{ margin: '14px 0 6px', fontSize: 12, fontWeight: 600 }}>
+              {t('Резервный способ — вход по session-токену:')}
+            </div>
+            <div className="settings-muted" style={{ marginBottom: 12, fontSize: 12, lineHeight: 1.5 }}>
+              F12 → Application → Cookies → <b>__Secure-next-auth.session-token</b>. {t('Токен очищается после загрузки — можно вставить второй аккаунт следом.')}
+            </div>
+            <div className="settings-ics-row">
+              <input
+                className="log-input"
+                style={{ flex: 1, fontFamily: 'monospace', fontSize: 12 }}
+                type="password"
+                placeholder="eyJhbGci..."
+                value={calToken}
+                onChange={e => setCalToken(e.target.value)}
+              />
+              <button className="btn-primary" onClick={handleCalSync} disabled={calLoading || !calToken.trim()} style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
+                {calLoading ? t('Загрузка…') : t('Синхронизировать')}
+              </button>
+            </div>
+            {calStatus?.cal_email && (
+              <button className="link-btn" style={{ marginTop: 10 }} onClick={() => { setEditingCal(false); setCalMsg(null) }}>{t('Отмена')}</button>
+            )}
+          </>
         )}
-        <div className="settings-muted" style={{ margin: '14px 0 6px', fontSize: 12, fontWeight: 600 }}>
-          {t('Резервный способ — вход по session-токену:')}
-        </div>
-        <div className="settings-muted" style={{ marginBottom: 12, fontSize: 12, lineHeight: 1.5 }}>
-          F12 → Application → Cookies → <b>__Secure-next-auth.session-token</b>. {t('Токен очищается после загрузки — можно вставить второй аккаунт следом.')}
-        </div>
-        <div className="settings-ics-row">
-          <input
-            className="log-input"
-            style={{ flex: 1, fontFamily: 'monospace', fontSize: 12 }}
-            type="password"
-            placeholder="eyJhbGci..."
-            value={calToken}
-            onChange={e => setCalToken(e.target.value)}
-          />
-          <button className="btn-primary" onClick={handleCalSync} disabled={calLoading || !calToken.trim()} style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
-            {calLoading ? t('Загрузка…') : t('Синхронизировать')}
-          </button>
-        </div>
         {calMsg && <div style={{ marginTop: 8, fontSize: 13, color: calMsg.startsWith('✓') ? 'var(--green)' : 'var(--red)' }}>{calMsg}</div>}
       </section>
 
