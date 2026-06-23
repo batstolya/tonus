@@ -592,6 +592,7 @@ export const translations: Record<string, { uk: string; en: string }> = {
   'Запрашиваю доступ к геолокации…': { uk: 'Запитую доступ до геолокації…', en: 'Requesting location access…' },
   'Доступ к геолокации запрещён': { uk: 'Доступ до геолокації заборонено', en: 'Location access denied' },
   'Не удалось определить местоположение': { uk: 'Не вдалося визначити місцезнаходження', en: 'Could not determine location' },
+  'Сменить аккаунт': { uk: 'Змінити акаунт', en: 'Change account' },
 
   // ── MealLogger ─────────────────────────────────────────────────────────────
   'Еда': { uk: 'Їжа', en: 'Meal' },
