@@ -1,4 +1,10 @@
 import { useT } from '../../lib/i18n'
+import { HeroBlock } from './blocks/HeroBlock'
+import { MetricsBlock } from './blocks/MetricsBlock'
+import { InsightsBlock } from './blocks/InsightsBlock'
+import { ChatBlock } from './blocks/ChatBlock'
+import { ExperimentsBlock } from './blocks/ExperimentsBlock'
+import { FeatureGrid } from './blocks/FeatureGrid'
 import './Landing.css'
 
 export function LandingScreen({ onTry }: { onTry: () => void }) {
@@ -20,18 +26,12 @@ export function LandingScreen({ onTry }: { onTry: () => void }) {
       </header>
 
       <main className="landing-main">
-        {/* Hero — плейсхолдер, заменяется на <HeroBlock/> в Task 5 */}
-        <section className="landing-hero">
-          <h1 className="landing-hero-title">
-            {t('Всё о твоём здоровье — в одном месте. И AI, который находит, что на тебя реально влияет.')}
-          </h1>
-          <p className="landing-hero-sub">
-            {t('Личный хаб здоровья: Apple Watch, привычки и анализы — а AI находит закономерности.')}
-          </p>
-          <button className="landing-cta landing-cta-lg" onClick={onTry}>{t('Попробовать')}</button>
-        </section>
-
-        {/* Блоки 2–6 вставляются в Task 6–10 */}
+        <HeroBlock onTry={onTry} />
+        <MetricsBlock />
+        <InsightsBlock />
+        <ChatBlock />
+        <ExperimentsBlock />
+        <FeatureGrid />
 
         <section className="landing-final-cta">
           <h2>{t('Готов(а) попробовать?')}</h2>
