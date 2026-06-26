@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { useT } from '../../lib/i18n'
+import Counter from '../ui/Counter'
 import './TelegramDemo.css'
 
 // Telegram-style bot demo for the auth screen: three looping scenes showing
@@ -13,35 +14,6 @@ const SCENE_DURATIONS_MS = [4500, 10000, 11000]
 
 // Inline animation-delay helper (seconds from scene mount).
 const d = (seconds: number): CSSProperties => ({ animationDelay: `${seconds}s` })
-
-// ── Counter: animates 0 → value over `duration` seconds, starting after `delay` ──
-function Counter({ value, delay = 0, duration = 1.2 }: { value: number; delay?: number; duration?: number }) {
-  const [display, setDisplay] = useState(0)
-
-  useEffect(() => {
-    let intervalId: ReturnType<typeof setInterval> | undefined
-    const startId = setTimeout(() => {
-      let current = 0
-      const increment = value / (duration * 60) // ~60fps
-      intervalId = setInterval(() => {
-        current += increment
-        if (current >= value) {
-          setDisplay(value)
-          if (intervalId) clearInterval(intervalId)
-        } else {
-          setDisplay(Math.floor(current))
-        }
-      }, 1000 / 60)
-    }, delay * 1000)
-
-    return () => {
-      clearTimeout(startId)
-      if (intervalId) clearInterval(intervalId)
-    }
-  }, [value, delay, duration])
-
-  return <span className="tg-counter">{display}</span>
-}
 
 // ── Chat bubble (bot = left/gray, user = right/blue) ──
 function ChatBubble({
@@ -129,7 +101,7 @@ function Scene2() {
           <div className="tg-metric tg-fade" style={d(5.9)}>🥤 Coca-Cola</div>
           <p className="tg-section tg-fade" style={d(6.2)}>{t('📊 Нутриенты:')}</p>
           <div className="tg-metric tg-fade" style={d(6.4)}>
-            <Counter value={550} delay={6.4} /> {t('ккал · 25 г белка')}
+            <Counter value={550} delay={6.4} className="tg-counter" /> {t('ккал · 25 г белка')}
           </div>
           <div className="tg-metric tg-fade" style={d(6.7)}>{t('30 г жиров · 45 г углеводов')}</div>
           <div className="tg-metric tg-saved" style={d(7.0)}>{t('✅ Сохранено в дневник питания')}</div>
