@@ -12,6 +12,8 @@ import { SleepScreen } from './components/sleep/SleepScreen'
 import { ActivityScreen } from './components/activity/ActivityScreen'
 import { AuthScreen } from './components/auth/AuthScreen'
 import { ResetPasswordScreen } from './components/auth/ResetPasswordScreen'
+import { LandingScreen } from './components/landing/LandingScreen'
+import { isResetUrl, unauthedView } from './components/landing/gating'
 import { QuickLog } from './components/intake/QuickLog'
 import { SupplementsScreen } from './components/supplements/SupplementsScreen'
 import { LabsScreen } from './components/labs/LabsScreen'
@@ -116,6 +118,7 @@ export default function App() {
   })
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [langMenuOpen, setLangMenuOpen] = useState(false)
+  const [showAuth, setShowAuth] = useState(false)
 
   const hasData = state.daily.length > 0
   const availableMetrics = React.useMemo(() => detectAvailableMetrics(state.daily), [state.daily])
@@ -234,7 +237,12 @@ export default function App() {
   }
 
   if (loading || dbLoading) return <AppLoader label={dbLoading ? t('Загружаем данные…') : undefined} />
-  if (!user) return <AuthScreen />
+  if (!user) {
+    const view = unauthedView({ isResetUrl: isResetUrl(window.location.search), showAuth })
+    return view === 'auth'
+      ? <AuthScreen onBack={() => setShowAuth(false)} />
+      : <LandingScreen onTry={() => setShowAuth(true)} />
+  }
   if (passwordRecovery) return <ResetPasswordScreen onDone={() => setPasswordRecovery(false)} />
 
   const activeGroup = getActiveGroup(state.view)
