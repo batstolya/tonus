@@ -18,9 +18,17 @@
 
 .landing-main { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
 
-.landing-hero { position: relative; overflow: hidden; text-align: center; padding: 96px 0 72px; }
-.landing-hero-title { font-size: clamp(28px, 5vw, 52px); line-height: 1.1; letter-spacing: -1px; max-width: 18ch; margin: 0 auto 20px; }
-.landing-hero-sub { font-size: clamp(15px, 2vw, 19px); color: var(--text-muted); max-width: 52ch; margin: 0 auto 32px; }
+.landing-hero { position: relative; overflow: hidden; padding: 80px 0 64px; }
+.landing-hero-grid { position: relative; z-index: 1; display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 48px; align-items: center; }
+.landing-hero-copy { text-align: left; }
+.landing-hero-title { font-size: clamp(28px, 4.4vw, 48px); line-height: 1.12; letter-spacing: -1px; margin: 0 0 20px; }
+.landing-hero-sub { font-size: clamp(15px, 2vw, 19px); color: var(--text-muted); max-width: 46ch; margin: 0 0 32px; }
+.landing-hero-demo { display: flex; justify-content: center; min-width: 0; }
+@media (max-width: 860px) {
+  .landing-hero-grid { grid-template-columns: 1fr; gap: 32px; }
+  .landing-hero-copy { text-align: center; }
+  .landing-hero-sub { margin-left: auto; margin-right: auto; }
+}
 
 .landing-final-cta { text-align: center; padding: 96px 0; }
 .landing-final-cta h2 { font-size: clamp(24px, 4vw, 40px); margin-bottom: 24px; }
@@ -76,10 +84,7 @@
 .insight-card-text { color: var(--text-muted); font-size: 14px; }
 
 /* ── Chat block ──────────────────────────────────────────── */
-.chat-tabs { display: flex; gap: 6px; justify-content: center; margin: 24px 0 20px; }
-.chat-tab { background: var(--surface2); border: 1px solid var(--border); color: var(--text-muted); padding: 8px 18px; border-radius: 20px; cursor: pointer; }
-.chat-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-.chat-stage { display: flex; justify-content: center; }
+.chat-stage { display: flex; justify-content: center; margin-top: 8px; }
 .appchat { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 10px; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
 .appchat-msg { padding: 10px 14px; border-radius: 14px; max-width: 85%; opacity: 0; animation: appchat-in .4s ease forwards; }
 .appchat-msg.user { align-self: flex-end; background: var(--accent); color: #fff; }
