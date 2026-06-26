@@ -713,4 +713,42 @@ export const translations: Record<string, { uk: string; en: string }> = {
   'Дата начала': { uk: 'Дата початку', en: 'Start date' },
   'Своё название': { uk: 'Своя назва', en: 'Custom name' },
   '→': { uk: '→', en: '→' },
+
+  // ── Лендинг (публичная витрина) ────────────────────────────
+  'Попробовать': { uk: 'Спробувати', en: 'Try it' },
+  'Всё о твоём здоровье — в одном месте. И AI, который находит, что на тебя реально влияет.': { uk: 'Усе про твоє здоровʼя — в одному місці. І AI, який знаходить, що на тебе справді впливає.', en: 'Everything about your health in one place — and an AI that finds what actually affects you.' },
+  'Личный хаб здоровья: Apple Watch, привычки и анализы — а AI находит закономерности.': { uk: 'Особистий хаб здоровʼя: Apple Watch, звички й аналізи — а AI знаходить закономірності.', en: 'Your personal health hub: Apple Watch, habits and labs — and AI finds the patterns.' },
+  'Готов(а) попробовать?': { uk: 'Готовий(а) спробувати?', en: 'Ready to try?' },
+  'На главную': { uk: 'На головну', en: 'Home' },
+
+  // метрики / дашборд
+  'Все метрики в одном дашборде': { uk: 'Усі метрики в одному дашборді', en: 'Every metric in one dashboard' },
+  'Apple Watch синхронизируется автоматически — а ты видишь живую картину.': { uk: 'Apple Watch синхронізується автоматично — а ти бачиш живу картину.', en: 'Apple Watch syncs automatically — and you see the live picture.' },
+
+  // AI-инсайты
+  'AI находит закономерности, которые ты сам не заметишь': { uk: 'AI знаходить закономірності, яких ти сам не помітиш', en: 'AI finds patterns you would never spot yourself' },
+  'Связывает сон, питание, стресс и активность — и показывает, что на что влияет.': { uk: 'Звʼязує сон, харчування, стрес і активність — і показує, що на що впливає.', en: 'It links sleep, food, stress and activity — and shows what affects what.' },
+  '→ сон на 1.5 ч короче': { uk: '→ сон на 1.5 год коротший', en: '→ sleep 1.5h shorter' },
+  '🍽️ Поздняя еда': { uk: '🍽️ Пізня їжа', en: '🍽️ Late meals' },
+
+  // AI-чат / Telegram
+  'Спрашивай о своём здоровье — отвечает по твоим данным': { uk: 'Питай про своє здоровʼя — відповідає за твоїми даними', en: 'Ask about your health — it answers from your data' },
+  'В приложении': { uk: 'У застосунку', en: 'In the app' },
+  'В Telegram': { uk: 'У Telegram', en: 'In Telegram' },
+  'По твоим данным: за последнюю неделю сон в среднем 6.2 ч и поздний кофе 4 дня из 7. Попробуй сдвинуть кофе на утро.': { uk: 'За твоїми даними: за останній тиждень сон у середньому 6.2 год і пізня кава 4 дні з 7. Спробуй перенести каву на ранок.', en: 'From your data: last week sleep averaged 6.2h and late coffee on 4 of 7 days. Try moving coffee to the morning.' },
+  'печатает…': { uk: 'друкує…', en: 'typing…' },
+
+  // эксперименты
+  'Проверяй, что работает именно на тебе': { uk: 'Перевіряй, що працює саме на тобі', en: 'Test what actually works for you' },
+  'Гипотеза: меньше кофе → лучше сон': { uk: 'Гіпотеза: менше кави → кращий сон', en: 'Hypothesis: less coffee → better sleep' },
+  'Период A': { uk: 'Період A', en: 'Period A' },
+  'Период B': { uk: 'Період B', en: 'Period B' },
+  'Результат': { uk: 'Результат', en: 'Result' },
+  'глубокий сон': { uk: 'глибокий сон', en: 'deep sleep' },
+
+  // сетка фич
+  'И это ещё не всё': { uk: 'І це ще не все', en: 'And there is more' },
+  'Препараты и лечение': { uk: 'Препарати й лікування', en: 'Meds & treatment' },
+  'Анализы из лаборатории': { uk: 'Аналізи з лабораторії', en: 'Lab results' },
+  'Три языка: ru / uk / en': { uk: 'Три мови: ru / uk / en', en: 'Three languages: ru / uk / en' },
 }

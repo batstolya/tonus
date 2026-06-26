@@ -5,7 +5,7 @@ import TelegramDemo from './TelegramDemo'
 
 type Mode = 'login' | 'signup' | 'reset' | 'sent' | 'reset-sent'
 
-export function AuthScreen() {
+export function AuthScreen({ onBack }: { onBack?: () => void } = {}) {
   const { t } = useT()
   const [mode, setMode] = useState<Mode>('login')
   const [email, setEmail] = useState('')
@@ -113,6 +113,11 @@ export function AuthScreen() {
     <div className="auth-screen">
       <div className="auth-layout">
         <div className="auth-card">
+        {onBack && (
+          <button type="button" className="btn-ghost auth-back" onClick={onBack}>
+            ← {t('На главную')}
+          </button>
+        )}
         <h1>Tonus</h1>
         <p className="auth-subtitle">{t('Личный хаб здоровья')}</p>
 
