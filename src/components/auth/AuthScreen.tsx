@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useT } from '../../lib/i18n'
+import TelegramDemo from './TelegramDemo'
 
 type Mode = 'login' | 'signup' | 'reset' | 'sent' | 'reset-sent'
 
@@ -110,7 +111,8 @@ export function AuthScreen() {
   // Main login / signup
   return (
     <div className="auth-screen">
-      <div className="auth-card">
+      <div className="auth-layout">
+        <div className="auth-card">
         <h1>Tonus</h1>
         <p className="auth-subtitle">{t('Личный хаб здоровья')}</p>
 
@@ -159,6 +161,8 @@ export function AuthScreen() {
             </button>
           )}
         </form>
+        </div>
+        <TelegramDemo />
       </div>
     </div>
   )
