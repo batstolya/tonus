@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { useT } from '../../lib/i18n'
 import Counter from '../ui/Counter'
@@ -150,12 +150,29 @@ function Scene3() {
 export default function TelegramDemo() {
   const { t } = useT()
   const [scene, setScene] = useState(0)
+  const contentRef = useRef<HTMLDivElement>(null)
 
   // Auto-advance through the scenes; re-runs (and resets the timer) whenever
   // `scene` changes, including manual dot selection.
   useEffect(() => {
     const id = setTimeout(() => setScene((s) => (s + 1) % SCENE_COUNT), SCENE_DURATIONS_MS[scene])
     return () => clearTimeout(id)
+  }, [scene])
+
+  // Auto-scroll: follow the conversation as later messages reveal, so a long
+  // scene doesn't need a manual scrollbar. Scrolls proportionally to scene time.
+  useEffect(() => {
+    const el = contentRef.current
+    if (!el) return
+    el.scrollTop = 0
+    const start = performance.now()
+    const id = setInterval(() => {
+      const max = el.scrollHeight - el.clientHeight
+      if (max <= 0) return
+      const p = Math.min((performance.now() - start) / SCENE_DURATIONS_MS[scene], 1)
+      el.scrollTo({ top: max * p, behavior: 'smooth' })
+    }, 500)
+    return () => clearInterval(id)
   }, [scene])
 
   return (
@@ -168,7 +185,7 @@ export default function TelegramDemo() {
         </div>
       </div>
 
-      <div className="tg-content">
+      <div className="tg-content" ref={contentRef}>
         <div className="tg-scene" key={scene}>
           {scene === 0 && <Scene1 />}
           {scene === 1 && <Scene2 />}
