@@ -5,7 +5,6 @@
   display: flex; align-items: center; gap: 16px;
   padding: 0 24px; height: 56px;
   background: var(--topbar-bg); border-bottom: 1px solid var(--border);
-  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
 }
 .landing-logo { font-size: 18px; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; }
 .landing-topbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
@@ -49,10 +48,9 @@
 .hero-pulse path {
   fill: none; stroke: var(--accent); stroke-width: 2;
   stroke-dasharray: 1600; stroke-dashoffset: 1600;
-  animation: hero-trace 4s ease-out forwards, hero-drift 9s linear 4s infinite;
+  animation: hero-trace 4s ease-out forwards;
 }
 @keyframes hero-trace { to { stroke-dashoffset: 0; } }
-@keyframes hero-drift { 0% { transform: translateX(0); } 100% { transform: translateX(-40px); } }
 .landing-hero-title, .landing-hero-sub, .landing-hero .landing-cta { position: relative; z-index: 1; }
 
 /* ── Metrics block ───────────────────────────────────────── */
