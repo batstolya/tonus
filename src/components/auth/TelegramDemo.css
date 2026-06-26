@@ -1,0 +1,226 @@
+/* Telegram-style bot demo for the auth screen.
+   Everything is scoped under .tg-demo so the (deliberately fixed, light)
+   Telegram palette and the generic class names never leak into the app theme. */
+
+.tg-demo {
+  --tg-blue: #0084ff;
+  --tg-bot-gray: #f0f0f0;
+  --tg-text: #222222;
+  --tg-text2: #999999;
+  --tg-text3: #cccccc;
+  --tg-bg: #ffffff;
+  --tg-bg2: #f8f8f8;
+  --tg-divider: #e6e6e6;
+  --tg-success: #31a24c;
+  --tg-gold: #ffc107;
+
+  display: flex;
+  flex-direction: column;
+  width: 380px;
+  height: min(600px, 78vh);
+  max-width: 100%;
+  flex-shrink: 0;
+  background: var(--tg-bg);
+  border: 1px solid var(--tg-divider);
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--tg-text);
+  text-align: left;
+}
+
+/* ── Header ── */
+.tg-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--tg-bg2);
+  border-bottom: 1px solid var(--tg-divider);
+  flex-shrink: 0;
+}
+.tg-header-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #e7f1ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+.tg-header-info { display: flex; flex-direction: column; line-height: 1.2; }
+.tg-header-title { font-size: 14px; font-weight: 600; color: var(--tg-text); }
+.tg-header-status { font-size: 12px; color: var(--tg-blue); }
+
+/* ── Chat area ── */
+.tg-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 14px;
+  background: var(--tg-bg);
+}
+.tg-content::-webkit-scrollbar { width: 5px; }
+.tg-content::-webkit-scrollbar-thumb { background: var(--tg-divider); border-radius: 3px; }
+.tg-scene { display: flex; flex-direction: column; gap: 8px; }
+
+.tg-message { display: flex; align-items: flex-end; gap: 8px; }
+.tg-message.tg-bot { justify-content: flex-start; }
+.tg-message.tg-user { justify-content: flex-end; }
+
+.tg-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #e7f1ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  flex-shrink: 0;
+}
+
+.tg-bubble {
+  position: relative;
+  padding: 9px 13px 7px;
+  border-radius: 16px;
+  max-width: 250px;
+  font-size: 15px;
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+.tg-bubble-bot { background: var(--tg-bot-gray); color: var(--tg-text); border-bottom-left-radius: 5px; }
+.tg-bubble-user { background: var(--tg-blue); color: #fff; border-bottom-right-radius: 5px; }
+.tg-bubble-text { margin: 0; padding-right: 34px; }
+
+.tg-timestamp { display: block; text-align: right; font-size: 11px; opacity: 0.5; margin-top: 2px; }
+.tg-bubble-user .tg-timestamp { color: rgba(255, 255, 255, 0.85); opacity: 0.9; }
+.tg-checkmark { position: absolute; right: 11px; bottom: 7px; font-size: 11px; opacity: 0.55; }
+.tg-bubble-user .tg-checkmark { color: rgba(255, 255, 255, 0.9); }
+
+/* ── Bot rich response ── */
+.tg-response { display: flex; flex-direction: column; gap: 3px; padding-bottom: 2px; }
+.tg-response > p { margin: 0; font-weight: 600; }
+.tg-metric { font-size: 14px; }
+.tg-metric.tg-info { color: var(--tg-text2); font-size: 13px; }
+.tg-section { margin-top: 6px; font-weight: 600; }
+.tg-counter { font-family: 'Roboto Mono', ui-monospace, monospace; font-weight: 700; }
+.tg-saved {
+  color: var(--tg-success);
+  font-weight: 600;
+  padding: 6px 10px;
+  margin-top: 2px;
+  background: rgba(49, 162, 76, 0.08);
+  border-radius: 8px;
+}
+.tg-food-photo { display: block; width: 220px; max-width: 100%; height: 130px; object-fit: cover; border-radius: 12px; }
+
+/* ── Insights (Scene 3) ── */
+.tg-insight { display: flex; flex-direction: column; gap: 1px; margin: 3px 0; }
+.tg-insight-num { font-size: 17px; font-weight: 700; }
+.tg-insight-title { font-size: 14px; font-weight: 600; }
+.tg-insight-text { font-size: 13px; color: var(--tg-text2); }
+.tg-reco {
+  padding: 8px 12px;
+  margin-top: 6px;
+  border-radius: 8px;
+  background: rgba(255, 193, 7, 0.1);
+  border-left: 3px solid var(--tg-gold);
+  font-size: 14px;
+  font-weight: 600;
+}
+.tg-action {
+  align-self: flex-start;
+  margin-top: 6px;
+  padding: 8px 14px;
+  background: var(--tg-blue);
+  color: #fff;
+  border: none;
+  border-radius: 16px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: default;
+}
+.tg-action strong { margin-left: 4px; font-weight: 800; }
+
+/* ── Typing indicator ── */
+.tg-typing { display: flex; align-items: center; gap: 3px; padding: 2px 6px; font-size: 13px; color: var(--tg-text2); }
+.tg-typing-dots { display: inline-block; letter-spacing: 1px; }
+
+/* ── Fake input ── */
+.tg-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  background: var(--tg-bg2);
+  border-top: 1px solid var(--tg-divider);
+  flex-shrink: 0;
+}
+.tg-input-icon { font-size: 17px; opacity: 0.5; }
+.tg-input-field {
+  flex: 1;
+  padding: 7px 14px;
+  border: 1px solid var(--tg-divider);
+  border-radius: 16px;
+  background: var(--tg-bg);
+  font-size: 14px;
+  color: var(--tg-text3);
+}
+.tg-send { color: var(--tg-blue); font-size: 17px; opacity: 0.6; }
+
+/* ── Dots ── */
+.tg-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 0;
+  background: var(--tg-bg);
+  border-top: 1px solid var(--tg-divider);
+  flex-shrink: 0;
+}
+.tg-dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--tg-divider);
+  cursor: pointer;
+  transition: transform 0.2s, background-color 0.2s;
+}
+.tg-dot-active { background: var(--tg-blue); transform: scale(1.15); }
+.tg-dot:hover { transform: scale(1.25); }
+.tg-dot:focus-visible { outline: 2px solid var(--tg-blue); outline-offset: 2px; }
+
+/* ── Keyframes ── */
+@keyframes tgSlideLeft { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes tgSlideRight { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes tgFade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes tgBlur { from { opacity: 0; filter: blur(10px); } to { opacity: 1; filter: blur(0); } }
+@keyframes tgZoom { from { opacity: 0; transform: scale(0); } to { opacity: 1; transform: scale(1); } }
+@keyframes tgGlowGreen { from { box-shadow: 0 0 0 rgba(49, 162, 76, 0); } to { box-shadow: 0 0 12px rgba(49, 162, 76, 0.35); } }
+@keyframes tgGlowGold { from { box-shadow: 0 0 0 rgba(255, 193, 7, 0); } to { box-shadow: 0 0 16px rgba(255, 193, 7, 0.45); } }
+@keyframes tgPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+@keyframes tgDots { 0%, 20% { opacity: 0.3; } 50% { opacity: 1; } 80%, 100% { opacity: 0.3; } }
+@keyframes tgTyping { 0% { opacity: 0; } 12% { opacity: 1; } 82% { opacity: 1; } 100% { opacity: 0; } }
+
+/* Animated elements start hidden via the keyframe's `from` + fill-mode: both;
+   per-element delay is set inline. */
+.tg-slide-left { animation: tgSlideLeft 0.4s cubic-bezier(0.4, 0, 0.2, 1) both; }
+.tg-slide-right { animation: tgSlideRight 0.3s cubic-bezier(0.4, 0, 0.2, 1) both; }
+.tg-fade { animation: tgFade 0.3s ease both; }
+.tg-blur { animation: tgBlur 0.5s ease both; }
+.tg-zoom { display: inline-block; animation: tgZoom 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.tg-saved { animation: tgFade 0.3s ease both, tgGlowGreen 0.5s ease both; }
+.tg-reco { animation: tgFade 0.3s ease both, tgGlowGold 0.5s ease both; }
+.tg-action { animation: tgFade 0.3s ease both, tgPulse 0.9s ease-in-out infinite; }
+.tg-typing-inout { animation: tgTyping 1s ease both; } /* duration overridden inline */
+.tg-typing-dots { animation: tgDots 0.8s linear infinite; }
+
+/* ── Reduced motion: show every final frame instantly ── */
+@media (prefers-reduced-motion: reduce) {
+  .tg-demo * { animation: none !important; }
+}
