@@ -456,6 +456,18 @@ body {
   min-height: 100vh;
   background: var(--bg);
 }
+/* Two-column shell: login card + Telegram demo side by side */
+.auth-layout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 48px;
+  flex-wrap: wrap;
+  width: 100%;
+  max-width: 900px;
+  padding: 24px;
+}
+.auth-layout .auth-card { margin: 0; }
 .auth-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -830,7 +842,12 @@ body {
 
   /* Auth card full width */
   .auth-card { width: 100%; max-width: 100%; border-radius: 0; min-height: 100vh; justify-content: center; }
-  .auth-screen { padding: 0; }
+  .auth-screen { padding: 0; align-items: flex-start; }
+
+  /* Two-column auth collapses to a stack with the demo on top */
+  .auth-layout { flex-direction: column; gap: 20px; padding: 0; max-width: 100%; }
+  .auth-layout .tg-demo { order: -1; width: 100%; height: 62vh; border-radius: 0; border-left: none; border-right: none; box-shadow: none; }
+  .auth-layout .auth-card { min-height: auto; border-radius: 0; }
 }
 
 @media (max-width: 900px) {
