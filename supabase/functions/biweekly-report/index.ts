@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { checkBudget } from '../_shared/costGuard.ts'
+import { daysSinceFreshData } from '../_shared/staleness.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -110,18 +111,15 @@ serve(async (req) => {
 
     const fmt = (d: Date) => d.toISOString().slice(0, 10)
 
-    // Check data freshness
-    const { data: lastImport } = await supabase
-      .from('imports')
-      .select('imported_at')
-      .eq('user_id', user.id)
-      .order('imported_at', { ascending: false })
-      .limit(1)
-      .single()
+    // Check data freshness по самому недавнему из путей: ручной экспорт (imports)
+    // или автосинк Apple Health (ingest_tokens.last_ingest_at).
+    const [{ data: lastImport }, { data: ingestTok }] = await Promise.all([
+      supabase.from('imports').select('imported_at')
+        .eq('user_id', user.id).order('imported_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('ingest_tokens').select('last_ingest_at').eq('user_id', user.id).maybeSingle(),
+    ])
 
-    const daysSinceSync = lastImport
-      ? Math.floor((Date.now() - new Date(lastImport.imported_at).getTime()) / 86400000)
-      : null
+    const daysSinceSync = daysSinceFreshData(Date.now(), lastImport?.imported_at, ingestTok?.last_ingest_at)
 
     const { data: tgLinkEarly } = await supabase
       .from('telegram_links')
