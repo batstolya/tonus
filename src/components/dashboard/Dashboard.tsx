@@ -11,6 +11,15 @@ import { loadTodayNote, saveNote } from '../../lib/contextNotes'
 import { loadFocus, loadCheckins, checkInToday, removeCheckinToday, loadFocusInputs, inferFocusCheck, type CoachFocus } from '../../lib/coach'
 import { evaluateFocus, type FocusData } from '../../lib/focusAdherence'
 import { useT } from '../../lib/i18n'
+import { motion, MotionConfig, type Variants } from 'motion/react'
+import { CountUp } from '../common/CountUp'
+
+// Каскадное появление карточек метрик.
+const cardsGridV: Variants = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } }
+const cardItemV: Variants = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } },
+}
 
 interface Props {
   daily: DailyMetrics[]
@@ -97,26 +106,26 @@ function ReadinessCard({ daily }: { daily: DailyMetrics[] }) {
       <div className="readiness-top">
         <div className="readiness-left">
           <div className="readiness-label">{t('Готовность дня')}</div>
-          <div className="readiness-score" style={{ color: r.color }}>{r.score}</div>
+          <div className="readiness-score" style={{ color: r.color }}><CountUp value={r.score} /></div>
           <div className="readiness-sublabel" style={{ color: r.color }}>{t(r.label)}</div>
         </div>
         <div className="readiness-bars">
           {r.components.hrv != null && (
             <div className="r-bar-row">
               <span>{t('Восстановление')}</span>
-              <div className="r-bar-track"><div className="r-bar-fill" style={{ width: `${(r.components.hrv / 40) * 100}%`, background: r.color }} /></div>
+              <div className="r-bar-track"><motion.div className="r-bar-fill" style={{ width: `${(r.components.hrv / 40) * 100}%`, background: r.color, transformOrigin: 'left' }} initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ duration: 0.6, ease: 'easeOut', delay: 0.15 }} /></div>
             </div>
           )}
           {r.components.rhr != null && (
             <div className="r-bar-row">
               <span>{t('Пульс покоя')}</span>
-              <div className="r-bar-track"><div className="r-bar-fill" style={{ width: `${(r.components.rhr / 30) * 100}%`, background: r.color }} /></div>
+              <div className="r-bar-track"><motion.div className="r-bar-fill" style={{ width: `${(r.components.rhr / 30) * 100}%`, background: r.color, transformOrigin: 'left' }} initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ duration: 0.6, ease: 'easeOut', delay: 0.22 }} /></div>
             </div>
           )}
           {r.components.sleep != null && (
             <div className="r-bar-row">
               <span>{t('Сон')}</span>
-              <div className="r-bar-track"><div className="r-bar-fill" style={{ width: `${(r.components.sleep / 30) * 100}%`, background: r.color }} /></div>
+              <div className="r-bar-track"><motion.div className="r-bar-fill" style={{ width: `${(r.components.sleep / 30) * 100}%`, background: r.color, transformOrigin: 'left' }} initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ duration: 0.6, ease: 'easeOut', delay: 0.29 }} /></div>
             </div>
           )}
         </div>
@@ -398,6 +407,7 @@ export function Dashboard({ daily, events, onNavigate, user, quickLog }: Props) 
   ]
 
   return (
+    <MotionConfig reducedMotion="user">
     <div className="dashboard">
       {user && <p className="dashboard-greeting">{greeting(user, t)}</p>}
       <h2>{t('Дашборд')}</h2>
@@ -407,25 +417,26 @@ export function Dashboard({ daily, events, onNavigate, user, quickLog }: Props) 
       <ReadinessCard daily={daily} />
       <StressDaysCard daily={daily} />
 
-      <div className="cards-grid">
+      <motion.div className="cards-grid" variants={cardsGridV} initial="hidden" animate="show">
         {cards.map(c => (
-          <button key={c.label} className="metric-card" onClick={() => onNavigate(c.view)}>
+          <motion.button key={c.label} className="metric-card" onClick={() => onNavigate(c.view)}
+            variants={cardItemV} whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }}>
             <div className="card-label">{t(c.label)}</div>
             {c.sub && <div className="card-sub">{t(c.sub)}</div>}
             <div className="card-value" style={c.color ? { color: c.color } : undefined}>
               {c.value !== null ? <>{c.value} <span className="card-unit">{c.unit ? t(c.unit) : ''}</span></> : <span className="card-empty">—</span>}
             </div>
-          </button>
+          </motion.button>
         ))}
-        {quickLog && <div className="metric-card quicklog-card" style={{ cursor: 'default' }}>{quickLog}</div>}
-      </div>
+        {quickLog && <motion.div className="metric-card quicklog-card" style={{ cursor: 'default' }} variants={cardItemV}>{quickLog}</motion.div>}
+      </motion.div>
 
       <nav className="dash-nav">
-        <button onClick={() => onNavigate('heart-rate')}>{t('Пульс')} →</button>
-        <button onClick={() => onNavigate('metrics')}>{t('Показатели')} →</button>
-        <button onClick={() => onNavigate('stress-map')}>{t('Стресс')} →</button>
-        <button onClick={() => onNavigate('sleep')}>{t('Сон')} →</button>
-        <button onClick={() => onNavigate('insights')}>{t('Инсайты')} →</button>
+        <motion.button whileTap={{ scale: 0.96 }} onClick={() => onNavigate('heart-rate')}>{t('Пульс')} →</motion.button>
+        <motion.button whileTap={{ scale: 0.96 }} onClick={() => onNavigate('metrics')}>{t('Показатели')} →</motion.button>
+        <motion.button whileTap={{ scale: 0.96 }} onClick={() => onNavigate('stress-map')}>{t('Стресс')} →</motion.button>
+        <motion.button whileTap={{ scale: 0.96 }} onClick={() => onNavigate('sleep')}>{t('Сон')} →</motion.button>
+        <motion.button whileTap={{ scale: 0.96 }} onClick={() => onNavigate('insights')}>{t('Инсайты')} →</motion.button>
       </nav>
 
       {user && <ContextJournal user={user} />}
@@ -445,5 +456,6 @@ export function Dashboard({ daily, events, onNavigate, user, quickLog }: Props) 
       <DataGaps daily={daily} days={14} />
       {user && <AiAnalysisBlock daily={daily} userId={user.id} />}
     </div>
+    </MotionConfig>
   )
 }
