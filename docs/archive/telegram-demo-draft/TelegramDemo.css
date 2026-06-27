@@ -1,0 +1,680 @@
+/* ============================================================================
+   TELEGRAM DEMO - EXACT UI STYLING
+   ============================================================================ */
+
+:root {
+  --telegram-blue: #0084FF;
+  --bot-gray: #F0F0F0;
+  --text-primary: #222222;
+  --text-secondary: #999999;
+  --text-tertiary: #CCCCCC;
+  --bg-primary: #FFFFFF;
+  --bg-light: #F8F8F8;
+  --divider: #E0E0E0;
+  --success: #31A24C;
+  --warning: #FFB340;
+  --accent: #FFC107;
+
+  --font-family-main: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-family-mono: 'Roboto Mono', 'JetBrains Mono', monospace;
+}
+
+/* ============================================================================
+   MAIN CONTAINER
+   ============================================================================ */
+
+.telegram-demo-container {
+  display: flex;
+  flex-direction: column;
+  width: 400px;
+  height: 600px;
+  background: var(--bg-primary);
+  border: 1px solid var(--divider);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  font-family: var(--font-family-main);
+  margin: 0 auto;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .telegram-demo-container {
+    width: 100vw;
+    height: 70vh;
+    border-radius: 0;
+    border: none;
+    max-width: 100%;
+  }
+}
+
+/* ============================================================================
+   HEADER
+   ============================================================================ */
+
+.chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--bg-light);
+  border-bottom: 1px solid var(--divider);
+  flex-shrink: 0;
+}
+
+.header-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.close-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  font-size: 24px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-btn:hover {
+  color: var(--text-primary);
+}
+
+/* ============================================================================
+   CHAT CONTENT
+   ============================================================================ */
+
+.chat-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px;
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Scrollbar styling */
+.chat-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-content::-webkit-scrollbar-thumb {
+  background: var(--divider);
+  border-radius: 3px;
+}
+
+.chat-content::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
+}
+
+/* ============================================================================
+   CHAT MESSAGES
+   ============================================================================ */
+
+.chat-message {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin-bottom: 4px;
+  animation-name: none;
+}
+
+.chat-message.bot {
+  justify-content: flex-start;
+}
+
+.chat-message.user {
+  justify-content: flex-end;
+}
+
+/* Avatar */
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+/* Chat Bubble */
+.bubble {
+  position: relative;
+  padding: 12px 16px;
+  border-radius: 18px;
+  max-width: 280px;
+  word-wrap: break-word;
+  font-size: 15px;
+  line-height: 1.4;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  animation: none;
+}
+
+.bubble.bot {
+  background: var(--bot-gray);
+  color: var(--text-primary);
+}
+
+.bubble.user {
+  background: var(--telegram-blue);
+  color: var(--bg-primary);
+}
+
+.bubble-text {
+  margin: 0;
+  padding: 0;
+}
+
+/* Timestamp & Checkmarks */
+.timestamp {
+  font-size: 12px;
+  opacity: 0.5;
+  margin-top: 2px;
+}
+
+.checkmark {
+  position: absolute;
+  right: 8px;
+  bottom: 4px;
+  font-size: 13px;
+  opacity: 0.6;
+}
+
+.bubble.user .checkmark {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* ============================================================================
+   BOT RESPONSE CONTENT
+   ============================================================================ */
+
+.bot-response-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bot-response-content > p {
+  margin: 0;
+  font-weight: 500;
+}
+
+.bot-response-content > p:not(:first-child) {
+  margin-top: 4px;
+}
+
+.metric-item {
+  font-size: 14px;
+  padding: 4px 0;
+}
+
+.metric-item.info {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.section-title {
+  margin: 8px 0 0 0;
+  font-weight: 500;
+  font-size: 15px;
+}
+
+.metric-item.success {
+  color: var(--success);
+  font-weight: 500;
+}
+
+.metric-item.success.glow {
+  padding: 8px 12px;
+  background: rgba(49, 162, 76, 0.05);
+  border-radius: 8px;
+  margin: 4px -4px;
+}
+
+/* ============================================================================
+   PHOTO MESSAGE
+   ============================================================================ */
+
+.food-photo {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 4px;
+}
+
+/* ============================================================================
+   TYPING INDICATOR
+   ============================================================================ */
+
+.typing-indicator {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  margin: 8px 0;
+  padding: 0 16px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.typing-text {
+  display: inline;
+}
+
+.typing-dots {
+  display: inline-block;
+  animation: typingDots 0.6s linear infinite;
+}
+
+@keyframes typingDots {
+  0%, 20% {
+    opacity: 0.3;
+    content: '';
+  }
+  40% {
+    opacity: 1;
+    content: '.';
+  }
+  60% {
+    content: '..';
+  }
+  80%, 100% {
+    content: '...';
+  }
+}
+
+/* ============================================================================
+   INSIGHT BLOCKS (Scene 3)
+   ============================================================================ */
+
+.insight-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 8px 0;
+  padding: 4px 0;
+}
+
+.insight-number {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.insight-title {
+  font-size: 15px;
+  font-weight: 500;
+  display: block;
+}
+
+.insight-text {
+  font-size: 14px;
+  color: var(--text-secondary);
+  display: block;
+}
+
+/* ============================================================================
+   RECOMMENDATION & BUTTONS
+   ============================================================================ */
+
+.recommendation {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(255, 193, 7, 0.05);
+  border-left: 3px solid var(--accent);
+  margin: 12px 0 8px 0;
+  font-size: 14px;
+  font-weight: 500;
+  will-change: box-shadow;
+}
+
+.action-button {
+  padding: 8px 12px;
+  background: var(--telegram-blue);
+  color: var(--bg-primary);
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: all 0.2s;
+  will-change: transform;
+  animation: buttonPulse 0.8s ease-in-out infinite;
+}
+
+.action-button:hover {
+  opacity: 0.9;
+}
+
+.action-button:active {
+  transform: scale(0.95);
+}
+
+.action-button strong {
+  font-weight: 700;
+  margin-left: 4px;
+}
+
+@keyframes buttonPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+/* ============================================================================
+   INPUT FIELD
+   ============================================================================ */
+
+.chat-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--bg-light);
+  border-top: 1px solid var(--divider);
+  flex-shrink: 0;
+}
+
+.input-icon {
+  font-size: 18px;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.input-field {
+  flex: 1;
+  border: 1px solid var(--divider);
+  background: var(--bg-primary);
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  color: var(--text-primary);
+  font-family: var(--font-family-main);
+  outline: none;
+  transition: border-color 0.2s;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.input-field::placeholder {
+  color: var(--text-tertiary);
+}
+
+.send-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--telegram-blue);
+  font-size: 16px;
+  cursor: not-allowed;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ============================================================================
+   INDICATORS (Dots)
+   ============================================================================ */
+
+.indicators {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0;
+  background: var(--bg-primary);
+  border-top: 1px solid var(--divider);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border: none;
+  border-radius: 50%;
+  background: var(--divider);
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+  will-change: background-color, transform;
+}
+
+.dot.active {
+  background: var(--telegram-blue);
+}
+
+.dot:hover {
+  transform: scale(1.2);
+}
+
+.dot:focus {
+  outline: 2px solid var(--telegram-blue);
+  outline-offset: 2px;
+}
+
+/* ============================================================================
+   NAVIGATION BUTTONS
+   ============================================================================ */
+
+.nav-buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 16px;
+  background: var(--bg-light);
+  border-top: 1px solid var(--divider);
+}
+
+.nav-btn {
+  background: transparent;
+  border: none;
+  color: var(--telegram-blue);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: opacity 0.2s;
+}
+
+.nav-btn:hover {
+  opacity: 0.7;
+}
+
+.nav-btn:focus {
+  outline: 2px solid var(--telegram-blue);
+  outline-offset: 2px;
+}
+
+.page-indicator {
+  font-size: 12px;
+  color: var(--text-secondary);
+  min-width: 40px;
+  text-align: center;
+}
+
+/* ============================================================================
+   AUTOPLAY TOGGLE
+   ============================================================================ */
+
+.autoplay-toggle {
+  display: flex;
+  justify-content: center;
+  padding: 8px 16px;
+  background: var(--bg-primary);
+  border-top: 1px solid var(--divider);
+  font-size: 12px;
+}
+
+.autoplay-toggle label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.autoplay-toggle input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* ============================================================================
+   ANIMATIONS (GPU Accelerated)
+   ============================================================================ */
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes blurIn {
+  from {
+    filter: blur(10px);
+    opacity: 0;
+  }
+  to {
+    filter: blur(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes zoomIn {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes glow {
+  from {
+    box-shadow: 0 0 0px rgba(49, 162, 76, 0);
+  }
+  to {
+    box-shadow: 0 0 12px rgba(49, 162, 76, 0.4);
+  }
+}
+
+/* ============================================================================
+   PERFORMANCE OPTIMIZATION
+   ============================================================================ */
+
+.chat-message,
+.bubble,
+.action-button,
+.dot {
+  will-change: transform, opacity;
+}
+
+/* Reduce motion support */
+@media (prefers-reduced-motion: reduce) {
+  .chat-message,
+  .bubble,
+  .action-button,
+  .dot,
+  .metric-item,
+  .insight-block,
+  .recommendation {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================================================
+   FOCUS MANAGEMENT (Accessibility)
+   ============================================================================ */
+
+button:focus-visible {
+  outline: 2px solid var(--telegram-blue);
+  outline-offset: 2px;
+}
+
+input:focus-visible {
+  outline: 2px solid var(--telegram-blue);
+  outline-offset: -2px;
+}
+
+/* ============================================================================
+   DARK MODE (Optional)
+   ============================================================================ */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text-primary: #FFFFFF;
+    --text-secondary: #B0B0B0;
+    --text-tertiary: #666666;
+    --bg-primary: #212121;
+    --bg-light: #2C2C2C;
+    --divider: #3A3A3A;
+    --bot-gray: #2C2C2C;
+  }
+
+  .chat-header {
+    background: var(--bg-light);
+  }
+
+  .metric-item.success.glow {
+    background: rgba(49, 162, 76, 0.1);
+  }
+
+  .recommendation {
+    background: rgba(255, 193, 7, 0.1);
+  }
+}
