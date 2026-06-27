@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { computeDailyScores } from '../_shared/scores.ts'
 
 // Приём данных Apple Health от Health Auto Export (SPEC-AUTOSYNC).
 // Изолировано: пишет в *_staging; в боевые таблицы — только при mode='live'.
@@ -189,6 +190,24 @@ serve(async (req) => {
       for (let i = 0; i < hrSamples.length; i += 500) {
         await supabase.from('heart_rate_samples').upsert(hrSamples.slice(i, i + 500), { onConflict: 'user_id,ts' })
       }
+
+      // Пересчёт дневных оценок (readiness/recovery/stress/baseline) из автосинка,
+      // чтобы они не отставали, когда веб-приложение не открывают. Best-effort —
+      // ошибка здесь не должна валить приём данных. Зеркало src/lib/scores.ts.
+      try {
+        const since = new Date(Date.now() - 120 * 86400000).toISOString().slice(0, 10)
+        const { data: dm } = await supabase
+          .from('daily_metrics')
+          .select('date, hrv, resting_heart_rate, sleep_hours, steps')
+          .eq('user_id', userId).gte('date', since).order('date')
+        if (dm?.length) {
+          const scores = computeDailyScores(dm.map((r: any) => ({
+            date: r.date, hrv: r.hrv, restingHeartRate: r.resting_heart_rate,
+            sleepHours: r.sleep_hours, steps: r.steps,
+          }))).slice(-90).map(s => ({ ...s, user_id: userId, updated_at: new Date().toISOString() }))
+          if (scores.length) await supabase.from('daily_scores').upsert(scores, { onConflict: 'user_id,date' })
+        }
+      } catch (_) { /* оценки не критичны для приёма данных */ }
     }
 
     const status = `metrics:${metrics.length} sleep:${sleep.length} mode:${tok.mode}${mErr ? ` mErr:${mErr}` : ''}${sErr ? ` sErr:${sErr}` : ''}`
