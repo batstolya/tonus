@@ -1,10 +1,15 @@
-import type { DailyMetrics } from '../types'
-import { supabase } from './supabase'
+// Серверный порт расчёта дневных оценок. ЗЕРКАЛО src/lib/scores.ts (computeDailyScores):
+// формулы должны совпадать 1-в-1, golden-тест в scores.test.ts ловит расхождения.
+// Нужен, чтобы readiness/recovery/stress/baseline обновлялись из автосинка (ingest-health),
+// а не только при открытии веб-приложения. Чистый модуль (без Deno/браузерных зависимостей).
 
-// Канонический расчёт дневных оценок и персональной базовой линии.
-// Один источник правды для дашборда, коуча и ИИ-контекста (#4).
-// СЕРВЕРНОЕ ЗЕРКАЛО (автосинк через ingest-health): supabase/functions/_shared/scores.ts.
-// При правке формул computeDailyScores менять оба места — golden-тесты ловят расхождения.
+export interface ScoreInput {
+  date: string
+  hrv: number | null
+  restingHeartRate: number | null
+  sleepHours: number | null
+  steps: number | null
+}
 
 export interface DailyScore {
   date: string
@@ -25,7 +30,7 @@ function avg(vals: (number | null | undefined)[]): number | null {
 const clamp = (n: number, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, n))
 
 // Считает оценки для каждого дня по скользящей базовой линии (до 30 дней ДО этого дня).
-export function computeDailyScores(daily: DailyMetrics[]): DailyScore[] {
+export function computeDailyScores(daily: ScoreInput[]): DailyScore[] {
   const sorted = [...daily].sort((a, b) => a.date.localeCompare(b.date))
   const out: DailyScore[] = []
 
@@ -75,48 +80,4 @@ export function computeDailyScores(daily: DailyMetrics[]): DailyScore[] {
     })
   }
   return out
-}
-
-export interface BaselineDeviation {
-  metric: 'hrv' | 'rhr' | 'sleep' | 'steps'
-  current: number
-  baseline: number
-  pct: number // отклонение от нормы, %
-}
-
-// Текущее отклонение (среднее за 3 дня) от персональной нормы (30 дней).
-export function baselineDeviations(daily: DailyMetrics[]): BaselineDeviation[] {
-  const sorted = [...daily].sort((a, b) => a.date.localeCompare(b.date))
-  if (sorted.length < 10) return []
-  const base = sorted.slice(-33, -3)
-  const recent = sorted.slice(-3)
-  const defs: { metric: BaselineDeviation['metric']; cur: number | null; b: number | null }[] = [
-    { metric: 'hrv', cur: avg(recent.map(d => d.hrv)), b: avg(base.map(d => d.hrv)) },
-    { metric: 'rhr', cur: avg(recent.map(d => d.restingHeartRate)), b: avg(base.map(d => d.restingHeartRate)) },
-    { metric: 'sleep', cur: avg(recent.map(d => d.sleepHours)), b: avg(base.map(d => d.sleepHours)) },
-    { metric: 'steps', cur: avg(recent.map(d => d.steps)), b: avg(base.map(d => d.steps)) },
-  ]
-  return defs
-    .filter(x => x.cur != null && x.b != null && x.b! > 0)
-    .map(x => ({ metric: x.metric, current: x.cur!, baseline: x.b!, pct: Math.round(((x.cur! - x.b!) / x.b!) * 100) }))
-}
-
-// Сохраняет рассчитанные оценки в daily_scores (последние 90 дней).
-export async function persistDailyScores(userId: string, daily: DailyMetrics[]): Promise<void> {
-  const scores = computeDailyScores(daily).slice(-90)
-  if (!scores.length) return
-  const rows = scores.map(s => ({
-    user_id: userId,
-    date: s.date,
-    readiness: s.readiness,
-    sleep_score: s.sleep_score,
-    recovery_score: s.recovery_score,
-    stress_score: s.stress_score,
-    hrv_baseline: s.hrv_baseline,
-    rhr_baseline: s.rhr_baseline,
-    sleep_baseline: s.sleep_baseline,
-    steps_baseline: s.steps_baseline,
-    updated_at: new Date().toISOString(),
-  }))
-  await supabase.from('daily_scores').upsert(rows, { onConflict: 'user_id,date' })
 }
