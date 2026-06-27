@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { daysSinceFreshData } from './staleness.ts'
+import { daysSinceFreshData, freshestDataTs } from './staleness.ts'
 
 describe('daysSinceFreshData', () => {
   const now = Date.parse('2026-06-27T16:44:00Z')
@@ -24,5 +24,17 @@ describe('daysSinceFreshData', () => {
 
   it('works with only an auto-sync timestamp', () => {
     expect(daysSinceFreshData(now, null, '2026-06-20T10:00:00Z')).toBe(7)
+  })
+})
+
+describe('freshestDataTs', () => {
+  it('returns null when there is no signal', () => {
+    expect(freshestDataTs(null, undefined)).toBeNull()
+  })
+
+  it('returns the most recent timestamp in ms regardless of order', () => {
+    const expected = Date.parse('2026-06-26T17:11:26Z')
+    expect(freshestDataTs('2026-06-18T21:59:12Z', '2026-06-26T17:11:26Z')).toBe(expected)
+    expect(freshestDataTs('2026-06-26T17:11:26Z', '2026-06-18T21:59:12Z')).toBe(expected)
   })
 })
