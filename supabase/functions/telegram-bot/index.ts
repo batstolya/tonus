@@ -5,7 +5,7 @@ import { checkBudget, budgetExceededMessage } from '../_shared/costGuard.ts'
 import { getPrompt } from '../_shared/prompts.ts'
 import { localToIso, localDate } from '../_shared/time.ts'
 import { buildClassifyPrompt } from '../_shared/classifyPrompt.ts'
-import { daysSinceFreshData } from '../_shared/staleness.ts'
+import { daysSinceFreshData, freshestDataTs } from '../_shared/staleness.ts'
 
 const TG_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -780,23 +780,25 @@ serve(async (req) => {
 
   // /sync
   if (text === '/sync') {
-    const { data: lastImport } = await supabase
-      .from('imports')
-      .select('imported_at')
-      .eq('user_id', userId)
-      .order('imported_at', { ascending: false })
-      .limit(1)
-      .single()
+    // Свежесть = самый недавний из ручного экспорта (imports) и автосинка
+    // Apple Health (ingest_tokens.last_ingest_at) — иначе /sync показывает дату
+    // ручного экспорта и зря зовёт «обновить», хотя автосинк свежий.
+    const [{ data: lastImport }, { data: tok }] = await Promise.all([
+      supabase.from('imports').select('imported_at')
+        .eq('user_id', userId).order('imported_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('ingest_tokens').select('last_ingest_at').eq('user_id', userId).maybeSingle(),
+    ])
+    const ts = freshestDataTs(lastImport?.imported_at, tok?.last_ingest_at)
 
-    if (!lastImport) {
+    if (ts == null) {
       await tgSend(chatId, '📭 Данные ещё не загружались.\n\nЧтобы загрузить:\n1. Открой Здоровье на iPhone\n2. Фото профиля → Экспорт данных\n3. Загрузи export.zip в Tonus', { reply_markup: BACK_MENU })
     } else {
-      const d = new Date(lastImport.imported_at)
-      const days = Math.floor((Date.now() - d.getTime()) / 86400000)
+      const d = new Date(ts)
+      const days = Math.floor((Date.now() - ts) / 86400000)
       const dateStr = d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
       const freshness = days === 0 ? '✅ данные актуальны' : days < 7 ? `✅ ${days} дн. назад` : `⚠️ ${days} дн. назад — стоит обновить`
       await tgSend(chatId,
-        `📲 Последняя синхронизация: ${dateStr}\n${freshness}\n\nЧтобы обновить:\n1. Здоровье → Фото профиля → Экспорт данных\n2. Загрузи export.zip в Tonus`,
+        `📲 Последняя синхронизация: ${dateStr}\n${freshness}\n\nОбновить вручную (если нужно):\n1. Здоровье → Фото профиля → Экспорт данных\n2. Загрузи export.zip в Tonus`,
         { reply_markup: BACK_MENU }
       )
     }
