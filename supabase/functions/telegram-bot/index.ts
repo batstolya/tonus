@@ -5,6 +5,7 @@ import { checkBudget, budgetExceededMessage } from '../_shared/costGuard.ts'
 import { getPrompt } from '../_shared/prompts.ts'
 import { localToIso, localDate } from '../_shared/time.ts'
 import { buildClassifyPrompt } from '../_shared/classifyPrompt.ts'
+import { daysSinceFreshData } from '../_shared/staleness.ts'
 
 const TG_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -504,18 +505,18 @@ async function handleSettings(chatId: number | string, userId: string, supabase:
 }
 
 async function checkStaleness(chatId: number | string, userId: string, supabase: any) {
-  const { data: lastImport } = await supabase
-    .from('imports')
-    .select('imported_at')
-    .eq('user_id', userId)
-    .order('imported_at', { ascending: false })
-    .limit(1)
-    .single()
-  if (lastImport) {
-    const days = Math.floor((Date.now() - new Date(lastImport.imported_at).getTime()) / 86400000)
-    if (days >= 7) {
-      await tgSend(chatId, `📲 Данные не обновлялись ${days} дн. Для точных данных загрузи свежий экспорт в Tonus (/sync — подробнее).`)
-    }
+  // Свежесть считаем по самому недавнему из путей обновления: ручной экспорт
+  // (imports) ИЛИ автосинк Apple Health (ingest_tokens.last_ingest_at). Иначе
+  // баннер вечно нагирает «загрузи экспорт», хотя автосинк держит данные свежими.
+  const [{ data: lastImport }, { data: tok }] = await Promise.all([
+    supabase.from('imports').select('imported_at')
+      .eq('user_id', userId).order('imported_at', { ascending: false }).limit(1).maybeSingle(),
+    supabase.from('ingest_tokens').select('last_ingest_at')
+      .eq('user_id', userId).maybeSingle(),
+  ])
+  const days = daysSinceFreshData(Date.now(), lastImport?.imported_at, tok?.last_ingest_at)
+  if (days != null && days >= 7) {
+    await tgSend(chatId, `📲 Данные не обновлялись ${days} дн. Для точных данных загрузи свежий экспорт в Tonus (/sync — подробнее).`)
   }
 }
 
