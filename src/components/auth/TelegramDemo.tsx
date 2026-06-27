@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { useT } from '../../lib/i18n'
 import Counter from '../ui/Counter'
@@ -131,8 +131,10 @@ function Scene3() {
             const t0 = 5.2 + i * 0.7
             return (
               <div className="tg-insight" key={i}>
-                <span className="tg-insight-num tg-zoom" style={d(t0)}>{it.n}</span>
-                <span className="tg-insight-title tg-fade" style={d(t0 + 0.15)}>{it.title}</span>
+                <div className="tg-insight-head">
+                  <span className="tg-insight-num tg-zoom" style={d(t0)}>{it.n}</span>
+                  <span className="tg-insight-title tg-fade" style={d(t0 + 0.15)}>{it.title}</span>
+                </div>
                 <span className="tg-insight-text tg-fade" style={d(t0 + 0.3)}>{it.text}</span>
               </div>
             )
@@ -150,29 +152,14 @@ function Scene3() {
 export default function TelegramDemo() {
   const { t } = useT()
   const [scene, setScene] = useState(0)
-  const contentRef = useRef<HTMLDivElement>(null)
 
   // Auto-advance through the scenes; re-runs (and resets the timer) whenever
-  // `scene` changes, including manual dot selection.
+  // `scene` changes, including manual dot selection. Each scene is sized to fit
+  // the demo box (see TelegramDemo.css), so there is no auto-scroll — the chat
+  // never moves on its own.
   useEffect(() => {
     const id = setTimeout(() => setScene((s) => (s + 1) % SCENE_COUNT), SCENE_DURATIONS_MS[scene])
     return () => clearTimeout(id)
-  }, [scene])
-
-  // Auto-scroll: follow the conversation as later messages reveal, so a long
-  // scene doesn't need a manual scrollbar. Scrolls proportionally to scene time.
-  useEffect(() => {
-    const el = contentRef.current
-    if (!el) return
-    el.scrollTop = 0
-    const start = performance.now()
-    const id = setInterval(() => {
-      const max = el.scrollHeight - el.clientHeight
-      if (max <= 0) return
-      const p = Math.min((performance.now() - start) / SCENE_DURATIONS_MS[scene], 1)
-      el.scrollTo({ top: max * p, behavior: 'smooth' })
-    }, 500)
-    return () => clearInterval(id)
   }, [scene])
 
   return (
@@ -185,7 +172,7 @@ export default function TelegramDemo() {
         </div>
       </div>
 
-      <div className="tg-content" ref={contentRef}>
+      <div className="tg-content">
         <div className="tg-scene" key={scene}>
           {scene === 0 && <Scene1 />}
           {scene === 1 && <Scene2 />}
