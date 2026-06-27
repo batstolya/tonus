@@ -61,7 +61,7 @@ export async function loadLogsForMonth(userId: string, year: number, month: numb
   return (data ?? []) as SupplementLog[]
 }
 
-// ── Reminders (SPEC-REMINDERS) ──────────────────────────────────────────────
+// ── Reminders (docs/specs/SPEC-REMINDERS.md) ───────────────────────────────
 
 export interface ReminderSetting {
   supplement_id: string
