@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { callFunction } from './edgeFunctions'
+import { computeDailyScores } from './scores'
 import type { DailyMetrics, HeartRateSample } from '../types'
 
 export interface ChatMessage {
@@ -57,6 +58,18 @@ export function buildContextSnapshot(
   const lines: string[] = []
   if (coachProfile) lines.push(`=== ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ (помни это) ===\n${coachProfile}\n`)
   lines.push(`Период: ${slice[0].date} — ${slice[slice.length - 1].date} (${slice.length} дней)`)
+
+  // Расчётные оценки (готовность/восстановление/сон/стресс) — те же, что на дашборде.
+  // Базовая линия считается по всей истории, поэтому computeDailyScores на sorted, не на slice.
+  const scores = computeDailyScores(sorted).filter(s => s.date >= cutoffStr)
+  if (scores.length) {
+    const f = (n: number | null) => (n == null ? '—' : Math.round(n).toString())
+    const nums = (xs: (number | null)[]) => avg(xs.filter((v): v is number => v != null))
+    const last = scores[scores.length - 1]
+    lines.push(`Готовность (${last.date}): ${f(last.readiness)}/100 — восстановление ${f(last.recovery_score)}, сон ${f(last.sleep_score)}, стресс ${f(last.stress_score)}`)
+    const ra = nums(scores.map(s => s.readiness))
+    if (ra != null) lines.push(`Готовность за период: среднее ${f(ra)}/100 (восстановление ${f(nums(scores.map(s => s.recovery_score)))})`)
+  }
 
   const rhr = pick(slice, 'restingHeartRate')
   if (rhr.length) lines.push(`Пульс покоя: среднее ${avg(rhr)?.toFixed(0)} уд/мин, мин ${Math.min(...rhr).toFixed(0)}, макс ${Math.max(...rhr).toFixed(0)}`)
