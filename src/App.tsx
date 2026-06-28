@@ -105,7 +105,7 @@ function getActiveSubView(view: AppView): AppView {
 
 export default function App() {
   const { t, lang, setLang } = useT()
-  const { state, setView, setDaily, setEvents, setProgress, setError, reset, setDeviceType } = useAppStore()
+  const { state, setView, setDaily, setEvents, setProgress, setError, setDeviceType } = useAppStore()
   const { user, loading, passwordRecovery, setPasswordRecovery } = useAuth()
   const { theme, toggle: toggleTheme } = useTheme()
   const [syncMsg, setSyncMsg] = useState<string | null>(null)
@@ -259,7 +259,7 @@ export default function App() {
       {hasData && (
         <>
           <header className="topbar">
-            <button className="logo-btn" onClick={reset}>Tonus</button>
+            <button className="logo-btn" onClick={() => setView('dashboard')}>Tonus</button>
             <nav className="topbar-nav">
               <button
                 className={`nav-btn${state.view === 'dashboard' ? ' active' : ''}`}
@@ -378,7 +378,7 @@ export default function App() {
       {syncMsg && <div className="sync-toast">{syncMsg}</div>}
 
       <main className="main-content">
-        {!hasData ? (
+        {!hasData || state.view === 'upload' ? (
           state.deviceType == null ? (
             <DeviceSelectScreen onSelect={setDeviceType} />
           ) : (
