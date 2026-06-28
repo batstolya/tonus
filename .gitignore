@@ -28,3 +28,4 @@ dist-ssr
 .claude/worktrees/
 .playwright-mcp/
 mobile-auth.png
+.superpowers/
