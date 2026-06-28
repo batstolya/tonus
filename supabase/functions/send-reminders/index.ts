@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { localToIso } from '../_shared/time.ts'
 
 const TG_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -51,8 +52,9 @@ serve(async () => {
     for (const t of s.times ?? []) {
       // совпадение с точностью до минуты (cron тикает каждые 5 мин — допускаем окно)
       if (!timeDue(t, hhmm)) continue
-      // due_at = сегодняшняя дата + время в этой tz → UTC. Для уникальности используем dateStr+t.
-      const dueKey = new Date(`${dateStr}T${t}:00`).toISOString()
+      // due_at = сегодняшняя дата + время в этой tz → UTC (через таймзонный хелпер,
+      // иначе момент трактуется в UTC рантайма и due_at уезжает на смещение tz).
+      const dueKey = localToIso(s.timezone || 'Europe/Kyiv', t, dateStr)
       const { error } = await supabase.from('reminder_events').insert({
         user_id: s.user_id,
         supplement_id: s.supplement_id,
