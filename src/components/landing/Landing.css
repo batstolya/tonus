@@ -75,11 +75,11 @@
 .web-lines path { fill: none; stroke: var(--accent); stroke-width: 1.5; opacity: .4; stroke-dasharray: 300; stroke-dashoffset: 300; }
 .insights-web.live .web-lines path { animation: web-trace .8s ease .4s forwards; }
 @keyframes web-trace { to { stroke-dashoffset: 0; } }
-.insight-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
-.insight-card { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: var(--radius); padding: 16px; display: flex; flex-direction: column; gap: 6px; opacity: 0; transform: translateX(-16px); }
-.insight-card.in { opacity: 1; transform: translateX(0); transition: opacity .5s ease, transform .5s ease; }
-.insight-card-title { font-weight: 600; }
-.insight-card-text { color: var(--text-muted); font-size: 14px; }
+.lp-insight-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.lp-insight-card { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: var(--radius); padding: 16px; display: flex; flex-direction: column; gap: 6px; opacity: 0; transform: translateX(-16px); }
+.lp-insight-card.in { opacity: 1; transform: translateX(0); transition: opacity .5s ease, transform .5s ease; }
+.lp-insight-card-title { font-weight: 600; }
+.lp-insight-card-text { color: var(--text-muted); font-size: 14px; }
 
 /* ── Chat block ──────────────────────────────────────────── */
 .chat-stage { display: flex; justify-content: center; margin-top: 8px; }
@@ -115,7 +115,7 @@
   .bar { transition: none; height: var(--h); }
   .insights-web .node { animation: none; opacity: 1; transform: none; }
   .web-lines path { animation: none; stroke-dashoffset: 0; }
-  .insight-card { opacity: 1; transform: none; }
+  .lp-insight-card { opacity: 1; transform: none; }
   .appchat-msg { opacity: 1; animation: none; }
   .appchat-typing { display: none; }
   .exp-period { transform: none; }

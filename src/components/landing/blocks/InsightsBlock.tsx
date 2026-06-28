@@ -25,11 +25,11 @@ export function InsightsBlock() {
           </svg>
         </div>
 
-        <div className="insight-cards">
+        <div className="lp-insight-cards">
           {insights.map((it, i) => (
-            <div key={i} className={`insight-card ${inView ? 'in' : ''}`} style={{ transitionDelay: `${0.4 + i * 0.2}s` }}>
-              <span className="insight-card-title">{it.title}</span>
-              <span className="insight-card-text">{it.text}</span>
+            <div key={i} className={`lp-insight-card ${inView ? 'in' : ''}`} style={{ transitionDelay: `${0.4 + i * 0.2}s` }}>
+              <span className="lp-insight-card-title">{it.title}</span>
+              <span className="lp-insight-card-text">{it.text}</span>
             </div>
           ))}
         </div>
