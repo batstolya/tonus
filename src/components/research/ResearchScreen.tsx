@@ -194,12 +194,12 @@ export function ResearchScreen({ user, daily, onNavigate }: Props) {
 
       {active && (
         <>
-          <LeversBlock levers={levers} onTry={tryExperiment} />
           {active.reply && (
             <div className="insight-card" style={{ marginBottom: 20, whiteSpace: 'pre-wrap', lineHeight: 1.55 }}>
               {active.reply}
             </div>
           )}
+          <LeversBlock levers={levers} onTry={tryExperiment} />
           {active.findings.length > 0 && (
             <div className="research-findings">
               <h3 className="goals-section-title">{t('Найденные связи (по силе)')}</h3>
