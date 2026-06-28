@@ -61,6 +61,19 @@ function today() { return new Date().toISOString().slice(0, 10) }
 function daysAgo(n: number) {
   const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10)
 }
+function daysBetween(a: string, b: string): number {
+  return Math.round((new Date(b).getTime() - new Date(a).getTime()) / 86400000)
+}
+
+type StatusKind = 'done' | 'active' | 'planned' | 'cancelled'
+// Состояние эксперимента для бейджа (RU-ключ переводим на месте через t()).
+function expStatusInfo(exp: Experiment): { kind: StatusKind; label: string } {
+  const td = today()
+  if (exp.status === 'cancelled') return { kind: 'cancelled', label: 'Отменён' }
+  if (exp.status === 'completed' || exp.end_date < td) return { kind: 'done', label: 'Завершён' }
+  if (exp.start_date > td) return { kind: 'planned', label: 'Запланирован' }
+  return { kind: 'active', label: 'Идёт' }
+}
 
 function std(vals: number[]): number {
   if (vals.length < 2) return 0
@@ -127,39 +140,74 @@ function effectLabel(d: number | null): string {
   return 'нет эффекта'
 }
 
-function ResultBlock({ r }: { r: ExperimentResult; metric?: string }) {
+function effectSegments(d: number | null): number {
+  if (d === null) return 0
+  const a = Math.abs(d)
+  if (a >= 0.8) return 4
+  if (a >= 0.5) return 3
+  if (a >= 0.2) return 2
+  if (a > 0) return 1
+  return 0
+}
+
+// Hero «До → Во время → Изменение» + шкала размера эффекта. Предполагает, что
+// данных достаточно (родитель решает, что показать при пустых средних).
+function ResultBlock({ r }: { r: ExperimentResult }) {
   const { t } = useT()
-  if (r.baselineMean === null || r.expMean === null) {
-    return <p className="settings-muted">{t('Недостаточно данных для сравнения.')}</p>
-  }
   const improved = r.delta !== null && ((r.betterHigh && r.delta > 0) || (!r.betterHigh && r.delta < 0))
-  const color = improved ? 'var(--green)' : r.delta !== 0 ? 'var(--red)' : 'var(--text-muted)'
+  const worse = r.delta !== null && r.delta !== 0 && !improved
+  const color = improved ? 'var(--green)' : worse ? 'var(--red)' : 'var(--text-muted)'
+  const bg = improved
+    ? 'color-mix(in srgb, var(--green) 12%, transparent)'
+    : worse ? 'color-mix(in srgb, var(--red) 12%, transparent)' : 'var(--surface2)'
   const sign = r.delta !== null && r.delta > 0 ? '+' : ''
+  const segs = effectSegments(r.cohenD)
 
   return (
     <div className="exp-result">
-      <div className="exp-result-row">
-        <div className="exp-result-cell">
-          <div className="exp-result-label">{t('До')}</div>
-          <div className="exp-result-val">{r.baselineMean} <span className="exp-result-n">n={r.baselineN}</span></div>
+      <div className="exp-compare">
+        <div className="exp-cmp-cell">
+          <div className="exp-cmp-label">{t('До')}</div>
+          <div className="exp-cmp-val">{r.baselineMean}</div>
+          <div className="exp-cmp-n">n = {r.baselineN}</div>
         </div>
-        <div className="exp-result-arrow" style={{ color }}>{improved ? '→ ↑' : '→ ↓'}</div>
-        <div className="exp-result-cell">
-          <div className="exp-result-label">{t('Во время')}</div>
-          <div className="exp-result-val">{r.expMean} <span className="exp-result-n">n={r.expN}</span></div>
+        <div className="exp-cmp-arrow" aria-hidden>→</div>
+        <div className="exp-cmp-cell">
+          <div className="exp-cmp-label">{t('Во время')}</div>
+          <div className="exp-cmp-val">{r.expMean}</div>
+          <div className="exp-cmp-n">n = {r.expN}</div>
         </div>
-        <div className="exp-result-cell">
-          <div className="exp-result-label">{t('Изменение')}</div>
-          <div className="exp-result-val" style={{ color }}>{sign}{r.delta} ({sign}{r.deltaPct}%)</div>
+        <div className="exp-cmp-cell exp-cmp-delta" style={{ background: bg }}>
+          <div className="exp-cmp-label" style={{ color }}>{t('Изменение')}</div>
+          <div className="exp-cmp-val" style={{ color }}>{sign}{r.delta}</div>
+          <div className="exp-cmp-pct" style={{ color }}>{sign}{r.deltaPct}%</div>
         </div>
       </div>
       {r.cohenD !== null && (
-        <div className="exp-result-cohen">
-          {t('Размер эффекта')}: <b>d = {r.cohenD}</b> — {t(effectLabel(r.cohenD))}
-          {Math.abs(r.cohenD) < 0.2 && <span className="settings-muted"> ({t('вероятно случайность')})</span>}
+        <div className="exp-effect">
+          <span>{t('Размер эффекта')} <b>d = {r.cohenD}</b> · {t(effectLabel(r.cohenD))}</span>
+          <span className="exp-effect-meter" aria-hidden>
+            {[0, 1, 2, 3].map(i => <span key={i} className={`exp-seg${i < segs ? ' on' : ''}`} />)}
+          </span>
         </div>
       )}
       <p className="exp-result-caveat">{t('Наблюдение, не доказательство. Другие факторы могут объяснять изменение.')}</p>
+    </div>
+  )
+}
+
+// Прогресс для идущего эксперимента — вместо пустого блока.
+function ProgressBlock({ exp }: { exp: Experiment }) {
+  const { t } = useT()
+  const total = Math.max(1, daysBetween(exp.start_date, exp.end_date))
+  const elapsed = Math.min(total, Math.max(0, daysBetween(exp.start_date, today())))
+  const pct = Math.round((elapsed / total) * 100)
+  return (
+    <div className="exp-progress">
+      <div className="exp-progress-bar"><span style={{ width: `${pct}%` }} /></div>
+      <p className="exp-progress-text">
+        {t('День {d} из {n}', { d: elapsed, n: total })}. {t('Результаты появятся после завершения')}.
+      </p>
     </div>
   )
 }
@@ -399,47 +447,68 @@ export function ExperimentsScreen({ user, daily }: Props) {
       ) : (
       <div className="research-layout">
         <div className="research-runs">
-          {exps.map(exp => (
-            <button key={exp.id} className={`research-run-btn${activeId === exp.id ? ' active' : ''}`}
-              onClick={() => setActiveId(exp.id)}>
-              <span className="research-run-label">{exp.hypothesis}</span>
-              <span className="research-run-meta">{metricLabel(exp.target_metric)} · {exp.start_date} – {exp.end_date}</span>
-            </button>
-          ))}
+          {exps.map(exp => {
+            const st = expStatusInfo(exp)
+            const qr = exp.result ?? computeResult(daily, exp)
+            const hasData = qr.baselineMean !== null && qr.expMean !== null
+            const improved = qr.delta !== null && ((qr.betterHigh && qr.delta > 0) || (!qr.betterHigh && qr.delta < 0))
+            const worse = qr.delta !== null && qr.delta !== 0 && !improved
+            const tagColor = !hasData ? 'var(--text-muted)' : improved ? 'var(--green)' : worse ? 'var(--red)' : 'var(--text-muted)'
+            const tag = hasData ? `${qr.delta! > 0 ? '+' : ''}${qr.deltaPct}%` : st.kind === 'active' ? t('Идёт') : '—'
+            return (
+              <button key={exp.id} className={`research-run-btn${activeId === exp.id ? ' active' : ''}`}
+                onClick={() => setActiveId(exp.id)}>
+                <span className="research-run-label">{exp.hypothesis}</span>
+                <span className="exp-run-foot">
+                  <span className="research-run-meta">{metricLabel(exp.target_metric)} · {exp.start_date} – {exp.end_date}</span>
+                  <span className="exp-run-tag" style={{ color: tagColor }}>{tag}</span>
+                </span>
+              </button>
+            )
+          })}
         </div>
 
         {active && (() => {
           const result = active.result ?? computeResult(daily, active)
+          const st = expStatusInfo(active)
+          const hasData = result.baselineMean !== null && result.expMean !== null
           return (
-            <div className="research-detail">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
-                <div>
-                  <h3 style={{ marginBottom: 4 }}>{active.hypothesis}</h3>
-                  <p className="settings-muted" style={{ fontSize: 13 }}>{active.change_rule}</p>
+            <div className="research-detail exp-detail">
+              <div className="exp-detail-head">
+                <div className="exp-detail-head-main">
+                  <h3 className="exp-detail-title">{active.hypothesis}</h3>
+                  <p className="exp-detail-rule">{active.change_rule}</p>
                 </div>
-                <button onClick={() => handleDelete(active.id)} className="concern-del-btn" title={t('Удалить')}>✕</button>
+                <div className="exp-detail-head-side">
+                  <span className={`exp-status exp-status-${st.kind}`}>{t(st.label)}</span>
+                  <button onClick={() => handleDelete(active.id)} className="concern-del-btn" title={t('Удалить')}>✕</button>
+                </div>
               </div>
 
-              <div className="exp-meta-row">
-                <span className="subnav-btn" style={{ cursor: 'default' }}>{metricLabel(active.target_metric)}</span>
-                <span className="settings-muted" style={{ fontSize: 12 }}>
-                  {t('Базовый')}: {active.baseline_days} {t('дн')} · {t('Эксперимент')}: {active.start_date} – {active.end_date}
-                </span>
+              <div className="exp-chips">
+                <span className="exp-chip">{metricLabel(active.target_metric)}</span>
+                <span className="exp-chip">{t('Базовый')}: {active.baseline_days} {t('дн')}</span>
+                <span className="exp-chip">{active.start_date} – {active.end_date}</span>
               </div>
 
-              <ResultBlock r={result} metric={metricLabel(active.target_metric)} />
+              {hasData
+                ? <ResultBlock r={result} />
+                : st.kind === 'active'
+                  ? <ProgressBlock exp={active} />
+                  : <p className="settings-muted" style={{ marginTop: 8 }}>{t('Недостаточно данных для сравнения.')}</p>}
 
               {active.ai_explanation ? (
-                <div className="ai-block" style={{ marginTop: 16 }}>
-                  <p style={{ fontSize: 14, lineHeight: 1.6 }}>{active.ai_explanation}</p>
+                <div className="exp-ai-card">
+                  <div className="exp-ai-card-head">{t('Разбор ИИ')}</div>
+                  <p>{active.ai_explanation}</p>
                 </div>
-              ) : (
-                <button className="btn btn-secondary" style={{ marginTop: 12 }}
+              ) : hasData ? (
+                <button className="btn btn-secondary exp-ai-btn"
                   disabled={aiLoading === active.id}
                   onClick={() => handleAI(active)}>
                   {aiLoading === active.id ? t('Объясняет ИИ…') : t('Объяснить результат (ИИ)')}
                 </button>
-              )}
+              ) : null}
             </div>
           )
         })()}
