@@ -275,6 +275,18 @@ export const translations: Record<string, { uk: string; en: string }> = {
   'Колонка не найдена в БД. Запусти в Supabase SQL Editor:': { uk: 'Колонку не знайдено в БД. Запусти в Supabase SQL Editor:', en: 'Column not found in DB. Run in Supabase SQL Editor:' },
   'Запасы': { uk: 'Запаси', en: 'Stock' },
   'Заканчивается': { uk: 'Закінчується', en: 'Running low' },
+  // AI «Идеальное время приёма»
+  'Идеальное время приёма': { uk: 'Ідеальний час прийому', en: 'Ideal timing' },
+  'Нет рекомендаций': { uk: 'Немає рекомендацій', en: 'No recommendations' },
+  'Колонки возраста нет в БД. Запусти в Supabase SQL Editor:': { uk: 'Колонки віку немає в БД. Запусти в Supabase SQL Editor:', en: 'Age column missing in DB. Run in Supabase SQL Editor:' },
+  'Год рождения': { uk: 'Рік народження', en: 'Birth year' },
+  'Пол': { uk: 'Стать', en: 'Sex' },
+  'Мужской': { uk: 'Чоловіча', en: 'Male' },
+  'Женский': { uk: 'Жіноча', en: 'Female' },
+  'Сохранить и подобрать': { uk: 'Зберегти та підібрати', en: 'Save & suggest' },
+  'Пропустить': { uk: 'Пропустити', en: 'Skip' },
+  'Применить к напоминаниям': { uk: 'Застосувати до нагадувань', en: 'Apply to reminders' },
+  'Применено к напоминаниям': { uk: 'Застосовано до нагадувань', en: 'Applied to reminders' },
   'Нажми чтобы ввести вручную': { uk: 'Натисни щоб ввести вручну', en: 'Tap to enter manually' },
   'шт': { uk: 'шт', en: 'pcs' },
   'Напоминания': { uk: 'Нагадування', en: 'Reminders' },
@@ -724,6 +736,12 @@ export const translations: Record<string, { uk: string; en: string }> = {
 
   // ── Лендинг (публичная витрина) ────────────────────────────
   'Попробовать': { uk: 'Спробувати', en: 'Try it' },
+  // Анимация героя (HeroShowcase)
+  'Анимация: данные с Apple Watch оживают на сайте': { uk: 'Анімація: дані з Apple Watch оживають на сайті', en: 'Animation: Apple Watch data comes alive on the site' },
+  'Превращение': { uk: 'Перетворення', en: 'Transform' },
+  'Поток + Telegram': { uk: 'Потік + Telegram', en: 'Flow + Telegram' },
+  'Готовность': { uk: 'Готовність', en: 'Readiness' },
+  'Инсайт': { uk: 'Інсайт', en: 'Insight' },
   'Всё о твоём здоровье — в одном месте. И AI, который находит, что на тебя реально влияет.': { uk: 'Усе про твоє здоровʼя — в одному місці. І AI, який знаходить, що на тебе справді впливає.', en: 'Everything about your health in one place — and an AI that finds what actually affects you.' },
   'Личный хаб здоровья: Apple Watch, привычки и анализы — а AI находит закономерности.': { uk: 'Особистий хаб здоровʼя: Apple Watch, звички й аналізи — а AI знаходить закономірності.', en: 'Your personal health hub: Apple Watch, habits and labs — and AI finds the patterns.' },
   'Готов(а) попробовать?': { uk: 'Готовий(а) спробувати?', en: 'Ready to try?' },

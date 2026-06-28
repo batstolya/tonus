@@ -8,6 +8,7 @@ import {
 } from '../../lib/supplements'
 import { useT } from '../../lib/i18n'
 import { TreatmentTracker } from './TreatmentTracker'
+import { SupplementSchedule } from './SupplementSchedule'
 
 interface Props {
   user: User
@@ -335,6 +336,9 @@ export function SupplementsScreen({ user }: Props) {
           </div>
         )
       })}
+
+      {/* ── 🕐 Идеальное время приёма — AI schedule ───────────── */}
+      <SupplementSchedule user={user} supplements={supplements} />
 
       {/* ── 🔬 Работает ли? — Treatment tracker ───────────────── */}
       <TreatmentTracker user={user} />

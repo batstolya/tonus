@@ -1,5 +1,5 @@
 import { useT } from '../../../lib/i18n'
-import TelegramDemo from '../../auth/TelegramDemo'
+import HeroShowcase from '../HeroShowcase'
 
 export function HeroBlock({ onTry }: { onTry: () => void }) {
   const { t } = useT()
@@ -19,7 +19,7 @@ export function HeroBlock({ onTry }: { onTry: () => void }) {
           <button className="landing-cta landing-cta-lg" onClick={onTry}>{t('Попробовать')}</button>
         </div>
         <div className="landing-hero-demo">
-          <TelegramDemo />
+          <HeroShowcase />
         </div>
       </div>
     </section>
