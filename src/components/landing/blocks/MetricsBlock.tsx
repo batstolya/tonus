@@ -16,26 +16,26 @@ export function MetricsBlock() {
         <p className="block-sub">{t('Apple Watch синхронизируется автоматически — а ты видишь живую картину.')}</p>
 
         <div className="metrics-grid">
-          <div className="metric-card">
-            <span className="metric-label">{t('Пульс покоя')}</span>
+          <div className="lp-metric-card">
+            <span className="lp-metric-label">{t('Пульс покоя')}</span>
             <span className="metric-value">{inView ? <Counter value={58} /> : 0} <small>bpm</small></span>
           </div>
-          <div className="metric-card">
-            <span className="metric-label">{t('Сон')}</span>
+          <div className="lp-metric-card">
+            <span className="lp-metric-label">{t('Сон')}</span>
             <span className="metric-value">{inView ? <Counter value={7} /> : 0}<small>ч 20м</small></span>
           </div>
-          <div className="metric-card">
-            <span className="metric-label">{t('Активность')}</span>
+          <div className="lp-metric-card">
+            <span className="lp-metric-label">{t('Активность')}</span>
             <span className="metric-value">{inView ? <Counter value={512} /> : 0} <small>kcal</small></span>
           </div>
 
-          <div className="metric-card metric-chart">
-            <span className="metric-label">{t('Стресс')}</span>
-            <div className={`bars ${inView ? 'grow' : ''}`}>
+          <div className="lp-metric-card metric-chart">
+            <span className="lp-metric-label">{t('Стресс')}</span>
+            <div className={`lp-bars ${inView ? 'grow' : ''}`}>
               {bars.map((h, i) => (
                 <span
                   key={i}
-                  className="bar"
+                  className="lp-bar"
                   style={{ '--h': `${h}%`, transitionDelay: `${i * 80}ms` } as CSSProperties}
                 />
               ))}
