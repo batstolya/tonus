@@ -5,7 +5,7 @@ export type AppView = 'upload' | 'dashboard' | 'heart-rate' | 'metrics' | 'stres
 
 export type DeviceType = 'apple_watch' | 'xiaomi'
 
-const VIEWS: AppView[] = ['dashboard', 'heart-rate', 'metrics', 'stress-map', 'sleep', 'activity', 'insights', 'research', 'experiments', 'supplements', 'labs', 'settings', 'goals', 'concerns', 'hair', 'nutrition']
+const VIEWS: AppView[] = ['dashboard', 'heart-rate', 'metrics', 'stress-map', 'sleep', 'activity', 'insights', 'research', 'experiments', 'supplements', 'labs', 'settings', 'goals', 'concerns', 'hair', 'nutrition', 'upload']
 
 function hashToView(): AppView {
   const hash = window.location.hash.slice(1) as AppView
@@ -70,10 +70,6 @@ export function useAppStore() {
     }), [])
   const setProgress = useCallback((p: ParseProgress) => setState(s => ({ ...s, parseProgress: p })), [])
   const setError = useCallback((error: string) => setState(s => ({ ...s, error, parseProgress: null })), [])
-  const reset = useCallback(() => {
-    window.location.hash = ''
-    setState(initial)
-  }, [])
 
-  return { state, setView, setDaily, setEvents, setProgress, setError, reset, setDeviceType }
+  return { state, setView, setDaily, setEvents, setProgress, setError, setDeviceType }
 }
