@@ -1007,8 +1007,16 @@ body {
 /* ── Settings Screen ─────────────────────────────────────── */
 .settings-screen { max-width: 600px; padding: 0 0 40px; }
 .settings-screen h2 { margin-bottom: 24px; }
-.settings-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+.settings-section { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
 .settings-section-title { font-size: 15px; font-weight: 600; margin: 0 0 16px; }
+.settings-section.is-archived, .archivable-block.is-archived { display: none; }
+.archivable-block { position: relative; }
+.section-archive-btn { position: absolute; top: 14px; right: 14px; z-index: 2; display: inline-flex; align-items: center; justify-content: center; padding: 5px; border: none; background: none; color: var(--text-muted); cursor: pointer; border-radius: 7px; opacity: 0.45; transition: opacity .15s, background .15s, color .15s; }
+.section-archive-btn:hover { opacity: 1; color: var(--text); background: var(--surface-2); }
+.settings-archive-toggle { display: flex; align-items: center; gap: 8px; width: 100%; padding: 0; border: none; background: none; font: inherit; font-weight: 600; font-size: 15px; color: var(--text-muted); cursor: pointer; }
+.settings-archive-caret { margin-left: auto; font-size: 11px; }
+.settings-archive-list { margin-top: 14px; display: flex; flex-direction: column; }
+.settings-archive-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--border); font-size: 14px; }
 .settings-budget-bar-track { height: 10px; background: var(--border); border-radius: 5px; overflow: hidden; margin-bottom: 10px; }
 .settings-budget-bar-fill { height: 100%; border-radius: 5px; transition: width 0.4s ease; }
 .settings-budget-row { display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; margin-bottom: 4px; }
