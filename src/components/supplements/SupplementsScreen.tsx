@@ -261,6 +261,9 @@ export function SupplementsScreen({ user }: Props) {
         </div>
       )}
 
+      {/* ── 🕐 Идеальное время приёма — AI schedule ───────────── */}
+      <SupplementSchedule user={user} supplements={supplements} />
+
       <div className="supp-month-nav">
         <button className="preset" onClick={prevMonth}>‹</button>
         <span className="supp-month-label">{monthName}</span>
@@ -336,9 +339,6 @@ export function SupplementsScreen({ user }: Props) {
           </div>
         )
       })}
-
-      {/* ── 🕐 Идеальное время приёма — AI schedule ───────────── */}
-      <SupplementSchedule user={user} supplements={supplements} />
 
       {/* ── 🔬 Работает ли? — Treatment tracker ───────────────── */}
       <TreatmentTracker user={user} />
