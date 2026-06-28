@@ -92,16 +92,16 @@
 @keyframes appchat-out { to { opacity: 0; } }
 
 /* ── Experiments block ───────────────────────────────────── */
-.exp-timeline { display: flex; gap: 10px; max-width: 560px; margin: 0 auto 24px; }
-.exp-period { flex: 1; height: 56px; border-radius: var(--radius); display: flex; align-items: center; justify-content: center; font-size: 14px; color: #fff; transform: scaleX(0); transform-origin: left; }
-.exp-period.in { transition: transform .6s ease; transform: scaleX(1); }
-.exp-period.a { background: var(--text-muted); }
-.exp-period.b { background: var(--accent); transition-delay: .3s; }
-.exp-result { max-width: 560px; margin: 0 auto; text-align: center; background: var(--surface); border: 1px solid var(--green); border-radius: var(--radius); padding: 20px; opacity: 0; transform: translateY(16px); }
-.exp-result.in { opacity: 1; transform: translateY(0); transition: opacity .5s ease .8s, transform .5s ease .8s; }
-.exp-result-label { display: block; color: var(--text-muted); font-size: 13px; }
-.exp-result-delta { font-size: 40px; font-weight: 800; color: var(--green); }
-.exp-result-metric { display: block; color: var(--text-muted); }
+.lp-exp-timeline { display: flex; gap: 10px; max-width: 560px; margin: 0 auto 24px; }
+.lp-exp-period { flex: 1; height: 56px; border-radius: var(--radius); display: flex; align-items: center; justify-content: center; font-size: 14px; color: #fff; transform: scaleX(0); transform-origin: left; }
+.lp-exp-period.in { transition: transform .6s ease; transform: scaleX(1); }
+.lp-exp-period.a { background: var(--text-muted); }
+.lp-exp-period.b { background: var(--accent); transition-delay: .3s; }
+.lp-exp-result { max-width: 560px; margin: 0 auto; text-align: center; background: var(--surface); border: 1px solid var(--green); border-radius: var(--radius); padding: 20px; opacity: 0; transform: translateY(16px); }
+.lp-exp-result.in { opacity: 1; transform: translateY(0); transition: opacity .5s ease .8s, transform .5s ease .8s; }
+.lp-exp-result-label { display: block; color: var(--text-muted); font-size: 13px; }
+.lp-exp-result-delta { font-size: 40px; font-weight: 800; color: var(--green); }
+.lp-exp-result-metric { display: block; color: var(--text-muted); }
 
 /* ── Feature grid ────────────────────────────────────────── */
 .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
@@ -118,7 +118,7 @@
   .lp-insight-card { opacity: 1; transform: none; }
   .appchat-msg { opacity: 1; animation: none; }
   .appchat-typing { display: none; }
-  .exp-period { transform: none; }
-  .exp-result { opacity: 1; transform: none; }
+  .lp-exp-period { transform: none; }
+  .lp-exp-result { opacity: 1; transform: none; }
   .feature-cell { opacity: 1; transform: none; }
 }
