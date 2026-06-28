@@ -294,6 +294,9 @@ export const translations: Record<string, { uk: string; en: string }> = {
   'Напоминать в Telegram': { uk: 'Нагадувати в Telegram', en: 'Remind in Telegram' },
   'Убрать': { uk: 'Прибрати', en: 'Remove' },
   'время': { uk: 'час', en: 'time' },
+  'Ближайшее: сегодня в {time}': { uk: 'Найближче: сьогодні о {time}', en: 'Next: today at {time}' },
+  'Ближайшее: завтра в {time}': { uk: 'Найближче: завтра о {time}', en: 'Next: tomorrow at {time}' },
+  'Ближайшее: через {n} дн в {time}': { uk: 'Найближче: через {n} дн о {time}', en: 'Next: in {n}d at {time}' },
   'Не позже': { uk: 'Не пізніше', en: 'No later than' },
   'тихие часы — после этого времени не напоминать': { uk: 'тихі години — після цього часу не нагадувати', en: 'quiet hours — no reminders after this time' },
 
