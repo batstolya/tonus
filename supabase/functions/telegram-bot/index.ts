@@ -203,6 +203,29 @@ async function classifyMealPhoto(base64: string, mime: string, caption: string):
   } catch { return null }
 }
 
+// Голосовое/аудио → текст через Gemini (inline-аудио). Возвращает распознанную речь.
+async function transcribeVoice(base64: string, mime: string): Promise<{ text: string; tokens: number | null } | null> {
+  if (!GEMINI_KEY) return null
+  const prompt = `Это голосовое сообщение пользователя приложения о здоровье (еда, самочувствие, привычки, вопросы). Точно транскрибируй речь в текст на языке оригинала (русский или украинский). Верни ТОЛЬКО распознанный текст — без пояснений, без кавычек.`
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
+      {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: mime, data: base64 } }] }],
+          generationConfig: { temperature: 0, maxOutputTokens: 512, thinkingConfig: { thinkingBudget: 0 } },
+        }),
+      }
+    )
+    if (!res.ok) return null
+    const data = await res.json()
+    const tokens = data.usageMetadata?.totalTokenCount ?? null
+    const raw = (data.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim()
+    return { text: raw, tokens }
+  } catch { return null }
+}
+
 async function handleMealPhoto(chatId: number | string, userId: string, fileId: string, caption: string, tz: string, supabase: any): Promise<void> {
   await tgTyping(chatId)
   // получить ссылку на файл и скачать
@@ -673,7 +696,7 @@ serve(async (req) => {
   if (!msg) return new Response('ok')
 
   const chatId = msg.chat.id
-  const text = (msg.text ?? '').trim()
+  let text = (msg.text ?? '').trim()
   const username = msg.from?.username ?? null
 
   // /start <token> — link account
@@ -737,6 +760,30 @@ serve(async (req) => {
     const tz = noteSet?.timezone || 'Europe/Kyiv'
     await handleMealPhoto(chatId, userId, largest.file_id, msg.caption ?? '', tz, supabase)
     return new Response('ok')
+  }
+
+  // Голосовое / аудио → транскрипция → дальше обрабатывается как обычный текст
+  const voice = msg.voice ?? msg.audio
+  if (voice && !text) {
+    const budget = await checkBudget(supabase, userId)
+    if (!budget.ok) { await tgSend(chatId, budgetExceededMessage(budget)); return new Response('ok') }
+    if (voice.duration && voice.duration > 120) {
+      await tgSend(chatId, '🎤 Голосовое слишком длинное (>2 мин). Пришли покороче или напиши текстом.')
+      return new Response('ok')
+    }
+    await tgTyping(chatId)
+    const fileRes = await tgCall('getFile', { file_id: voice.file_id })
+    const filePath = fileRes?.result?.file_path
+    if (!filePath) { await tgSend(chatId, '🤔 Не удалось загрузить голосовое, попробуй ещё раз.'); return new Response('ok') }
+    const dl = await fetch(`https://api.telegram.org/file/bot${TG_TOKEN}/${filePath}`)
+    const buf = new Uint8Array(await dl.arrayBuffer())
+    let bin = ''; for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i])
+    const b64 = btoa(bin)
+    const tr = await transcribeVoice(b64, voice.mime_type || 'audio/ogg')
+    if (tr?.tokens) await supabase.from('ai_usage').insert({ user_id: userId, source: 'voice-transcribe', tokens_used: tr.tokens })
+    if (!tr || !tr.text) { await tgSend(chatId, '🤔 Не расслышал. Попробуй сказать ещё раз чуть чётче.'); return new Response('ok') }
+    text = tr.text
+    await tgSend(chatId, `🎤 Распознал: «${text}»`)
   }
 
   // /menu
