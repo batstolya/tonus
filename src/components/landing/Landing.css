@@ -55,13 +55,13 @@
 
 /* ── Metrics block ───────────────────────────────────────── */
 .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; }
-.metric-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; display: flex; flex-direction: column; gap: 8px; }
-.metric-label { color: var(--text-muted); font-size: 13px; }
+.lp-metric-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; display: flex; flex-direction: column; gap: 8px; }
+.lp-metric-label { color: var(--text-muted); font-size: 13px; }
 .metric-value { font-size: 30px; font-weight: 700; }
 .metric-value small { font-size: 14px; color: var(--text-muted); font-weight: 400; }
-.bars { display: flex; align-items: flex-end; gap: 6px; height: 70px; margin-top: 4px; }
-.bar { flex: 1; background: var(--accent); border-radius: 3px 3px 0 0; height: 0; transition: height .5s ease; }
-.bars.grow .bar { height: var(--h); }
+.lp-bars { display: flex; align-items: flex-end; gap: 6px; height: 70px; margin-top: 4px; }
+.lp-bar { flex: 1; background: var(--accent); border-radius: 3px 3px 0 0; height: 0; transition: height .5s ease; }
+.lp-bars.grow .lp-bar { height: var(--h); }
 
 /* ── Insights block ──────────────────────────────────────── */
 .insights-web { position: relative; height: 160px; max-width: 400px; margin: 0 auto 28px; }
@@ -112,7 +112,7 @@
 /* ── Reduced motion: show final state, no animation ──────── */
 @media (prefers-reduced-motion: reduce) {
   .hero-pulse path { animation: none; stroke-dashoffset: 0; }
-  .bar { transition: none; height: var(--h); }
+  .lp-bar { transition: none; height: var(--h); }
   .insights-web .node { animation: none; opacity: 1; transform: none; }
   .web-lines path { animation: none; stroke-dashoffset: 0; }
   .lp-insight-card { opacity: 1; transform: none; }
