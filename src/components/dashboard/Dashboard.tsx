@@ -356,7 +356,7 @@ export function Dashboard({ daily, events, onNavigate, user, quickLog }: Props) 
       color: rhrColor(avgRHR),
     },
     {
-      label: 'HRV',
+      label: 'Вариабельность пульса',
       sub: hrvToday?.date,
       value: hrvToday?.hrv ? Math.round(hrvToday.hrv) : null,
       unit: 'мс',
@@ -364,7 +364,7 @@ export function Dashboard({ daily, events, onNavigate, user, quickLog }: Props) 
       color: hrvColor(hrvToday?.hrv ?? null),
     },
     {
-      label: 'Средний HRV',
+      label: 'Средняя вариабельность',
       sub: 'за 30 дней',
       value: avgHRV,
       unit: 'мс',
