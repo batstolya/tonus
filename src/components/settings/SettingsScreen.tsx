@@ -30,6 +30,36 @@ const SOURCE_LABELS: Record<string, string> = {
   'extract-lab': '🔬 OCR анализов',
 }
 
+// Заголовки секций для списка «Архив» (стабильный id → ключ перевода)
+const SECTION_TITLES: Record<string, string> = {
+  language: 'Язык интерфейса',
+  telegram: 'Telegram',
+  reports: 'Отчёты в Telegram',
+  google: 'Google Calendar',
+  cal: 'Cal.beskarstaff.com',
+  ai: 'AI расходы',
+  import: 'Импорт данных',
+  autosync: 'Авто-синхронизация (Apple Health)',
+  environment: 'Данные среды',
+  device: 'Устройство',
+  export: 'Экспорт данных',
+}
+
+function ArchiveBtn({ id, onArchive }: { id: string; onArchive: (id: string) => void }) {
+  const { t } = useT()
+  return (
+    <button
+      type="button"
+      className="section-archive-btn"
+      title={t('В архив')}
+      aria-label={t('В архив')}
+      onClick={() => onArchive(id)}
+    >
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="5" rx="1"/><path d="M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/><path d="M10 13h4"/></svg>
+    </button>
+  )
+}
+
 export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnected, lastSync, onCalEvents, onNavigate, deviceType, onDeviceTypeChange }: Props) {
   const { t, lang, setLang } = useT()
   const [cost, setCost] = useState<number | null>(null)
@@ -63,6 +93,17 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
   const [locLocating, setLocLocating] = useState(false)
   const [locMsg, setLocMsg] = useState<string | null>(null)
   const [editingLoc, setEditingLoc] = useState(false)
+  const [archivedSections, setArchivedSections] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('settings_archived') ?? '[]') } catch { return [] }
+  })
+  const [archiveOpen, setArchiveOpen] = useState(false)
+  const isArchived = (id: string) => archivedSections.includes(id)
+  function persistArchived(next: string[]) {
+    localStorage.setItem('settings_archived', JSON.stringify(next))
+    setArchivedSections(next)
+  }
+  const archiveSection = (id: string) => { if (!archivedSections.includes(id)) persistArchived([...archivedSections, id]) }
+  const restoreSection = (id: string) => persistArchived(archivedSections.filter(x => x !== id))
 
   async function handleSyncEnvironment() {
     setEnvSyncing(true)
@@ -287,7 +328,8 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
     <div className="settings-screen">
       <h2>{t('Настройки')}</h2>
 
-      <section className="settings-section">
+      <section className={`settings-section${isArchived('language') ? ' is-archived' : ''}`}>
+        <ArchiveBtn id="language" onArchive={archiveSection} />
         <h3 className="settings-section-title">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: 8 }}><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
           {t('Язык интерфейса')}
@@ -303,7 +345,8 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
         </div>
       </section>
 
-      <section className="settings-section">
+      <section className={`settings-section${isArchived('telegram') ? ' is-archived' : ''}`}>
+        <ArchiveBtn id="telegram" onArchive={archiveSection} />
         <h3 className="settings-section-title">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: 8 }}><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           Telegram
@@ -355,7 +398,8 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
       </section>
 
       {tgLinked && rep && (
-        <section className="settings-section">
+        <section className={`settings-section${isArchived('reports') ? ' is-archived' : ''}`}>
+          <ArchiveBtn id="reports" onArchive={archiveSection} />
           <h3 className="settings-section-title">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: 8 }}><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8"/><rect x="12" y="6" width="3" height="12"/><rect x="17" y="13" width="3" height="5"/></svg>
             {t('Отчёты в Telegram')}
@@ -414,7 +458,8 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
       )}
 
       {onGoogleSync && (
-        <section className="settings-section">
+        <section className={`settings-section${isArchived('google') ? ' is-archived' : ''}`}>
+          <ArchiveBtn id="google" onArchive={archiveSection} />
           <h3 className="settings-section-title">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: 8 }}><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             Google Calendar
@@ -436,7 +481,8 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
         </section>
       )}
 
-      <section className="settings-section">
+      <section className={`settings-section${isArchived('cal') ? ' is-archived' : ''}`}>
+        <ArchiveBtn id="cal" onArchive={archiveSection} />
         <h3 className="settings-section-title">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: 8 }}><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01M12 14h.01M16 14h.01"/></svg>
           Cal.beskarstaff.com
@@ -514,7 +560,8 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
         {calMsg && <div style={{ marginTop: 8, fontSize: 13, color: calMsg.startsWith('✓') ? 'var(--green)' : 'var(--red)' }}>{calMsg}</div>}
       </section>
 
-      <section className="settings-section">
+      <section className={`settings-section${isArchived('ai') ? ' is-archived' : ''}`}>
+        <ArchiveBtn id="ai" onArchive={archiveSection} />
         <h3 className="settings-section-title">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: 8 }}><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
           {t('AI расходы')} — {monthName}
@@ -590,9 +637,29 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
         </div>
       </section>
 
-      <AutoSyncSettings user={user} />
+      {onNavigate && (
+        <section className={`settings-section${isArchived('import') ? ' is-archived' : ''}`}>
+          <ArchiveBtn id="import" onArchive={archiveSection} />
+          <h3 className="settings-section-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: 8 }}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            {t('Импорт данных')}
+          </h3>
+          <div className="settings-muted" style={{ fontSize: 12, marginBottom: 10 }}>
+            {t('Загрузите новый экспорт из приложения «Здоровье» (Apple) или Xiaomi, чтобы добавить свежие дни.')}
+          </div>
+          <button className="btn-secondary" onClick={() => onNavigate('upload')}>
+            📥 {t('Загрузить данные')}
+          </button>
+        </section>
+      )}
 
-      <section className="settings-section">
+      <div className={`archivable-block${isArchived('autosync') ? ' is-archived' : ''}`}>
+        <ArchiveBtn id="autosync" onArchive={archiveSection} />
+        <AutoSyncSettings user={user} />
+      </div>
+
+      <section className={`settings-section${isArchived('environment') ? ' is-archived' : ''}`}>
+        <ArchiveBtn id="environment" onArchive={archiveSection} />
         <h3 className="settings-section-title">🌤 {t('Данные среды')}</h3>
         <p className="settings-muted" style={{ marginBottom: 10 }}>
           {t('Температура, давление, световой день, осадки — с Open-Meteo по твоей локации.')}
@@ -646,7 +713,8 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
       </section>
 
       {onDeviceTypeChange && (
-        <section className="settings-section">
+        <section className={`settings-section${isArchived('device') ? ' is-archived' : ''}`}>
+          <ArchiveBtn id="device" onArchive={archiveSection} />
           <h2 className="settings-section-title">{t('Устройство')}</h2>
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>
             {t('Текущий источник данных:')} <strong>{deviceType === 'xiaomi' ? 'Xiaomi / Mi Band' : deviceType === 'apple_watch' ? 'Apple Watch' : t('не выбран')}</strong>
@@ -670,7 +738,8 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
         </section>
       )}
 
-      <section className="settings-section">
+      <section className={`settings-section${isArchived('export') ? ' is-archived' : ''}`}>
+        <ArchiveBtn id="export" onArchive={archiveSection} />
         <h3 className="settings-section-title">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: 8 }}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           {t('Экспорт данных')}
@@ -687,6 +756,26 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
           </button>
         </div>
       </section>
+
+      {archivedSections.length > 0 && (
+        <section className="settings-section settings-archive">
+          <button type="button" className="settings-archive-toggle" onClick={() => setArchiveOpen(o => !o)}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="5" rx="1"/><path d="M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/><path d="M10 13h4"/></svg>
+            {t('Архив')} · {archivedSections.length}
+            <span className="settings-archive-caret">{archiveOpen ? '▲' : '▼'}</span>
+          </button>
+          {archiveOpen && (
+            <div className="settings-archive-list">
+              {archivedSections.map(id => (
+                <div key={id} className="settings-archive-row">
+                  <span>{t(SECTION_TITLES[id] ?? id)}</span>
+                  <button type="button" className="link-btn" onClick={() => restoreSection(id)}>{t('Вернуть')}</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
     </div>
   )
 }
