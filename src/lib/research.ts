@@ -41,7 +41,7 @@ const std = (a: number[]) => { const m = mean(a); if (m == null || a.length < 2)
 
 // Континуальные метрики, которые анализируем
 const METRICS: { key: keyof DailyMetrics; label: string; betterHigh: boolean }[] = [
-  { key: 'hrv', label: 'HRV', betterHigh: true },
+  { key: 'hrv', label: 'Вариабельность пульса', betterHigh: true },
   { key: 'restingHeartRate', label: 'Пульс покоя', betterHigh: false },
   { key: 'sleepHours', label: 'Длительность сна', betterHigh: true },
   { key: 'sleepDeep', label: 'Глубокий сон', betterHigh: true },
