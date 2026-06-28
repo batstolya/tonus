@@ -101,6 +101,35 @@ export async function saveReminder(
   return !error
 }
 
+// ── Profile basics (age + sex) for AI scheduling ──────────────────────────────
+
+export type Sex = 'male' | 'female'
+
+export interface ProfileBasics {
+  birth_year: number | null
+  sex: Sex | null
+}
+
+// Returns null if the columns aren't in the DB yet (migration not run) — the
+// caller surfaces a "run this SQL" banner, same pattern as stock_count.
+export async function loadProfileBasics(userId: string): Promise<ProfileBasics | null> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('birth_year, sex')
+    .eq('id', userId)
+    .maybeSingle()
+  if (error) return null
+  return { birth_year: data?.birth_year ?? null, sex: (data?.sex as Sex | null) ?? null }
+}
+
+export async function saveProfileBasics(userId: string, patch: Partial<ProfileBasics>): Promise<boolean> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ ...patch })
+    .eq('id', userId)
+  return !error
+}
+
 export async function toggleLog(userId: string, supplementId: string, date: string, taken: boolean): Promise<void> {
   if (taken) {
     await supabase.from('supplement_logs').upsert(
