@@ -1099,6 +1099,7 @@ body {
 .rem-toggle { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 500; }
 .rem-toggle input { width: 16px; height: 16px; cursor: pointer; }
 .rem-times { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.rem-next { font-size: 12px; color: var(--text-muted); }
 .rem-time-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--border); padding: 4px 8px 4px 10px; border-radius: 14px; font-size: 13px; font-weight: 600; }
 .rem-time-chip button { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 12px; padding: 0; line-height: 1; }
 .rem-time-chip button:hover { color: var(--red); }
