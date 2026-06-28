@@ -7,6 +7,7 @@ import {
   type Supplement, type SupplementLog, type ReminderSetting,
 } from '../../lib/supplements'
 import { useT } from '../../lib/i18n'
+import { describeNextReminder } from '../../lib/reminderTime'
 import { TreatmentTracker } from './TreatmentTracker'
 import { SupplementSchedule } from './SupplementSchedule'
 
@@ -394,6 +395,17 @@ function ReminderEditor({ setting, onSave }: {
           <button onClick={addTime}>+ {t('время')}</button>
         </span>
       </div>
+
+      {enabled && times.length > 0 && (() => {
+        const next = describeNextReminder(times, weekdays)
+        if (!next) return null
+        const label = next.offsetDays === 0
+          ? t('Ближайшее: сегодня в {time}', { time: next.time })
+          : next.offsetDays === 1
+            ? t('Ближайшее: завтра в {time}', { time: next.time })
+            : t('Ближайшее: через {n} дн в {time}', { n: next.offsetDays, time: next.time })
+        return <div className="rem-next">⏰ {label}</div>
+      })()}
 
       <div className="rem-weekdays">
         {WD.map(([label, d]) => (
