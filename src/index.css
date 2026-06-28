@@ -1662,6 +1662,23 @@ body {
 .treatment-metric-delta { font-weight: 600; }
 .treatment-disclaimer { font-size: 11px; color: var(--text-muted); font-style: italic; margin-top: 8px; }
 
+/* «Чи працює?» — add-treatment form */
+.tt-form { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 16px; }
+.tt-form-fields { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.tt-field { display: flex; flex-direction: column; gap: 6px; flex: 1 1 180px; min-width: 0; }
+.tt-field-label { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+.tt-input { width: 100%; box-sizing: border-box; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 14px; color: var(--text); font-family: inherit; transition: border-color 0.15s, box-shadow 0.15s; }
+.tt-input:hover { border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); }
+.tt-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; padding-right: 34px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' stroke='%239aa3b2' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
+.tt-form-actions { display: flex; justify-content: flex-end; align-items: center; gap: 10px; }
+.tt-form-actions .btn-ghost { margin-top: 0; }
+@media (max-width: 560px) {
+  .tt-field { flex-basis: 100%; }
+  .tt-form-actions { justify-content: stretch; }
+  .tt-form-actions .btn-primary { flex: 1; }
+}
+
 /* 🕐 AI supplement schedule */
 .supp-sched-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
 .supp-sched-head h3 { margin: 0; font-size: 16px; font-weight: 700; }

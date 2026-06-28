@@ -220,41 +220,48 @@ export function TreatmentTracker({ user }: Props) {
       </div>
 
       {showForm && (
-        <div className="supp-form" style={{ marginBottom: 16 }}>
-          <select
-            className="supp-input"
-            value={formSupId}
-            onChange={e => setFormSupId(e.target.value)}
-          >
-            <option value="">{t('Выбери препарат')}</option>
-            {supplements.map(s => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
-          </select>
-
-          {!formSupId && (
-            <input
-              className="supp-input"
-              placeholder={t('Своё название')}
-              value={formCustomName}
-              onChange={e => setFormCustomName(e.target.value)}
-            />
-          )}
-
-          <div>
-            <label style={{ fontSize: 13, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
-              {t('Дата начала')}
+        <div className="tt-form">
+          <div className="tt-form-fields">
+            <label className="tt-field">
+              <span className="tt-field-label">{t('Препарат')}</span>
+              <select
+                className="tt-input"
+                value={formSupId}
+                onChange={e => setFormSupId(e.target.value)}
+              >
+                <option value="">{t('Выбери препарат')}</option>
+                {supplements.map(s => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
             </label>
-            <input
-              type="date"
-              className="supp-input"
-              value={formDate}
-              max={today}
-              onChange={e => setFormDate(e.target.value)}
-            />
+
+            {!formSupId && (
+              <label className="tt-field">
+                <span className="tt-field-label">{t('Своё название')}</span>
+                <input
+                  className="tt-input"
+                  placeholder={t('Своё название')}
+                  value={formCustomName}
+                  onChange={e => setFormCustomName(e.target.value)}
+                />
+              </label>
+            )}
+
+            <label className="tt-field">
+              <span className="tt-field-label">{t('Дата начала')}</span>
+              <input
+                type="date"
+                className="tt-input"
+                value={formDate}
+                max={today}
+                onChange={e => setFormDate(e.target.value)}
+              />
+            </label>
           </div>
 
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="tt-form-actions">
+            <button className="btn-ghost" onClick={() => setShowForm(false)}>{t('Отмена')}</button>
             <button
               className="btn-primary"
               onClick={handleAdd}
@@ -262,7 +269,6 @@ export function TreatmentTracker({ user }: Props) {
             >
               {saving ? '…' : t('Сохранить')}
             </button>
-            <button className="btn-ghost" onClick={() => setShowForm(false)}>{t('Отмена')}</button>
           </div>
         </div>
       )}
