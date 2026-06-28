@@ -6,6 +6,7 @@ import { getPrompt } from '../_shared/prompts.ts'
 import { localToIso, localDate } from '../_shared/time.ts'
 import { buildClassifyPrompt } from '../_shared/classifyPrompt.ts'
 import { daysSinceFreshData, freshestDataTs } from '../_shared/staleness.ts'
+import { detectSaveIntent } from '../_shared/saveIntent.ts'
 
 const TG_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -1039,6 +1040,32 @@ serve(async (req) => {
     .from('daily_note_settings').select('timezone').eq('user_id', userId).maybeSingle()
   const tz = noteSet?.timezone || 'Europe/Kyiv'
   const now = msg.date ? new Date(msg.date * 1000) : new Date()
+
+  // Явная просьба сохранить как идею/заметку (в т.ч. из голоса) — до классификатора и чата.
+  const saveIntent = detectSaveIntent(text)
+  if (saveIntent) {
+    if (!saveIntent.content) {
+      await tgSend(chatId, saveIntent.kind === 'idea'
+        ? '💡 Что записать в идеи? Пришли текст идеи.'
+        : '📝 Что записать в заметки? Пришли текст.')
+      return new Response('ok')
+    }
+    if (saveIntent.kind === 'idea') {
+      const { error } = await supabase.from('ideas').insert({ user_id: userId, text: saveIntent.content })
+      await tgSend(chatId, error ? '❌ Не удалось сохранить, попробуй ещё раз.' : '💡 Записал в идеи. Все идеи — /ideas', { reply_markup: BACK_MENU })
+    } else {
+      const date = localDate(tz)
+      const { data: existing } = await supabase
+        .from('context_notes').select('note').eq('user_id', userId).eq('date', date).maybeSingle()
+      const merged = existing?.note ? `${existing.note}\n${saveIntent.content}` : saveIntent.content
+      const { error } = await supabase.from('context_notes').upsert(
+        { user_id: userId, date, note: merged, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id,date' }
+      )
+      await tgSend(chatId, error ? '❌ Не удалось сохранить, попробуй ещё раз.' : '📝 Записал в заметки.', { reply_markup: BACK_MENU })
+    }
+    return new Response('ok')
+  }
 
   const budget = await checkBudget(supabase, userId)
   let act: any = null
