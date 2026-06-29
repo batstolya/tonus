@@ -193,8 +193,15 @@ def codex_status_text(c: dict) -> str:
     s_pct = s.get("used_percent", 0)
     p_secs = _reset_secs(p)
     s_secs = _reset_secs(s)
-    p_line = f"{bar(p_pct)} {p_pct:.0f}% · сброс через <b>{fmt_time(p_secs)}</b>" if p_secs else f"{bar(p_pct)} {p_pct:.0f}%"
-    s_line = f"{bar(s_pct)} {s_pct:.0f}% · сброс через <b>{fmt_time(s_secs)}</b>" if s_secs else f"{bar(s_pct)} {s_pct:.0f}%"
+
+    def win_line(pct, secs):
+        # Окно уже сброшено (reset в прошлом) → старый % недействителен.
+        if secs is not None and secs <= 0:
+            return "♻️ окно сброшено — свободно"
+        return f"{bar(pct)} {pct:.0f}% · сброс через <b>{fmt_time(secs)}</b>" if secs else f"{bar(pct)} {pct:.0f}%"
+
+    p_line = win_line(p_pct, p_secs)
+    s_line = win_line(s_pct, s_secs)
     plan = f" · {c['plan_type']}" if c.get("plan_type") else ""
     return (
         f"🤖 <b>Codex · 5ч</b>{plan}\n{p_line}\n\n"
