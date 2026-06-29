@@ -973,27 +973,30 @@ serve(async (req) => {
     const { data: cx } = await supabase.from('codex_usage').select('*').eq('id', 1).maybeSingle()
     if (cx) {
       const now = Date.now()
-      // Окно уже сброшено (reset в прошлом) → старый % недействителен, показываем «свободно».
-      const winLine = (pct: number, iso: string | null): string => {
-        if (iso && new Date(iso).getTime() <= now) return '♻️ окно сброшено — свободно'
-        return iso
-          ? `${bar(pct)} ${pct.toFixed(0)}% · сброс через *${fmtTime(iso)}*`
-          : `${bar(pct)} ${pct.toFixed(0)}%`
-      }
-      const csLine = winLine(cx.session_pct ?? 0, cx.session_resets_at)
-      const cwLine = winLine(cx.weekly_pct ?? 0, cx.weekly_resets_at)
       const cAgeMin = Math.floor((now - new Date(cx.updated_at).getTime()) / 60000)
       const cAge = cAgeMin <= 0 ? 'только что' : cAgeMin < 60 ? `${cAgeMin} мин назад` : `${Math.floor(cAgeMin / 60)}ч ${cAgeMin % 60}м назад`
-      // Данные Codex обновляются только при работе в Codex; >30 мин — предупреждаем.
-      const ageLine = cAgeMin > 30
-        ? `_⚠️ данные Codex могут быть неактуальны (${cAge}) — обновятся при работе в Codex_`
-        : `_данные Codex: ${cAge}_`
       const plan = cx.plan_type ? ` · ${cx.plan_type}` : ''
-      codexBlock =
-        `\n\n🤖 *Лимиты Codex*${plan}\n\n` +
-        `*Сессия (5ч)*\n${csLine}\n\n` +
-        `*Неделя*\n${cwLine}\n\n` +
-        ageLine
+      // Codex пишет лимиты в транскрипт только при отправке запроса. Если снимок
+      // несвежий (>30 мин) — конкретные % недостоверны (окна могли сброситься),
+      // поэтому не показываем цифры, а просим сделать ход в Codex.
+      if (cAgeMin > 30) {
+        codexBlock =
+          `\n\n🤖 *Лимиты Codex*${plan}\n\n` +
+          `⚠️ Нет свежих данных (снимок ${cAge}).\n` +
+          `Codex обновляет лимиты только при отправке запроса — сделай любой ход в Codex, и /usage покажет актуальные цифры.`
+      } else {
+        const winLine = (pct: number, iso: string | null): string => {
+          if (iso && new Date(iso).getTime() <= now) return '♻️ окно сброшено — свободно'
+          return iso
+            ? `${bar(pct)} ${pct.toFixed(0)}% · сброс через *${fmtTime(iso)}*`
+            : `${bar(pct)} ${pct.toFixed(0)}%`
+        }
+        codexBlock =
+          `\n\n🤖 *Лимиты Codex*${plan}\n\n` +
+          `*Сессия (5ч)*\n${winLine(cx.session_pct ?? 0, cx.session_resets_at)}\n\n` +
+          `*Неделя*\n${winLine(cx.weekly_pct ?? 0, cx.weekly_resets_at)}\n\n` +
+          `_данные Codex: ${cAge}_`
+      }
     }
 
     await tgSend(chatId,
