@@ -90,7 +90,7 @@ async function setupCommands() {
       { command: 'sync', description: '📲 Дата последней синхронизации' },
       { command: 'pause', description: '⏸ Приостановить отчёты' },
       { command: 'resume', description: '▶️ Возобновить отчёты' },
-      { command: 'usage', description: '🤖 Лимиты Claude' },
+      { command: 'usage', description: '🤖 Лимиты Claude + Codex' },
       { command: 'tokens', description: '✨ Токены Gemini' },
       { command: 'idea', description: '💡 Записать идею' },
       { command: 'ideas', description: '💡 Список идей' },
@@ -966,12 +966,37 @@ serve(async (req) => {
       ? `⚠️ *Данные неактуальны* (обновлено ${ageStr}).\nЛокальный монитор не запущен — это последний снимок. Запусти monitor.py для свежих цифр.\n\n`
       : ''
     const footer = stale ? '' : `\n\n_обновлено ${ageStr}_`
+
+    // Codex — пишется тем же локальным монитором в codex_usage (обновляется только
+    // когда работаешь в Codex), поэтому показываем его свежесть отдельно.
+    let codexBlock = ''
+    const { data: cx } = await supabase.from('codex_usage').select('*').eq('id', 1).maybeSingle()
+    if (cx) {
+      const cs: number = cx.session_pct ?? 0
+      const cw: number = cx.weekly_pct ?? 0
+      const csLine = cx.session_resets_at
+        ? `${bar(cs)} ${cs.toFixed(0)}% · сброс через *${fmtTime(cx.session_resets_at)}*`
+        : `${bar(cs)} ${cs.toFixed(0)}%`
+      const cwLine = cx.weekly_resets_at
+        ? `${bar(cw)} ${cw.toFixed(0)}% · сброс через *${fmtTime(cx.weekly_resets_at)}*`
+        : `${bar(cw)} ${cw.toFixed(0)}%`
+      const cAgeMin = Math.floor((Date.now() - new Date(cx.updated_at).getTime()) / 60000)
+      const cAge = cAgeMin <= 0 ? 'только что' : cAgeMin < 60 ? `${cAgeMin} мин назад` : `${Math.floor(cAgeMin / 60)}ч ${cAgeMin % 60}м назад`
+      const plan = cx.plan_type ? ` · ${cx.plan_type}` : ''
+      codexBlock =
+        `\n\n🤖 *Лимиты Codex*${plan}\n\n` +
+        `*Сессия (5ч)*\n${csLine}\n\n` +
+        `*Неделя*\n${cwLine}\n\n` +
+        `_данные Codex: ${cAge}_`
+    }
+
     await tgSend(chatId,
       header +
       `🤖 *Лимиты Claude*\n\n` +
       `*Сессия (5ч)*\n${sLine}\n\n` +
       `*Неделя*\n${wLine}` +
-      footer,
+      footer +
+      codexBlock,
       { parse_mode: 'Markdown', reply_markup: BACK_MENU }
     )
     return new Response('ok')

@@ -129,7 +129,42 @@ def parse_codex_rate_limits(line: str) -> dict | None:
         "primary": rl.get("primary") or {},
         "secondary": rl.get("secondary") or {},
         "plan_type": rl.get("plan_type"),
+        "ts": obj.get("timestamp"),  # ISO-время события (свежесть данных Codex)
     }
+
+def push_codex_to_supabase(c: dict):
+    if not SUPABASE_URL or not SUPABASE_SVC_KEY:
+        return
+    p = c.get("primary") or {}
+    s = c.get("secondary") or {}
+
+    def iso(ts):
+        if not ts:
+            return None
+        return datetime.fromtimestamp(ts, tz=timezone.utc).isoformat()
+
+    try:
+        requests.post(
+            f"{SUPABASE_URL}/rest/v1/codex_usage",
+            headers={
+                "apikey": SUPABASE_SVC_KEY,
+                "Authorization": f"Bearer {SUPABASE_SVC_KEY}",
+                "Content-Type": "application/json",
+                "Prefer": "resolution=merge-duplicates",
+            },
+            json={
+                "id": 1,
+                "session_pct": p.get("used_percent", 0),
+                "session_resets_at": iso(p.get("resets_at") or p.get("reset_at")),
+                "weekly_pct": s.get("used_percent", 0),
+                "weekly_resets_at": iso(s.get("resets_at") or s.get("reset_at")),
+                "plan_type": c.get("plan_type"),
+                "updated_at": c.get("ts") or datetime.now(timezone.utc).isoformat(),
+            },
+            timeout=10,
+        )
+    except Exception as e:
+        log.error("Codex supabase push error: %s", e)
 
 def _reset_secs(window: dict):
     # rollout пишет resets_at; на всякий случай поддержим и reset_at
@@ -362,6 +397,7 @@ def check_codex(state: dict) -> dict:
     c = fetch_codex_usage()
     if not c:
         return state
+    push_codex_to_supabase(c)  # снимок для /usage в Tonus-боте (всегда, даже если устарел)
     p = c.get("primary") or {}
     s = c.get("secondary") or {}
     p_pct = p.get("used_percent", 0)
