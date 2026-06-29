@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import os, json, time, logging, subprocess, threading, requests
+import os, json, time, logging, subprocess, threading, queue, requests
 from datetime import datetime, timezone
 from pathlib import Path
 from dotenv import load_dotenv
@@ -102,34 +102,76 @@ def status_text(data: dict) -> str:
     )
 
 
-# ── Codex (читаем лимиты из session-транскриптов Codex CLI) ─────────────────────
-# Лимиты пишутся в события token_count в ~/.codex/sessions/**/rollout-*.jsonl
-# (это персистентно, в отличие от logs_*.sqlite, который чистится).
+# ── Codex (LIVE-лимиты через app-server RPC) ────────────────────────────────────
+# Дёргаем `codex app-server` (JSON-RPC по stdio) метод account/rateLimits/read —
+# это то же, что показывает /status в приложении. Codex сам авторизуется
+# (токен + рефреш), квота модели НЕ тратится. Данные всегда свежие.
 
-CODEX_DIR = os.environ.get("CODEX_DIR", os.path.expanduser("~/.codex"))
+CODEX_BIN = os.environ.get("CODEX_BIN", "/Applications/Codex.app/Contents/Resources/codex")
 
-def _newest_rollout() -> str | None:
-    base = Path(CODEX_DIR)
-    root = base / "sessions" if (base / "sessions").is_dir() else base
-    files = sorted(root.rglob("rollout-*.jsonl"), key=lambda f: f.stat().st_mtime, reverse=True)
-    return str(files[0]) if files else None
-
-def parse_codex_rate_limits(line: str) -> dict | None:
-    """rate_limits из одной строки rollout-транскрипта (payload.rate_limits)."""
-    if not line or '"rate_limits"' not in line or "used_percent" not in line:
-        return None
+def _codex_rpc_rate_limits(timeout: float = 12.0) -> dict | None:
+    binpath = CODEX_BIN if os.path.exists(CODEX_BIN) else "codex"
     try:
-        obj = json.loads(line)
-    except Exception:
+        proc = subprocess.Popen(
+            [binpath, "app-server"],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            text=True, bufsize=1, cwd=os.path.expanduser("~"),
+        )
+    except Exception as e:
+        log.error("Codex app-server spawn failed: %s", e)
         return None
-    rl = (obj.get("payload") or {}).get("rate_limits") or obj.get("rate_limits")
-    if not isinstance(rl, dict) or not (rl.get("primary") or rl.get("secondary")):
+
+    q: "queue.Queue[str]" = queue.Queue()
+    threading.Thread(target=lambda: [q.put(ln) for ln in proc.stdout], daemon=True).start()
+
+    result = None
+    try:
+        def send(o):
+            proc.stdin.write(json.dumps(o) + "\n"); proc.stdin.flush()
+        send({"jsonrpc": "2.0", "id": 1, "method": "initialize",
+              "params": {"clientInfo": {"name": "tonus-monitor", "version": "1.0"}}})
+        send({"jsonrpc": "2.0", "id": 2, "method": "account/rateLimits/read", "params": {}})
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            try:
+                line = q.get(timeout=0.5).strip()
+            except queue.Empty:
+                continue
+            if not line:
+                continue
+            try:
+                msg = json.loads(line)
+            except Exception:
+                continue
+            if isinstance(msg, dict) and msg.get("id") == 2 and "result" in msg:
+                result = msg["result"]
+                break
+    except Exception as e:
+        log.error("Codex rpc error: %s", e)
+    finally:
+        try:
+            proc.terminate()
+        except Exception:
+            pass
+
+    if not result:
         return None
+    rl = result.get("rateLimits")
+    if not isinstance(rl, dict):
+        by = result.get("rateLimitsByLimitId") or {}
+        rl = by.get("codex") or next(iter(by.values()), None)
+    if not isinstance(rl, dict):
+        return None
+
+    def win(w):
+        w = w or {}
+        return {"used_percent": w.get("usedPercent", 0), "resets_at": w.get("resetsAt")}
+
     return {
-        "primary": rl.get("primary") or {},
-        "secondary": rl.get("secondary") or {},
-        "plan_type": rl.get("plan_type"),
-        "ts": obj.get("timestamp"),  # ISO-время события (свежесть данных Codex)
+        "primary": win(rl.get("primary")),
+        "secondary": win(rl.get("secondary")),
+        "plan_type": rl.get("planType"),
+        "ts": datetime.now(timezone.utc).isoformat(),  # данные live → метка «сейчас»
     }
 
 def push_codex_to_supabase(c: dict):
@@ -171,20 +213,7 @@ def _reset_secs(window: dict):
     return seconds_until_epoch(window.get("resets_at") or window.get("reset_at"))
 
 def fetch_codex_usage() -> dict | None:
-    path = _newest_rollout()
-    if not path:
-        return None
-    try:
-        latest = None
-        with open(path, "r", encoding="utf-8", errors="replace") as f:
-            for line in f:
-                rl = parse_codex_rate_limits(line)
-                if rl:
-                    latest = rl
-        return latest
-    except Exception as e:
-        log.error("Codex fetch error: %s", e)
-        return None
+    return _codex_rpc_rate_limits()
 
 def codex_status_text(c: dict) -> str:
     p = c.get("primary") or {}
