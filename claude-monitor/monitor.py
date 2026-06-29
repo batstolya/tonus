@@ -67,6 +67,12 @@ def seconds_until(iso: str) -> float:
         dt = dt.replace(tzinfo=timezone.utc)
     return (dt - datetime.now(timezone.utc)).total_seconds()
 
+def seconds_until_epoch(ts) -> float | None:
+    """Секунд до unix-времени ts (epoch). None → нет данных."""
+    if not ts:
+        return None
+    return ts - datetime.now(timezone.utc).timestamp()
+
 def fmt_time(seconds: float) -> str:
     seconds = max(0, int(seconds))
     h, rem = divmod(seconds, 3600)
@@ -93,6 +99,71 @@ def status_text(data: dict) -> str:
     return (
         f"<b>Сессия (5ч)</b>\n{s_line}\n\n"
         f"<b>Неделя</b>\n{w_line}"
+    )
+
+
+# ── Codex (читаем лимиты из session-транскриптов Codex CLI) ─────────────────────
+# Лимиты пишутся в события token_count в ~/.codex/sessions/**/rollout-*.jsonl
+# (это персистентно, в отличие от logs_*.sqlite, который чистится).
+
+CODEX_DIR = os.environ.get("CODEX_DIR", os.path.expanduser("~/.codex"))
+
+def _newest_rollout() -> str | None:
+    base = Path(CODEX_DIR)
+    root = base / "sessions" if (base / "sessions").is_dir() else base
+    files = sorted(root.rglob("rollout-*.jsonl"), key=lambda f: f.stat().st_mtime, reverse=True)
+    return str(files[0]) if files else None
+
+def parse_codex_rate_limits(line: str) -> dict | None:
+    """rate_limits из одной строки rollout-транскрипта (payload.rate_limits)."""
+    if not line or '"rate_limits"' not in line or "used_percent" not in line:
+        return None
+    try:
+        obj = json.loads(line)
+    except Exception:
+        return None
+    rl = (obj.get("payload") or {}).get("rate_limits") or obj.get("rate_limits")
+    if not isinstance(rl, dict) or not (rl.get("primary") or rl.get("secondary")):
+        return None
+    return {
+        "primary": rl.get("primary") or {},
+        "secondary": rl.get("secondary") or {},
+        "plan_type": rl.get("plan_type"),
+    }
+
+def _reset_secs(window: dict):
+    # rollout пишет resets_at; на всякий случай поддержим и reset_at
+    return seconds_until_epoch(window.get("resets_at") or window.get("reset_at"))
+
+def fetch_codex_usage() -> dict | None:
+    path = _newest_rollout()
+    if not path:
+        return None
+    try:
+        latest = None
+        with open(path, "r", encoding="utf-8", errors="replace") as f:
+            for line in f:
+                rl = parse_codex_rate_limits(line)
+                if rl:
+                    latest = rl
+        return latest
+    except Exception as e:
+        log.error("Codex fetch error: %s", e)
+        return None
+
+def codex_status_text(c: dict) -> str:
+    p = c.get("primary") or {}
+    s = c.get("secondary") or {}
+    p_pct = p.get("used_percent", 0)
+    s_pct = s.get("used_percent", 0)
+    p_secs = _reset_secs(p)
+    s_secs = _reset_secs(s)
+    p_line = f"{bar(p_pct)} {p_pct:.0f}% · сброс через <b>{fmt_time(p_secs)}</b>" if p_secs else f"{bar(p_pct)} {p_pct:.0f}%"
+    s_line = f"{bar(s_pct)} {s_pct:.0f}% · сброс через <b>{fmt_time(s_secs)}</b>" if s_secs else f"{bar(s_pct)} {s_pct:.0f}%"
+    plan = f" · {c['plan_type']}" if c.get("plan_type") else ""
+    return (
+        f"🤖 <b>Codex · 5ч</b>{plan}\n{p_line}\n\n"
+        f"🤖 <b>Codex · неделя</b>\n{s_line}"
     )
 
 
@@ -173,9 +244,16 @@ def poll_commands():
                 text = msg.get("text", "").strip().lower()
                 cid  = str(msg.get("chat", {}).get("id", ""))
                 if text in ("/usage", "/u"):
+                    parts = []
                     data = fetch_usage()
-                    reply = status_text(data) if data else "❌ Не удалось получить данные"
-                    send_tg(reply, cid)
+                    parts.append(status_text(data) if data else "❌ Claude: не удалось получить данные")
+                    c = fetch_codex_usage()
+                    if c:
+                        parts.append(codex_status_text(c))
+                    send_tg("\n\n".join(parts), cid)
+                elif text in ("/codex", "/c"):
+                    c = fetch_codex_usage()
+                    send_tg(codex_status_text(c) if c else "❌ Codex: нет данных (запусти Codex хотя бы раз)", cid)
         except Exception as e:
             log.error("Poll error: %s", e)
         time.sleep(1)
@@ -280,6 +358,65 @@ def check(state: dict) -> dict:
     return state
 
 
+def check_codex(state: dict) -> dict:
+    c = fetch_codex_usage()
+    if not c:
+        return state
+    p = c.get("primary") or {}
+    s = c.get("secondary") or {}
+    p_pct = p.get("used_percent", 0)
+    s_pct = s.get("used_percent", 0)
+
+    # Данные обновляются только когда Codex работает. Если окно 5ч уже сброшено
+    # (reset в прошлом) — данные устарели, не шлём по ним алерты (иначе ложные
+    # предупреждения по вчерашнему окну). Команды /usage и /codex показывают как есть.
+    p_secs = _reset_secs(p)
+    s_secs = _reset_secs(s)
+    if (p_secs is not None and p_secs <= 0) and (s_secs is not None and s_secs <= 0):
+        return state
+
+    log.info("codex 5h=%.0f%%  week=%.0f%%", p_pct, s_pct)
+
+    WARN = 80
+    p_ex, s_ex = p_pct >= 100, s_pct >= 100
+    p_warn, s_warn = p_pct >= WARN, s_pct >= WARN
+
+    if not state.get("codex_initialized"):
+        state.update({
+            "codex_p_ex_sent": p_ex, "codex_s_ex_sent": s_ex,
+            "codex_p_warn_sent": p_warn, "codex_s_warn_sent": s_warn,
+            "codex_initialized": True,
+        })
+        save_state(state)
+        return state
+
+    if p_warn and not p_ex and not state.get("codex_p_warn_sent"):
+        send_tg(f"⚠️ <b>Codex · сессия на {p_pct:.0f}%</b>\n\n{codex_status_text(c)}")
+        state["codex_p_warn_sent"] = True
+    if s_warn and not s_ex and not state.get("codex_s_warn_sent"):
+        send_tg(f"⚠️ <b>Codex · неделя на {s_pct:.0f}%</b>\n\n{codex_status_text(c)}")
+        state["codex_s_warn_sent"] = True
+    if p_ex and not state.get("codex_p_ex_sent"):
+        send_tg(f"🔴 <b>Codex · сессия исчерпана</b>\n\n{codex_status_text(c)}")
+        state["codex_p_ex_sent"] = True
+    if s_ex and not state.get("codex_s_ex_sent"):
+        send_tg(f"🔴 <b>Codex · недельный лимит исчерпан</b>\n\n{codex_status_text(c)}")
+        state["codex_s_ex_sent"] = True
+    if state.get("codex_p_ex_sent") and not p_ex:
+        send_tg(f"⚡️ <b>Codex снова доступен!</b>\n\n{codex_status_text(c)}")
+        state["codex_p_ex_sent"] = False
+    if state.get("codex_s_ex_sent") and not s_ex:
+        send_tg(f"🚀 <b>Codex: недельные лимиты восстановились</b>\n\n{codex_status_text(c)}")
+        state["codex_s_ex_sent"] = False
+    if not p_warn:
+        state["codex_p_warn_sent"] = False
+    if not s_warn:
+        state["codex_s_warn_sent"] = False
+
+    save_state(state)
+    return state
+
+
 PID_FILE = _data_dir / "monitor.pid"
 
 def main():
@@ -304,6 +441,10 @@ def main():
                 state = check(state)
             except Exception as e:
                 log.error("Error: %s", e)
+            try:
+                state = check_codex(state)
+            except Exception as e:
+                log.error("Codex error: %s", e)
             time.sleep(POLL_INTERVAL)
     finally:
         PID_FILE.unlink(missing_ok=True)
