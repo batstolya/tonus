@@ -10,6 +10,7 @@ import { useT } from '../../lib/i18n'
 import { describeNextReminder } from '../../lib/reminderTime'
 import { TreatmentTracker } from './TreatmentTracker'
 import { SupplementSchedule } from './SupplementSchedule'
+import { LoadError } from '../ui/LoadError'
 
 interface Props {
   user: User
@@ -40,7 +41,7 @@ function compliance(logs: SupplementLog[], supplementId: string, days: Date[]): 
 }
 
 export function SupplementsScreen({ user }: Props) {
-  const { t } = useT()
+  const { t, locale } = useT()
   const now = new Date()
   const [year, setYear] = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth() + 1)
@@ -57,17 +58,23 @@ export function SupplementsScreen({ user }: Props) {
   const [reminders, setReminders] = useState<Record<string, ReminderSetting>>({})
   const [remOpen, setRemOpen] = useState<string | null>(null)
   const [remError, setRemError] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState(false)
 
   const days = getDaysInMonth(year, month)
   const todayStr = toDateStr(now)
 
   const reload = useCallback(async () => {
-    const [sups, ls] = await Promise.all([
-      loadSupplements(user.id),
-      loadLogsForMonth(user.id, year, month),
-    ])
-    setSupplements(sups)
-    setLogs(ls)
+    try {
+      const [sups, ls] = await Promise.all([
+        loadSupplements(user.id),
+        loadLogsForMonth(user.id, year, month),
+      ])
+      setSupplements(sups)
+      setLogs(ls)
+      setLoadError(false)
+    } catch {
+      setLoadError(true)
+    }
   }, [user.id, year, month])
 
   useEffect(() => { reload() }, [reload])
@@ -145,7 +152,7 @@ export function SupplementsScreen({ user }: Props) {
     }
   }
 
-  const monthName = new Date(year, month - 1).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })
+  const monthName = new Date(year, month - 1).toLocaleDateString(locale, { month: 'long', year: 'numeric' })
 
   // Calculate first day offset (Monday = 0)
   const firstDow = (new Date(year, month - 1, 1).getDay() + 6) % 7
@@ -156,6 +163,8 @@ export function SupplementsScreen({ user }: Props) {
         <h2>{t('Препараты и добавки')}</h2>
         <button className="btn-primary" onClick={() => setShowForm(s => !s)}>{t('+ Добавить')}</button>
       </div>
+
+      {loadError && <LoadError onRetry={reload} />}
 
       {showForm && (
         <div className="supp-form">
@@ -186,7 +195,7 @@ export function SupplementsScreen({ user }: Props) {
       )}
 
       {supplements.length === 0 && !showForm && (
-        <p className="empty-hint">{t('Нет препаратов. Нажми «+ Добавить» чтобы начать.')}</p>
+        !loadError && <p className="empty-hint">{t('Нет препаратов. Нажми «+ Добавить» чтобы начать.')}</p>
       )}
 
       {stockError && (

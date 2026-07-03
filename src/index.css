@@ -292,6 +292,26 @@ body {
 .screen-hint { color: var(--text-muted); font-size: 14px; }
 .empty-hint { color: var(--text-muted); font-size: 15px; padding: 32px 0; }
 
+.demo-banner {
+  text-align: center; font-size: 12.5px; padding: 5px 12px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.load-error {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 12px 16px; margin: 12px 0; border-radius: 10px;
+  background: color-mix(in srgb, var(--red, #ff6b6b) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--red, #ff6b6b) 35%, transparent);
+  font-size: 14px;
+}
+.load-error-retry {
+  padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--surface2); color: var(--text); cursor: pointer; font-size: 13px;
+}
+.load-error-retry:hover { border-color: var(--accent); }
+
 .presets { display: flex; gap: 6px; }
 .preset {
   background: var(--surface);

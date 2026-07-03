@@ -12,19 +12,6 @@ interface Props {
 
 type Preset = '14d' | '30d' | '90d'
 
-function fmtTime(iso: string | undefined): string {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
-}
-
-function fmtHours(h: number | undefined): string {
-  if (h === undefined) return '—'
-  const hrs = Math.floor(h)
-  const mins = Math.round((h - hrs) * 60)
-  return `${hrs}ч ${mins}м`
-}
-
 // Convert bedtime to comparable number for chart (hours from noon)
 function bedtimeToChartVal(iso: string | undefined): number | null {
   if (!iso) return null
@@ -43,8 +30,20 @@ function chartValToTime(val: number): string {
 }
 
 export function SleepScreen({ daily }: Props) {
-  const { t } = useT()
+  const { t, locale } = useT()
   const [preset, setPreset] = useState<Preset>('30d')
+
+  const fmtTime = (iso: string | undefined): string => {
+    if (!iso) return '—'
+    return new Date(iso).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
+  }
+
+  const fmtHours = (h: number | undefined): string => {
+    if (h === undefined) return '—'
+    const hrs = Math.floor(h)
+    const mins = Math.round((h - hrs) * 60)
+    return t('{h}ч {m}м', { h: hrs, m: mins })
+  }
 
   const days = preset === '14d' ? 14 : preset === '30d' ? 30 : 90
   const slice = useMemo(() => daily.filter(d => d.sleepHours).slice(-days), [daily, days])
@@ -129,7 +128,7 @@ export function SleepScreen({ daily }: Props) {
             <BarChart data={data} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
               <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
-              <YAxis tick={{ fontSize: 11 }} unit="ч" />
+              <YAxis tick={{ fontSize: 11 }} unit={t('ч')} />
               <Tooltip formatter={(v) => v != null ? fmtHours(Number(v)) : '—'} />
               <Legend />
               <Bar dataKey="deep" name={t('Глубокий')} stackId="a" fill="#6c8fff" />
@@ -140,7 +139,7 @@ export function SleepScreen({ daily }: Props) {
             <BarChart data={data} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
               <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
-              <YAxis tick={{ fontSize: 11 }} unit="ч" />
+              <YAxis tick={{ fontSize: 11 }} unit={t('ч')} />
               <Tooltip formatter={(v) => v != null ? fmtHours(Number(v)) : '—'} />
               <Bar dataKey="total" name={t('Сон')} fill="var(--accent)" radius={[3, 3, 0, 0]} />
             </BarChart>

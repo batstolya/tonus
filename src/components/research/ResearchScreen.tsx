@@ -75,7 +75,7 @@ function LeversBlock({ levers, onTry }: { levers: Lever[]; onTry: (l: Lever) => 
 }
 
 export function ResearchScreen({ user, daily, onNavigate }: Props) {
-  const { t, lang } = useT()
+  const { t, locale } = useT()
   const [period, setPeriod] = useState<Period>('90d')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -99,7 +99,7 @@ export function ResearchScreen({ user, daily, onNavigate }: Props) {
   }
 
   function fmtDate(iso: string) {
-    return new Date(iso).toLocaleDateString(lang === 'en' ? 'en-GB' : lang === 'uk' ? 'uk-UA' : 'ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+    return new Date(iso).toLocaleDateString(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
   }
 
   async function handleRun() {

@@ -22,12 +22,13 @@ export interface SupplementLog {
 }
 
 export async function loadSupplements(userId: string): Promise<Supplement[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('supplements')
     .select('*')
     .eq('user_id', userId)
     .eq('active', true)
     .order('sort_order')
+  if (error) throw error
   return (data ?? []) as Supplement[]
 }
 
@@ -52,12 +53,13 @@ export async function deleteSupplement(id: string): Promise<void> {
 export async function loadLogsForMonth(userId: string, year: number, month: number): Promise<SupplementLog[]> {
   const start = `${year}-${String(month).padStart(2, '0')}-01`
   const end = new Date(year, month, 0).toISOString().slice(0, 10)
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('supplement_logs')
     .select('*')
     .eq('user_id', userId)
     .gte('date', start)
     .lte('date', end)
+  if (error) throw error
   return (data ?? []) as SupplementLog[]
 }
 

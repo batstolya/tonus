@@ -19,8 +19,12 @@ function detectLang(): Lang {
   return 'ru'
 }
 
+// BCP-47 локаль для форматирования дат/чисел, соответствующая языку интерфейса.
+const LOCALES: Record<Lang, string> = { ru: 'ru-RU', uk: 'uk-UA', en: 'en-GB' }
+
 interface I18nCtx {
   lang: Lang
+  locale: string
   setLang: (l: Lang) => void
   t: (ru: string, vars?: Record<string, string | number>) => string
 }
@@ -47,7 +51,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     return s
   }, [lang])
 
-  return <Ctx.Provider value={{ lang, setLang, t }}>{children}</Ctx.Provider>
+  return <Ctx.Provider value={{ lang, locale: LOCALES[lang], setLang, t }}>{children}</Ctx.Provider>
 }
 
 export function useT() {

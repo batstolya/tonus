@@ -68,7 +68,7 @@ export function HeartRateScreen({ daily, intakeEvents = [] }: Props) {
   const avgAll = withHR.length ? Math.round(withHR.reduce((a, d) => a + d.heartRate!.avg, 0) / withHR.length) : null
   const withRHR = daily.filter(d => d.restingHeartRate)
   const avgRHR = withRHR.length ? Math.round(withRHR.reduce((a, d) => a + d.restingHeartRate!, 0) / withRHR.length) : null
-  const maxEver = withHR.length ? Math.max(...withHR.map(d => d.heartRate!.max)) : null
+  const maxEver = withHR.length ? Math.round(Math.max(...withHR.map(d => d.heartRate!.max))) : null
 
   function toggleOverlay(key: string) {
     setShown(prev => {

@@ -6,6 +6,7 @@ import {
   CATEGORIES, STATUS_LABELS,
   type HealthConcern, type ConcernLog,
 } from '../../lib/concerns'
+import { LoadError } from '../ui/LoadError'
 import { useT } from '../../lib/i18n'
 
 interface Props { user: User; onNavigateHair?: () => void }
@@ -185,8 +186,14 @@ export function ConcernsScreen({ user, onNavigateHair }: Props) {
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
 
+  const [loadError, setLoadError] = useState(false)
   const reload = useCallback(async () => {
-    setConcerns(await loadAllConcerns(user.id))
+    try {
+      setConcerns(await loadAllConcerns(user.id))
+      setLoadError(false)
+    } catch {
+      setLoadError(true)
+    }
   }, [user.id])
 
   useEffect(() => { reload() }, [reload])
@@ -230,6 +237,8 @@ export function ConcernsScreen({ user, onNavigateHair }: Props) {
         </button>
       </div>
 
+      {loadError && <LoadError onRetry={reload} />}
+
       {showForm && (
         <div className="goals-form" style={{ marginBottom: 24 }}>
           <div className="goals-form-row">
@@ -260,7 +269,7 @@ export function ConcernsScreen({ user, onNavigateHair }: Props) {
         </div>
       )}
 
-      {active.length === 0 && !showForm && (
+      {active.length === 0 && !showForm && !loadError && (
         <p className="empty-hint">{t('Проблем не добавлено. Нажми «+ Добавить» чтобы начать отслеживать.')}</p>
       )}
 
