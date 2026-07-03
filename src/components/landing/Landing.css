@@ -23,10 +23,13 @@
 .landing-hero-title { font-size: clamp(28px, 4.4vw, 48px); line-height: 1.12; letter-spacing: -1px; margin: 0 0 20px; }
 .landing-hero-sub { font-size: clamp(15px, 2vw, 19px); color: var(--text-muted); max-width: 46ch; margin: 0 0 32px; }
 .landing-hero-demo { display: flex; justify-content: center; min-width: 0; }
+.landing-hero-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.landing-hero-actions .landing-ghost { border: 1px solid var(--border); }
 @media (max-width: 860px) {
   .landing-hero-grid { grid-template-columns: 1fr; gap: 32px; }
   .landing-hero-copy { text-align: center; }
   .landing-hero-sub { margin-left: auto; margin-right: auto; }
+  .landing-hero-actions { justify-content: center; }
 }
 
 .landing-final-cta { text-align: center; padding: 96px 0; }

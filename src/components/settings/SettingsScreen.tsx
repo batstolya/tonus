@@ -61,7 +61,7 @@ function ArchiveBtn({ id, onArchive }: { id: string; onArchive: (id: string) => 
 }
 
 export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnected, lastSync, onCalEvents, onNavigate, deviceType, onDeviceTypeChange }: Props) {
-  const { t, lang, setLang } = useT()
+  const { t, lang, setLang, locale } = useT()
   const [cost, setCost] = useState<number | null>(null)
   const [tokens, setTokens] = useState(0)
   const [bySource, setBySource] = useState<Record<string, number>>({})
@@ -322,7 +322,7 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
   const pct = cost !== null ? Math.min((cost / budget) * 100, 100) : 0
   const barColor = pct >= 90 ? 'var(--red)' : pct >= 60 ? '#f59e0b' : 'var(--green)'
   const now = new Date()
-  const monthName = now.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })
+  const monthName = now.toLocaleDateString(locale, { month: 'long', year: 'numeric' })
 
   return (
     <div className="settings-screen">
@@ -495,7 +495,7 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
             </div>
             {calStatus.last_sync_at && (
               <div className="settings-muted" style={{ fontSize: 12, marginBottom: 10 }}>
-                {t('Последняя синхронизация:')} {new Date(calStatus.last_sync_at).toLocaleString(lang === 'en' ? 'en-GB' : lang === 'uk' ? 'uk-UA' : 'ru-RU')} · {calStatus.event_count ?? 0} {t('событий')}
+                {t('Последняя синхронизация:')} {new Date(calStatus.last_sync_at).toLocaleString(locale)} · {calStatus.event_count ?? 0} {t('событий')}
                 {calStatus.last_status && calStatus.last_status !== 'ok' && <span style={{ color: 'var(--red)' }}> · {calStatus.last_status}</span>}
               </div>
             )}

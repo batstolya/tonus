@@ -37,7 +37,7 @@ function nowTimeStr() {
 }
 
 export function QuickLog({ user, events, onEventsChange }: Props) {
-  const { t } = useT()
+  const { t, locale } = useT()
   const [open, setOpen] = useState(false)
   const [selectedType, setSelectedType] = useState('coffee')
   const [amount, setAmount] = useState<string>('')
@@ -97,9 +97,9 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
     .filter(g => g.items.length > 0)
 
   function dayLabel(date: string) {
-    if (date === today) return 'Сегодня'
+    if (date === today) return t('Сегодня')
     if (date === yesterday) return t('Вчера')
-    return new Date(date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
+    return new Date(date).toLocaleDateString(locale, { day: 'numeric', month: 'short' })
   }
 
   // Caffeine model: 80mg per 200ml, half-life 5.5h
@@ -236,7 +236,7 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
                   {ev.note ? ` · ${ev.note}` : ''}
                 </span>
                 <span className="log-item-time">
-                  {new Date(ev.ts).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                  {new Date(ev.ts).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
                 </span>
                 <button className="log-delete" onClick={() => handleDelete(ev.id)}>×</button>
               </div>

@@ -7,7 +7,7 @@ import { ExperimentsBlock } from './blocks/ExperimentsBlock'
 import { FeatureGrid } from './blocks/FeatureGrid'
 import './Landing.css'
 
-export function LandingScreen({ onTry }: { onTry: () => void }) {
+export function LandingScreen({ onTry, onDemo }: { onTry: () => void; onDemo?: () => void }) {
   const { t, lang, setLang } = useT()
   const nextLang = lang === 'ru' ? 'uk' : lang === 'uk' ? 'en' : 'ru'
   const flag = lang === 'ru' ? '🇷🇺' : lang === 'uk' ? '🇺🇦' : '🇬🇧'
@@ -26,7 +26,7 @@ export function LandingScreen({ onTry }: { onTry: () => void }) {
       </header>
 
       <main className="landing-main">
-        <HeroBlock onTry={onTry} />
+        <HeroBlock onTry={onTry} onDemo={onDemo} />
         <MetricsBlock />
         <InsightsBlock />
         <ChatBlock />

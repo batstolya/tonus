@@ -24,20 +24,22 @@ export interface LabResult {
 }
 
 export async function loadLabFiles(userId: string): Promise<LabFile[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('lab_files')
     .select('*')
     .eq('user_id', userId)
     .order('date', { ascending: false })
+  if (error) throw error
   return (data ?? []) as LabFile[]
 }
 
 export async function loadLabResults(userId: string): Promise<LabResult[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('lab_results')
     .select('*')
     .eq('user_id', userId)
     .order('date', { ascending: true })
+  if (error) throw error
   return (data ?? []) as LabResult[]
 }
 

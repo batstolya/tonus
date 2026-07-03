@@ -10,6 +10,7 @@ import {
   type Goal, type Recommendation,
 } from '../../lib/goals'
 import { callFunction } from '../../lib/edgeFunctions'
+import { LoadError } from '../ui/LoadError'
 
 interface Props {
   user: User
@@ -82,10 +83,16 @@ export function GoalsScreen({ user, daily }: Props) {
   const baseline = computeBaseline(daily, fMetric)
   const cfg = METRIC_CONFIG[fMetric]
 
+  const [loadError, setLoadError] = useState(false)
   const reload = useCallback(async () => {
-    const [g, r] = await Promise.all([loadGoals(user.id), loadRecommendations(user.id)])
-    setGoals(g)
-    setRecs(r)
+    try {
+      const [g, r] = await Promise.all([loadGoals(user.id), loadRecommendations(user.id)])
+      setGoals(g)
+      setRecs(r)
+      setLoadError(false)
+    } catch {
+      setLoadError(true)
+    }
   }, [user.id])
 
   useEffect(() => { reload() }, [reload])
@@ -168,6 +175,7 @@ export function GoalsScreen({ user, daily }: Props) {
         </div>
       </div>
       {genMsg && <div style={{ fontSize: 13, color: genMsg.startsWith('Ошибка') ? 'var(--red)' : 'var(--green)', marginBottom: 12 }}>{genMsg}</div>}
+      {loadError && <LoadError onRetry={reload} />}
 
       {/* Create form */}
       {showForm && (

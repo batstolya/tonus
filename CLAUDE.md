@@ -4,15 +4,18 @@
 
 ## Команды
 
-- **Dev/build требуют Node 24** (Vite 8 требует ≥20.19/22.12; дефолтный Node 18
-  падает с `CustomEvent is not defined`): `nvm use 24` или
+- **Всё требует Node 24** — dev, build, test и lint (дефолтный Node 18 падает
+  на современном синтаксисе): `nvm use 24` или
   `export PATH="$HOME/.nvm/versions/node/v24.16.0/bin:$PATH"`.
-- `npm test` — vitest (работает и на Node 18). Окружение **node**, не jsdom:
+- `npm test` — vitest. Окружение **node**, не jsdom:
   рендер React-компонентов недоступен. Паттерн теста компонента — проверка
   экспорта + покрытие переводов (см. `src/components/auth/TelegramDemo.test.ts`);
   чистую логику тестируй напрямую.
 - `npm run build` — `tsc -b && vite build`.
 - `npm run lint` — eslint (в проекте есть pre-existing ошибки; не добавляй новых).
+
+Подробности запуска/деплоя — в проектных скиллах `running-tonus` и `deploying-tonus`
+(`.claude/skills/`).
 
 ## Локальный запуск
 
@@ -25,6 +28,9 @@ VITE_SUPABASE_ANON_KEY=test-anon-key
 ```
 
 Лендинг полностью статичный, dummy-ключей хватает, чтобы его открыть.
+Чтобы увидеть внутренние экраны без Supabase — демо-режим: кнопка
+«Посмотреть демо» на лендинге или `VITE_DEMO=1` в `.env.local`
+(фикстурные данные, см. `src/lib/demo.ts` и `src/lib/demoFixture.ts`).
 
 ## Деплой
 

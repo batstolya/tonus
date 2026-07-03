@@ -47,21 +47,31 @@ export function ChatWidget({ user, daily, intakeEvents = [], heartRateSamples = 
   const [calendarSummary, setCalendarSummary] = useState<string>('')
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  // Контекст (сводки из базы) грузим только после первого открытия чата,
+  // а не при каждом старте приложения.
+  const [everOpened, setEverOpened] = useState(false)
+
+  function toggleOpen() {
+    setOpen(o => !o)
+    setEverOpened(true)
+  }
 
   useEffect(() => {
+    if (!everOpened) return
     loadLabSummary(user.id).then(setLabSummary)
     loadConcernsSummary(user.id).then(setConcernsSummary)
     loadHairSummary(user.id).then(setHairSummary)
     loadCoachProfile().then(setCoachProfile)
-  }, [user.id])
+  }, [user.id, everOpened])
 
   // Rebuild snapshot when period changes (also reloads supplement compliance for the new period)
   useEffect(() => {
+    if (!everOpened) return
     const days = period === '14d' ? 14 : period === '30d' ? 30 : 90
     loadSupplementSummary(user.id, days).then(setSupplementSummary)
     loadNotesSummary(user.id, days).then(setNotesSummary)
     loadCalendarSummary(user.id, days).then(setCalendarSummary)
-  }, [user.id, period])
+  }, [user.id, period, everOpened])
 
   useEffect(() => {
     const days = period === '14d' ? 14 : period === '30d' ? 30 : 90
@@ -128,7 +138,7 @@ export function ChatWidget({ user, daily, intakeEvents = [], heartRateSamples = 
       {/* Floating button */}
       <button
         className={`chat-fab ${open ? 'open' : ''}`}
-        onClick={() => setOpen(o => !o)}
+        onClick={toggleOpen}
         title={t('Чат с ИИ')}
       >
         {open ? (

@@ -114,8 +114,9 @@ export function computeProgress(goal: Goal, daily: DailyMetrics[]): GoalProgress
 }
 
 export async function loadGoals(userId: string): Promise<Goal[]> {
-  const { data } = await supabase.from('goals').select('*').eq('user_id', userId)
+  const { data, error } = await supabase.from('goals').select('*').eq('user_id', userId)
     .in('status', ['active', 'paused']).order('created_at', { ascending: false })
+  if (error) throw error
   return (data ?? []) as Goal[]
 }
 
@@ -133,8 +134,9 @@ export async function deleteGoal(id: string): Promise<void> {
 }
 
 export async function loadRecommendations(userId: string): Promise<Recommendation[]> {
-  const { data } = await supabase.from('recommendations').select('*')
+  const { data, error } = await supabase.from('recommendations').select('*')
     .eq('user_id', userId).eq('status', 'new').order('created_at', { ascending: false }).limit(5)
+  if (error) throw error
   return (data ?? []) as Recommendation[]
 }
 

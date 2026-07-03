@@ -6,6 +6,7 @@ import {
 import { supabase } from '../../lib/supabase'
 import { useT } from '../../lib/i18n'
 import { MealLogger } from './MealLogger'
+import { LoadError } from '../ui/LoadError'
 
 interface Meal {
   ts: string
@@ -21,9 +22,10 @@ interface DayAgg { date: string; calories: number; protein: number; carbs: numbe
 const GOAL_KEY = 'tonus_calorie_goal'
 
 export function NutritionScreen({ user }: { user: User }) {
-  const { t, lang } = useT()
+  const { t, locale } = useT()
   const [meals, setMeals] = useState<Meal[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [goal, setGoal] = useState<number>(() => Number(localStorage.getItem(GOAL_KEY)) || 2000)
   const [editGoal, setEditGoal] = useState(false)
 
@@ -33,12 +35,15 @@ export function NutritionScreen({ user }: { user: User }) {
       .select('ts, note, calories, protein_g, carbs_g, fat_g')
       .eq('user_id', user.id).eq('type', 'meal')
       .gte('ts', since).order('ts', { ascending: false })
-      .then(({ data }) => { setMeals((data ?? []) as Meal[]); setLoading(false) })
+      .then(({ data, error }) => {
+        if (error) setLoadError(true)
+        else { setMeals((data ?? []) as Meal[]); setLoadError(false) }
+        setLoading(false)
+      })
   }
 
   useEffect(() => { loadMeals() }, [user.id])
 
-  const locale = lang === 'en' ? 'en-GB' : lang === 'uk' ? 'uk-UA' : 'ru-RU'
   const days = useMemo<DayAgg[]>(() => {
     const map = new Map<string, DayAgg>()
     for (const m of meals) {
@@ -79,6 +84,7 @@ export function NutritionScreen({ user }: { user: User }) {
   if (!meals.length) return (
     <div className="screen">
       <h2>{t('Питание')}</h2>
+      {loadError && <LoadError onRetry={loadMeals} />}
       <MealLogger user={user} onSaved={loadMeals} />
     </div>
   )

@@ -37,7 +37,7 @@ function EventTick({ x, y, payload }: { x?: number; y?: number; payload?: { valu
 }
 
 export function StressCharts({ entries }: Props) {
-  const { t, lang } = useT()
+  const { t, locale } = useT()
 
   // Только содержательная стрессовая нагрузка: есть прирост и не физическая активность
   const usable = useMemo(
@@ -46,11 +46,10 @@ export function StressCharts({ entries }: Props) {
   )
 
   const weekdayShort = useMemo(() => {
-    const locale = lang === 'en' ? 'en-GB' : lang === 'uk' ? 'uk-UA' : 'ru-RU'
     const names: string[] = []
     for (let i = 0; i < 7; i++) names.push(new Date(2024, 0, 1 + i).toLocaleDateString(locale, { weekday: 'short' }))
     return names // 0 = Пн … 6 = Вс
-  }, [lang])
+  }, [locale])
 
   const byHour = useMemo(() => {
     const map = new Map<number, number[]>()

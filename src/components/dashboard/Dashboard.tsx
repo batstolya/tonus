@@ -154,7 +154,7 @@ function ReadinessCard({ daily }: { daily: DailyMetrics[] }) {
 }
 
 function StressDaysCard({ daily }: { daily: DailyMetrics[] }) {
-  const { t, lang } = useT()
+  const { t, locale } = useT()
   // Скользящее окно за последние 30 дней — чтобы карточка отражала недавнее
   // и обновлялась каждый день, а не «застывала» на минимуме календарного месяца.
   const cutoff = new Date()
@@ -167,7 +167,6 @@ function StressDaysCard({ daily }: { daily: DailyMetrics[] }) {
   const mostStressed = sorted[0]      // наименьший HRV = наименьшее восстановление
   const leastStressed = sorted[sorted.length - 1] // наибольший HRV = самый спокойный
 
-  const locale = lang === 'en' ? 'en-GB' : lang === 'uk' ? 'uk-UA' : 'ru-RU'
   function fmtDate(d: string) {
     return new Date(d + 'T00:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'short' })
   }
@@ -322,7 +321,7 @@ function ContextJournal({ user }: { user: User }) {
 }
 
 export function Dashboard({ daily, events, onNavigate, user, quickLog }: Props) {
-  const { t } = useT()
+  const { t, locale } = useT()
   const insights = generateInsights(daily)
   const totalDays = daily.length
 
@@ -382,7 +381,7 @@ export function Dashboard({ daily, events, onNavigate, user, quickLog }: Props) 
     {
       label: 'Шаги',
       sub: stepsEntry?.date,
-      value: recentSteps != null ? Math.round(recentSteps).toLocaleString('ru-RU') : null,
+      value: recentSteps != null ? Math.round(recentSteps).toLocaleString(locale) : null,
       view: 'activity',
       color: stepsColor(recentSteps ?? null),
     },
