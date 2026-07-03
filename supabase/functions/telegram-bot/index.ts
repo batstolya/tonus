@@ -600,6 +600,9 @@ serve(async (req) => {
       await supabase.from('telegram_links').update({ status: 'paused' }).eq('user_id', userId)
       await tgSend(chatId, '🔌 Telegram отключён от Tonus. Для повторного подключения зайди в настройки приложения.')
     } else if (data.startsWith('wb:')) {
+      // РЕДАКТИРУЕМ исходное сообщение (без reply_markup → кнопки убираются),
+      // чтобы оценку нельзя было нажать повторно и плодить дубли записей.
+      const msgId = cq.message.message_id as number
       const [, date, scoreStr] = data.split(':')
       const score = Number(scoreStr)
       if (date && score >= 1 && score <= 5) {
@@ -607,7 +610,7 @@ serve(async (req) => {
           { user_id: userId, date, wellbeing: score, updated_at: new Date().toISOString() },
           { onConflict: 'user_id,date' }
         )
-        await tgSend(chatId, `🙂 Записал самочувствие: ${score}/5 за ${date}.`)
+        await tgEdit(chatId, msgId, `🙂 Записал самочувствие: ${score}/5 за ${date}.`)
       }
     } else if (data.startsWith('take_')) {
       const supId = data.replace('take_', '')
@@ -1146,7 +1149,7 @@ serve(async (req) => {
   if (act) {
     const confirm = await execLog(chatId, userId, act, tz, supabase, now)
     if (confirm) {
-      await tgSend(chatId, confirm, { reply_markup: BACK_MENU })
+      await tgSend(chatId, confirm, { parse_mode: 'HTML', reply_markup: BACK_MENU })
       return new Response('ok')
     }
   }
