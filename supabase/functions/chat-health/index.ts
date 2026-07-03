@@ -13,7 +13,7 @@ const CORS = {
   'Access-Control-Allow-Headers': 'authorization, content-type',
 }
 
-const SYSTEM_PROMPT = `Ты — персональный ассистент по здоровью. Отвечаешь на русском языке.
+const SYSTEM_PROMPT = `Ты — персональный ассистент по здоровью.
 Твоя роль: помогать пользователю понять его данные здоровья простым языком.
 Строгие правила:
 - Никаких медицинских диагнозов. Только наблюдения на основе данных.
@@ -31,8 +31,11 @@ serve(async (req) => {
     const { data: { user }, error: authErr } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
     if (authErr || !user) return new Response('Unauthorized', { status: 401, headers: CORS })
 
-    const { sessionId, message, contextSnapshot, periodLabel } = await req.json()
+    const { sessionId, message, contextSnapshot, periodLabel, lang } = await req.json()
     if (!message) return new Response('Missing message', { status: 400, headers: CORS })
+    // Язык ответа = язык интерфейса пользователя (данные в контексте всегда на русском)
+    const LANG_NAMES: Record<string, string> = { ru: 'русском', uk: 'украинском', en: 'английском' }
+    const replyLang = LANG_NAMES[lang as string] ?? 'русском'
 
     // AI Cost Guard — не вызываем Gemini при превышении месячного бюджета
     const budget = await checkBudget(supabase, user.id)
@@ -87,7 +90,7 @@ serve(async (req) => {
       // System context as first user message (Gemini pattern)
       {
         role: 'user',
-        parts: [{ text: `${sys.text}${contextText}\n\nПользователь задаёт вопрос о своих данных здоровья.` }],
+        parts: [{ text: `${sys.text}\nОтвечай на ${replyLang} языке.${contextText}\n\nПользователь задаёт вопрос о своих данных здоровья.` }],
       },
       { role: 'model', parts: [{ text: 'Понял, буду отвечать на основе твоих данных.' }] },
       // Recent conversation history
