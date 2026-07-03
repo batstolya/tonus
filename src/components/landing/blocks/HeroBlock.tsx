@@ -1,7 +1,7 @@
 import { useT } from '../../../lib/i18n'
 import HeroShowcase from '../HeroShowcase'
 
-export function HeroBlock({ onTry }: { onTry: () => void }) {
+export function HeroBlock({ onTry, onDemo }: { onTry: () => void; onDemo?: () => void }) {
   const { t } = useT()
   return (
     <section className="landing-hero">
@@ -16,7 +16,10 @@ export function HeroBlock({ onTry }: { onTry: () => void }) {
           <p className="landing-hero-sub">
             {t('Личный хаб здоровья: Apple Watch, привычки и анализы — а AI находит закономерности.')}
           </p>
-          <button className="landing-cta landing-cta-lg" onClick={onTry}>{t('Попробовать')}</button>
+          <div className="landing-hero-actions">
+            <button className="landing-cta landing-cta-lg" onClick={onTry}>{t('Попробовать')}</button>
+            {onDemo && <button className="landing-ghost landing-cta-lg" onClick={onDemo}>{t('Посмотреть демо')}</button>}
+          </div>
         </div>
         <div className="landing-hero-demo">
           <HeroShowcase />

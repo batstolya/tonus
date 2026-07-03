@@ -16,14 +16,14 @@ interface Props {
   onToggleGoogle?: (v: boolean) => void
 }
 
-function fmtDate(d: Date): string {
-  return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+function fmtDate(d: Date, locale: string): string {
+  return d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
 type Mode = 'stress' | 'date' | 'charts'
 
 export function StressMapScreen({ heartRateSamples, events, onEvents, onGoogleCalendar, googleConnected = false, showGoogle = true, onToggleGoogle }: Props) {
-  const { t } = useT()
+  const { t, locale } = useT()
   const [mode, setMode] = useState<Mode>('stress')
   const rawEntries = useMemo(() => buildStressMap(events, heartRateSamples), [events, heartRateSamples])
   const entries = useMemo(() => {
@@ -117,7 +117,7 @@ export function StressMapScreen({ heartRateSamples, events, onEvents, onGoogleCa
             <div className="stress-event-header">
               <span className="stress-title">{entry.event.title}</span>
               {entry.isPhysicalActivity && <span className="badge">🏃 {t('активность')}</span>}
-              <span className="stress-date">{fmtDate(entry.event.start)}</span>
+              <span className="stress-date">{fmtDate(entry.event.start, locale)}</span>
             </div>
             <div className="stress-stats">
               {entry.sampleCount === 0 ? (

@@ -23,7 +23,7 @@ function getColor(steps: number): string {
 }
 
 export function ActivityScreen({ daily }: Props) {
-  const { t } = useT()
+  const { t, locale } = useT()
   const [preset, setPreset] = useState<Preset>('30d')
   const days = preset === '14d' ? 14 : preset === '30d' ? 30 : 90
 
@@ -50,16 +50,16 @@ export function ActivityScreen({ daily }: Props) {
   // Weeks where average was low
   const insights: string[] = []
   if (avgSteps && avgSteps < GOAL) {
-    insights.push(t('Средний показатель {avg} шагов — ниже цели {goal}. Старайся добавлять короткие прогулки в обед.', { avg: avgSteps.toLocaleString('ru-RU'), goal: GOAL.toLocaleString('ru-RU') }))
+    insights.push(t('Средний показатель {avg} шагов — ниже цели {goal}. Старайся добавлять короткие прогулки в обед.', { avg: avgSteps.toLocaleString(locale), goal: GOAL.toLocaleString(locale) }))
   }
   if (avgSteps && avgSteps >= GREAT) {
-    insights.push(t('Отлично! Средний показатель {avg} шагов — выше {great}. Так держать.', { avg: avgSteps.toLocaleString('ru-RU'), great: GREAT.toLocaleString('ru-RU') }))
+    insights.push(t('Отлично! Средний показатель {avg} шагов — выше {great}. Так держать.', { avg: avgSteps.toLocaleString(locale), great: GREAT.toLocaleString(locale) }))
   }
   if (slice.length > 0 && goalDays / slice.length < 0.5) {
-    insights.push(t('Цель {goal} шагов достигнута только в {n} из {total} дней. Попробуй припарковаться дальше или выходить на остановку раньше.', { goal: GOAL.toLocaleString('ru-RU'), n: goalDays, total: slice.length }))
+    insights.push(t('Цель {goal} шагов достигнута только в {n} из {total} дней. Попробуй припарковаться дальше или выходить на остановку раньше.', { goal: GOAL.toLocaleString(locale), n: goalDays, total: slice.length }))
   }
   if (greatDays > slice.length * 0.4) {
-    insights.push(t('{n} дней с {great}+ шагами — высокая активность, хорошая нагрузка на сердце.', { n: greatDays, great: GREAT.toLocaleString('ru-RU') }))
+    insights.push(t('{n} дней с {great}+ шагами — высокая активность, хорошая нагрузка на сердце.', { n: greatDays, great: GREAT.toLocaleString(locale) }))
   }
 
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -68,7 +68,7 @@ export function ActivityScreen({ daily }: Props) {
     return (
       <div className="custom-tooltip">
         <p className="tooltip-date">{label}</p>
-        <p style={{ color: getColor(steps) }}><strong>{steps?.toLocaleString('ru-RU')}</strong> {t('шагов')}</p>
+        <p style={{ color: getColor(steps) }}><strong>{steps?.toLocaleString(locale)}</strong> {t('шагов')}</p>
         {payload[0] && <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>
           {steps >= GREAT ? `🟢 ${t('Отлично')}` : steps >= GOAL ? `🔵 ${t('Цель достигнута')}` : steps >= 5000 ? `🟡 ${t('Умеренно')}` : `🔴 ${t('Мало')}`}
         </p>}
@@ -91,23 +91,23 @@ export function ActivityScreen({ daily }: Props) {
       <div className="stat-row" style={{ marginBottom: 24 }}>
         {avgSteps && (
           <div className="stat">
-            <span style={{ color: getColor(avgSteps) }}>{avgSteps.toLocaleString('ru-RU')}</span>
+            <span style={{ color: getColor(avgSteps) }}>{avgSteps.toLocaleString(locale)}</span>
             {t('среднее / день')}
           </div>
         )}
         {maxSteps && (
           <div className="stat">
-            <span>{maxSteps.toLocaleString('ru-RU')}</span>
+            <span>{maxSteps.toLocaleString(locale)}</span>
             {t('рекорд')}
           </div>
         )}
         <div className="stat">
           <span style={{ color: '#5bc896' }}>{goalDays}</span>
-          {t('дней с {n}+ шагов', { n: GOAL.toLocaleString('ru-RU') })}
+          {t('дней с {n}+ шагов', { n: GOAL.toLocaleString(locale) })}
         </div>
         <div className="stat">
           <span style={{ color: '#5bc896' }}>{greatDays}</span>
-          {t('дней с {n}+', { n: GREAT.toLocaleString('ru-RU') })}
+          {t('дней с {n}+', { n: GREAT.toLocaleString(locale) })}
         </div>
       </div>
 

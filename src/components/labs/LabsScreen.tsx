@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { useT } from '../../lib/i18n'
 import { loadLabFiles, loadLabResults, deleteLabFile, uploadAndExtract, type LabFile, type LabResult } from '../../lib/labs'
+import { LoadError } from '../ui/LoadError'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 interface Props {
@@ -26,17 +27,20 @@ export function LabsScreen({ user }: Props) {
   const [uploading, setUploading] = useState(false)
   const [uploadDate, setUploadDate] = useState(new Date().toISOString().slice(0, 10))
   const [error, setError] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [consented, setConsented] = useState(() => localStorage.getItem('lab_ai_consent') === '1')
   const [showConsent, setShowConsent] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const pendingFile = useRef<File | null>(null)
 
-  useEffect(() => {
+  const reload = useCallback(() => {
     Promise.all([loadLabFiles(user.id), loadLabResults(user.id)]).then(([f, r]) => {
-      setFiles(f); setResults(r)
-    })
+      setFiles(f); setResults(r); setLoadError(false)
+    }).catch(() => setLoadError(true))
   }, [user.id])
+
+  useEffect(() => { reload() }, [reload])
 
   function handleFileClick() {
     if (!consented) { setShowConsent(true); return }
@@ -126,6 +130,7 @@ export function LabsScreen({ user }: Props) {
       </div>
 
       {error && <p className="auth-error">{error}</p>}
+      {loadError && <LoadError onRetry={reload} />}
 
       {/* Latest markers with flags */}
       {results.length > 0 && (() => {
@@ -190,7 +195,7 @@ export function LabsScreen({ user }: Props) {
       <div className="labs-section">
         <h3>{t('Загруженные анализы')}</h3>
         {files.length === 0 ? (
-          <p className="empty-hint">{t('Нет загруженных анализов. Загрузи PDF или фото бланка.')}</p>
+          !loadError && <p className="empty-hint">{t('Нет загруженных анализов. Загрузи PDF или фото бланка.')}</p>
         ) : (
           <div className="labs-list">
             {files.map(f => (

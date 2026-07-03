@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase'
 import { callFunction } from '../../lib/edgeFunctions'
 import { EXPERIMENT_PREFILL_KEY, type ExperimentPrefill } from '../../lib/levers'
 import { useT } from '../../lib/i18n'
+import { LoadError } from '../ui/LoadError'
 
 interface Props { user: User; daily: DailyMetrics[] }
 
@@ -215,6 +216,7 @@ function ProgressBlock({ exp }: { exp: Experiment }) {
 export function ExperimentsScreen({ user, daily }: Props) {
   const { t } = useT()
   const [exps, setExps] = useState<Experiment[]>([])
+  const [loadError, setLoadError] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [aiLoading, setAiLoading] = useState<string | null>(null)
@@ -236,10 +238,16 @@ export function ExperimentsScreen({ user, daily }: Props) {
     end_date: today(),
   })
 
-  useEffect(() => {
+  function loadExps() {
     supabase.from('experiments').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
-      .then(({ data }) => setExps((data ?? []) as Experiment[]))
-  }, [user.id])
+      .then(({ data, error }) => {
+        if (error) setLoadError(true)
+        else { setExps((data ?? []) as Experiment[]); setLoadError(false) }
+      })
+  }
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { loadExps() }, [user.id])
 
   useEffect(() => {
     const raw = sessionStorage.getItem(EXPERIMENT_PREFILL_KEY)
@@ -361,6 +369,9 @@ export function ExperimentsScreen({ user, daily }: Props) {
           </button>
         </div>
       </div>
+
+      {loadError && <LoadError onRetry={loadExps} />}
+
       <p className="settings-muted" style={{ marginBottom: 16 }}>
         {t('Активная проверка гипотезы: что изменилось, когда ты поменял привычку? До/после с размером эффекта.')}
       </p>

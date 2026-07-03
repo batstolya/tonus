@@ -8,24 +8,24 @@ interface Props {
   userId: string
 }
 
-function fmtDate(s: string) {
-  return new Date(s).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+function fmtDate(s: string, locale: string) {
+  return new Date(s).toLocaleDateString(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 }
-function fmtPeriod(s: string, e: string) {
+function fmtPeriod(s: string, e: string, locale: string) {
   const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' }
-  return `${new Date(s).toLocaleDateString('ru-RU', opts)} — ${new Date(e).toLocaleDateString('ru-RU', opts)}`
+  return `${new Date(s).toLocaleDateString(locale, opts)} — ${new Date(e).toLocaleDateString(locale, opts)}`
 }
 
 function AnalysisCard({ item, onDelete }: { item: AiAnalysis; onDelete: (id: string) => void }) {
-  const { t } = useT()
+  const { t, locale } = useT()
   const [open, setOpen] = useState(false)
 
   return (
     <div className={`ai-card${open ? ' open' : ''}`}>
       <div className="ai-card-header" onClick={() => setOpen(o => !o)}>
         <div className="ai-card-meta">
-          <span className="ai-card-date">{fmtDate(item.created_at)}</span>
-          <span className="ai-card-period">{fmtPeriod(item.period_start, item.period_end)}</span>
+          <span className="ai-card-date">{fmtDate(item.created_at, locale)}</span>
+          <span className="ai-card-period">{fmtPeriod(item.period_start, item.period_end, locale)}</span>
         </div>
         <div className="ai-card-actions">
           <button className="ai-card-delete" onClick={e => { e.stopPropagation(); onDelete(item.id) }} title={t('Удалить')}>

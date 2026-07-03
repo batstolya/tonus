@@ -14,7 +14,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 function Heatmap({ daily }: { daily: DailyMetrics[] }) {
-  const { t } = useT()
+  const { t, locale } = useT()
   const [mk, setMk] = useState(INSIGHT_METRICS[2])
   const [hover, setHover] = useState<{ date: string; v: number | null } | null>(null)
   const { cells } = buildHeatmap(daily, mk.key, mk.betterHigh)
@@ -27,7 +27,7 @@ function Heatmap({ daily }: { daily: DailyMetrics[] }) {
     return `hsl(${hue} 72% ${light}%)`
   }
   const fmtVal = (v: number | null) =>
-    v == null ? '—' : v.toLocaleString('ru-RU', { maximumFractionDigits: mk.decimals })
+    v == null ? '—' : v.toLocaleString(locale, { maximumFractionDigits: mk.decimals })
   const cellVal = (v: number | null): string => {
     if (v == null) return ''
     if (mk.key === 'steps' || mk.key === 'activeEnergy')
@@ -35,7 +35,7 @@ function Heatmap({ daily }: { daily: DailyMetrics[] }) {
     return v.toFixed(mk.decimals)
   }
   const fmtD = (d: string) =>
-    new Date(d + 'T00:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
+    new Date(d + 'T00:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'short' })
 
   return (
     <div className="ins-block">
@@ -50,7 +50,7 @@ function Heatmap({ daily }: { daily: DailyMetrics[] }) {
         {hover
           ? <><b>{fmtD(hover.date)}</b> — {fmtVal(hover.v)}{mk.unit ? ' ' + t(mk.unit) : ''}</>
           : <span className="settings-muted">
-              {t('норма')}: {mk.betterHigh ? '≥' : '≤'} {mk.greenAt.toLocaleString('ru-RU')}{mk.unit ? ' ' + t(mk.unit) : ''} — {t('зелёный')}
+              {t('норма')}: {mk.betterHigh ? '≥' : '≤'} {mk.greenAt.toLocaleString(locale)}{mk.unit ? ' ' + t(mk.unit) : ''} — {t('зелёный')}
             </span>}
       </div>
       <div className="heatmap">
@@ -70,7 +70,7 @@ function Heatmap({ daily }: { daily: DailyMetrics[] }) {
 }
 
 export function InsightsScreen({ daily }: Props) {
-  const { t } = useT()
+  const { t, locale } = useT()
   const insights = generateInsights(daily)
   const trends = computeTrends(daily)
   const records = computeRecords(daily)
@@ -78,7 +78,7 @@ export function InsightsScreen({ daily }: Props) {
   const anomalies = computeAnomalies(daily)
   const weekday = computeWeekdayPatterns(daily)
   const fmtDate = (d: string) =>
-    new Date(d + 'T00:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
+    new Date(d + 'T00:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'short' })
   const isEmpty = trends.length === 0 && records.length === 0 && weekday.length === 0 && insights.length === 0
 
   return (
@@ -121,7 +121,7 @@ export function InsightsScreen({ daily }: Props) {
             ))}
             {records.map(r => (
               <span key={r.label} className="ins-chip">
-                {t(r.label)}: <b>{r.value.toLocaleString('ru-RU', { maximumFractionDigits: r.decimals })}{r.unit ? ' ' + t(r.unit) : ''}</b>
+                {t(r.label)}: <b>{r.value.toLocaleString(locale, { maximumFractionDigits: r.decimals })}{r.unit ? ' ' + t(r.unit) : ''}</b>
                 <span className="ins-chip-date"> · {fmtDate(r.date)}</span>
               </span>
             ))}

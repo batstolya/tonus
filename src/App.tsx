@@ -1,34 +1,38 @@
+import React, { useEffect, useRef, useState, lazy, Suspense } from 'react'
 import { useAppStore } from './store/appStore'
 import { DeviceSelectScreen } from './components/onboarding/DeviceSelectScreen'
-import { UploadScreen } from './components/upload/UploadScreen'
-import { Dashboard } from './components/dashboard/Dashboard'
-import { HeartRateScreen } from './components/heart-rate/HeartRateScreen'
-import { MetricsScreen } from './components/metrics/MetricsScreen'
-import { StressMapScreen } from './components/stress-map/StressMapScreen'
-import { InsightsScreen } from './components/insights/InsightsScreen'
-import { ResearchScreen } from './components/research/ResearchScreen'
-import { ExperimentsScreen } from './components/research/ExperimentsScreen'
-import { SleepScreen } from './components/sleep/SleepScreen'
-import { ActivityScreen } from './components/activity/ActivityScreen'
 import { AuthScreen } from './components/auth/AuthScreen'
 import { ResetPasswordScreen } from './components/auth/ResetPasswordScreen'
 import { LandingScreen } from './components/landing/LandingScreen'
 import { isResetUrl, unauthedView } from './components/landing/gating'
 import { QuickLog } from './components/intake/QuickLog'
-import { SupplementsScreen } from './components/supplements/SupplementsScreen'
-import { LabsScreen } from './components/labs/LabsScreen'
-import { NutritionScreen } from './components/nutrition/NutritionScreen'
-import { SettingsScreen } from './components/settings/SettingsScreen'
-import { GoalsScreen } from './components/goals/GoalsScreen'
-import { ConcernsScreen } from './components/concerns/ConcernsScreen'
-import { HairScreen } from './components/hair/HairScreen'
 import { ChatWidget } from './components/chat/ChatWidget'
 import { AppLoader } from './components/ui/Spinner'
+
+// Экраны грузим лениво: recharts и прочие тяжёлые зависимости не попадают
+// в стартовый бандл (лендинг и авторизация открываются без них).
+const UploadScreen = lazy(() => import('./components/upload/UploadScreen').then(m => ({ default: m.UploadScreen })))
+const Dashboard = lazy(() => import('./components/dashboard/Dashboard').then(m => ({ default: m.Dashboard })))
+const HeartRateScreen = lazy(() => import('./components/heart-rate/HeartRateScreen').then(m => ({ default: m.HeartRateScreen })))
+const MetricsScreen = lazy(() => import('./components/metrics/MetricsScreen').then(m => ({ default: m.MetricsScreen })))
+const StressMapScreen = lazy(() => import('./components/stress-map/StressMapScreen').then(m => ({ default: m.StressMapScreen })))
+const InsightsScreen = lazy(() => import('./components/insights/InsightsScreen').then(m => ({ default: m.InsightsScreen })))
+const ResearchScreen = lazy(() => import('./components/research/ResearchScreen').then(m => ({ default: m.ResearchScreen })))
+const ExperimentsScreen = lazy(() => import('./components/research/ExperimentsScreen').then(m => ({ default: m.ExperimentsScreen })))
+const SleepScreen = lazy(() => import('./components/sleep/SleepScreen').then(m => ({ default: m.SleepScreen })))
+const ActivityScreen = lazy(() => import('./components/activity/ActivityScreen').then(m => ({ default: m.ActivityScreen })))
+const SupplementsScreen = lazy(() => import('./components/supplements/SupplementsScreen').then(m => ({ default: m.SupplementsScreen })))
+const LabsScreen = lazy(() => import('./components/labs/LabsScreen').then(m => ({ default: m.LabsScreen })))
+const NutritionScreen = lazy(() => import('./components/nutrition/NutritionScreen').then(m => ({ default: m.NutritionScreen })))
+const SettingsScreen = lazy(() => import('./components/settings/SettingsScreen').then(m => ({ default: m.SettingsScreen })))
+const GoalsScreen = lazy(() => import('./components/goals/GoalsScreen').then(m => ({ default: m.GoalsScreen })))
+const ConcernsScreen = lazy(() => import('./components/concerns/ConcernsScreen').then(m => ({ default: m.ConcernsScreen })))
+const HairScreen = lazy(() => import('./components/hair/HairScreen').then(m => ({ default: m.HairScreen })))
 import type { AppView } from './store/appStore'
 import type { CalendarEvent, DailyMetrics, HeartRateSample } from './types'
-import React, { useEffect, useRef, useState } from 'react'
 import { useAuth } from './hooks/useAuth'
 import { useTheme } from './hooks/useTheme'
+import { isDemoActive, enableDemo, disableDemo } from './lib/demo'
 import { supabase } from './lib/supabase'
 import { syncMetricsToSupabase, loadMetricsFromSupabase, syncHRSamples, loadHRSamples } from './lib/sync'
 import { persistDailyScores } from './lib/scores'
@@ -104,7 +108,7 @@ function getActiveSubView(view: AppView): AppView {
 }
 
 export default function App() {
-  const { t, lang, setLang } = useT()
+  const { t, lang, setLang, locale } = useT()
   const { state, setView, setDaily, setEvents, setProgress, setError, setDeviceType } = useAppStore()
   const { user, loading, passwordRecovery, setPasswordRecovery } = useAuth()
   const { theme, toggle: toggleTheme } = useTheme()
@@ -120,6 +124,18 @@ export default function App() {
   const [langMenuOpen, setLangMenuOpen] = useState(false)
   const [showAuth, setShowAuth] = useState(false)
 
+  const demo = isDemoActive()
+
+  function handleSignOut() {
+    if (isDemoActive()) {
+      disableDemo()
+      window.location.hash = ''
+      window.location.reload()
+      return
+    }
+    supabase.auth.signOut()
+  }
+
   const hasData = state.daily.length > 0
   const availableMetrics = React.useMemo(() => detectAvailableMetrics(state.daily), [state.daily])
   const googleConnected = state.events.some(e => e.source === 'google')
@@ -133,6 +149,14 @@ export default function App() {
     setDbLoading(true)
 
     async function init() {
+      // Демо-режим: фикстурные данные вместо Supabase.
+      if (isDemoActive()) {
+        const { makeDemoDaily, makeDemoHRSamples } = await import('./lib/demoFixture')
+        if (cancelled) return
+        setDaily(makeDemoDaily(), makeDemoHRSamples(), true)
+        setDbLoading(false)
+        return
+      }
       const [stored, intakeRes, calEvents] = await Promise.all([
         loadMetricsFromSupabase(user!.id),
         supabase.from('intake_events').select('*').eq('user_id', user!.id)
@@ -179,25 +203,25 @@ export default function App() {
     setDaily(daily, samples)
     if (!user) return
     loadCalendarEvents(user.id).then(calEvents => { if (calEvents.length > 0) setEvents(calEvents) })
-    setSyncMsg('Синхронизируем…')
+    setSyncMsg(t('Синхронизируем…'))
     try {
       const [result, hrOk] = await Promise.all([
         syncMetricsToSupabase(user.id, daily, filename),
         syncHRSamples(user.id, samples),
       ])
       if (!hrOk) {
-        setSyncMsg('⚠️ Не удалось сохранить пульс — подробности в консоли (F12)')
+        setSyncMsg(t('⚠️ Не удалось сохранить пульс — подробности в консоли (F12)'))
         setTimeout(() => setSyncMsg(null), 10000)
         return
       }
       if (result.daysAdded > 0) {
-        setSyncMsg(`Добавлено ${result.daysAdded} новых дней`)
+        setSyncMsg(t('Добавлено {n} новых дней', { n: result.daysAdded }))
       } else {
-        setSyncMsg('Данные актуальны')
+        setSyncMsg(t('Данные актуальны'))
       }
       persistDailyScores(user.id, daily).catch(() => {})
     } catch (e: any) {
-      setSyncMsg(`Ошибка синхронизации: ${e?.message ?? 'unknown'}`)
+      setSyncMsg(t('Ошибка синхронизации: {msg}', { msg: e?.message ?? 'unknown' }))
     }
     setTimeout(() => setSyncMsg(null), 4000)
   }
@@ -205,7 +229,7 @@ export default function App() {
   async function handleEvents(events: CalendarEvent[], source = 'ics') {
     const tagged = events.map(e => ({ ...e, source }))
     setEvents(tagged, source)
-    const now = new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+    const now = new Date().toLocaleDateString(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
     const updated = { ...calSyncTimes, [source]: now }
     setCalSyncTimes(updated)
     localStorage.setItem('cal_sync_times', JSON.stringify(updated))
@@ -214,10 +238,10 @@ export default function App() {
     if (!user) return
     const ok = await saveCalendarEvents(user.id, tagged, source)
     if (!ok) {
-      setSyncMsg('⚠️ Таблица calendar_events не создана — запусти SQL в Supabase')
+      setSyncMsg(t('⚠️ Таблица calendar_events не создана — запусти SQL в Supabase'))
       setTimeout(() => setSyncMsg(null), 8000)
     } else {
-      setSyncMsg(`Сохранено ${events.length} событий календаря`)
+      setSyncMsg(t('Сохранено {n} событий календаря', { n: events.length }))
       setTimeout(() => setSyncMsg(null), 3000)
     }
   }
@@ -227,10 +251,10 @@ export default function App() {
     try {
       const events = await connectGoogleCalendar()
       await handleEvents(events, 'google')
-      setSyncMsg(`Загружено ${events.length} событий из Google`)
+      setSyncMsg(t('Загружено {n} событий из Google', { n: events.length }))
       setTimeout(() => setSyncMsg(null), 4000)
     } catch {
-      setSyncMsg('Ошибка Google Calendar')
+      setSyncMsg(t('Ошибка Google Calendar'))
       setTimeout(() => setSyncMsg(null), 3000)
     }
     setGoogleLoading(false)
@@ -241,7 +265,7 @@ export default function App() {
     const view = unauthedView({ isResetUrl: isResetUrl(window.location.search), showAuth })
     return view === 'auth'
       ? <AuthScreen onBack={() => setShowAuth(false)} />
-      : <LandingScreen onTry={() => setShowAuth(true)} />
+      : <LandingScreen onTry={() => setShowAuth(true)} onDemo={() => { enableDemo(); window.location.reload() }} />
   }
   if (passwordRecovery) return <ResetPasswordScreen onDone={() => setPasswordRecovery(false)} />
 
@@ -265,7 +289,7 @@ export default function App() {
                 className={`nav-btn${state.view === 'dashboard' ? ' active' : ''}`}
                 onClick={() => setView('dashboard')}
               >
-                Дашборд
+                {t('Дашборд')}
               </button>
               {visibleNavGroups.map(g => (
                 <button
@@ -312,7 +336,7 @@ export default function App() {
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
               </button>
-              <button className="nav-btn signout-btn" onClick={() => supabase.auth.signOut()}>
+              <button className="nav-btn signout-btn" onClick={handleSignOut}>
                 {t('Выйти')}
               </button>
               <button className="burger-btn" onClick={() => setMobileMenuOpen(o => !o)} aria-label="Меню">
@@ -351,7 +375,7 @@ export default function App() {
                   <span>{lang === 'ru' ? 'Русский' : lang === 'uk' ? 'Українська' : 'English'}</span>
                 </button>
                 <div className="mobile-menu-footer">
-                  <button className="mobile-nav-btn signout" onClick={() => supabase.auth.signOut()}>
+                  <button className="mobile-nav-btn signout" onClick={handleSignOut}>
                     <span>🚪</span><span>{t('Выйти')}</span>
                   </button>
                 </div>
@@ -375,9 +399,14 @@ export default function App() {
         </>
       )}
 
+      {demo && hasData && (
+        <div className="demo-banner">{t('Демо-режим — данные сгенерированы')}</div>
+      )}
+
       {syncMsg && <div className="sync-toast">{syncMsg}</div>}
 
       <main className="main-content">
+        <Suspense fallback={<AppLoader />}>
         {!hasData || state.view === 'upload' ? (
           state.deviceType == null ? (
             <DeviceSelectScreen onSelect={setDeviceType} />
@@ -459,6 +488,7 @@ export default function App() {
             onDeviceTypeChange={setDeviceType}
           />
         ) : null}
+        </Suspense>
       </main>
 
       {hasData && <ChatWidget user={user} daily={state.daily} intakeEvents={intakeEvents} heartRateSamples={state.heartRateSamples} />}
@@ -470,7 +500,7 @@ export default function App() {
             onClick={() => setView('dashboard')}
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-            <span>Дашборд</span>
+            <span>{t('Дашборд')}</span>
           </button>
           {visibleNavGroups.map(g => (
             <button

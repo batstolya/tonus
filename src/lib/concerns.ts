@@ -51,14 +51,16 @@ export const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 }
 
 export async function loadConcerns(userId: string): Promise<HealthConcern[]> {
-  const { data } = await supabase.from('health_concerns').select('*')
+  const { data, error } = await supabase.from('health_concerns').select('*')
     .eq('user_id', userId).neq('status', 'resolved').order('created_at', { ascending: false })
+  if (error) throw error
   return (data ?? []) as HealthConcern[]
 }
 
 export async function loadAllConcerns(userId: string): Promise<HealthConcern[]> {
-  const { data } = await supabase.from('health_concerns').select('*')
+  const { data, error } = await supabase.from('health_concerns').select('*')
     .eq('user_id', userId).order('created_at', { ascending: false })
+  if (error) throw error
   return (data ?? []) as HealthConcern[]
 }
 
