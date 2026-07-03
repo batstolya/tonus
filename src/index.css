@@ -832,8 +832,9 @@ body {
   .bottom-nav-btn.active { color: var(--accent); }
   .bottom-nav-btn span { font-size: 10px; }
 
-  /* Add padding so content isn't hidden behind bottom nav */
-  .main-content { padding-bottom: 72px; }
+  /* Add padding so content isn't hidden behind bottom nav AND the chat FAB
+     (FAB sits at bottom:72px and otherwise covers trailing buttons) */
+  .main-content { padding-bottom: 148px; }
 
   /* Chat FAB above bottom nav */
 
@@ -1379,6 +1380,7 @@ body {
 }
 
 .chat-header {
+  position: relative;
   padding: 14px 16px 10px;
   border-bottom: 1px solid var(--border);
   display: flex;
@@ -1386,6 +1388,19 @@ body {
   gap: 8px;
 }
 .chat-title { font-size: 14px; font-weight: 600; }
+.chat-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  display: flex;
+}
+.chat-close:hover { color: var(--text); background: var(--surface2); }
 .chat-period-tabs { display: flex; gap: 6px; }
 .chat-period-btn {
   font-size: 12px;
