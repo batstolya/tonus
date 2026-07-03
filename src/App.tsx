@@ -160,7 +160,7 @@ export default function App() {
       const [stored, intakeRes, calEvents] = await Promise.all([
         loadMetricsFromSupabase(user!.id),
         supabase.from('intake_events').select('*').eq('user_id', user!.id)
-          .order('ts', { ascending: false }).limit(100),
+          .order('ts', { ascending: false }).limit(400),
         loadCalendarEvents(user!.id),
       ])
 

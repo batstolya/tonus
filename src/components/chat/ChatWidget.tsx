@@ -29,7 +29,7 @@ function MsgBubble({ msg }: { msg: ChatMessage }) {
 }
 
 export function ChatWidget({ user, daily, intakeEvents = [], heartRateSamples = [] }: Props) {
-  const { t } = useT()
+  const { t, lang } = useT()
   const [open, setOpen] = useState(false)
   const [period, setPeriod] = useState<Period>('14d')
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -110,6 +110,7 @@ export function ChatWidget({ user, daily, intakeEvents = [], heartRateSamples = 
         sessionId,
         ctxToSend,
         PERIOD_LABELS[period],
+        lang,
       )
       if (!sessionId) setSessionId(newSessionId)
 

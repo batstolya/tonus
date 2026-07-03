@@ -17,6 +17,10 @@ export interface IntakeEvent {
   amount: number | null
   unit: string | null
   note: string | null
+  calories?: number | null
+  protein_g?: number | null
+  carbs_g?: number | null
+  fat_g?: number | null
 }
 
 const EVENT_LABELS: Record<string, string> = {
@@ -69,6 +73,13 @@ export function buildContextSnapshot(
     lines.push(`Готовность (${last.date}): ${f(last.readiness)}/100 — восстановление ${f(last.recovery_score)}, сон ${f(last.sleep_score)}, стресс ${f(last.stress_score)}`)
     const ra = nums(scores.map(s => s.readiness))
     if (ra != null) lines.push(`Готовность за период: среднее ${f(ra)}/100 (восстановление ${f(nums(scores.map(s => s.recovery_score)))})`)
+    // Персональная норма — чтобы ИИ сравнивал с ней, а не с абсолютными значениями
+    const base: string[] = []
+    if (last.hrv_baseline != null) base.push(`HRV ~${Math.round(last.hrv_baseline)}мс`)
+    if (last.rhr_baseline != null) base.push(`пульс покоя ~${Math.round(last.rhr_baseline)}`)
+    if (last.sleep_baseline != null) base.push(`сон ~${last.sleep_baseline.toFixed(1)}ч`)
+    if (last.steps_baseline != null) base.push(`шаги ~${Math.round(last.steps_baseline).toLocaleString()}`)
+    if (base.length) lines.push(`Персональная норма (30 дней): ${base.join(', ')}. Сравнивай текущие значения с этой нормой, а не с абсолютной.`)
   }
 
   const rhr = pick(slice, 'restingHeartRate')
@@ -159,14 +170,25 @@ export function buildContextSnapshot(
       if (!byType[ev.type]) byType[ev.type] = { count: 0, entries: [] }
       byType[ev.type].count++
       const time = new Date(ev.ts).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+      const kcal = ev.calories ? ` ≈${Math.round(ev.calories)} ккал` : ''
       const detail = [ev.amount ? `${ev.amount}${ev.unit ?? ''}` : '', ev.note ?? ''].filter(Boolean).join(', ')
-      byType[ev.type].entries.push(`${time}${detail ? ` (${detail})` : ''}`)
+      byType[ev.type].entries.push(`${time}${detail ? ` (${detail})` : ''}${kcal}`)
     }
     for (const [type, { count, entries }] of Object.entries(byType)) {
       const label = EVENT_LABELS[type] ?? type
       lines.push(`${label}: ${count} раз за период`)
       // Show last 5 entries
       entries.slice(-5).forEach(e => lines.push(`  • ${e}`))
+    }
+    // Суточные калории по дням, где есть оценки (питание из быстрого лога / бота)
+    const kcalByDay: Record<string, number> = {}
+    for (const ev of periodEvents) {
+      if (ev.calories) kcalByDay[ev.ts.slice(0, 10)] = (kcalByDay[ev.ts.slice(0, 10)] ?? 0) + ev.calories
+    }
+    const kcalDays = Object.keys(kcalByDay).sort().slice(-14)
+    if (kcalDays.length) {
+      lines.push('Калории по дням (оценка):')
+      kcalDays.forEach(d => lines.push(`  ${d}: ~${Math.round(kcalByDay[d])} ккал`))
     }
   }
 
@@ -268,17 +290,20 @@ export async function loadCoachProfile(): Promise<string> {
   } catch { return '' }
 }
 
-// Заметки дня за период
+// Заметки дня за период (текст + оценка самочувствия, если есть)
 export async function loadNotesSummary(userId: string, periodDays: number): Promise<string> {
   const since = new Date(); since.setDate(since.getDate() - periodDays)
   const { data } = await supabase
     .from('context_notes')
-    .select('date, note')
+    .select('date, note, wellbeing')
     .eq('user_id', userId)
     .gte('date', since.toISOString().slice(0, 10))
     .order('date', { ascending: false })
   if (!data?.length) return ''
-  return data.map((n: any) => `${n.date}: ${n.note}`).join('\n')
+  return data.map((n: any) => {
+    const wb = typeof n.wellbeing === 'number' ? ` [самочувствие ${n.wellbeing}/5]` : ''
+    return `${n.date}: ${n.note ?? ''}${wb}`
+  }).join('\n')
 }
 
 // Проблемы/симптомы + последние наблюдения
@@ -425,6 +450,7 @@ export async function sendChatMessage(
   sessionId: string | null,
   contextSnapshot: string | null,
   periodLabel: string,
+  lang = 'ru',
 ): Promise<{ reply: string; sessionId: string }> {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) throw new Error('Не авторизован')
@@ -436,7 +462,7 @@ export async function sendChatMessage(
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${session.access_token}`,
     },
-    body: JSON.stringify({ sessionId, message, contextSnapshot, periodLabel }),
+    body: JSON.stringify({ sessionId, message, contextSnapshot, periodLabel, lang }),
   })
 
   if (!res.ok) {
