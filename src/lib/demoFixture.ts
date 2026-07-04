@@ -1,4 +1,4 @@
-// ВРЕМЕННЫЙ файл для локального просмотра UI (VITE_DEMO=1). Не коммитить.
+// Фикстурные данные демо-режима и живой панели лендинга (VITE_DEMO / кнопка «Посмотреть демо»).
 import type { DailyMetrics, HeartRateSample } from '../types'
 
 function rnd(seed: number) {
