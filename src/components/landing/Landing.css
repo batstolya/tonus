@@ -94,7 +94,7 @@
 
 /* ── Как это работает ─────────────────────────────────────── */
 .hiw-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; }
-.hiw-steps { display: flex; flex-direction: column; gap: 8vh; padding: 4vh 0; }
+.hiw-steps { display: flex; flex-direction: column; gap: 14vh; padding: 6vh 0; }
 .hiw-step { opacity: 0.45; transition: opacity 0.3s; padding: 12px 0; }
 .hiw-step.active { opacity: 1; }
 .hiw-num { display: inline-flex; width: 28px; height: 28px; align-items: center; justify-content: center; border: 1px solid var(--accent); color: var(--accent); border-radius: 50%; font-size: 13px; margin-bottom: 10px; }
