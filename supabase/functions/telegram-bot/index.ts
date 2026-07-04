@@ -60,6 +60,7 @@ const MAIN_MENU = {
   inline_keyboard: [
     [{ text: '📊 Отчёт за 2 недели', callback_data: 'report' }, { text: '📈 Статус сегодня', callback_data: 'status' }],
     [{ text: '💊 Препараты', callback_data: 'supplements' }, { text: '🎯 Цели', callback_data: 'goals' }],
+    [{ text: '⚽ Матчи ЧМ-2026', callback_data: 'fb_matches' }],
     [{ text: '⚙️ Настройки', callback_data: 'settings' }],
   ],
 }
@@ -555,16 +556,29 @@ async function handleFootballMenu(chatId: number | string, userId: string, supab
 }
 
 async function handleFootballMatches(chatId: number | string, supabase: SupabaseClient) {
-  const { data: matches } = await supabase
+  const { data: matches, error } = await supabase
     .from('football_matches')
     .select('home_team_name, away_team_name, kickoff_at')
     .gt('kickoff_at', new Date().toISOString())
     .in('status_short', ['NS', 'TBD'])
+    .not('home_team_name', 'ilike', '%Winner Match%')
+    .not('home_team_name', 'ilike', '%Loser Match%')
+    .not('home_team_name', 'ilike', '%TBD%')
+    .not('home_team_name', 'ilike', '%TBA%')
+    .not('away_team_name', 'ilike', '%Winner Match%')
+    .not('away_team_name', 'ilike', '%Loser Match%')
+    .not('away_team_name', 'ilike', '%TBD%')
+    .not('away_team_name', 'ilike', '%TBA%')
     .order('kickoff_at', { ascending: true })
     .limit(5)
 
+  if (error) {
+    await tgSend(chatId, '⚠️ Ошибка при загрузке матчей. Попробуй позже.', { reply_markup: BACK_MENU })
+    return
+  }
+
   if (!matches?.length) {
-    await tgSend(chatId, '📭 Ближайших матчей не найдено.', { reply_markup: BACK_MENU })
+    await tgSend(chatId, '📭 Пока нет ближайших матчей с известными командами. Попробуй позже — ESPN ещё не раскрыла пары для следующих раундов.', { reply_markup: BACK_MENU })
     return
   }
 
@@ -575,7 +589,23 @@ async function handleFootballMatches(chatId: number | string, supabase: Supabase
     })
     lines.push(`${i + 1}. ${m.home_team_name} — ${m.away_team_name}\n   ${when}`)
   })
+
   await tgSend(chatId, lines.join('\n'), { reply_markup: BACK_MENU })
+}
+
+function parseBracketTeamReference(name: string): number | null {
+  const match = name.match(/^(?:Winner|Loser) Match\s*(\d+)$/i)
+  return match ? Number(match[1]) : null
+}
+
+function formatBracketTeamName(name: string, refs: Record<number, { home_team_name: string; away_team_name: string }>) {
+  const refNumber = parseBracketTeamReference(name)
+  if (!refNumber) return name
+
+  const refMatch = refs[refNumber]
+  if (!refMatch) return name
+
+  return `${name} (${refMatch.home_team_name} — ${refMatch.away_team_name})`
 }
 
 async function setFootballReminders(chatId: number | string, userId: string, enabled: boolean, supabase: SupabaseClient) {

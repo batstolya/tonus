@@ -19,6 +19,12 @@ verify_jwt = false   # HAE webhook, авторизуется по ?token=
 [functions.send-reminders]
 verify_jwt = false   # pg_cron каждые 5 мин, без Authorization
 
+[functions.sync-football-fixtures]
+verify_jwt = false   # football cron, авторизуется через x-cron-secret если задан
+
+[functions.send-football-reminders]
+verify_jwt = false   # football reminder cron, авторизуется через x-cron-secret если задан
+
 [functions.sync-cal]
 verify_jwt = false   # cron (x-cron-secret) + UI (user JWT) — делает свою авторизацию
 
