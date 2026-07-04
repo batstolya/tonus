@@ -11,7 +11,7 @@ const ITEMS = [
 export function TrustStrip() {
   const { t } = useT()
   return (
-    <section className="lp-trust" aria-label="trust">
+    <section className="lp-trust">
       {ITEMS.map((it, i) => (
         <m.span
           key={it.label}
