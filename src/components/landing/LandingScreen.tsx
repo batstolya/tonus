@@ -5,6 +5,7 @@ import { HeroBlock } from './blocks/HeroBlock'
 import { TrustStrip } from './blocks/TrustStrip'
 import { HowItWorks } from './blocks/HowItWorks'
 import { ChatBlock } from './blocks/ChatBlock'
+import { TelegramBlock } from './blocks/TelegramBlock'
 import { FeatureGrid } from './blocks/FeatureGrid'
 import './Landing.css'
 
@@ -46,6 +47,7 @@ export function LandingScreen({ onTry, onDemo }: { onTry: () => void; onDemo?: (
             <TrustStrip />
             <HowItWorks />
             <ChatBlock />
+            <TelegramBlock />
             <FeatureGrid />
             <section className="landing-final-cta">
               <h2>{t('Готов(а) попробовать?')}</h2>
