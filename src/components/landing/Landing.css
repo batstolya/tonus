@@ -59,6 +59,8 @@
 .landing-cta { background: var(--accent); color: #fff; border: none; border-radius: 12px; padding: 9px 18px; font-size: 14px; font-weight: 600; cursor: pointer; transition: transform .12s, filter .12s; }
 .landing-cta:hover { filter: brightness(1.08); transform: translateY(-1px); }
 .landing-cta-lg { padding: 14px 28px; font-size: 16px; }
+/* На узких экранах 5 кнопок топбара не влезают — прячем «Войти» (CTA остаётся) */
+@media (max-width: 480px) { .landing-topbar .landing-ghost { display: none; } }
 
 /* ── Лента доверия ────────────────────────────────────────── */
 .lp-trust { display: flex; justify-content: center; gap: 28px; flex-wrap: wrap; padding: 8px 0 40px; border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent); }
@@ -214,3 +216,20 @@
 
 [data-theme="light"] .landing-ghost { color: var(--text); }
 [data-theme="light"] .landing-cta { box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 28%, transparent); }
+
+/* Фича-грид: пастельные карточки (фирменный приём mate) */
+[data-theme="light"] .feature-cell { border: none; box-shadow: none; }
+[data-theme="light"] .feature-cell:hover { box-shadow: 0 10px 26px rgba(17, 17, 24, 0.10); }
+[data-theme="light"] .feature-cell:nth-child(4n + 1) { background: #eef1ff; } /* лаванда */
+[data-theme="light"] .feature-cell:nth-child(4n + 2) { background: #e9f7ee; } /* мята */
+[data-theme="light"] .feature-cell:nth-child(4n + 3) { background: #fdf0e6; } /* персик */
+[data-theme="light"] .feature-cell:nth-child(4n)     { background: #fbf6e2; } /* лимон */
+
+/* Телефон Telegram: экран отличим от белой карты, бот-сообщения не сливаются */
+[data-theme="light"] .tg-phone-screen { background: #f2f2f7; }
+[data-theme="light"] .tg-msg.bot { background: #fff; border: 1px solid var(--border); }
+
+/* Финальный CTA: свечение мягче, чем в тёмной */
+[data-theme="light"] .landing-final-cta::before {
+  background: radial-gradient(circle at 50% 120%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 60%);
+}
