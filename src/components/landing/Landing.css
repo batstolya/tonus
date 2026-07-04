@@ -131,12 +131,10 @@
 /* ── Chat block ──────────────────────────────────────────── */
 .chat-stage { max-width: 560px; margin: 0 auto 16px; padding: 20px; }
 .appchat { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 10px; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
-.appchat-msg { padding: 10px 14px; border-radius: 14px; max-width: 85%; opacity: 0; animation: appchat-in .4s ease forwards; }
+.appchat-msg { padding: 10px 14px; border-radius: 14px; max-width: 85%; }
 .appchat-msg.user { align-self: flex-end; background: var(--accent); color: #fff; }
-.appchat-msg.bot { align-self: flex-start; background: var(--surface2); animation-delay: 1.6s; }
-.appchat-typing { align-self: flex-start; color: var(--text-muted); font-size: 13px; opacity: 0; animation: appchat-in .3s ease .8s forwards, appchat-out .3s ease 1.6s forwards; }
-@keyframes appchat-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes appchat-out { to { opacity: 0; } }
+.appchat-msg.bot { align-self: flex-start; background: var(--surface2); }
+.appchat-typing { align-self: flex-start; color: var(--text-muted); font-size: 13px; }
 .appchat-caret { display: inline-block; width: 2px; height: 1em; background: var(--accent); margin-left: 2px; vertical-align: text-bottom; animation: lp-caret 0.8s step-start infinite; }
 @keyframes lp-caret { 50% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .appchat-caret { animation: none; } }
@@ -149,8 +147,6 @@
 
 /* ── Reduced motion: show final state, no animation ──────── */
 @media (prefers-reduced-motion: reduce) {
-  .appchat-msg { opacity: 1; animation: none; }
-  .appchat-typing { display: none; }
   .feature-cell { opacity: 1; transform: none; }
 }
 
