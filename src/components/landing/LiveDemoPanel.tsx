@@ -3,13 +3,7 @@ import { m, AnimatePresence } from 'motion/react'
 import { ResponsiveContainer, BarChart, Bar, LineChart, Line, XAxis, YAxis } from 'recharts'
 import { useT } from '../../lib/i18n'
 import { makeDemoDaily } from '../../lib/demoFixture'
-import { DEMO_TABS, TAB_LABELS, prepareLiveDemoData, type DemoTab } from './liveDemo.logic'
-
-const INSIGHTS: { title: string; text: string }[] = [
-  { title: '☕ Кофе после 15:00', text: '→ сон на 1.5 ч короче' },
-  { title: '🍽️ Поздняя еда', text: '→ HRV падает на 15%' },
-  { title: '💼 Стрессовые дни', text: '→ пульс покоя выше на 8 уд/мин' },
-]
+import { DEMO_TABS, TAB_LABELS, DEMO_INSIGHTS, prepareLiveDemoData, type DemoTab } from './liveDemo.logic'
 
 const RING_C = 2 * Math.PI * 52
 
@@ -114,7 +108,7 @@ export function LiveDemoPanel({ onDemo }: { onDemo?: () => void }) {
             )}
             {tab === 'insights' && (
               <div className="ld-insights">
-                {INSIGHTS.map(i => (
+                {DEMO_INSIGHTS.map(i => (
                   <div key={i.title} className="ld-insight">
                     <span className="ld-insight-title">{t(i.title)}</span>
                     <span className="ld-insight-text">{t(i.text)}</span>
