@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { LazyMotion, domAnimation, MotionConfig } from 'motion/react'
+import { LazyMotion, domMax, MotionConfig } from 'motion/react'
 import { useT } from '../../lib/i18n'
 import { HeroBlock } from './blocks/HeroBlock'
 import { MetricsBlock } from './blocks/MetricsBlock'
@@ -23,7 +23,7 @@ export function LandingScreen({ onTry, onDemo }: { onTry: () => void; onDemo?: (
   }, [])
 
   return (
-    <LazyMotion features={domAnimation} strict>
+    <LazyMotion features={domMax} strict>
       <MotionConfig reducedMotion="user">
         <div className="landing">
           <div className="lp-bg" aria-hidden="true">
