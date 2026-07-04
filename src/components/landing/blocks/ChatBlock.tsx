@@ -60,7 +60,7 @@ function Exchange({ q, a, start, onDone }: { q: string; a: string; start: boolea
         {t(q)}
       </m.div>
       {showTyping && <div className="appchat-typing">{t('печатает…')}</div>}
-      {showAnswer && <div className="appchat-msg bot">{answer.out}<span className={answer.done ? '' : 'appchat-caret'} /></div>}
+      {showAnswer && <div className="appchat-msg bot">{answer.out}{!answer.done && <span className="appchat-caret" />}</div>}
     </>
   )
 }
