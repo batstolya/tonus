@@ -1,10 +1,52 @@
-.landing { min-height: 100vh; background: var(--bg); color: var(--text); }
+/* ── Лендинг 2.0: фон, стекло, топбар ─────────────────────── */
+.landing { position: relative; isolation: isolate; min-height: 100vh; background: var(--bg); color: var(--text); }
+
+.lp-bg { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.lp-bg::before {
+  content: ''; position: absolute; inset: 0; opacity: 0.035;
+  background-image:
+    linear-gradient(var(--text) 1px, transparent 1px),
+    linear-gradient(90deg, var(--text) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, #000 40%, transparent 100%);
+}
+.lp-glow { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.16; }
+.lp-glow-a { width: 520px; height: 520px; top: -160px; left: 8%; background: var(--accent); animation: lp-breathe 12s ease-in-out infinite; }
+.lp-glow-b { width: 420px; height: 420px; top: 60px; right: 4%; background: #9f7cff; animation: lp-breathe 14s ease-in-out 2s infinite; }
+@keyframes lp-breathe { 0%, 100% { transform: scale(1); opacity: 0.16; } 50% { transform: scale(1.15); opacity: 0.22; } }
+@media (prefers-reduced-motion: reduce) { .lp-glow { animation: none; } }
+
+.landing-topbar.scrolled {
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom-color: var(--border);
+}
+
+.lp-glass {
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  backdrop-filter: blur(12px);
+  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  border-radius: 16px;
+  transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
+}
+.lp-glass:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  box-shadow: 0 0 24px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.lp-grad-text {
+  background: linear-gradient(100deg, var(--accent), #9f7cff);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+.block-kicker { font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent); margin: 0 0 10px; }
 
 .landing-topbar {
-  position: sticky; top: 0; z-index: 10;
+  position: sticky; top: 0; z-index: 50;
   display: flex; align-items: center; gap: 16px;
   padding: 0 24px; height: 56px;
-  background: var(--topbar-bg); border-bottom: 1px solid var(--border);
+  background: var(--topbar-bg); border-bottom: 1px solid transparent;
+  transition: background 0.25s, border-color 0.25s, backdrop-filter 0.25s;
 }
 .landing-logo { font-size: 18px; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; }
 .landing-topbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
