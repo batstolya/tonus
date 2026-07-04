@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest'
 import {
   buildFootballReminderKeyboard,
   buildFootballReminderText,
+  canUpdateTeams,
+  isPlaceholderTeam,
   mapApiFootballFixture,
+  mapEspnScoreboardEvent,
+  mapFootballDataMatch,
+  mapTheStatsApiFixture,
   parseFootballCallback,
 } from './football.ts'
 
@@ -49,6 +54,169 @@ describe('mapApiFootballFixture', () => {
       status_long: 'Not Started',
       raw_payload: fixture,
     })
+  })
+})
+
+describe('mapTheStatsApiFixture', () => {
+  it('maps TheStatsAPI fixtures to football_matches upserts', () => {
+    const fixture = {
+      matchNumber: 1,
+      date: '2026-06-11',
+      kickoffUtc: '2026-06-11T19:00:00Z',
+      stage: 'group-stage',
+      group: 'A',
+      homeTeam: 'Mexico',
+      awayTeam: 'South Africa',
+      stadium: 'Estadio Azteca',
+      hostCity: 'mexico-city',
+      matchUrl: 'https://www.thestatsapi.com/world-cup/matches/mexico-vs-south-africa-2026-06-11',
+    }
+
+    expect(mapTheStatsApiFixture(fixture)).toMatchObject({
+      provider: 'thestatsapi',
+      provider_fixture_id: 1,
+      short_id: 'ts1',
+      league_id: 1,
+      season: 2026,
+      competition_name: 'FIFA World Cup 2026',
+      round_name: 'Group A',
+      home_team_id: null,
+      home_team_name: 'Mexico',
+      away_team_name: 'South Africa',
+      kickoff_at: '2026-06-11T19:00:00Z',
+      venue_name: 'Estadio Azteca',
+      venue_city: 'mexico-city',
+      status_short: 'NS',
+      status_long: 'Not Started',
+      raw_payload: fixture,
+    })
+  })
+})
+
+describe('mapEspnScoreboardEvent', () => {
+  // Mirrors the real ESPN scoreboard shape: status lives under
+  // competitions[0].status, `name`/`shortName` are the matchup (not the
+  // competition), team ids are strings, and cities include the state.
+  const scheduledEvent = {
+    id: '760504',
+    date: '2026-07-05T20:00Z',
+    name: 'Norway at Brazil',
+    shortName: 'NOR @ BRA',
+    season: { year: 2026, type: 13800, slug: 'round-of-16' },
+    competitions: [{
+      id: '760504',
+      date: '2026-07-05T20:00Z',
+      altGameNote: 'FIFA World Cup, Round of 16',
+      status: { type: { id: '1', name: 'STATUS_SCHEDULED', state: 'pre', completed: false, description: 'Scheduled', shortDetail: 'Scheduled' } },
+      venue: { fullName: 'AT&T Stadium', address: { city: 'Arlington, Texas', country: 'USA' } },
+      competitors: [
+        { homeAway: 'home', team: { id: '205', displayName: 'Brazil' } },
+        { homeAway: 'away', team: { id: '299', displayName: 'Norway' } },
+      ],
+    }],
+  }
+
+  it('maps a scheduled ESPN event with real competition/round/status', () => {
+    expect(mapEspnScoreboardEvent(scheduledEvent)).toMatchObject({
+      provider: 'espn',
+      provider_fixture_id: 760504,
+      short_id: 'espn760504',
+      league_id: 1,
+      season: 2026,
+      competition_name: 'FIFA World Cup',
+      round_name: 'Round of 16',
+      home_team_id: 205,
+      home_team_name: 'Brazil',
+      away_team_id: 299,
+      away_team_name: 'Norway',
+      kickoff_at: '2026-07-05T20:00Z',
+      venue_name: 'AT&T Stadium',
+      venue_city: 'Arlington',
+      status_short: 'NS',
+      status_long: 'Scheduled',
+    })
+  })
+
+  it('reads finished status from the nested competition status', () => {
+    const finished = {
+      ...scheduledEvent,
+      competitions: [{
+        ...scheduledEvent.competitions[0],
+        status: { type: { name: 'STATUS_FULL_TIME', state: 'post', completed: true, description: 'Full Time', shortDetail: 'FT' } },
+      }],
+    }
+
+    expect(mapEspnScoreboardEvent(finished)).toMatchObject({
+      status_short: 'FT',
+      status_long: 'Full Time',
+    })
+  })
+
+  it('maps postponed events to a cancellation short code', () => {
+    const postponed = {
+      ...scheduledEvent,
+      competitions: [{
+        ...scheduledEvent.competitions[0],
+        status: { type: { name: 'STATUS_POSTPONED', state: 'post', completed: false, description: 'Postponed' } },
+      }],
+    }
+
+    expect(mapEspnScoreboardEvent(postponed).status_short).toBe('PST')
+  })
+})
+
+describe('mapFootballDataMatch', () => {
+  it('maps football-data.org matches to football_matches upserts', () => {
+    const match = {
+      id: 428001,
+      utcDate: '2026-07-05T20:00:00Z',
+      status: 'SCHEDULED',
+      stage: 'LAST_16',
+      group: null,
+      venue: 'AT&T Stadium',
+      competition: { name: 'FIFA World Cup' },
+      season: { startDate: '2026-06-11' },
+      homeTeam: { id: 764, name: 'Brazil', tla: 'BRA', crest: 'https://crests.football-data.org/764.svg' },
+      awayTeam: { id: 782, name: 'Norway', tla: 'NOR', crest: 'https://crests.football-data.org/782.svg' },
+    }
+
+    expect(mapFootballDataMatch(match)).toMatchObject({
+      provider: 'football-data',
+      provider_fixture_id: 428001,
+      short_id: 'fd428001',
+      season: 2026,
+      competition_name: 'FIFA World Cup',
+      round_name: 'Last 16',
+      home_team_id: 764,
+      home_team_name: 'Brazil',
+      home_team_code: 'BRA',
+      away_team_id: 782,
+      away_team_name: 'Norway',
+      away_team_code: 'NOR',
+      kickoff_at: '2026-07-05T20:00:00Z',
+      venue_name: 'AT&T Stadium',
+      status_short: 'NS',
+    })
+  })
+})
+
+describe('isPlaceholderTeam / canUpdateTeams', () => {
+  it('treats bracket references and unknowns as placeholders', () => {
+    for (const name of ['Winner Match 49', 'Loser Match 50', 'TBD', 'TBA', '1A', '2B', 'Runner-up Group C', '', null, undefined]) {
+      expect(isPlaceholderTeam(name as string)).toBe(true)
+    }
+  })
+
+  it('accepts real national team names', () => {
+    for (const name of ['Canada', 'Morocco', 'United States', 'South Africa', 'France']) {
+      expect(isPlaceholderTeam(name)).toBe(false)
+    }
+  })
+
+  it('only allows updates when both teams are real', () => {
+    expect(canUpdateTeams('Canada', 'Morocco')).toBe(true)
+    expect(canUpdateTeams('Winner Match 49', 'Morocco')).toBe(false)
+    expect(canUpdateTeams('Canada', 'TBD')).toBe(false)
   })
 })
 
