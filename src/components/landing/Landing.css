@@ -80,8 +80,10 @@
   .landing-hero-actions { justify-content: center; }
 }
 
-.landing-final-cta { text-align: center; padding: 96px 0; }
-.landing-final-cta h2 { font-size: clamp(24px, 4vw, 40px); margin-bottom: 24px; }
+.landing-final-cta { text-align: center; padding: 56px 24px; margin: 40px 0 32px; position: relative; overflow: hidden; }
+.landing-final-cta::before { content: ''; position: absolute; inset: -40%; background: radial-gradient(circle at 50% 120%, color-mix(in srgb, var(--accent) 25%, transparent), transparent 60%); pointer-events: none; }
+.landing-final-cta h2 { font-size: clamp(24px, 3.4vw, 36px); margin: 0 0 24px; }
+.lp-footer { margin: 28px 0 0; font-size: 12.5px; color: var(--text-muted); }
 
 /* Контейнер блока + базовая анимация появления по скроллу */
 .landing-block { padding: 72px 0; border-top: 1px solid var(--border); }
@@ -139,16 +141,11 @@
 @keyframes lp-caret { 50% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .appchat-caret { animation: none; } }
 
-/* ── Feature grid ────────────────────────────────────────── */
-.feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
-.feature-cell { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center; font-size: 14px; opacity: 0; transform: translateY(14px); }
-.feature-cell.in { opacity: 1; transform: translateY(0); transition: opacity .45s ease, transform .45s ease; }
-.feature-icon { font-size: 26px; }
-
-/* ── Reduced motion: show final state, no animation ──────── */
-@media (prefers-reduced-motion: reduce) {
-  .feature-cell { opacity: 1; transform: none; }
-}
+/* ── Фича-грид ───────────────────────────────────────────── */
+.feature-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.feature-cell { display: flex; flex-direction: column; gap: 10px; padding: 18px 16px; font-size: 14px; }
+.feature-icon { font-size: 22px; }
+@media (max-width: 860px) { .feature-grid { grid-template-columns: repeat(2, 1fr); } }
 
 /* ── Живая демо-панель ────────────────────────────────────── */
 .ld-panel { width: 100%; max-width: 440px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
