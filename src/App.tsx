@@ -111,7 +111,7 @@ export default function App() {
   const { t, lang, setLang, locale } = useT()
   const { state, setView, setDaily, setEvents, setProgress, setError, setDeviceType } = useAppStore()
   const { user, loading, passwordRecovery, setPasswordRecovery } = useAuth()
-  const { theme, toggle: toggleTheme } = useTheme()
+  const { theme, toggle: toggleTheme } = useTheme(user ? 'dark' : 'light')
   const [syncMsg, setSyncMsg] = useState<string | null>(null)
   const [intakeEvents, setIntakeEvents] = useState<Parameters<typeof QuickLog>[0]['events']>([])
   const [dbLoading, setDbLoading] = useState(true)
@@ -265,7 +265,7 @@ export default function App() {
     const view = unauthedView({ isResetUrl: isResetUrl(window.location.search), showAuth })
     return view === 'auth'
       ? <AuthScreen onBack={() => setShowAuth(false)} />
-      : <LandingScreen onTry={() => setShowAuth(true)} onDemo={() => { enableDemo(); window.location.reload() }} />
+      : <LandingScreen onTry={() => setShowAuth(true)} onDemo={() => { enableDemo(); window.location.reload() }} theme={theme} onToggleTheme={toggleTheme} />
   }
   if (passwordRecovery) return <ResetPasswordScreen onDone={() => setPasswordRecovery(false)} />
 
