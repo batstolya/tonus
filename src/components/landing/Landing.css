@@ -106,7 +106,7 @@
 .hiw-dots i:nth-child(2) { animation-delay: 0.2s; }
 .hiw-dots i:nth-child(3) { animation-delay: 0.4s; }
 @keyframes hiw-flow { 0%, 100% { transform: translateY(0); opacity: 0.4; } 50% { transform: translateY(10px); opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .hiw-dots i { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .hiw-dots i { animation: none; } .hiw-step { opacity: 1; } }
 .hiw-web { width: 100%; max-width: 260px; }
 .hiw-web circle { fill: var(--accent); }
 .hiw-web path { stroke: color-mix(in srgb, var(--accent) 55%, transparent); stroke-width: 1.5; fill: none; stroke-dasharray: 140; stroke-dashoffset: 140; animation: hiw-draw 1s ease-out forwards; }
