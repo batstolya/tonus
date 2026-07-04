@@ -7,7 +7,7 @@ import { localToIso, localDate } from '../_shared/time.ts'
 import { buildClassifyPrompt } from '../_shared/classifyPrompt.ts'
 import { daysSinceFreshData, freshestDataTs } from '../_shared/staleness.ts'
 import { detectSaveIntent } from '../_shared/saveIntent.ts'
-import { parseFootballCallback, buildFootballResponseText } from '../_shared/football.ts'
+import { parseFootballCallback, buildFootballResponseText, localizeRoundName } from '../_shared/football.ts'
 
 const TG_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -558,7 +558,7 @@ async function handleFootballMenu(chatId: number | string, userId: string, supab
 async function handleFootballMatches(chatId: number | string, supabase: SupabaseClient) {
   const { data: matches, error } = await supabase
     .from('football_matches')
-    .select('home_team_name, away_team_name, kickoff_at')
+    .select('home_team_name, away_team_name, kickoff_at, round_name')
     .gt('kickoff_at', new Date().toISOString())
     .in('status_short', ['NS', 'TBD'])
     .not('home_team_name', 'ilike', '%Winner Match%')
@@ -587,7 +587,8 @@ async function handleFootballMatches(chatId: number | string, supabase: Supabase
     const when = new Date(m.kickoff_at).toLocaleString('ru-RU', {
       timeZone: 'Europe/Berlin', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
     })
-    lines.push(`${i + 1}. ${m.home_team_name} — ${m.away_team_name}\n   ${when}`)
+    const round = localizeRoundName(m.round_name)
+    lines.push(`${i + 1}. ${m.home_team_name} — ${m.away_team_name}${round ? ` · ${round}` : ''}\n   ${when}`)
   })
 
   await tgSend(chatId, lines.join('\n'), { reply_markup: BACK_MENU })

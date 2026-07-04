@@ -4,6 +4,7 @@ import {
   buildFootballReminderText,
   canUpdateTeams,
   isPlaceholderTeam,
+  localizeRoundName,
   mapApiFootballFixture,
   mapEspnScoreboardEvent,
   mapFootballDataMatch,
@@ -200,6 +201,30 @@ describe('mapFootballDataMatch', () => {
   })
 })
 
+describe('localizeRoundName', () => {
+  it('translates knockout stages to fraction notation', () => {
+    expect(localizeRoundName('Round of 32')).toBe('1/16 финала')
+    expect(localizeRoundName('Round of 16')).toBe('1/8 финала')
+    expect(localizeRoundName('Last 16')).toBe('1/8 финала')
+    expect(localizeRoundName('Quarterfinals')).toBe('1/4 финала')
+    expect(localizeRoundName('Quarter-final')).toBe('1/4 финала')
+    expect(localizeRoundName('Semifinals')).toBe('1/2 финала')
+    expect(localizeRoundName('Third place')).toBe('Матч за 3-е место')
+    expect(localizeRoundName('Final')).toBe('Финал')
+  })
+
+  it('translates group stage labels', () => {
+    expect(localizeRoundName('Group A')).toBe('Группа A')
+    expect(localizeRoundName('Group Stage')).toBe('Групповой этап')
+  })
+
+  it('passes through unknown labels and null', () => {
+    expect(localizeRoundName('Some Custom Round')).toBe('Some Custom Round')
+    expect(localizeRoundName(null)).toBeNull()
+    expect(localizeRoundName(undefined)).toBeNull()
+  })
+})
+
 describe('isPlaceholderTeam / canUpdateTeams', () => {
   it('treats bracket references and unknowns as placeholders', () => {
     for (const name of ['Winner Match 49', 'Loser Match 50', 'TBD', 'TBA', '1A', '2B', 'Runner-up Group C', '', null, undefined]) {
@@ -256,7 +281,7 @@ describe('buildFootballReminderText', () => {
 
     expect(text).toContain('⚽ Матч через 30 мин')
     expect(text).toContain('<b>Canada — Morocco</b>')
-    expect(text).toContain('FIFA World Cup 2026 · Round of 16')
+    expect(text).toContain('FIFA World Cup 2026 · 1/8 финала')
     expect(text).toContain('Сегодня, 19:00')
     expect(text).toContain('Houston Stadium, Houston')
     expect(text).toContain('Будешь смотреть?')

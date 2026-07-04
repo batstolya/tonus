@@ -402,6 +402,28 @@ export function buildFootballReminderKeyboard(shortId: string) {
   }
 }
 
+// Локализация стадий турнира: "Round of 16" → "1/8 финала" и т.п.
+// Понимает варианты ESPN ("Round of 16", "Quarterfinals") и
+// football-data.org ("Last 16", "Group Stage", "Group A").
+export function localizeRoundName(round?: string | null): string | null {
+  if (!round) return null
+  const r = round.trim().toLowerCase()
+
+  const groupMatch = r.match(/^group\s+([a-l])$/)
+  if (groupMatch) return `Группа ${groupMatch[1].toUpperCase()}`
+  if (/^group[- ]stage$/.test(r)) return 'Групповой этап'
+
+  if (/round of 64|last 64/.test(r)) return '1/32 финала'
+  if (/round of 32|last 32/.test(r)) return '1/16 финала'
+  if (/round of 16|last 16/.test(r)) return '1/8 финала'
+  if (/quarter[- ]?finals?/.test(r)) return '1/4 финала'
+  if (/semi[- ]?finals?/.test(r)) return '1/2 финала'
+  if (/third[- ]place|3rd[- ]place|play[- ]?off for third/.test(r)) return 'Матч за 3-е место'
+  if (/^finals?$/.test(r)) return 'Финал'
+
+  return round
+}
+
 export function buildFootballReminderText(
   reminder: FootballReminderView,
   now = new Date(),
@@ -410,7 +432,7 @@ export function buildFootballReminderText(
 ): string {
   const kickoff = new Date(reminder.kickoff_at)
   const matchLine = `<b>${escapeHtml(reminder.home_team_name)} — ${escapeHtml(reminder.away_team_name)}</b>`
-  const competition = [reminder.competition_name, reminder.round_name].filter(Boolean).join(' · ')
+  const competition = [reminder.competition_name, localizeRoundName(reminder.round_name)].filter(Boolean).join(' · ')
   const venue = [reminder.venue_name, reminder.venue_city].filter(Boolean).join(', ')
 
   return [
