@@ -7,11 +7,14 @@ import { localToIso, localDate } from '../_shared/time.ts'
 import { buildClassifyPrompt } from '../_shared/classifyPrompt.ts'
 import { daysSinceFreshData, freshestDataTs } from '../_shared/staleness.ts'
 import { detectSaveIntent } from '../_shared/saveIntent.ts'
+import { parseFootballCallback, buildFootballResponseText } from '../_shared/football.ts'
 
 const TG_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const WEBHOOK_SECRET = Deno.env.get('TELEGRAM_WEBHOOK_SECRET') ?? ''
+
+type SupabaseClient = ReturnType<typeof createClient>
 
 // ── Telegram API helpers ──────────────────────────────────────────────────────
 
@@ -79,6 +82,14 @@ const BACK_MENU = {
   inline_keyboard: [[{ text: '🏠 Главное меню', callback_data: 'menu' }]],
 }
 
+const FOOTBALL_MENU = {
+  inline_keyboard: [
+    [{ text: '📅 Ближайшие матчи', callback_data: 'fb_matches' }],
+    [{ text: '🔔 Включить напоминания', callback_data: 'fb_on' }, { text: '🔕 Выключить напоминания', callback_data: 'fb_off' }],
+    [{ text: '🏠 Главное меню', callback_data: 'menu' }],
+  ],
+}
+
 // ── Setup bot commands (called once on startup) ───────────────────────────────
 
 async function setupCommands() {
@@ -94,6 +105,8 @@ async function setupCommands() {
       { command: 'tokens', description: '✨ Токены Gemini' },
       { command: 'idea', description: '💡 Записать идею' },
       { command: 'ideas', description: '💡 Список идей' },
+      { command: 'football', description: '⚽ Напоминания о матчах ЧМ-2026' },
+      { command: 'matches', description: '📅 Ближайшие матчи' },
     ],
   })
 }
@@ -528,6 +541,51 @@ async function handleSettings(chatId: number | string, userId: string, supabase:
   )
 }
 
+async function handleFootballMenu(chatId: number | string, userId: string, supabase: SupabaseClient) {
+  const { data: settings } = await supabase
+    .from('football_user_settings')
+    .select('reminders_enabled')
+    .eq('user_id', userId)
+    .maybeSingle()
+  const enabled = settings?.reminders_enabled ?? false
+  await tgSend(chatId,
+    `⚽ Football reminders\n\n${enabled ? 'Сейчас включены напоминания за 30 минут до матчей ЧМ-2026.' : 'Напоминания сейчас выключены.'}\n\nЧто сделать?`,
+    { reply_markup: FOOTBALL_MENU }
+  )
+}
+
+async function handleFootballMatches(chatId: number | string, supabase: SupabaseClient) {
+  const { data: matches } = await supabase
+    .from('football_matches')
+    .select('home_team_name, away_team_name, kickoff_at')
+    .gt('kickoff_at', new Date().toISOString())
+    .in('status_short', ['NS', 'TBD'])
+    .order('kickoff_at', { ascending: true })
+    .limit(5)
+
+  if (!matches?.length) {
+    await tgSend(chatId, '📭 Ближайших матчей не найдено.', { reply_markup: BACK_MENU })
+    return
+  }
+
+  const lines = ['Ближайшие матчи:', '']
+  matches.forEach((m, i) => {
+    const when = new Date(m.kickoff_at).toLocaleString('ru-RU', {
+      timeZone: 'Europe/Berlin', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+    })
+    lines.push(`${i + 1}. ${m.home_team_name} — ${m.away_team_name}\n   ${when}`)
+  })
+  await tgSend(chatId, lines.join('\n'), { reply_markup: BACK_MENU })
+}
+
+async function setFootballReminders(chatId: number | string, userId: string, enabled: boolean, supabase: SupabaseClient) {
+  await supabase.from('football_user_settings').upsert(
+    { user_id: userId, telegram_chat_id: Number(chatId), reminders_enabled: enabled },
+    { onConflict: 'user_id' }
+  )
+  await tgSend(chatId, enabled ? '🔔 Напоминания о матчах включены.' : '🔕 Напоминания о матчах выключены.', { reply_markup: BACK_MENU })
+}
+
 async function checkStaleness(chatId: number | string, userId: string, supabase: any) {
   // Свежесть считаем по самому недавнему из путей обновления: ручной экспорт
   // (imports) ИЛИ автосинк Apple Health (ingest_tokens.last_ingest_at). Иначе
@@ -690,6 +748,39 @@ serve(async (req) => {
       await tgSend(chatId, '👍 Беру на заметку — проверю через несколько дней, как отзовётся, и вернусь с результатом.')
     } else if (data === 'nudge_no') {
       await tgSend(chatId, 'Окей, без давления 🙂')
+    } else if (data === 'fb_matches') {
+      await handleFootballMatches(chatId, supabase)
+    } else if (data === 'fb_on') {
+      await setFootballReminders(chatId, userId, true, supabase)
+    } else if (data === 'fb_off') {
+      await setFootballReminders(chatId, userId, false, supabase)
+    } else if (data.startsWith('fw:')) {
+      const parsed = parseFootballCallback(data)
+      const msgId = cq.message.message_id as number
+      if (!parsed) {
+        await tgEdit(chatId, msgId, '⚠️ Не удалось обработать ответ.')
+      } else {
+        const { data: match } = await supabase
+          .from('football_matches')
+          .select('id, home_team_name, away_team_name, kickoff_at, competition_name, round_name, venue_name, venue_city')
+          .eq('short_id', parsed.shortId)
+          .maybeSingle()
+
+        if (!match) {
+          await tgEdit(chatId, msgId, '⚠️ Матч не найден.')
+        } else {
+          await supabase.from('football_match_responses').upsert({
+            user_id: userId,
+            match_id: match.id,
+            response: parsed.response,
+            telegram_callback_query_id: cq.id,
+            telegram_message_id: msgId,
+          }, { onConflict: 'user_id,match_id' })
+
+          const text = buildFootballResponseText(match, parsed.response, new Date(), 'ru-RU', 'Europe/Berlin')
+          await tgEdit(chatId, msgId, text, { parse_mode: 'HTML' })
+        }
+      }
     }
 
     return new Response('ok')
@@ -865,6 +956,24 @@ serve(async (req) => {
   if (text === '/resume') {
     await supabase.from('report_settings').upsert({ user_id: userId, paused: false }, { onConflict: 'user_id' })
     await tgSend(chatId, '▶️ Автоотчёты возобновлены.', { reply_markup: BACK_MENU })
+    return new Response('ok')
+  }
+
+  // /football, /matches, /football_on, /football_off
+  if (text === '/football') {
+    await handleFootballMenu(chatId, userId, supabase)
+    return new Response('ok')
+  }
+  if (text === '/matches') {
+    await handleFootballMatches(chatId, supabase)
+    return new Response('ok')
+  }
+  if (text === '/football_on') {
+    await setFootballReminders(chatId, userId, true, supabase)
+    return new Response('ok')
+  }
+  if (text === '/football_off') {
+    await setFootballReminders(chatId, userId, false, supabase)
     return new Response('ok')
   }
 
