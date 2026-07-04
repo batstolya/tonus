@@ -59,6 +59,10 @@
 .landing-cta:hover { filter: brightness(1.08); transform: translateY(-1px); }
 .landing-cta-lg { padding: 14px 28px; font-size: 16px; }
 
+/* ── Лента доверия ────────────────────────────────────────── */
+.lp-trust { display: flex; justify-content: center; gap: 28px; flex-wrap: wrap; padding: 8px 0 40px; border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent); }
+.lp-trust-item { font-size: 13.5px; color: var(--text-muted); display: inline-flex; gap: 7px; align-items: center; }
+
 .landing-main { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
 
 .landing-hero { position: relative; overflow: hidden; padding: 80px 0 64px; }

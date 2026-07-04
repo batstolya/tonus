@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { LazyMotion, domMax, MotionConfig } from 'motion/react'
 import { useT } from '../../lib/i18n'
 import { HeroBlock } from './blocks/HeroBlock'
+import { TrustStrip } from './blocks/TrustStrip'
 import { MetricsBlock } from './blocks/MetricsBlock'
 import { InsightsBlock } from './blocks/InsightsBlock'
 import { ChatBlock } from './blocks/ChatBlock'
@@ -44,6 +45,7 @@ export function LandingScreen({ onTry, onDemo }: { onTry: () => void; onDemo?: (
 
           <main className="landing-main">
             <HeroBlock onTry={onTry} onDemo={onDemo} />
+            <TrustStrip />
             {/* Старые блоки: заменяются по мере выполнения задач 5–8 */}
             <MetricsBlock />
             <InsightsBlock />
