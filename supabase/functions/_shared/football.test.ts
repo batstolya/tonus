@@ -254,11 +254,29 @@ describe('buildFootballReminderText', () => {
       venue_city: 'Houston',
     }, new Date('2026-07-04T16:30:00.000Z'), 'ru-RU', 'Europe/Berlin')
 
-    expect(text).toContain('⚽ Через 30 минут матч')
+    expect(text).toContain('⚽ Матч через 30 мин')
     expect(text).toContain('<b>Canada — Morocco</b>')
     expect(text).toContain('FIFA World Cup 2026 · Round of 16')
     expect(text).toContain('Сегодня, 19:00')
     expect(text).toContain('Houston Stadium, Houston')
     expect(text).toContain('Будешь смотреть?')
+  })
+
+  it('shows honest countdown when sent far from kickoff', () => {
+    const reminder = {
+      home_team_name: 'Brazil',
+      away_team_name: 'Norway',
+      kickoff_at: '2026-07-05T20:00:00.000Z',
+    }
+
+    // за ~21.5 часа — часы
+    expect(buildFootballReminderText(reminder, new Date('2026-07-04T22:23:00.000Z')))
+      .toContain('⚽ Матч через 22 ч')
+    // за 5 минут — минуты
+    expect(buildFootballReminderText(reminder, new Date('2026-07-05T19:55:00.000Z')))
+      .toContain('⚽ Матч через 5 мин')
+    // почти начался
+    expect(buildFootballReminderText(reminder, new Date('2026-07-05T19:59:30.000Z')))
+      .toContain('⚽ Матч вот-вот начнётся')
   })
 })
