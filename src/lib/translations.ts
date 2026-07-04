@@ -826,5 +826,6 @@ export const translations: Record<string, { uk: string; en: string }> = {
   '💊 Магний 400мг — пора принять': { uk: '💊 Магній 400мг — час прийняти', en: '💊 Magnesium 400mg — time to take it' },
   '✓ Принял': { uk: '✓ Прийняв', en: '✓ Taken' },
   '☕ Записал: кофе в 14:20': { uk: '☕ Записав: кава о 14:20', en: '☕ Logged: coffee at 14:20' },
+  'кофе': { uk: 'кава', en: 'coffee' },
   '📊 За 2 недели: сон +40 мин, HRV +6 мс': { uk: '📊 За 2 тижні: сон +40 хв, HRV +6 мс', en: '📊 Last 2 weeks: sleep +40 min, HRV +6 ms' },
 }
