@@ -3,10 +3,8 @@ import { LazyMotion, domMax, MotionConfig } from 'motion/react'
 import { useT } from '../../lib/i18n'
 import { HeroBlock } from './blocks/HeroBlock'
 import { TrustStrip } from './blocks/TrustStrip'
-import { MetricsBlock } from './blocks/MetricsBlock'
-import { InsightsBlock } from './blocks/InsightsBlock'
+import { HowItWorks } from './blocks/HowItWorks'
 import { ChatBlock } from './blocks/ChatBlock'
-import { ExperimentsBlock } from './blocks/ExperimentsBlock'
 import { FeatureGrid } from './blocks/FeatureGrid'
 import './Landing.css'
 
@@ -46,11 +44,8 @@ export function LandingScreen({ onTry, onDemo }: { onTry: () => void; onDemo?: (
           <main className="landing-main">
             <HeroBlock onTry={onTry} onDemo={onDemo} />
             <TrustStrip />
-            {/* Старые блоки: заменяются по мере выполнения задач 5–8 */}
-            <MetricsBlock />
-            <InsightsBlock />
+            <HowItWorks />
             <ChatBlock />
-            <ExperimentsBlock />
             <FeatureGrid />
             <section className="landing-final-cta">
               <h2>{t('Готов(а) попробовать?')}</h2>
