@@ -67,7 +67,9 @@ function Scene({ index, animate }: { index: number; animate: boolean }) {
 function StepText({ index, active, onActive, children }: {
   index: number; active: boolean; onActive: (i: number) => void; children: React.ReactNode
 }) {
-  const [ref, inView] = useInView<HTMLDivElement>({ threshold: 0.6, once: false })
+  // Активен шаг, пересекающий центральную полосу вьюпорта (10% по высоте).
+  // threshold 0.6 ломался: все шаги видны одновременно и события кончались.
+  const [ref, inView] = useInView<HTMLDivElement>({ threshold: 0, rootMargin: '-45% 0px -45% 0px', once: false })
   useEffect(() => { if (inView) onActive(index) }, [inView, index, onActive])
   return (
     <div ref={ref} className={`hiw-step${active ? ' active' : ''}`}>

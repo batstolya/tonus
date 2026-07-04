@@ -10,7 +10,12 @@ import { FeatureGrid } from './blocks/FeatureGrid'
 import { FinalCta } from './blocks/FinalCta'
 import './Landing.css'
 
-export function LandingScreen({ onTry, onDemo }: { onTry: () => void; onDemo?: () => void }) {
+export function LandingScreen({ onTry, onDemo, theme, onToggleTheme }: {
+  onTry: () => void
+  onDemo?: () => void
+  theme: 'dark' | 'light'
+  onToggleTheme: () => void
+}) {
   const { t, lang, setLang } = useT()
   const nextLang = lang === 'ru' ? 'uk' : lang === 'uk' ? 'en' : 'ru'
   const flag = lang === 'ru' ? '🇷🇺' : lang === 'uk' ? '🇺🇦' : '🇬🇧'
@@ -35,6 +40,9 @@ export function LandingScreen({ onTry, onDemo }: { onTry: () => void; onDemo?: (
           <header className={`landing-topbar${scrolled ? ' scrolled' : ''}`}>
             <span className="landing-logo">Tonus</span>
             <div className="landing-topbar-right">
+              <button className="landing-lang" onClick={onToggleTheme} aria-label={t('Сменить тему')} title={t('Сменить тему')}>
+                {theme === 'dark' ? '☀️' : '🌙'}
+              </button>
               <button className="landing-lang" onClick={() => setLang(nextLang)} aria-label="Язык">
                 {flag}
               </button>
