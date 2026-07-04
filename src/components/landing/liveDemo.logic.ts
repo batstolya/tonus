@@ -12,6 +12,13 @@ export const TAB_LABELS: Record<DemoTab, string> = {
   insights: 'Инсайты',
 }
 
+// Демо-инсайты лендинга (показываются в панели hero и в сцене «AI находит связи»)
+export const DEMO_INSIGHTS: { title: string; text: string }[] = [
+  { title: '☕ Кофе после 15:00', text: '→ сон на 1.5 ч короче' },
+  { title: '🍽️ Поздняя еда', text: '→ HRV падает на 15%' },
+  { title: '💼 Стрессовые дни', text: '→ пульс покоя выше на 8 уд/мин' },
+]
+
 export interface LiveDemoData {
   score: DailyScore
   sleep14: { date: string; deep: number | null; rem: number | null; core: number | null }[]
