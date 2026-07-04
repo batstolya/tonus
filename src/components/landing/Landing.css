@@ -196,4 +196,4 @@
 .ld-footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 10px; flex-wrap: wrap; }
 .ld-demo-link { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 12.5px; padding: 0; }
 .ld-demo-link:hover { text-decoration: underline; }
-.lp-word { display: inline-block; }
+.lp-word { display: inline-block; margin-right: 0.28em; }
