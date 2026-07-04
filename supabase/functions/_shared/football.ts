@@ -414,7 +414,7 @@ export function buildFootballReminderText(
   const venue = [reminder.venue_name, reminder.venue_city].filter(Boolean).join(', ')
 
   return [
-    '⚽ Через 30 минут матч',
+    buildCountdownHeader(kickoff, now),
     '',
     matchLine,
     competition ? `🏆 ${escapeHtml(competition)}` : null,
@@ -438,6 +438,16 @@ export function buildFootballResponseText(
     ? '✅ Отмечено: будешь смотреть'
     : '❌ Отмечено: не будешь смотреть'
   return `${base}\n\n${label}`
+}
+
+// Честный заголовок: считаем реальное время до кикоффа, а не хардкод
+// «через 30 минут» (тест/задержка крона иначе показывали бы неправду).
+function buildCountdownHeader(kickoff: Date, now: Date): string {
+  const minutes = Math.round((kickoff.getTime() - now.getTime()) / 60_000)
+  if (minutes <= 1) return '⚽ Матч вот-вот начнётся'
+  if (minutes < 90) return `⚽ Матч через ${minutes} мин`
+  const hours = Math.round(minutes / 60)
+  return `⚽ Матч через ${hours} ч`
 }
 
 function formatKickoff(kickoff: Date, now: Date, locale: string, timeZone: string): string {
