@@ -1182,6 +1182,28 @@ serve(async (req) => {
     return new Response('ok')
   }
 
+  // /widget — токен и URL данных для iPhone-виджета (Scriptable, F4 smart-tonus)
+  if (text === '/widget') {
+    const { data: existing } = await supabase
+      .from('widget_tokens').select('token').eq('user_id', userId).maybeSingle()
+    let wtoken = existing?.token as string | undefined
+    if (!wtoken) {
+      wtoken = crypto.randomUUID().replace(/-/g, '')
+      const { error } = await supabase.from('widget_tokens').insert({ user_id: userId, token: wtoken })
+      if (error) {
+        await tgSend(chatId, '❌ Не удалось создать токен, попробуй ещё раз.', { reply_markup: BACK_MENU })
+        return new Response('ok')
+      }
+    }
+    const url = `${SUPABASE_URL}/functions/v1/widget-data?token=${wtoken}`
+    await tgSend(chatId,
+      `📱 <b>iPhone-виджет готовности</b>\n\nТвой URL данных (никому не показывай):\n<code>${url}</code>\n\n` +
+      `Установка за 5 минут: приложение Scriptable из App Store + скрипт из гайда ` +
+      `docs/guides/iphone-widget.md в репозитории. Вставь URL в первую строку скрипта.`,
+      { reply_markup: BACK_MENU })
+    return new Response('ok')
+  }
+
   // Commands start with "/" but unknown → show menu
   if (text.startsWith('/')) {
     await tgSend(chatId, 'Выбери действие:', { reply_markup: MAIN_MENU })

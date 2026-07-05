@@ -16,6 +16,9 @@ project_id = "mxnmubakfzqoosgsqmhh"
 [functions.ingest-health]
 verify_jwt = false   # HAE webhook, авторизуется по ?token=
 
+[functions.widget-data]
+verify_jwt = false   # iPhone-виджет (Scriptable), авторизуется по ?token= (widget_tokens)
+
 [functions.send-reminders]
 verify_jwt = false   # pg_cron каждые 5 мин, без Authorization
 
