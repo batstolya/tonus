@@ -1892,3 +1892,14 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 .corr-pair { font-weight: 600; font-size: 14px; }
 .corr-meta { font-size: 12.5px; color: var(--muted, #888); }
 .corr-note { margin-top: 10px; font-size: 12.5px; }
+
+/* ── Препараты: соблюдение (F6, smart-tonus) ─────────────────────────── */
+.adherence-tabs { display: flex; gap: 6px; }
+.adherence-overall { margin: 4px 0 10px; font-size: 13.5px; color: var(--muted, #888); }
+.adherence-list { display: flex; flex-direction: column; gap: 8px; }
+.adherence-row { display: grid; grid-template-columns: minmax(120px, 1fr) 2fr 44px; align-items: center; gap: 10px; }
+.adherence-name { font-size: 14px; }
+.adherence-streak { font-size: 12px; color: var(--muted, #888); }
+.adherence-bar { height: 8px; border-radius: 4px; background: var(--surface2); overflow: hidden; }
+.adherence-fill { height: 100%; border-radius: 4px; transition: width .3s; }
+.adherence-pct { font-size: 13px; font-weight: 600; text-align: right; }
