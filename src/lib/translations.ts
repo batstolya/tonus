@@ -21,6 +21,7 @@ export const translations: Record<string, { uk: string; en: string }> = {
   // ── Оболочка / общее ───────────────────────────────────────
   'Настройки': { uk: 'Налаштування', en: 'Settings' },
   'Выйти': { uk: 'Вийти', en: 'Sign out' },
+  'Понятно': { uk: 'Зрозуміло', en: 'Got it' },
   'Сменить тему': { uk: 'Змінити тему', en: 'Toggle theme' },
   'Светлая тема': { uk: 'Світла тема', en: 'Light theme' },
   'Тёмная тема': { uk: 'Темна тема', en: 'Dark theme' },

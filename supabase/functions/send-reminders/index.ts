@@ -256,7 +256,6 @@ serve(async () => {
     if (timeDue('10:00', hhmm)) {
       const { data: links } = await supabase
         .from('telegram_links').select('user_id, telegram_chat_id').eq('status', 'active')
-      const avgF = (a: number[]) => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null
       const since = new Date(nowMs - 21 * 86400000).toISOString().slice(0, 10)
 
       for (const l of links ?? []) {
@@ -265,18 +264,13 @@ serve(async () => {
           .select('date, resting_heart_rate, hrv, sleep_hours')
           .eq('user_id', l.user_id).gte('date', since).order('date', { ascending: true })
         if (!rows || rows.length < 10) continue
-        const recent = rows.slice(-3), base = rows.slice(-17, -3)
+        const recent = rows.slice(-3)
         const col = (rs: any[], k: string) => rs.map(r => r[k]).filter((v: any) => v != null)
 
+        // hrv_drop и rhr_rise удалены: их покрывает страж здоровья
+        // (_shared/anomaly.ts в ingest-health, z-score против личной нормы) —
+        // иначе пользователь получал бы двойные алерты об одном и том же.
         const checks: { type: string; cond: boolean; msg: string }[] = []
-        const rHrv = avgF(col(recent, 'hrv')), bHrv = avgF(col(base, 'hrv'))
-        if (rHrv != null && bHrv != null && rHrv < bHrv * 0.8)
-          checks.push({ type: 'hrv_drop', cond: true, msg: `📉 <b>HRV снизился</b>\nПоследние дни ${rHrv.toFixed(0)} мс против ${bHrv.toFixed(0)} мс обычно (−${Math.round((1 - rHrv / bHrv) * 100)}%). Возможна усталость/стресс — стоит восстановиться.` })
-
-        const rRhr = avgF(col(recent, 'resting_heart_rate')), bRhr = avgF(col(base, 'resting_heart_rate'))
-        if (rRhr != null && bRhr != null && rRhr > bRhr * 1.1)
-          checks.push({ type: 'rhr_rise', cond: true, msg: `📈 <b>Пульс покоя вырос</b>\n${rRhr.toFixed(0)} уд/мин против ${bRhr.toFixed(0)} обычно (+${Math.round((rRhr / bRhr - 1) * 100)}%). Бывает при недосыпе, нагрузке или начале болезни.` })
-
         const lastSleep = col(recent, 'sleep_hours')
         if (lastSleep.length >= 3 && lastSleep.every((v: number) => v < 6))
           checks.push({ type: 'sleep_short', cond: true, msg: `😴 <b>Мало сна</b>\n3 ночи подряд меньше 6 часов. Накопленный недосып бьёт по восстановлению — постарайся лечь раньше.` })
