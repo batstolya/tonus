@@ -8,6 +8,7 @@ import { isResetUrl, unauthedView } from './components/landing/gating'
 import { QuickLog } from './components/intake/QuickLog'
 import { ChatWidget } from './components/chat/ChatWidget'
 import { AppLoader } from './components/ui/Spinner'
+import { DashboardSkeleton } from './components/ui/Skeleton'
 
 // Экраны грузим лениво: recharts и прочие тяжёлые зависимости не попадают
 // в стартовый бандл (лендинг и авторизация открываются без них).
@@ -260,13 +261,14 @@ export default function App() {
     setGoogleLoading(false)
   }
 
-  if (loading || dbLoading) return <AppLoader label={dbLoading ? t('Загружаем данные…') : undefined} />
+  if (loading) return <AppLoader />
   if (!user) {
     const view = unauthedView({ isResetUrl: isResetUrl(window.location.search), showAuth })
     return view === 'auth'
       ? <AuthScreen onBack={() => setShowAuth(false)} />
       : <LandingScreen onTry={() => setShowAuth(true)} onDemo={() => { enableDemo(); window.location.reload() }} theme={theme} onToggleTheme={toggleTheme} />
   }
+  if (dbLoading) return <DashboardSkeleton />
   if (passwordRecovery) return <ResetPasswordScreen onDone={() => setPasswordRecovery(false)} />
 
   const activeGroup = getActiveGroup(state.view)
