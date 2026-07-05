@@ -77,6 +77,16 @@ export function SleepScreen({ daily }: Props) {
   const onTime = bedtimeDays.filter(d => (bedtimeToChartVal(d.sleepBedtime) ?? 99) < 12).length
   const notOnTime = bedtimeDays.length - onTime
 
+  // Цветовая оценка «хорошо / средне / плохо» для средних метрик сна.
+  // avgBed/avgWake — в единицах графика (часы от полудня, см. bedtimeToChartVal):
+  // 23:30 → 11.5, 00:00 → 12, 00:30 → 12.5; 05:00 → 17, 06:00 → 18, 08:00 → 20, 09:30 → 21.5.
+  const durColor = (h: number) => (h >= 7 ? 'var(--green)' : h >= 6 ? 'var(--yellow)' : 'var(--red)')
+  const bedColor = (v: number) => (v < 11.5 ? 'var(--green)' : v <= 12.5 ? 'var(--yellow)' : 'var(--red)')
+  const wakeColor = (v: number) =>
+    v >= 18 && v <= 20 ? 'var(--green)'
+    : (v >= 17 && v < 18) || (v > 20 && v <= 21.5) ? 'var(--yellow)'
+    : 'var(--red)'
+
 
   const CustomBedtimeTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null
@@ -105,9 +115,9 @@ export function SleepScreen({ daily }: Props) {
       </div>
 
       <div className="stat-row">
-        {avgSleep && <div className="stat"><span>{fmtHours(avgSleep)}</span> {t('средняя длительность')}</div>}
-        {avgBed !== null && <div className="stat"><span>{chartValToTime(avgBed)}</span> {t('среднее засыпание')}</div>}
-        {avgWake !== null && <div className="stat"><span>{chartValToTime(avgWake)}</span> {t('среднее пробуждение')}</div>}
+        {avgSleep && <div className="stat"><span style={{ color: durColor(avgSleep) }}>{fmtHours(avgSleep)}</span> {t('средняя длительность')}</div>}
+        {avgBed !== null && <div className="stat"><span style={{ color: bedColor(avgBed) }}>{chartValToTime(avgBed)}</span> {t('среднее засыпание')}</div>}
+        {avgWake !== null && <div className="stat"><span style={{ color: wakeColor(avgWake) }}>{chartValToTime(avgWake)}</span> {t('среднее пробуждение')}</div>}
         {bedtimeDays.length > 0 && (
           <div className="stat">
             <span>
