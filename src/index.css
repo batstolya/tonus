@@ -9,17 +9,18 @@
   --green: #5bc896;
   --red: #ff6b6b;
   --yellow: #ffd166;
-  --radius: 12px;
+  --radius: 14px;
+  --card-shadow: none;
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --topbar-bg: rgba(15,15,18,0.92);
   --shadow: 0 1px 0 rgba(255,255,255,0.04);
 }
 
 [data-theme="light"] {
-  --bg: #f2f2f7;
+  --bg: #f6f6f9;
   --surface: #ffffff;
   --surface2: #f2f2f7;
-  --border: #e0e0e8;
+  --border: #ececf2;
   --text: #111118;
   --text-muted: #6e6e80;
   --accent: #4a6fff;
@@ -28,6 +29,7 @@
   --yellow: #f59e0b;
   --topbar-bg: rgba(255,255,255,0.92);
   --shadow: 0 1px 0 rgba(0,0,0,0.08);
+  --card-shadow: 0 4px 16px rgba(17, 17, 24, 0.06);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -199,7 +201,7 @@ body {
   padding: 20px;
   text-align: center;
 }
-.upload-zone:hover, .upload-zone.dragging { border-color: var(--accent); background: #1e2235; }
+.upload-zone:hover, .upload-zone.dragging { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
 .upload-zone.has-file { border-color: var(--green); border-style: solid; }
 .upload-icon { font-size: 28px; color: var(--text-muted); }
 .upload-zone.has-file .upload-icon { color: var(--green); }
@@ -224,7 +226,7 @@ body {
   border-radius: 2px;
   transition: width 0.3s ease;
 }
-.error-msg { color: var(--red); font-size: 14px; background: #2a1a1a; padding: 12px 20px; border-radius: 8px; }
+.error-msg { color: var(--red); font-size: 14px; background: color-mix(in srgb, var(--red) 12%, var(--surface)); padding: 12px 20px; border-radius: 8px; }
 .upload-hint { font-size: 12px; color: var(--text-muted); text-align: center; max-width: 400px; }
 .upload-hint-block { text-align: center; }
 .upload-hint-block .upload-hint { margin-bottom: 8px; }
@@ -288,7 +290,7 @@ body {
 
 /* Screens */
 .screen { display: flex; flex-direction: column; gap: 20px; }
-.screen h2 { font-size: 22px; font-weight: 700; }
+.screen h2 { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
 .screen-hint { color: var(--text-muted); font-size: 14px; }
 .empty-hint { color: var(--text-muted); font-size: 15px; padding: 32px 0; }
 
