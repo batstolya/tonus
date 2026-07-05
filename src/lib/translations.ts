@@ -343,6 +343,8 @@ export const translations: Record<string, { uk: string; en: string }> = {
   'Задай любой вопрос.': { uk: 'Постав будь-яке питання.', en: 'Ask anything.' },
   'Как мой сон за период?': { uk: 'Як мій сон за період?', en: 'How was my sleep this period?' },
   'Что с HRV?': { uk: 'Що з HRV?', en: 'How about my HRV?' },
+  'Привет! Я вижу твои данные, цели и эксперименты за последние 30 дней. Задай любой вопрос.': { uk: 'Привіт! Я бачу твої дані, цілі та експерименти за останні 30 днів. Постав будь-яке питання.', en: 'Hi! I can see your data, goals and experiments for the last 30 days. Ask me anything.' },
+  'Как продвигаются мои цели?': { uk: 'Як просуваються мої цілі?', en: 'How are my goals going?' },
   'Когда лучшие показатели?': { uk: 'Коли найкращі показники?', en: 'When were my best metrics?' },
   'Спроси о своих данных…': { uk: 'Запитай про свої дані…', en: 'Ask about your data…' },
 
