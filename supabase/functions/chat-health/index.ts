@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { checkBudget, budgetExceededMessage } from '../_shared/costGuard.ts'
 import { getPrompt } from '../_shared/prompts.ts'
+import { buildHealthContext, healthContextToText } from '../_shared/healthContext.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
@@ -31,7 +32,10 @@ serve(async (req) => {
     const { data: { user }, error: authErr } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
     if (authErr || !user) return new Response('Unauthorized', { status: 401, headers: CORS })
 
-    const { sessionId, message, contextSnapshot, periodLabel, lang } = await req.json()
+    // contextSnapshot от клиента больше не принимаем: контекст строится на
+    // сервере из БД (единый билдер _shared/healthContext, F2 smart-tonus) —
+    // клиент и сервер не дрейфуют, цели/эксперименты внутри.
+    const { sessionId, message, lang } = await req.json()
     if (!message) return new Response('Missing message', { status: 400, headers: CORS })
     // Язык ответа = язык интерфейса пользователя (данные в контексте всегда на русском)
     const LANG_NAMES: Record<string, string> = { ru: 'русском', uk: 'украинском', en: 'английском' }
@@ -54,7 +58,7 @@ serve(async (req) => {
     if (!session) {
       const { data, error: insertErr } = await supabase
         .from('chat_sessions')
-        .insert({ user_id: user.id, context_snapshot: contextSnapshot ?? null })
+        .insert({ user_id: user.id })
         .select().single()
       if (insertErr) throw new Error(`Session insert failed: ${insertErr.message}`)
       session = data
@@ -79,10 +83,9 @@ serve(async (req) => {
       content: message,
     })
 
-    // Build context for Gemini
-    const contextText = session.context_snapshot
-      ? `\n\n=== ДАННЫЕ ПОЛЬЗОВАТЕЛЯ (${periodLabel ?? 'последний период'}) ===\n${session.context_snapshot}`
-      : ''
+    // Контекст всегда свежий, из БД (30 дней + цели/эксперименты/профиль)
+    const ctx = await buildHealthContext(supabase, user.id, { periodDays: 30, includeCoachProfile: true })
+    const contextText = `\n\n=== ДАННЫЕ ПОЛЬЗОВАТЕЛЯ (30 дней) ===\n${healthContextToText(ctx)}`
 
     const sys = await getPrompt(supabase, 'chat-health-system', SYSTEM_PROMPT)
 

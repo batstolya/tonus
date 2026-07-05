@@ -49,7 +49,7 @@ jobs:
       # Починил пачку старых ошибок — снизь MAX_LINT_ERRORS до нового значения.
       - name: Lint ceiling
         env:
-          MAX_LINT_ERRORS: 296
+          MAX_LINT_ERRORS: 292
         run: |
           COUNT=$(npx eslint . -f json | jq '[.[].errorCount] | add // 0')
           echo "eslint errors: $COUNT (потолок: $MAX_LINT_ERRORS)"
