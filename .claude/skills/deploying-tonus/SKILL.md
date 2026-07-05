@@ -1,15 +1,18 @@
 ---
 name: deploying-tonus
-description: Use when deploying Tonus — frontend goes via Vercel on push to main, Supabase edge functions deploy separately via CLI with critical flags (ingest-health needs --no-verify-jwt)
+description: Use when deploying Tonus — frontend deploys when green GitHub Actions CI triggers the Vercel deploy hook, Supabase edge functions deploy separately via CLI with critical flags (ingest-health needs --no-verify-jwt)
 ---
 
 # Деплой Tonus
 
-## Фронтенд — сам
+## Фронтенд — через зелёный CI
 
-Push в `main` (`github.com/batstolya/tonus`) → Vercel собирает и деплоит
-автоматически. Прод-ключи Supabase живут в Vercel env, локальный `.env.local`
-на прод не влияет.
+Push в `main` (`github.com/batstolya/tonus`) → GitHub Actions CI (тесты, сборка,
+e2e, lint-потолок) → при зелёном CI job `deploy` дёргает Vercel Deploy Hook.
+**Красный CI = прод не обновится** — чини тесты, а не жди деплоя.
+Авто-деплой Vercel выключен в `vercel.json`; hook хранится в GitHub Secrets
+(`VERCEL_DEPLOY_HOOK`). Прод-ключи Supabase живут в Vercel env, локальный
+`.env.local` на прод не влияет. Статус: `gh run list --repo batstolya/tonus`.
 
 ## Edge-функции — только вручную
 
