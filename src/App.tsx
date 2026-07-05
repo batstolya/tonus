@@ -267,7 +267,6 @@ export default function App() {
       ? <AuthScreen onBack={() => setShowAuth(false)} />
       : <LandingScreen onTry={() => setShowAuth(true)} onDemo={() => { enableDemo(); window.location.reload() }} theme={theme} onToggleTheme={toggleTheme} />
   }
-  if (dbLoading) return <DashboardSkeleton />
   if (passwordRecovery) return <ResetPasswordScreen onDone={() => setPasswordRecovery(false)} />
 
   const activeGroup = getActiveGroup(state.view)
@@ -281,7 +280,7 @@ export default function App() {
 
   return (
     <div className="app">
-      {hasData && (
+      {(hasData || dbLoading) && (
         <>
           <header className="topbar">
             <button className="logo-btn" onClick={() => setView('dashboard')}>Tonus</button>
@@ -407,6 +406,7 @@ export default function App() {
       {syncMsg && <div className="sync-toast">{syncMsg}</div>}
 
       <main className="main-content">
+        {dbLoading ? <ScreenSkeleton /> : (
         <Suspense fallback={<ScreenSkeleton />}>
         {!hasData || state.view === 'upload' ? (
           state.deviceType == null ? (
@@ -490,6 +490,7 @@ export default function App() {
           />
         ) : null}
         </Suspense>
+        )}
       </main>
 
       {hasData && <ChatWidget user={user} daily={state.daily} intakeEvents={intakeEvents} heartRateSamples={state.heartRateSamples} />}
