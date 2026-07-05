@@ -34,7 +34,9 @@ VITE_SUPABASE_ANON_KEY=test-anon-key
 
 ## Деплой
 
-- **Фронтенд:** авто-деплой Vercel при push в `main` (репо `github.com/batstolya/tonus`).
+- **Фронтенд:** push в `main` (репо `github.com/batstolya/tonus`) → GitHub Actions CI
+  (тесты, сборка, e2e, lint-потолок) → при зелёном CI job `deploy` дёргает Vercel
+  Deploy Hook. Красный CI = прод не обновится. Авто-деплой Vercel выключен (`vercel.json`).
 - **Edge-функции:** не деплоятся через Vercel-пайплайн. Отдельно:
   `npx supabase functions deploy <name> --project-ref <ref>`. Логин CLI — в macOS Keychain.
 
