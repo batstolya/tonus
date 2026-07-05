@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { computeDailyScores } from '../_shared/scores.ts'
+import { detectAnomaly, shouldSendAlert, buildAlertMessage, type AnomalyDay } from '../_shared/anomaly.ts'
 
 // Приём данных Apple Health от Health Auto Export (SPEC-AUTOSYNC).
 // Изолировано: пишет в *_staging; в боевые таблицы — только при mode='live'.
@@ -208,6 +209,59 @@ serve(async (req) => {
           if (scores.length) await supabase.from('daily_scores').upsert(scores, { onConflict: 'user_id,date' })
         }
       } catch (_) { /* оценки не критичны для приёма данных */ }
+
+      // Страж здоровья (F1, smart-tonus): z-score свежего дня против личной
+      // нормы → health_alerts + Telegram. Best-effort: ошибка детектора
+      // не должна валить приём данных.
+      try {
+        const since35 = new Date(Date.now() - 35 * 86400000).toISOString().slice(0, 10)
+        const { data: am } = await supabase
+          .from('metrics_daily')
+          .select('date, metric, avg_val')
+          .eq('user_id', userId).gte('date', since35)
+          .in('metric', ['restingHeartRate', 'wristTemperature', 'hrv', 'respiratoryRate', 'oxygenSaturation'])
+        if (am?.length) {
+          const KEY: Record<string, keyof Omit<AnomalyDay, 'date'>> = {
+            restingHeartRate: 'rhr', wristTemperature: 'wristTemp', hrv: 'hrv',
+            respiratoryRate: 'respiratoryRate', oxygenSaturation: 'spo2',
+          }
+          const byDate: Record<string, AnomalyDay> = {}
+          for (const r of am) {
+            const d = byDate[r.date] ??= { date: r.date, rhr: null, wristTemp: null, hrv: null, respiratoryRate: null, spo2: null }
+            const k = KEY[r.metric]
+            if (k && r.avg_val != null) d[k] = Number(r.avg_val)
+          }
+          const result = detectAnomaly(Object.values(byDate))
+          if (result) {
+            const dayAgo = new Date(Date.now() - 24 * 3600_000).toISOString()
+            const { data: recent } = await supabase
+              .from('health_alerts').select('level, created_at')
+              .eq('user_id', userId).eq('type', 'anomaly').gte('created_at', dayAgo)
+            const recentAnomaly = (recent ?? []).filter(
+              (a: { level: 'yellow' | 'red' | null; created_at: string }): a is { level: 'yellow' | 'red'; created_at: string } => a.level != null,
+            )
+            if (shouldSendAlert(recentAnomaly, result.level)) {
+              const targetDate = Object.keys(byDate).sort().pop()!
+              const message = buildAlertMessage(result)
+              await supabase.from('health_alerts').insert({
+                user_id: userId, type: 'anomaly', date: targetDate, level: result.level,
+                findings: result.findings, message,
+              })
+              const tgToken = Deno.env.get('TELEGRAM_BOT_TOKEN')
+              const { data: link } = await supabase
+                .from('telegram_links').select('telegram_chat_id')
+                .eq('user_id', userId).maybeSingle()
+              if (tgToken && link?.telegram_chat_id) {
+                await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ chat_id: link.telegram_chat_id, text: message, parse_mode: 'HTML' }),
+                })
+              }
+            }
+          }
+        }
+      } catch { /* страж не критичен для приёма данных */ }
     }
 
     const status = `metrics:${metrics.length} sleep:${sleep.length} mode:${tok.mode}${mErr ? ` mErr:${mErr}` : ''}${sErr ? ` sErr:${sErr}` : ''}`

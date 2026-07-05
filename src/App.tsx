@@ -13,6 +13,7 @@ import { DashboardSkeleton, ScreenSkeleton } from './components/ui/Skeleton'
 // в стартовый бандл (лендинг и авторизация открываются без них).
 const UploadScreen = lazy(() => import('./components/upload/UploadScreen').then(m => ({ default: m.UploadScreen })))
 const Dashboard = lazy(() => import('./components/dashboard/Dashboard').then(m => ({ default: m.Dashboard })))
+const HealthAlertBanner = lazy(() => import('./components/dashboard/HealthAlertBanner'))
 const HeartRateScreen = lazy(() => import('./components/heart-rate/HeartRateScreen').then(m => ({ default: m.HeartRateScreen })))
 const MetricsScreen = lazy(() => import('./components/metrics/MetricsScreen').then(m => ({ default: m.MetricsScreen })))
 const StressMapScreen = lazy(() => import('./components/stress-map/StressMapScreen').then(m => ({ default: m.StressMapScreen })))
@@ -424,6 +425,7 @@ export default function App() {
           )
         ) : state.view === 'dashboard' ? (
           <div className="dashboard-layout">
+            <HealthAlertBanner userId={user?.id ?? null} demo={demo} />
             <Dashboard
               daily={state.daily}
               heartRateSamples={state.heartRateSamples}
