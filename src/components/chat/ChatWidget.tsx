@@ -1,22 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import type { User } from '@supabase/supabase-js'
-import type { DailyMetrics, HeartRateSample } from '../../types'
-import { sendChatMessage, buildContextSnapshot, loadLabSummary, loadSupplementSummary, loadNotesSummary, loadConcernsSummary, loadHairSummary, loadCoachProfile, loadCalendarSummary, type ChatMessage, type IntakeEvent } from '../../lib/chat'
+import { sendChatMessage, type ChatMessage } from '../../lib/chat'
 import { useT } from '../../lib/i18n'
+
+// Контекст для ИИ собирается на сервере (chat-health → _shared/healthContext,
+// F2 smart-tonus): данные за 30 дней + цели/эксперименты/профиль. Клиент шлёт
+// только сообщение — билдеры контекста здесь больше не живут.
 
 interface Props {
   user: User
-  daily: DailyMetrics[]
-  intakeEvents?: IntakeEvent[]
-  heartRateSamples?: HeartRateSample[]
-}
-
-type Period = '14d' | '30d' | '90d'
-
-const PERIOD_LABELS: Record<Period, string> = {
-  '14d': '2 недели',
-  '30d': '30 дней',
-  '90d': '3 месяца',
 }
 
 function MsgBubble({ msg }: { msg: ChatMessage }) {
@@ -28,57 +20,16 @@ function MsgBubble({ msg }: { msg: ChatMessage }) {
   )
 }
 
-export function ChatWidget({ user, daily, intakeEvents = [], heartRateSamples = [] }: Props) {
+export function ChatWidget(_props: Props) {
   const { t, lang } = useT()
   const [open, setOpen] = useState(false)
-  const [period, setPeriod] = useState<Period>('14d')
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [sessionId, setSessionId] = useState<string | null>(null)
-  const [snapshot, setSnapshot] = useState<string | null>(null)
-  const [labSummary, setLabSummary] = useState<string>('')
-  const [supplementSummary, setSupplementSummary] = useState<string>('')
-  const [notesSummary, setNotesSummary] = useState<string>('')
-  const [concernsSummary, setConcernsSummary] = useState<string>('')
-  const [hairSummary, setHairSummary] = useState<string>('')
-  const [coachProfile, setCoachProfile] = useState<string>('')
-  const [calendarSummary, setCalendarSummary] = useState<string>('')
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
-  // Контекст (сводки из базы) грузим только после первого открытия чата,
-  // а не при каждом старте приложения.
-  const [everOpened, setEverOpened] = useState(false)
-
-  function toggleOpen() {
-    setOpen(o => !o)
-    setEverOpened(true)
-  }
-
-  useEffect(() => {
-    if (!everOpened) return
-    loadLabSummary(user.id).then(setLabSummary)
-    loadConcernsSummary(user.id).then(setConcernsSummary)
-    loadHairSummary(user.id).then(setHairSummary)
-    loadCoachProfile().then(setCoachProfile)
-  }, [user.id, everOpened])
-
-  // Rebuild snapshot when period changes (also reloads supplement compliance for the new period)
-  useEffect(() => {
-    if (!everOpened) return
-    const days = period === '14d' ? 14 : period === '30d' ? 30 : 90
-    loadSupplementSummary(user.id, days).then(setSupplementSummary)
-    loadNotesSummary(user.id, days).then(setNotesSummary)
-    loadCalendarSummary(user.id, days).then(setCalendarSummary)
-  }, [user.id, period, everOpened])
-
-  useEffect(() => {
-    const days = period === '14d' ? 14 : period === '30d' ? 30 : 90
-    setSnapshot(daily.length ? buildContextSnapshot(daily, days, labSummary || undefined, intakeEvents, supplementSummary || undefined, heartRateSamples, notesSummary || undefined, concernsSummary || undefined, hairSummary || undefined, coachProfile || undefined, calendarSummary || undefined) : null)
-    setSessionId(null)
-    setMessages([])
-  }, [period, daily, labSummary, intakeEvents, supplementSummary, heartRateSamples, notesSummary, concernsSummary, hairSummary, coachProfile, calendarSummary])
 
   useEffect(() => {
     if (open) {
@@ -103,15 +54,7 @@ export function ChatWidget({ user, daily, intakeEvents = [], heartRateSamples = 
     setError(null)
 
     try {
-      // Only send snapshot on first message of a session
-      const ctxToSend = sessionId ? null : snapshot
-      const { reply, sessionId: newSessionId } = await sendChatMessage(
-        text,
-        sessionId,
-        ctxToSend,
-        PERIOD_LABELS[period],
-        lang,
-      )
+      const { reply, sessionId: newSessionId } = await sendChatMessage(text, sessionId, lang)
       if (!sessionId) setSessionId(newSessionId)
 
       const assistantMsg: ChatMessage = {
@@ -121,8 +64,8 @@ export function ChatWidget({ user, daily, intakeEvents = [], heartRateSamples = 
         created_at: new Date().toISOString(),
       }
       setMessages(prev => [...prev, assistantMsg])
-    } catch (e: any) {
-      setError(e.message ?? t('Ошибка'))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t('Ошибка'))
     }
     setLoading(false)
   }
@@ -139,7 +82,7 @@ export function ChatWidget({ user, daily, intakeEvents = [], heartRateSamples = 
       {/* Floating button */}
       <button
         className={`chat-fab ${open ? 'open' : ''}`}
-        onClick={toggleOpen}
+        onClick={() => setOpen(o => !o)}
         title={t('Чат с ИИ')}
       >
         {open ? (
@@ -154,17 +97,6 @@ export function ChatWidget({ user, daily, intakeEvents = [], heartRateSamples = 
         <div className="chat-window">
           <div className="chat-header">
             <span className="chat-title">{t('ИИ-ассистент')}</span>
-            <div className="chat-period-tabs">
-              {(['14d', '30d', '90d'] as Period[]).map(p => (
-                <button
-                  key={p}
-                  className={`chat-period-btn ${period === p ? 'active' : ''}`}
-                  onClick={() => setPeriod(p)}
-                >
-                  {t(PERIOD_LABELS[p])}
-                </button>
-              ))}
-            </div>
             <button className="chat-close" onClick={() => setOpen(false)} aria-label={t('Закрыть')}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
@@ -173,9 +105,9 @@ export function ChatWidget({ user, daily, intakeEvents = [], heartRateSamples = 
           <div className="chat-messages">
             {messages.length === 0 && (
               <div className="chat-empty">
-                <p>{t('Привет! Я знаю твои данные здоровья за')} {t(PERIOD_LABELS[period])}. {t('Задай любой вопрос.')}</p>
+                <p>{t('Привет! Я вижу твои данные, цели и эксперименты за последние 30 дней. Задай любой вопрос.')}</p>
                 <div className="chat-suggestions">
-                  {['Как мой сон за период?', 'Что с HRV?', 'Когда лучшие показатели?'].map(s => (
+                  {['Как мой сон за период?', 'Что с HRV?', 'Как продвигаются мои цели?'].map(s => (
                     <button key={s} className="chat-suggestion" onClick={() => { setInput(s); inputRef.current?.focus() }}>{t(s)}</button>
                   ))}
                 </div>

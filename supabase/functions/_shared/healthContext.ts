@@ -19,6 +19,8 @@ export interface HealthContext {
   supplementLogs: Record<string, any>[]
   notes: Record<string, any>[]
   calendar: Record<string, any>[]
+  goals: Record<string, any>[]
+  experiments: Record<string, any>[]
 }
 
 const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
@@ -34,7 +36,7 @@ export async function buildHealthContext(
   const since = new Date(); since.setDate(since.getDate() - periodDays)
   const sinceStr = since.toISOString().slice(0, 10)
 
-  const [profRes, scoreRes, mRes, sRes, labRes, supRes, intakeRes, logRes, notesRes, calRes] = await Promise.all([
+  const [profRes, scoreRes, mRes, sRes, labRes, supRes, intakeRes, logRes, notesRes, calRes, goalRes, expRes] = await Promise.all([
     opts.includeCoachProfile
       ? supabase.from('coach_profile').select('summary, facts').eq('user_id', userId).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -63,6 +65,12 @@ export async function buildHealthContext(
     supabase.from('calendar_events')
       .select('start_ts')
       .eq('user_id', userId).gte('start_ts', `${sinceStr}T00:00:00Z`).order('start_ts', { ascending: false }),
+    supabase.from('goals')
+      .select('title, metric, baseline_value, target_value, direction, end_date, status')
+      .eq('user_id', userId).in('status', ['active', 'achieved']).order('created_at', { ascending: false }).limit(10),
+    supabase.from('experiments')
+      .select('hypothesis, change_rule, target_metric, start_date, end_date, status, result')
+      .eq('user_id', userId).in('status', ['active', 'completed']).order('created_at', { ascending: false }).limit(6),
   ])
 
   const prof = profRes.data
@@ -78,6 +86,8 @@ export async function buildHealthContext(
     supplementLogs: logRes.data ?? [],
     notes: notesRes.data ?? [],
     calendar: calRes.data ?? [],
+    goals: goalRes.data ?? [],
+    experiments: expRes.data ?? [],
   }
 }
 
@@ -196,6 +206,29 @@ export function healthContextToText(ctx: HealthContext): string {
       const wb = typeof n.wellbeing === 'number' ? ` [самочувствие ${n.wellbeing}/5]` : ''
       const text = n.note ? `: ${n.note}` : ''
       if (text || wb) parts.push(`${n.date}${text}${wb}`)
+    }
+  }
+
+  if (ctx.goals.length) {
+    const dirTxt: Record<string, string> = { up: 'повысить', down: 'снизить', earlier: 'сместить раньше', habit: 'привычка' }
+    parts.push('\nЦели пользователя (учитывай их в советах):')
+    for (const g of ctx.goals) {
+      const status = g.status === 'achieved' ? ' ✅ достигнута' : ''
+      const base = g.baseline_value != null ? ` (старт ${g.baseline_value})` : ''
+      parts.push(`— ${g.title}: ${dirTxt[g.direction] ?? g.direction} ${g.metric} до ${g.target_value}${base}, срок до ${g.end_date}${status}`)
+    }
+  }
+
+  if (ctx.experiments.length) {
+    parts.push('\nЭксперименты пользователя (что он проверяет на себе):')
+    for (const e of ctx.experiments) {
+      if (e.status === 'active') {
+        parts.push(`— Идёт: «${e.hypothesis}» (${e.change_rule}; метрика ${e.target_metric}, ${e.start_date}—${e.end_date})`)
+      } else {
+        const r = e.result
+        const delta = r?.deltaPct != null ? `, эффект ${r.deltaPct > 0 ? '+' : ''}${Number(r.deltaPct).toFixed(0)}%` : ''
+        parts.push(`— Завершён: «${e.hypothesis}» (метрика ${e.target_metric}${delta})`)
+      }
     }
   }
 
