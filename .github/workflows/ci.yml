@@ -1,0 +1,45 @@
+# CI: тесты + сборка + lint-потолок. Vercel деплоит независимо от этого
+# workflow, но красный CI на push в main — сигнал откатить/чинить.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Test
+        run: npm test
+
+      - name: Build (tsc + vite)
+        run: npm run build
+        env:
+          # dummy: сборке значения не нужны, прод-ключи живут в Vercel
+          VITE_SUPABASE_URL: http://localhost:54321
+          VITE_SUPABASE_ANON_KEY: test-anon-key
+
+      # Потолок ошибок eslint: legacy-долг зафиксирован, новых не добавляем.
+      # Починил пачку старых ошибок — снизь MAX_LINT_ERRORS до нового значения.
+      - name: Lint ceiling
+        env:
+          MAX_LINT_ERRORS: 296
+        run: |
+          COUNT=$(npx eslint . -f json | jq '[.[].errorCount] | add // 0')
+          echo "eslint errors: $COUNT (потолок: $MAX_LINT_ERRORS)"
+          if [ "$COUNT" -gt "$MAX_LINT_ERRORS" ]; then
+            echo "::error::Новые lint-ошибки: $COUNT > $MAX_LINT_ERRORS. Запусти 'npm run lint' локально."
+            exit 1
+          fi
