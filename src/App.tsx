@@ -111,7 +111,7 @@ export default function App() {
   const { t, lang, setLang, locale } = useT()
   const { state, setView, setDaily, setEvents, setProgress, setError, setDeviceType } = useAppStore()
   const { user, loading, passwordRecovery, setPasswordRecovery } = useAuth()
-  const { theme, toggle: toggleTheme } = useTheme(user ? 'dark' : 'light')
+  const { theme, toggle: toggleTheme } = useTheme('light')
   const [syncMsg, setSyncMsg] = useState<string | null>(null)
   const [intakeEvents, setIntakeEvents] = useState<Parameters<typeof QuickLog>[0]['events']>([])
   const [dbLoading, setDbLoading] = useState(true)
