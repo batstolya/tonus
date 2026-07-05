@@ -3,8 +3,10 @@ import { translations } from './translations'
 
 export type Lang = 'ru' | 'uk' | 'en'
 
+// Русский язык скрыт из выбора: остаётся только внутренним fallback'ом для
+// непереведённых строк (translate('ru') отдаёт исходный ключ). Пользователю
+// доступны украинский и английский.
 const LANGS: { code: Lang; label: string; flag: string }[] = [
-  { code: 'ru', label: 'Русский', flag: '🇷🇺' },
   { code: 'uk', label: 'Українська', flag: '🇺🇦' },
   { code: 'en', label: 'English', flag: '🇬🇧' },
 ]
@@ -12,11 +14,11 @@ export { LANGS }
 
 function detectLang(): Lang {
   const saved = localStorage.getItem('lang') as Lang | null
-  if (saved && ['ru', 'uk', 'en'].includes(saved)) return saved
+  // 'ru' больше не выбирается — старое сохранённое значение трактуем как English.
+  if (saved === 'uk' || saved === 'en') return saved
   const nav = navigator.language.slice(0, 2)
   if (nav === 'uk') return 'uk'
-  if (nav === 'en') return 'en'
-  return 'ru'
+  return 'en'
 }
 
 // BCP-47 локаль для форматирования дат/чисел, соответствующая языку интерфейса.

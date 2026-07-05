@@ -17,8 +17,9 @@ export function LandingScreen({ onTry, onDemo, theme, onToggleTheme }: {
   onToggleTheme: () => void
 }) {
   const { t, lang, setLang } = useT()
-  const nextLang = lang === 'ru' ? 'uk' : lang === 'uk' ? 'en' : 'ru'
-  const flag = lang === 'ru' ? '🇷🇺' : lang === 'uk' ? '🇺🇦' : '🇬🇧'
+  // Русский скрыт — переключаем только между украинским и английским.
+  const nextLang = lang === 'uk' ? 'en' : 'uk'
+  const flag = lang === 'uk' ? '🇺🇦' : '🇬🇧'
   const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
