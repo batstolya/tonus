@@ -178,7 +178,7 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
               {[0, 30, 60, 120, 180].map(mins => {
                 const d = new Date(Date.now() - mins * 60000)
                 const val = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
-                const label = mins === 0 ? t('Сейчас') : mins < 60 ? `${mins}${t('м_сокр')}` : `${mins/60}${t('ч_сокр')}`
+                const label = mins === 0 ? t('Сейчас') : mins < 60 ? `${mins}${t('м')}` : `${mins/60}${t('ч')}`
                 return (
                   <button
                     key={mins}

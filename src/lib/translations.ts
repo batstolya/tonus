@@ -128,8 +128,7 @@ export const translations: Record<string, { uk: string; en: string }> = {
   'выбрать': { uk: 'обрати', en: 'pick' },
   'Вчера': { uk: 'Вчора', en: 'Yesterday' },
   'Сегодня': { uk: 'Сьогодні', en: 'Today' },
-  'м_сокр': { uk: 'хв', en: 'm' },
-  'ч_сокр': { uk: 'год', en: 'h' },
+  'м': { uk: 'хв', en: 'm' },
   '☕ Кофе': { uk: '☕ Кава', en: '☕ Coffee' },
   '🍷 Алкоголь': { uk: '🍷 Алкоголь', en: '🍷 Alcohol' },
   '🍽 Еда': { uk: '🍽 Їжа', en: '🍽 Meal' },
@@ -789,7 +788,7 @@ export const translations: Record<string, { uk: string; en: string }> = {
   'И это ещё не всё': { uk: 'І це ще не все', en: 'And there is more' },
   'Препараты и лечение': { uk: 'Препарати й лікування', en: 'Meds & treatment' },
   'Анализы из лаборатории': { uk: 'Аналізи з лабораторії', en: 'Lab results' },
-  'Три языка: ru / uk / en': { uk: 'Три мови: ru / uk / en', en: 'Three languages: ru / uk / en' },
+  'Два языка: uk / en': { uk: 'Дві мови: uk / en', en: 'Two languages: uk / en' },
 
   // ── Лендинг 2.0 ────────────────────────────────────────────
   'Это живые данные — потрогай': { uk: 'Це живі дані — поторкай', en: 'Live data — click around' },

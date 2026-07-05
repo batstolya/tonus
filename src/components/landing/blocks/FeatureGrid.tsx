@@ -9,7 +9,7 @@ const ITEMS = [
   { icon: '🔬', label: 'Эксперименты' },
   { icon: '🩺', label: 'Проблемы и симптомы' },
   { icon: '📤', label: 'Экспорт данных' },
-  { icon: '🌍', label: 'Три языка: ru / uk / en' },
+  { icon: '🌍', label: 'Два языка: uk / en' },
 ]
 
 export function FeatureGrid() {

@@ -863,8 +863,9 @@ body {
   .bottom-nav-btn span { font-size: 10px; }
 
   /* Add padding so content isn't hidden behind bottom nav AND the chat FAB
-     (FAB sits at bottom:72px and otherwise covers trailing buttons) */
-  .main-content { padding-bottom: 148px; }
+     (FAB sits at bottom:72px and otherwise covers trailing buttons).
+     Узкие боковые отступы — чтобы графики занимали почти всю ширину экрана. */
+  .main-content { padding-left: 12px; padding-right: 12px; padding-bottom: 148px; }
 
   /* Chat FAB above bottom nav */
 
@@ -881,8 +882,8 @@ body {
   .upload-zones { flex-direction: column; align-items: center; }
   .upload-zone { width: 100%; max-width: 340px; }
 
-  /* Screen padding */
-  .screen { padding: 16px; }
+  /* Screen padding — минимальные боковые отступы ради ширины графиков */
+  .screen { padding: 16px 6px; }
 
   /* Dashboard layout */
   .dashboard-layout { flex-direction: column; }
