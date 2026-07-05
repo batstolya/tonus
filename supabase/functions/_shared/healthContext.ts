@@ -21,6 +21,8 @@ export interface HealthContext {
   calendar: Record<string, any>[]
   goals: Record<string, any>[]
   experiments: Record<string, any>[]
+  // последние дни environment_daily (свежий первым)
+  environment: { date: string; temp_c: number | null; pressure_hpa: number | null; daylight_minutes: number | null; precipitation_mm: number | null }[]
 }
 
 const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
@@ -36,7 +38,7 @@ export async function buildHealthContext(
   const since = new Date(); since.setDate(since.getDate() - periodDays)
   const sinceStr = since.toISOString().slice(0, 10)
 
-  const [profRes, scoreRes, mRes, sRes, labRes, supRes, intakeRes, logRes, notesRes, calRes, goalRes, expRes] = await Promise.all([
+  const [profRes, scoreRes, mRes, sRes, labRes, supRes, intakeRes, logRes, notesRes, calRes, goalRes, expRes, envRes] = await Promise.all([
     opts.includeCoachProfile
       ? supabase.from('coach_profile').select('summary, facts').eq('user_id', userId).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -71,6 +73,9 @@ export async function buildHealthContext(
     supabase.from('experiments')
       .select('hypothesis, change_rule, target_metric, start_date, end_date, status, result')
       .eq('user_id', userId).in('status', ['active', 'completed']).order('created_at', { ascending: false }).limit(6),
+    supabase.from('environment_daily')
+      .select('date, temp_c, pressure_hpa, daylight_minutes, precipitation_mm')
+      .eq('user_id', userId).order('date', { ascending: false }).limit(2),
   ])
 
   const prof = profRes.data
@@ -88,6 +93,7 @@ export async function buildHealthContext(
     calendar: calRes.data ?? [],
     goals: goalRes.data ?? [],
     experiments: expRes.data ?? [],
+    environment: envRes.data ?? [],
   }
 }
 
@@ -230,6 +236,19 @@ export function healthContextToText(ctx: HealthContext): string {
         parts.push(`— Завершён: «${e.hypothesis}» (метрика ${e.target_metric}${delta})`)
       }
     }
+  }
+
+  if (ctx.environment.length) {
+    const e = ctx.environment[0]
+    const bits: string[] = []
+    if (e.temp_c != null) bits.push(`${Math.round(e.temp_c)}°C`)
+    if (e.pressure_hpa != null) {
+      const prev = ctx.environment[1]?.pressure_hpa
+      const delta = prev != null ? Math.round(e.pressure_hpa - prev) : null
+      bits.push(`давление ${Math.round(e.pressure_hpa)} гПа${delta != null && delta !== 0 ? ` (${delta > 0 ? '+' : ''}${delta} за сутки)` : ''}`)
+    }
+    if (e.precipitation_mm != null && e.precipitation_mm > 0) bits.push(`осадки ${e.precipitation_mm} мм`)
+    if (bits.length) parts.push(`\nПогода (${e.date}): ${bits.join(', ')}. Резкие перепады давления могут влиять на сон/HRV.`)
   }
 
   if (ctx.calendar.length) {

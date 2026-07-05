@@ -111,6 +111,54 @@ describe('computeLagCorrelations', () => {
     }
   })
 
+  it('environment factor: pressure drop → worse HRV next day (lag 1)', () => {
+    const n = 30
+    // дни с падением давления (дельта < 0) → hrv назавтра ниже
+    const env = Array.from({ length: n }, (_, i) => ({
+      date: dayStr(i),
+      temp_c: 20,
+      pressure_hpa: i % 2 === 0 ? 1005 : 1020, // пила: чёт — упало, нечет — выросло
+      daylight_minutes: 900,
+      precipitation_mm: 0,
+    }))
+    const daily = makeDaily(n, i => ({
+      // hrv дня i зависит от дельты давления дня i-1 (чёт → упало → hrv ниже)
+      hrv: i > 0 && (i - 1) % 2 === 0 ? 38 + (i % 3) : 55 + (i % 3),
+      sleepHours: 7.5,
+    }))
+    const res = found(computeLagCorrelations({ daily, scores: [], intake: [], environment: env }))
+    const hit = res.find(c => c.factor === 'pressureDelta' && c.outcome === 'hrv' && c.lag === 1)
+    expect(hit, 'pressureDelta → hrv (lag 1) не найдена').toBeDefined()
+    expect(hit!.r).toBeGreaterThan(0.5) // дельта выше (рост давления) → hrv выше
+  })
+
+  it('environment factor: hot day → less sleep same night (lag 0)', () => {
+    const n = 30
+    const env = Array.from({ length: n }, (_, i) => ({
+      date: dayStr(i),
+      temp_c: i % 2 === 0 ? 31 : 18,
+      pressure_hpa: 1013,
+      daylight_minutes: 900,
+      precipitation_mm: 0,
+    }))
+    const daily = makeDaily(n, i => ({
+      sleepHours: i % 2 === 0 ? 6 + (i % 3) * 0.1 : 8 + (i % 3) * 0.1,
+    }))
+    const res = found(computeLagCorrelations({ daily, scores: [], intake: [], environment: env }))
+    const hit = res.find(c => c.factor === 'temp' && c.outcome === 'sleepHours' && c.lag === 0)
+    expect(hit).toBeDefined()
+    expect(hit!.r).toBeLessThan(-0.5)
+  })
+
+  it('works without environment data (backwards compatible)', () => {
+    const daily = makeDaily(30, i => ({
+      steps: i % 2 === 0 ? 12000 : 3000,
+      sleepHours: i % 2 === 0 ? 8 : 6,
+    }))
+    const res = found(computeLagCorrelations({ daily, scores: [], intake: [] }))
+    expect(res.length).toBeGreaterThan(0)
+  })
+
   it('bedtime factor: later bedtime → less sleep (lag 0)', () => {
     const daily = makeDaily(30, i => {
       const late = i % 2 === 0

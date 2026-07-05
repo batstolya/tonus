@@ -1,6 +1,9 @@
+import { useEffect, useState } from 'react'
 import type { DailyMetrics } from '../../types'
-import { computeLagCorrelations, type CorrFactor, type CorrOutcome } from '../../lib/correlations'
+import { computeLagCorrelations, type CorrFactor, type CorrOutcome, type EnvDay } from '../../lib/correlations'
 import { computeDailyScores } from '../../lib/scores'
+import { supabase } from '../../lib/supabase'
+import { isDemoActive } from '../../lib/demo'
 import { useT } from '../../lib/i18n'
 
 // «Связи в твоих данных» (F3 smart-tonus): детерминированные лаг-корреляции,
@@ -17,6 +20,10 @@ const FACTOR_LABELS: Record<CorrFactor, { emoji: string; label: string }> = {
   exerciseMinutes: { emoji: '🏃', label: 'Тренировки' },
   steps: { emoji: '👟', label: 'Шаги' },
   bedtime: { emoji: '🌙', label: 'Поздний отбой' },
+  pressure: { emoji: '🧭', label: 'Давление' },
+  pressureDelta: { emoji: '🌦️', label: 'Перепад давления' },
+  temp: { emoji: '🌡️', label: 'Температура за окном' },
+  daylight: { emoji: '☀️', label: 'Световой день' },
 }
 
 const OUTCOME_LABELS: Record<CorrOutcome, string> = {
@@ -28,8 +35,25 @@ const OUTCOME_LABELS: Record<CorrOutcome, string> = {
 
 export function CorrelationsBlock({ daily, intakeEvents }: Props) {
   const { t } = useT()
+  // Погода/среда: в демо — фикстура, иначе environment_daily (RLS отдаёт свои строки)
+  const [env, setEnv] = useState<EnvDay[]>([])
+  useEffect(() => {
+    let cancelled = false
+    if (isDemoActive()) {
+      import('../../lib/demoFixture').then(m => { if (!cancelled) setEnv(m.makeDemoEnvironment()) })
+      return () => { cancelled = true }
+    }
+    const since = new Date(Date.now() - 48 * 86400000).toISOString().slice(0, 10)
+    supabase
+      .from('environment_daily')
+      .select('date, temp_c, pressure_hpa, daylight_minutes, precipitation_mm')
+      .gte('date', since).order('date')
+      .then(({ data }) => { if (!cancelled) setEnv((data as EnvDay[]) ?? []) })
+    return () => { cancelled = true }
+  }, [])
+
   const scores = computeDailyScores(daily).map(s => ({ date: s.date, readiness: s.readiness }))
-  const res = computeLagCorrelations({ daily, scores, intake: intakeEvents })
+  const res = computeLagCorrelations({ daily, scores, intake: intakeEvents, environment: env })
 
   if ('needMoreDays' in res) {
     return (
