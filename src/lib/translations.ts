@@ -359,6 +359,10 @@ export const translations: Record<string, { uk: string; en: string }> = {
   'Тренировки': { uk: 'Тренування', en: 'Workouts' },
   'Поздний отбой': { uk: 'Пізній відбій', en: 'Late bedtime' },
   'Корреляция — не причинность: связь стоит проверить экспериментом.': { uk: 'Кореляція — не причинність: звʼязок варто перевірити експериментом.', en: 'Correlation is not causation — verify the link with an experiment.' },
+  'Давление': { uk: 'Тиск', en: 'Pressure' },
+  'Перепад давления': { uk: 'Перепад тиску', en: 'Pressure swing' },
+  'Температура за окном': { uk: 'Температура надворі', en: 'Outdoor temperature' },
+  'Световой день': { uk: 'Світловий день', en: 'Daylight hours' },
   'Когда лучшие показатели?': { uk: 'Коли найкращі показники?', en: 'When were my best metrics?' },
   'Спроси о своих данных…': { uk: 'Запитай про свої дані…', en: 'Ask about your data…' },
 

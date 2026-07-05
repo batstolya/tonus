@@ -27,7 +27,7 @@ function stubSupabase(dataByTable: Record<string, unknown[]>) {
 const emptyCtx: HealthContext = {
   periodDays: 14, coachProfile: null, scores: null, metrics: [], sleep: [],
   labs: [], supplements: [], intake: [], supplementLogs: [], notes: [],
-  calendar: [], goals: [], experiments: [],
+  calendar: [], goals: [], experiments: [], environment: [],
 }
 
 describe('buildHealthContext: goals & experiments', () => {
@@ -94,12 +94,17 @@ describe('healthContextToText: full coverage', () => {
       calendar: [{ start_ts: '2026-07-05T10:00:00Z' }],
       goals: [{ title: 'Сон 8ч', metric: 'sleepHours', baseline_value: 6.8, target_value: 8, direction: 'up', end_date: '2026-08-01', status: 'active' }],
       experiments: [{ hypothesis: 'Магний перед сном', change_rule: 'mg', target_metric: 'sleepHours', start_date: '2026-06-01', end_date: '2026-06-15', status: 'completed', result: { deltaPct: 7.2 } }],
+      environment: [
+        { date: '2026-07-05', temp_c: 24.3, pressure_hpa: 1008, daylight_minutes: 950, precipitation_mm: 0 },
+        { date: '2026-07-04', temp_c: 22.1, pressure_hpa: 1015, daylight_minutes: 952, precipitation_mm: 2 },
+      ],
     })
     for (const marker of [
       'ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ', 'ОЦЕНКИ', 'Персональная норма', 'ЧСС покоя',
       'Фазы сна', 'Анализы', 'Ферритин', 'Препараты: Магний', 'кофе',
       'Приём препаратов', 'Заметки дня', 'Календарь',
       'Цели пользователя', 'Эксперименты пользователя',
+      'Погода (2026-07-05)', 'давление 1008 гПа (-7 за сутки)',
     ]) {
       expect(text, `секция «${marker}» выпала из контекста`).toContain(marker)
     }
