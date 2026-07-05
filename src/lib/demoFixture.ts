@@ -21,8 +21,9 @@ export function makeDemoDaily(days = 90): DailyMetrics[] {
     // активный день → сон лучше; поздний отбой → недосып; сон → HRV назавтра.
     const steps = Math.floor(4000 + r(16) * 9000)
     const lateNight = r(2) > 0.65
+    const hotDay = r(21) > 0.7 // жаркий день → сон хуже (пара к makeDemoEnvironment)
     const sleepHours = Math.min(9.5,
-      5.9 + r(1) * 1.1 + (steps > 9000 ? 1.1 : 0) + (lateNight ? -1.2 : 0) + (weekend ? 0.4 : 0))
+      6.1 + r(1) * 0.9 + (steps > 9000 ? 1.1 : 0) + (lateNight ? -1.2 : 0) + (hotDay ? -1.1 : 0) + (weekend ? 0.4 : 0))
     const bed = new Date(d); bed.setDate(bed.getDate() - 1)
     bed.setHours(lateNight ? 24 : 23, Math.floor(r(2) * 59), 0, 0) // 00:xx при позднем отбое
     const wake = new Date(d); wake.setHours(7, Math.floor(r(3) * 59), 0, 0)
@@ -49,6 +50,27 @@ export function makeDemoDaily(days = 90): DailyMetrics[] {
       activeEnergy: 300 + r(18) * 500,
       exerciseMinutes: Math.floor(r(19) * 70),
       flightsClimbed: Math.floor(r(20) * 15),
+    })
+  }
+  return out
+}
+
+// Погода/среда для демо (environment_daily). Жара синхронизирована с
+// makeDemoDaily тем же сидом r(21) — «Жара → сон хуже» видна в корреляциях.
+export function makeDemoEnvironment(days = 90) {
+  const out: { date: string; temp_c: number; pressure_hpa: number; daylight_minutes: number; precipitation_mm: number }[] = []
+  const today = new Date()
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today)
+    d.setDate(d.getDate() - i)
+    const r = (k: number) => rnd(i * 7 + k)
+    const hotDay = r(21) > 0.7
+    out.push({
+      date: d.toISOString().slice(0, 10),
+      temp_c: hotDay ? 28 + r(22) * 5 : 15 + r(22) * 8,
+      pressure_hpa: 1013 + Math.sin(i / 4) * 9 + r(23) * 5,
+      daylight_minutes: 880 + Math.round(r(24) * 120),
+      precipitation_mm: r(25) > 0.75 ? r(26) * 12 : 0,
     })
   }
   return out

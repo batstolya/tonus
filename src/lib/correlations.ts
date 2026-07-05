@@ -6,8 +6,18 @@ import type { DailyMetrics } from '../types'
 // показываем только |r| ≥ 0.3, топ-5. «Сильная» связь = |r| ≥ 0.5 и n ≥ 21.
 // Лаг 2 не считаем сознательно: больше сравнений — больше ложных связей.
 
-export type CorrFactor = 'coffee' | 'alcohol' | 'exerciseMinutes' | 'steps' | 'bedtime'
+export type CorrFactor =
+  | 'coffee' | 'alcohol' | 'exerciseMinutes' | 'steps' | 'bedtime'
+  | 'pressure' | 'pressureDelta' | 'temp' | 'daylight' // среда (F5)
 export type CorrOutcome = 'sleepHours' | 'hrv' | 'restingHeartRate' | 'readiness'
+
+export interface EnvDay {
+  date: string
+  temp_c: number | null
+  pressure_hpa: number | null
+  daylight_minutes: number | null
+  precipitation_mm: number | null
+}
 
 export interface Correlation {
   factor: CorrFactor
@@ -23,6 +33,7 @@ export interface CorrelationsInput {
   daily: DailyMetrics[]
   scores: { date: string; readiness: number | null }[]
   intake: { ts: string; type: string }[]
+  environment?: EnvDay[] // погода/среда (environment_daily), опционально
 }
 
 export type CorrelationsResult =
@@ -76,6 +87,12 @@ export function computeLagCorrelations(input: CorrelationsInput): CorrelationsRe
   const coffee = countByDay('coffee')
   const alcohol = countByDay('alcohol')
   const readinessByDay = new Map(input.scores.map(s => [s.date, s.readiness]))
+  const envByDay = new Map((input.environment ?? []).map(e => [e.date, e]))
+  const prevDate = (d: string): string => {
+    const dt = new Date(d + 'T00:00:00Z')
+    dt.setUTCDate(dt.getUTCDate() - 1)
+    return dt.toISOString().slice(0, 10)
+  }
 
   // Значение фактора в день i. Для событий отсутствие записей = 0 (не логировал
   // — считаем, что не было: иначе кофе-корреляции никогда не наберут пар).
@@ -87,6 +104,14 @@ export function computeLagCorrelations(input: CorrelationsInput): CorrelationsRe
       case 'exerciseMinutes': return d.exerciseMinutes ?? null
       case 'steps': return d.steps ?? null
       case 'bedtime': return bedtimeMinutes(d.sleepBedtime)
+      case 'pressure': return envByDay.get(d.date)?.pressure_hpa ?? null
+      case 'pressureDelta': {
+        const cur = envByDay.get(d.date)?.pressure_hpa
+        const prev = envByDay.get(prevDate(d.date))?.pressure_hpa
+        return cur != null && prev != null ? cur - prev : null
+      }
+      case 'temp': return envByDay.get(d.date)?.temp_c ?? null
+      case 'daylight': return envByDay.get(d.date)?.daylight_minutes ?? null
     }
   }
   const outcomeValue = (o: CorrOutcome, i: number): number | null => {
@@ -99,7 +124,10 @@ export function computeLagCorrelations(input: CorrelationsInput): CorrelationsRe
     }
   }
 
-  const factors: CorrFactor[] = ['coffee', 'alcohol', 'exerciseMinutes', 'steps', 'bedtime']
+  const factors: CorrFactor[] = [
+    'coffee', 'alcohol', 'exerciseMinutes', 'steps', 'bedtime',
+    'pressure', 'pressureDelta', 'temp', 'daylight',
+  ]
   const outcomes: CorrOutcome[] = ['sleepHours', 'hrv', 'restingHeartRate', 'readiness']
   const lags: (0 | 1)[] = [0, 1]
 
