@@ -4,8 +4,9 @@
     {
       "name": "tonus-dev",
       "runtimeExecutable": "/Users/anatolii/.nvm/versions/node/v24.16.0/bin/node",
-      "runtimeArgs": ["node_modules/vite/bin/vite.js", "--port", "5173"],
-      "port": 5173
+      "runtimeArgs": ["node_modules/vite/bin/vite.js"],
+      "port": 5173,
+      "autoPort": true
     }
   ]
 }
