@@ -81,15 +81,26 @@ function AiScene() {
           </radialGradient>
         </defs>
 
-        {/* контекстная сеть факторов — тускло */}
+        {/* контекстная сеть факторов — тускло, погуще */}
         <g className="hiw-graph-web" stroke="var(--accent)" strokeWidth="1.2">
           <line x1="54" y1="50" x2="92" y2="24" />
-          <line x1="92" y1="24" x2="206" y2="36" />
-          <line x1="54" y1="50" x2="120" y2="104" />
+          <line x1="92" y1="24" x2="160" y2="18" />
+          <line x1="160" y1="18" x2="206" y2="36" />
+          <line x1="92" y1="24" x2="150" y2="60" />
+          <line x1="150" y1="60" x2="120" y2="104" />
+          <line x1="120" y1="104" x2="32" y2="92" />
+          <line x1="32" y1="92" x2="54" y2="50" />
           <line x1="120" y1="104" x2="182" y2="96" />
-          <line x1="182" y1="96" x2="206" y2="36" />
-          <line x1="120" y1="104" x2="206" y2="36" />
+          <line x1="182" y1="96" x2="232" y2="84" />
+          <line x1="232" y1="84" x2="206" y2="36" />
+          <line x1="150" y1="60" x2="182" y2="96" />
+          <line x1="150" y1="60" x2="206" y2="36" />
+          <line x1="54" y1="50" x2="120" y2="104" />
+          <line x1="160" y1="18" x2="150" y2="60" />
         </g>
+
+        {/* второстепенная связь — тусклый импульс */}
+        <line className="hiw-graph-pulse hiw-graph-pulse-b" x1="120" y1="104" x2="206" y2="36" pathLength="100" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" />
 
         {/* найденная связь: кофе ↔ сон */}
         <line className="hiw-graph-link" x1="54" y1="50" x2="206" y2="36" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" />
@@ -97,8 +108,12 @@ function AiScene() {
 
         {/* контекстные узлы */}
         <circle className="hiw-node hiw-node-a" cx="92" cy="24" r="4" fill="url(#hiwNode)" />
-        <circle className="hiw-node hiw-node-b" cx="120" cy="104" r="4" fill="url(#hiwNode)" />
+        <circle className="hiw-node hiw-node-b" cx="120" cy="104" r="4.5" fill="url(#hiwNode)" />
         <circle className="hiw-node hiw-node-c" cx="182" cy="96" r="4" fill="url(#hiwNode)" />
+        <circle className="hiw-node hiw-node-d" cx="150" cy="60" r="5" fill="url(#hiwNode)" />
+        <circle className="hiw-node hiw-node-e" cx="32" cy="92" r="3.5" fill="url(#hiwNode)" />
+        <circle className="hiw-node hiw-node-f" cx="232" cy="84" r="3.5" fill="url(#hiwNode)" />
+        <circle className="hiw-node hiw-node-g" cx="160" cy="18" r="4" fill="url(#hiwNode)" />
 
         {/* ключевые узлы: радар-пинг + ядро */}
         <circle className="hiw-ping hiw-ping-1" cx="54" cy="50" r="6" stroke="var(--accent)" strokeWidth="1.5" />
