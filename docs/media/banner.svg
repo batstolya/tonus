@@ -1,0 +1,80 @@
+<svg width="880" height="230" viewBox="0 0 880 230" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="880" y2="230" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0f1230"/>
+      <stop offset="0.55" stop-color="#1a1f4b"/>
+      <stop offset="1" stop-color="#2b2e6e"/>
+    </linearGradient>
+    <linearGradient id="ecg" x1="0" y1="0" x2="880" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#34d399"/>
+      <stop offset="0.5" stop-color="#818cf8"/>
+      <stop offset="1" stop-color="#f472b6"/>
+    </linearGradient>
+    <style>
+      .ecg {
+        stroke-dasharray: 1200;
+        stroke-dashoffset: 1200;
+        animation: draw 6s linear infinite;
+      }
+      @keyframes draw {
+        0% { stroke-dashoffset: 1200; opacity: 0; }
+        8% { opacity: 1; }
+        70% { stroke-dashoffset: 0; opacity: 1; }
+        88% { opacity: 0; }
+        100% { stroke-dashoffset: 0; opacity: 0; }
+      }
+      .pulse {
+        transform-origin: 790px 128px;
+        animation: pulse 1.6s ease-out infinite;
+      }
+      @keyframes pulse {
+        0% { transform: scale(0.6); opacity: 0.9; }
+        70% { transform: scale(1.8); opacity: 0; }
+        100% { transform: scale(1.8); opacity: 0; }
+      }
+      .chip { animation: floatUp 4.5s ease-in-out infinite; }
+      .chip.c2 { animation-delay: 1.5s; }
+      .chip.c3 { animation-delay: 3s; }
+      @keyframes floatUp {
+        0%, 100% { transform: translateY(0); opacity: 0.85; }
+        50% { transform: translateY(-7px); opacity: 1; }
+      }
+      .title { font: 800 56px 'SF Pro Display', -apple-system, 'Segoe UI', sans-serif; }
+      .tag { font: 400 19px -apple-system, 'Segoe UI', sans-serif; }
+      .chipt { font: 600 14px -apple-system, 'Segoe UI', sans-serif; }
+    </style>
+  </defs>
+
+  <rect width="880" height="230" rx="18" fill="url(#bg)"/>
+
+  <!-- сетка -->
+  <g stroke="#ffffff" stroke-opacity="0.05">
+    <path d="M0 57.5h880M0 115h880M0 172.5h880"/>
+    <path d="M110 0v230M220 0v230M330 0v230M440 0v230M550 0v230M660 0v230M770 0v230"/>
+  </g>
+
+  <text x="48" y="105" fill="#ffffff" class="title">Tonus</text>
+  <text x="48" y="145" fill="#b9c0f5" class="tag">Личный health-хаб · Apple Watch + привычки + анализы → AI находит связи</text>
+
+  <!-- ЭКГ-линия -->
+  <path class="ecg" stroke="url(#ecg)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+    d="M48 180 h70 l10 -8 l12 -30 l14 62 l12 -24 h70 l10 -8 l12 -30 l14 62 l12 -24 h70 l10 -8 l12 -30 l14 62 l12 -24 h70 l10 -8 l12 -30 l14 62 l12 -24 h70 l10 -8 l12 -30 l14 62 l12 -24 h130"/>
+
+  <!-- пульсирующая точка -->
+  <circle class="pulse" cx="768" cy="180" r="10" fill="#34d399"/>
+  <circle cx="768" cy="180" r="5" fill="#34d399"/>
+
+  <!-- плавающие чипы метрик -->
+  <g class="chip">
+    <rect x="640" y="36" width="102" height="30" rx="15" fill="#34d399" fill-opacity="0.16" stroke="#34d399" stroke-opacity="0.5"/>
+    <text x="656" y="56" fill="#6ee7b7" class="chipt">HRV ↑ 12%</text>
+  </g>
+  <g class="chip c2">
+    <rect x="752" y="60" width="88" height="30" rx="15" fill="#818cf8" fill-opacity="0.16" stroke="#818cf8" stroke-opacity="0.5"/>
+    <text x="768" y="80" fill="#a5b4fc" class="chipt">Сон 7:40</text>
+  </g>
+  <g class="chip c3">
+    <rect x="620" y="90" width="118" height="30" rx="15" fill="#f472b6" fill-opacity="0.16" stroke="#f472b6" stroke-opacity="0.5"/>
+    <text x="636" y="110" fill="#f9a8d4" class="chipt">Готовность 96</text>
+  </g>
+</svg>
