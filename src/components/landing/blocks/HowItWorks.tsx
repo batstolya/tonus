@@ -5,13 +5,65 @@ import { useInView } from '../useInView'
 import { Counter } from '../../ui/Counter'
 import { DEMO_INSIGHTS } from '../liveDemo.logic'
 
-// Сцена 1: часы → поток точек → карточка приложения
+// Сцена 1: часы с кольцами активности → поток данных → живой бар-чарт
 function SyncScene() {
   return (
-    <div className="hiw-scene" aria-hidden="true">
-      <span className="hiw-watch">⌚</span>
-      <span className="hiw-dots"><i /><i /><i /></span>
-      <span className="hiw-app">📊</span>
+    <div className="hiw-scene hiw-sync" aria-hidden="true">
+      <svg className="hiw-sync-svg" viewBox="0 0 200 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="hiwCase" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#565662" />
+            <stop offset="1" stopColor="#1e1e26" />
+          </linearGradient>
+          <linearGradient id="hiwScreen" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#101017" />
+            <stop offset="1" stopColor="#050509" />
+          </linearGradient>
+          <linearGradient id="hiwBar" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="var(--accent)" />
+            <stop offset="1" stopColor="var(--accent)" stopOpacity="0.5" />
+          </linearGradient>
+          <radialGradient id="hiwGlow" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stopColor="var(--accent)" stopOpacity="0.45" />
+            <stop offset="1" stopColor="var(--accent)" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+
+        {/* объёмное свечение под часами */}
+        <ellipse className="hiw-sync-glow" cx="100" cy="50" rx="62" ry="54" fill="url(#hiwGlow)" />
+
+        {/* ремешки */}
+        <rect x="84" y="2" width="32" height="20" rx="8" fill="#20202a" />
+        <rect x="84" y="78" width="32" height="20" rx="8" fill="#20202a" />
+
+        {/* корпус + колёсико */}
+        <rect x="72" y="14" width="56" height="70" rx="18" fill="url(#hiwCase)" stroke="#5c5c6a" strokeOpacity="0.55" />
+        <rect x="127" y="40" width="6" height="14" rx="3" fill="#6c6c7a" />
+
+        {/* экран */}
+        <rect x="79" y="21" width="42" height="56" rx="13" fill="url(#hiwScreen)" />
+
+        {/* кольца активности */}
+        <g transform="translate(100 49)">
+          <circle className="hiw-ring hiw-ring-1" r="15" pathLength="100" stroke="var(--red)" strokeWidth="3.5" strokeLinecap="round" />
+          <circle className="hiw-ring hiw-ring-2" r="11" pathLength="100" stroke="var(--green)" strokeWidth="3.5" strokeLinecap="round" />
+          <circle className="hiw-ring hiw-ring-3" r="7" pathLength="100" stroke="var(--accent)" strokeWidth="3.5" strokeLinecap="round" />
+        </g>
+
+        {/* поток данных */}
+        <line x1="100" y1="100" x2="100" y2="168" stroke="var(--accent)" strokeOpacity="0.16" strokeWidth="2" strokeLinecap="round" />
+        <circle className="hiw-sync-dot hiw-sync-dot-1" cx="100" cy="100" r="3.6" fill="var(--accent)" />
+        <circle className="hiw-sync-dot hiw-sync-dot-2" cx="100" cy="100" r="3.6" fill="var(--accent)" />
+        <circle className="hiw-sync-dot hiw-sync-dot-3" cx="100" cy="100" r="3.6" fill="var(--accent)" />
+
+        {/* карточка бар-чарта */}
+        <rect x="60" y="168" width="80" height="84" rx="14" fill="var(--surface)" stroke="var(--border)" />
+        <line x1="70" y1="236" x2="130" y2="236" stroke="var(--border)" strokeWidth="1" />
+        <rect className="hiw-bar hiw-bar-1" x="74" y="204" width="10" height="32" rx="3" fill="url(#hiwBar)" />
+        <rect className="hiw-bar hiw-bar-2" x="90" y="192" width="10" height="44" rx="3" fill="url(#hiwBar)" />
+        <rect className="hiw-bar hiw-bar-3" x="106" y="212" width="10" height="24" rx="3" fill="url(#hiwBar)" />
+        <rect className="hiw-bar hiw-bar-4" x="122" y="186" width="10" height="50" rx="3" fill="url(#hiwBar)" />
+      </svg>
     </div>
   )
 }
