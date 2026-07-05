@@ -106,12 +106,42 @@
 .hiw-sticky { position: sticky; top: 96px; min-height: 280px; display: flex; align-items: center; justify-content: center; padding: 24px; }
 .hiw-inline-scene { display: none; }
 .hiw-scene { display: flex; flex-direction: column; align-items: center; gap: 18px; font-size: 40px; }
-.hiw-dots { display: flex; gap: 8px; }
-.hiw-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: hiw-flow 1.2s ease-in-out infinite; }
-.hiw-dots i:nth-child(2) { animation-delay: 0.2s; }
-.hiw-dots i:nth-child(3) { animation-delay: 0.4s; }
-@keyframes hiw-flow { 0%, 100% { transform: translateY(0); opacity: 0.4; } 50% { transform: translateY(10px); opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .hiw-dots i { animation: none; } .hiw-step { opacity: 1; } }
+/* Сцена «часы синхронизируются»: SVG-часы, поток данных, бар-чарт */
+.hiw-sync-svg { width: 100%; max-width: 190px; height: auto; overflow: visible; filter: drop-shadow(0 8px 20px rgba(17, 17, 24, 0.18)); }
+[data-theme="dark"] .hiw-sync-svg { filter: drop-shadow(0 6px 24px color-mix(in srgb, var(--accent) 24%, transparent)); }
+
+.hiw-sync-glow { transform-box: fill-box; transform-origin: center; animation: hiw-sync-glow 4s ease-in-out infinite; }
+@keyframes hiw-sync-glow { 0%, 100% { opacity: 0.7; transform: scale(1); } 50% { opacity: 1; transform: scale(1.09); } }
+
+.hiw-ring { fill: none; stroke-dasharray: 76 100; }
+.hiw-ring-1 { animation: hiw-ring-run 3.2s linear infinite; }
+.hiw-ring-2 { stroke-dasharray: 72 100; animation: hiw-ring-run 2.6s linear infinite; }
+.hiw-ring-3 { stroke-dasharray: 68 100; animation: hiw-ring-run 2s linear infinite; }
+@keyframes hiw-ring-run { to { stroke-dashoffset: -100; } }
+
+.hiw-sync-dot { animation: hiw-sync-flow 1.6s ease-in-out infinite; }
+.hiw-sync-dot-2 { animation-delay: 0.53s; }
+.hiw-sync-dot-3 { animation-delay: 1.06s; }
+@keyframes hiw-sync-flow {
+  0% { transform: translateY(0); opacity: 0; }
+  14% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translateY(68px); opacity: 0; }
+}
+
+.hiw-bar { transform-box: fill-box; transform-origin: bottom; }
+.hiw-bar-1 { animation: hiw-sync-bar 1.8s ease-in-out infinite; }
+.hiw-bar-2 { animation: hiw-sync-bar 1.8s ease-in-out 0.2s infinite; }
+.hiw-bar-3 { animation: hiw-sync-bar 1.8s ease-in-out 0.4s infinite; }
+.hiw-bar-4 { animation: hiw-sync-bar 1.8s ease-in-out 0.6s infinite; }
+@keyframes hiw-sync-bar { 0%, 100% { transform: scaleY(0.5); } 50% { transform: scaleY(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .hiw-sync-glow, .hiw-ring-1, .hiw-ring-2, .hiw-ring-3,
+  .hiw-sync-dot, .hiw-bar-1, .hiw-bar-2, .hiw-bar-3, .hiw-bar-4 { animation: none; }
+  .hiw-sync-dot { opacity: 0; }
+  .hiw-step { opacity: 1; }
+}
 .hiw-web { width: 100%; max-width: 260px; }
 .hiw-web circle { fill: var(--accent); }
 .hiw-web path { stroke: color-mix(in srgb, var(--accent) 55%, transparent); stroke-width: 1.5; fill: none; stroke-dasharray: 140; stroke-dashoffset: 140; animation: hiw-draw 1s ease-out forwards; }
