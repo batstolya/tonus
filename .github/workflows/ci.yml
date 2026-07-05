@@ -1,5 +1,6 @@
-# CI: тесты + сборка + lint-потолок. Vercel деплоит независимо от этого
-# workflow, но красный CI на push в main — сигнал откатить/чинить.
+# CI-гейт деплоя: авто-деплой Vercel выключен (vercel.json), прод обновляется
+# только job'ом deploy после зелёных тестов — через Deploy Hook
+# (secret VERCEL_DEPLOY_HOOK, создаётся в Vercel → Settings → Git → Deploy Hooks).
 name: CI
 
 on:
@@ -56,3 +57,13 @@ jobs:
             echo "::error::Новые lint-ошибки: $COUNT > $MAX_LINT_ERRORS. Запусти 'npm run lint' локально."
             exit 1
           fi
+
+  deploy:
+    needs: ci
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Vercel production deploy
+        run: |
+          curl -sf -X POST "${{ secrets.VERCEL_DEPLOY_HOOK }}"
+          echo "deploy hook triggered"
