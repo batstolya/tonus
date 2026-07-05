@@ -31,6 +31,19 @@ jobs:
           VITE_SUPABASE_URL: http://localhost:54321
           VITE_SUPABASE_ANON_KEY: test-anon-key
 
+      - name: E2E smoke (playwright)
+        run: |
+          npx playwright install --with-deps chromium
+          npx playwright test
+
+      - name: Upload e2e traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7
+
       # Потолок ошибок eslint: legacy-долг зафиксирован, новых не добавляем.
       # Починил пачку старых ошибок — снизь MAX_LINT_ERRORS до нового значения.
       - name: Lint ceiling
