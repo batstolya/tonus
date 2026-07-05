@@ -7,8 +7,7 @@ import { LandingScreen } from './components/landing/LandingScreen'
 import { isResetUrl, unauthedView } from './components/landing/gating'
 import { QuickLog } from './components/intake/QuickLog'
 import { ChatWidget } from './components/chat/ChatWidget'
-import { AppLoader } from './components/ui/Spinner'
-import { DashboardSkeleton } from './components/ui/Skeleton'
+import { DashboardSkeleton, ScreenSkeleton } from './components/ui/Skeleton'
 
 // Экраны грузим лениво: recharts и прочие тяжёлые зависимости не попадают
 // в стартовый бандл (лендинг и авторизация открываются без них).
@@ -261,7 +260,7 @@ export default function App() {
     setGoogleLoading(false)
   }
 
-  if (loading) return <AppLoader />
+  if (loading) return <DashboardSkeleton />
   if (!user) {
     const view = unauthedView({ isResetUrl: isResetUrl(window.location.search), showAuth })
     return view === 'auth'
@@ -408,7 +407,7 @@ export default function App() {
       {syncMsg && <div className="sync-toast">{syncMsg}</div>}
 
       <main className="main-content">
-        <Suspense fallback={<AppLoader />}>
+        <Suspense fallback={<ScreenSkeleton />}>
         {!hasData || state.view === 'upload' ? (
           state.deviceType == null ? (
             <DeviceSelectScreen onSelect={setDeviceType} />
