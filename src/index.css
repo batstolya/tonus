@@ -885,6 +885,27 @@ body {
   /* Screen padding — минимальные боковые отступы ради ширины графиков */
   .screen { padding: 16px 6px; }
 
+  /* Графики во всю ширину экрана (full-bleed): выходим за боковые отступы
+     .main-content и .screen, растягивая контейнер recharts на 100vw.
+     Текст/заголовки/статы при этом сохраняют отступы. */
+  .screen .recharts-responsive-container {
+    width: 100vw !important;
+    max-width: 100vw;
+    margin-left: 50%;
+    transform: translateX(-50%);
+  }
+
+  /* …но графики внутри карточек с рамкой (Stress, Labs, Concerns) должны
+     оставаться в пределах своей карточки, а не вырываться на 100vw. */
+  .chart-block .recharts-responsive-container,
+  .labs-trend-card .recharts-responsive-container,
+  .concern-chart-wrap .recharts-responsive-container {
+    width: 100% !important;
+    max-width: 100%;
+    margin-left: 0;
+    transform: none;
+  }
+
   /* Dashboard layout */
   .dashboard-layout { flex-direction: column; }
   .dashboard-aside { width: 100%; }
