@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { m, AnimatePresence } from 'motion/react'
 import { useT } from '../../../lib/i18n'
 import { useInView } from '../useInView'
@@ -7,41 +7,50 @@ import { DEMO_INSIGHTS } from '../liveDemo.logic'
 
 // Сцена 1: часы с кольцами активности → поток данных → живой бар-чарт
 function SyncScene() {
+  // Уникальные id градиентов на каждый инстанс: сцена рендерится дважды
+  // (встроенная мобильная + sticky-десктоп). Дублирующиеся id ломали заливку —
+  // ссылка url(#…) резолвилась на первый (скрытый display:none) градиент,
+  // и var(--accent) в нём не вычислялся → бары исчезали на десктопе.
+  const uid = useId()
+  const caseId = `hiwCase-${uid}`
+  const screenId = `hiwScreen-${uid}`
+  const barId = `hiwBar-${uid}`
+  const glowId = `hiwGlow-${uid}`
   return (
     <div className="hiw-scene hiw-sync" aria-hidden="true">
       <svg className="hiw-sync-svg" viewBox="0 0 200 260" fill="none" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <linearGradient id="hiwCase" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={caseId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="#565662" />
             <stop offset="1" stopColor="#1e1e26" />
           </linearGradient>
-          <linearGradient id="hiwScreen" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={screenId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="#101017" />
             <stop offset="1" stopColor="#050509" />
           </linearGradient>
-          <linearGradient id="hiwBar" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={barId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="var(--accent)" />
             <stop offset="1" stopColor="var(--accent)" stopOpacity="0.5" />
           </linearGradient>
-          <radialGradient id="hiwGlow" cx="0.5" cy="0.5" r="0.5">
+          <radialGradient id={glowId} cx="0.5" cy="0.5" r="0.5">
             <stop offset="0" stopColor="var(--accent)" stopOpacity="0.45" />
             <stop offset="1" stopColor="var(--accent)" stopOpacity="0" />
           </radialGradient>
         </defs>
 
         {/* объёмное свечение под часами */}
-        <ellipse className="hiw-sync-glow" cx="100" cy="50" rx="62" ry="54" fill="url(#hiwGlow)" />
+        <ellipse className="hiw-sync-glow" cx="100" cy="50" rx="62" ry="54" fill={`url(#${glowId})`} />
 
         {/* ремешки */}
         <rect x="84" y="2" width="32" height="20" rx="8" fill="#20202a" />
         <rect x="84" y="78" width="32" height="20" rx="8" fill="#20202a" />
 
         {/* корпус + колёсико */}
-        <rect x="72" y="14" width="56" height="70" rx="18" fill="url(#hiwCase)" stroke="#5c5c6a" strokeOpacity="0.55" />
+        <rect x="72" y="14" width="56" height="70" rx="18" fill={`url(#${caseId})`} stroke="#5c5c6a" strokeOpacity="0.55" />
         <rect x="127" y="40" width="6" height="14" rx="3" fill="#6c6c7a" />
 
         {/* экран */}
-        <rect x="79" y="21" width="42" height="56" rx="13" fill="url(#hiwScreen)" />
+        <rect x="79" y="21" width="42" height="56" rx="13" fill={`url(#${screenId})`} />
 
         {/* кольца активности */}
         <g transform="translate(100 49)">
@@ -59,10 +68,10 @@ function SyncScene() {
         {/* карточка бар-чарта */}
         <rect x="60" y="168" width="80" height="84" rx="14" fill="var(--surface)" stroke="var(--border)" />
         <line x1="70" y1="236" x2="130" y2="236" stroke="var(--border)" strokeWidth="1" />
-        <rect className="hiw-bar hiw-bar-1" x="74" y="204" width="10" height="32" rx="3" fill="url(#hiwBar)" />
-        <rect className="hiw-bar hiw-bar-2" x="90" y="192" width="10" height="44" rx="3" fill="url(#hiwBar)" />
-        <rect className="hiw-bar hiw-bar-3" x="106" y="212" width="10" height="24" rx="3" fill="url(#hiwBar)" />
-        <rect className="hiw-bar hiw-bar-4" x="122" y="186" width="10" height="50" rx="3" fill="url(#hiwBar)" />
+        <rect className="hiw-bar hiw-bar-1" x="74" y="204" width="10" height="32" rx="3" fill={`url(#${barId})`} />
+        <rect className="hiw-bar hiw-bar-2" x="90" y="192" width="10" height="44" rx="3" fill={`url(#${barId})`} />
+        <rect className="hiw-bar hiw-bar-3" x="106" y="212" width="10" height="24" rx="3" fill={`url(#${barId})`} />
+        <rect className="hiw-bar hiw-bar-4" x="122" y="186" width="10" height="50" rx="3" fill={`url(#${barId})`} />
       </svg>
     </div>
   )
@@ -71,11 +80,13 @@ function SyncScene() {
 // Сцена 2: узел-хаб с 4 спицами — импульсы сходятся к центру (AI связывает факторы)
 function AiScene() {
   const { t } = useT()
+  // Уникальный id на инстанс — см. комментарий в SyncScene (дубли ломали десктоп).
+  const nodeId = `hiwNode-${useId()}`
   return (
     <div className="hiw-scene hiw-ai" aria-hidden="true">
       <svg className="hiw-graph" viewBox="0 0 260 120" fill="none" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <radialGradient id="hiwNode" cx="0.5" cy="0.5" r="0.5">
+          <radialGradient id={nodeId} cx="0.5" cy="0.5" r="0.5">
             <stop offset="0" stopColor="var(--accent)" />
             <stop offset="1" stopColor="var(--accent)" stopOpacity="0.7" />
           </radialGradient>
@@ -96,10 +107,10 @@ function AiScene() {
         <line className="hiw-graph-pulse hiw-spoke-4" x1="200" y1="100" x2="130" y2="70" pathLength="100" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" />
 
         {/* внешние узлы */}
-        <circle className="hiw-node hiw-node-a" cx="40" cy="30" r="6" fill="url(#hiwNode)" />
-        <circle className="hiw-node hiw-node-b" cx="220" cy="24" r="6" fill="url(#hiwNode)" />
-        <circle className="hiw-node hiw-node-c" cx="80" cy="104" r="6" fill="url(#hiwNode)" />
-        <circle className="hiw-node hiw-node-d" cx="200" cy="100" r="6" fill="url(#hiwNode)" />
+        <circle className="hiw-node hiw-node-a" cx="40" cy="30" r="6" fill={`url(#${nodeId})`} />
+        <circle className="hiw-node hiw-node-b" cx="220" cy="24" r="6" fill={`url(#${nodeId})`} />
+        <circle className="hiw-node hiw-node-c" cx="80" cy="104" r="6" fill={`url(#${nodeId})`} />
+        <circle className="hiw-node hiw-node-d" cx="200" cy="100" r="6" fill={`url(#${nodeId})`} />
 
         {/* центральный узел + радар-пинг */}
         <circle className="hiw-ping hiw-ping-1" cx="130" cy="70" r="9" stroke="var(--accent)" strokeWidth="1.5" />
