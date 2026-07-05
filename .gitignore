@@ -29,3 +29,7 @@ dist-ssr
 .playwright-mcp/
 mobile-auth.png
 .superpowers/
+
+# playwright
+test-results/
+playwright-report/
