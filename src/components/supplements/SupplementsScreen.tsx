@@ -10,6 +10,7 @@ import { useT } from '../../lib/i18n'
 import { describeNextReminder } from '../../lib/reminderTime'
 import { TreatmentTracker } from './TreatmentTracker'
 import { SupplementSchedule } from './SupplementSchedule'
+import { AdherenceBlock } from './AdherenceBlock'
 import { LoadError } from '../ui/LoadError'
 
 interface Props {
@@ -272,6 +273,8 @@ export function SupplementsScreen({ user }: Props) {
       )}
 
       {/* ── 🕐 Идеальное время приёма — AI schedule ───────────── */}
+      <AdherenceBlock supplements={supplements} />
+
       <SupplementSchedule user={user} supplements={supplements} />
 
       <div className="supp-month-nav">
