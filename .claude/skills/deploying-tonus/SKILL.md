@@ -30,7 +30,32 @@ npx supabase functions deploy <name> --project-ref <ref>
   `src/lib/scores.ts` (фронт) и `supabase/functions/_shared/scores.ts`
   (ingest-health). Меняешь одну — поменяй вторую и задеплой ingest-health.
 - Общий код функций лежит в `supabase/functions/_shared/` — при его изменении
-  передеплой все функции, которые его импортируют.
+  передеплой все функции, которые его импортируют (таблица ниже).
+
+## Кто импортирует `_shared/` (что редеплоить)
+
+| Модуль | Редеплоить |
+|---|---|
+| `scores.ts` | ingest-health (**только с `--no-verify-jwt`**) |
+| `costGuard.ts` | analyze-health, biweekly-report, chat-health, classify-meal, coach-profile, coach-weekly, deep-research, extract-lab, generate-recommendations, suggest-experiments, supplement-schedule, telegram-bot |
+| `healthContext.ts` | telegram-bot |
+| `football.ts` | send-football-reminders, sync-football-fixtures, telegram-bot |
+| `time.ts` | send-reminders, telegram-bot |
+| `prompts.ts` | chat-health, telegram-bot |
+| `classifyPrompt.ts` | telegram-bot |
+| `saveIntent.ts` | telegram-bot |
+| `staleness.ts` | biweekly-report, telegram-bot |
+
+Таблица может устареть — перед редеплоем сверься:
+`grep -rl "_shared/<module>" supabase/functions --include=index.ts`
+
+## Миграции БД
+
+- Файлы в `supabase/migrations/`, нейминг `YYYYMMDDhhmmss_описание.sql`.
+- Выполнение: Supabase dashboard → SQL Editor (или MCP `apply_migration`).
+  Локального стека нет — миграция уходит сразу в прод, перечитай перед запуском.
+- В комментариях миграции перечисляй edge-функции, которые надо задеплоить
+  после неё (см. `20260704200000_football_reminders.sql` как образец).
 
 ## Проверка после деплоя
 
