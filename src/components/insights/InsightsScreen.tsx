@@ -6,8 +6,12 @@ import {
   computeWeekdayPatterns, buildHeatmap, INSIGHT_METRICS, WD_NAMES,
 } from '../../utils/insightsExtra'
 import { useT } from '../../lib/i18n'
+import { CorrelationsBlock } from './CorrelationsBlock'
 
-interface Props { daily: DailyMetrics[] }
+interface Props {
+  daily: DailyMetrics[]
+  intakeEvents?: { ts: string; type: string }[]
+}
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return <h3 className="ins-title">{children}</h3>
@@ -69,7 +73,7 @@ function Heatmap({ daily }: { daily: DailyMetrics[] }) {
   )
 }
 
-export function InsightsScreen({ daily }: Props) {
+export function InsightsScreen({ daily, intakeEvents = [] }: Props) {
   const { t, locale } = useT()
   const insights = generateInsights(daily)
   const trends = computeTrends(daily)
@@ -157,6 +161,9 @@ export function InsightsScreen({ daily }: Props) {
           </div>
         </div>
       )}
+
+      {/* Лаг-корреляции (F3 smart-tonus) */}
+      <CorrelationsBlock daily={daily} intakeEvents={intakeEvents} />
 
       {/* Хитмап */}
       <Heatmap daily={daily} />

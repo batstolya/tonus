@@ -345,6 +345,20 @@ export const translations: Record<string, { uk: string; en: string }> = {
   'Что с HRV?': { uk: 'Що з HRV?', en: 'How about my HRV?' },
   'Привет! Я вижу твои данные, цели и эксперименты за последние 30 дней. Задай любой вопрос.': { uk: 'Привіт! Я бачу твої дані, цілі та експерименти за останні 30 днів. Постав будь-яке питання.', en: 'Hi! I can see your data, goals and experiments for the last 30 days. Ask me anything.' },
   'Как продвигаются мои цели?': { uk: 'Як просуваються мої цілі?', en: 'How are my goals going?' },
+
+  // ── Инсайты: связи в данных (F3 smart-tonus) ──────────────────────
+  'Связи в твоих данных': { uk: 'Звʼязки у твоїх даних', en: 'Patterns in your data' },
+  'Нужно ещё {n} дней данных, чтобы искать связи.': { uk: 'Потрібно ще {n} днів даних, щоб шукати звʼязки.', en: 'Need {n} more days of data to find patterns.' },
+  'на следующий день': { uk: 'наступного дня', en: 'next day' },
+  'в тот же день': { uk: 'того ж дня', en: 'same day' },
+  'сильная связь': { uk: 'сильний звʼязок', en: 'strong link' },
+  'заметная связь': { uk: 'помітний звʼязок', en: 'notable link' },
+  'дн.': { uk: 'дн.', en: 'days' },
+  'Кофе': { uk: 'Кава', en: 'Coffee' },
+  'Алкоголь': { uk: 'Алкоголь', en: 'Alcohol' },
+  'Тренировки': { uk: 'Тренування', en: 'Workouts' },
+  'Поздний отбой': { uk: 'Пізній відбій', en: 'Late bedtime' },
+  'Корреляция — не причинность: связь стоит проверить экспериментом.': { uk: 'Кореляція — не причинність: звʼязок варто перевірити експериментом.', en: 'Correlation is not causation — verify the link with an experiment.' },
   'Когда лучшие показатели?': { uk: 'Коли найкращі показники?', en: 'When were my best metrics?' },
   'Спроси о своих данных…': { uk: 'Запитай про свої дані…', en: 'Ask about your data…' },
 
