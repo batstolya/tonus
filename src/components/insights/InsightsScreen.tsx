@@ -143,6 +143,21 @@ export function InsightsScreen({ daily }: Props) {
         </div>
       )}
 
+      {/* AI инсайты */}
+      {insights.length > 0 && (
+        <div className="ins-block">
+          <SectionTitle>💡 {t('Наблюдения')}</SectionTitle>
+          <div className="ins-ai-list">
+            {insights.map(i => (
+              <div key={i.id} className="ins-ai-card">
+                <span className="ins-ai-tag">{i.metric}</span>
+                <p>{i.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Хитмап */}
       <Heatmap daily={daily} />
 
@@ -155,21 +170,6 @@ export function InsightsScreen({ daily }: Props) {
               <span key={i} className="ins-chip">
                 <b>{t(WD_NAMES[w.weekday])}</b>: {t(w.label)} {w.higher ? t('выше') : t('ниже')} {t('на')} {Math.abs(w.delta).toFixed(w.decimals)}{w.unit ? ' ' + t(w.unit) : ''}
               </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* AI инсайты */}
-      {insights.length > 0 && (
-        <div className="ins-block">
-          <SectionTitle>💡 {t('Наблюдения')}</SectionTitle>
-          <div className="ins-ai-list">
-            {insights.map(i => (
-              <div key={i.id} className="ins-ai-card">
-                <span className="ins-ai-tag">{i.metric}</span>
-                <p>{i.text}</p>
-              </div>
             ))}
           </div>
         </div>
