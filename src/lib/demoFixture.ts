@@ -10,20 +10,29 @@ function rnd(seed: number) {
 export function makeDemoDaily(days = 90): DailyMetrics[] {
   const out: DailyMetrics[] = []
   const today = new Date()
+  let prevSleep = 7.5 // для лаг-связи «сон → HRV назавтра»
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date(today)
     d.setDate(d.getDate() - i)
     const date = d.toISOString().slice(0, 10)
     const r = (k: number) => rnd(i * 7 + k)
     const weekend = d.getDay() === 0 || d.getDay() === 6
-    const sleepHours = 6.2 + r(1) * 2.2 + (weekend ? 0.5 : 0)
-    const bed = new Date(d); bed.setDate(bed.getDate() - 1); bed.setHours(23, Math.floor(r(2) * 59), 0, 0)
+    // Причинные паттерны для «Связей в твоих данных» (F3):
+    // активный день → сон лучше; поздний отбой → недосып; сон → HRV назавтра.
+    const steps = Math.floor(4000 + r(16) * 9000)
+    const lateNight = r(2) > 0.65
+    const sleepHours = Math.min(9.5,
+      5.9 + r(1) * 1.1 + (steps > 9000 ? 1.1 : 0) + (lateNight ? -1.2 : 0) + (weekend ? 0.4 : 0))
+    const bed = new Date(d); bed.setDate(bed.getDate() - 1)
+    bed.setHours(lateNight ? 24 : 23, Math.floor(r(2) * 59), 0, 0) // 00:xx при позднем отбое
     const wake = new Date(d); wake.setHours(7, Math.floor(r(3) * 59), 0, 0)
+    const hrv = 32 + r(8) * 22 + (prevSleep - 6.5) * 6 // вчерашний сон двигает HRV
+    prevSleep = sleepHours
     out.push({
       date,
       heartRate: { avg: 68 + r(4) * 10, min: 48 + r(5) * 6, max: 120 + r(6) * 40 },
       restingHeartRate: 54 + r(7) * 8,
-      hrv: 35 + r(8) * 40,
+      hrv,
       walkingHeartRate: 90 + r(9) * 15,
       oxygenSaturation: (96 + r(10) * 3) / 100,
       respiratoryRate: 14 + r(11) * 3,
@@ -35,7 +44,7 @@ export function makeDemoDaily(days = 90): DailyMetrics[] {
       sleepDeep: sleepHours * (0.15 + r(14) * 0.1),
       sleepREM: sleepHours * (0.2 + r(15) * 0.08),
       sleepCore: sleepHours * 0.55,
-      steps: Math.floor(4000 + r(16) * 9000),
+      steps,
       distance: 3 + r(17) * 7,
       activeEnergy: 300 + r(18) * 500,
       exerciseMinutes: Math.floor(r(19) * 70),

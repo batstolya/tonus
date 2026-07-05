@@ -1880,3 +1880,15 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
   background: var(--surface); color: inherit; cursor: pointer; font-size: 13px;
 }
 .health-alert-ack:hover { border-color: var(--accent); }
+
+/* ── Инсайты: связи в данных (F3, smart-tonus) ───────────────────────── */
+.corr-list { display: flex; flex-direction: column; gap: 8px; }
+.corr-card {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px;
+  padding: 10px 14px; border-radius: 10px;
+  background: var(--surface2); border: 1px solid transparent;
+}
+.corr-card.strong { border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+.corr-pair { font-weight: 600; font-size: 14px; }
+.corr-meta { font-size: 12.5px; color: var(--muted, #888); }
+.corr-note { margin-top: 10px; font-size: 12.5px; }
