@@ -466,6 +466,34 @@ body {
   animation-direction: reverse;
 }
 .app-loader-label { font-size: 14px; color: #555; }
+
+/* ── Skeleton загрузка ────────────────────────────────────── */
+.skeleton {
+  display: block;
+  background: var(--surface2);
+  position: relative;
+  overflow: hidden;
+}
+/* Бегущий блик поверх базового тона */
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--text) 8%, transparent), transparent);
+  animation: sk-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes sk-shimmer { 100% { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after { animation: none; }
+  .skeleton { animation: sk-pulse 1.6s ease-in-out infinite; }
+}
+@keyframes sk-pulse { 50% { opacity: 0.55; } }
+
+.dash-skeleton { display: flex; flex-direction: column; gap: 20px; }
+.dash-skeleton .sk-card { display: flex; flex-direction: column; gap: 12px; }
+.sk-readiness { display: flex; gap: 20px; align-items: center; }
+.sk-bars { flex: 1; display: flex; flex-direction: column; gap: 10px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* Auth */
