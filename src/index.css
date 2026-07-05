@@ -1767,3 +1767,44 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 .supp-sched-reason { color: var(--text-muted); }
 .supp-sched-notes { font-size: 13px; color: var(--text-muted); line-height: 1.5; margin: 4px 0 0; padding: 10px 12px; background: color-mix(in srgb, var(--accent) 7%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent); border-radius: 10px; }
 .supp-sched-actions { margin-top: 4px; }
+
+/* ── Светлая тема: карточки mate-стиля (тени вместо бордеров) ── */
+/* Держим одним блоком (как light-секция в Landing.css), не размазывая по файлу. */
+[data-theme="light"] .metric-card,
+[data-theme="light"] .insights-preview,
+[data-theme="light"] .chart-block,
+[data-theme="light"] .insight-card,
+[data-theme="light"] .quick-log,
+[data-theme="light"] .readiness-card,
+[data-theme="light"] .ai-block,
+[data-theme="light"] .ai-consent-card,
+[data-theme="light"] .ai-budget-widget,
+[data-theme="light"] .settings-section,
+[data-theme="light"] .supp-form,
+[data-theme="light"] .supp-card,
+[data-theme="light"] .supp-stock-panel,
+[data-theme="light"] .ins-block,
+[data-theme="light"] .ins-card,
+[data-theme="light"] .nutr-today,
+[data-theme="light"] .labs-trend-card,
+[data-theme="light"] .labs-file-card,
+[data-theme="light"] .goals-form,
+[data-theme="light"] .goal-rec-card,
+[data-theme="light"] .goal-card,
+[data-theme="light"] .concern-card,
+[data-theme="light"] .concern-chart-wrap,
+[data-theme="light"] .concern-log-form,
+[data-theme="light"] .context-journal,
+[data-theme="light"] .stress-item,
+[data-theme="light"] .auth-card,
+[data-theme="light"] .progress-bar-wrap,
+[data-theme="light"] .chat-window,
+[data-theme="light"] .coach-focus-card {
+  box-shadow: var(--card-shadow);
+}
+
+/* Интерактивные карточки: hover — тень глубже (accent-бордер остаётся) */
+[data-theme="light"] .metric-card:hover,
+[data-theme="light"] .concern-card:hover {
+  box-shadow: 0 8px 24px rgba(17, 17, 24, 0.10);
+}
