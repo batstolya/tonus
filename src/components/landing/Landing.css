@@ -145,28 +145,25 @@
 /* Сцена «AI находит связи»: живой граф корреляций */
 .hiw-ai { gap: 22px; }
 .hiw-graph { width: 100%; max-width: 260px; height: auto; overflow: visible; }
-.hiw-graph-web line { stroke-opacity: 0.2; }
+.hiw-graph-web line { stroke-opacity: 0.28; }
 
-.hiw-graph-link { stroke-opacity: 0.5; }
 .hiw-graph-pulse {
   stroke-dasharray: 16 100;
   filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 60%, transparent));
-  animation: hiw-graph-pulse 2.2s linear infinite;
+  animation: hiw-graph-pulse 1.9s linear infinite;
 }
-.hiw-graph-pulse-b { stroke-opacity: 0.6; filter: none; animation-duration: 2.8s; animation-delay: 1.1s; }
+.hiw-spoke-2 { animation-delay: 0.4s; }
+.hiw-spoke-3 { animation-delay: 0.8s; }
+.hiw-spoke-4 { animation-delay: 1.2s; }
 @keyframes hiw-graph-pulse { from { stroke-dashoffset: 116; } to { stroke-dashoffset: 0; } }
 
 .hiw-node { transform-box: fill-box; transform-origin: center; animation: hiw-node-breathe 3s ease-in-out infinite; }
-.hiw-node-b { animation-delay: 0.6s; }
-.hiw-node-c { animation-delay: 1.2s; }
-.hiw-node-d { animation-delay: 0.9s; }
-.hiw-node-e { animation-delay: 1.8s; }
-.hiw-node-f { animation-delay: 0.3s; }
-.hiw-node-g { animation-delay: 1.5s; }
-@keyframes hiw-node-breathe { 0%, 100% { opacity: 0.55; transform: scale(0.85); } 50% { opacity: 1; transform: scale(1.12); } }
+.hiw-node-b { animation-delay: 0.5s; }
+.hiw-node-c { animation-delay: 1s; }
+.hiw-node-d { animation-delay: 1.5s; }
+@keyframes hiw-node-breathe { 0%, 100% { opacity: 0.6; transform: scale(0.82); } 50% { opacity: 1; transform: scale(1.12); } }
 
 .hiw-ping { fill: none; transform-box: fill-box; transform-origin: center; animation: hiw-ping 2.4s ease-out infinite; }
-.hiw-ping-2 { animation-delay: 1.2s; }
 @keyframes hiw-ping { 0% { transform: scale(0.6); opacity: 0.85; } 100% { transform: scale(2.6); opacity: 0; } }
 
 .hiw-insight { display: flex; flex-direction: column; gap: 2px; font-size: 14px; border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; }
