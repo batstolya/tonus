@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, lazy, Suspense } from 'react'
 import { useAppStore } from './store/appStore'
 import { DeviceSelectScreen } from './components/onboarding/DeviceSelectScreen'
 import { ConnectGuide } from './components/onboarding/ConnectGuide'
-import { DISMISSED_KEY } from './components/onboarding/guideState'
+import { DISMISSED_KEY, ensureGuideOwner } from './components/onboarding/guideState'
 import { AuthScreen } from './components/auth/AuthScreen'
 import { ResetPasswordScreen } from './components/auth/ResetPasswordScreen'
 import { LandingScreen } from './components/landing/LandingScreen'
@@ -130,6 +130,14 @@ export default function App() {
   function dismissGuide() {
     localStorage.setItem(DISMISSED_KEY, '1')
     setGuideDismissed(true)
+  }
+  // Смена аккаунта в этом браузере сбрасывает чужой прогресс/«Пропустить».
+  // Паттерн «adjust state during render»: реагируем на смену user.id без эффекта.
+  const [guideOwner, setGuideOwner] = useState<string | null>(null)
+  if (user && guideOwner !== user.id) {
+    ensureGuideOwner(user.id)
+    setGuideOwner(user.id)
+    setGuideDismissed(localStorage.getItem(DISMISSED_KEY) === '1')
   }
 
   const demo = isDemoActive()
