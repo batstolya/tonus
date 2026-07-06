@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState, lazy, Suspense } from 'react'
 import { useAppStore } from './store/appStore'
 import { DeviceSelectScreen } from './components/onboarding/DeviceSelectScreen'
+import { ConnectGuide } from './components/onboarding/ConnectGuide'
+import { DISMISSED_KEY } from './components/onboarding/guideState'
 import { AuthScreen } from './components/auth/AuthScreen'
 import { ResetPasswordScreen } from './components/auth/ResetPasswordScreen'
 import { LandingScreen } from './components/landing/LandingScreen'
@@ -124,6 +126,11 @@ export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [langMenuOpen, setLangMenuOpen] = useState(false)
   const [showAuth, setShowAuth] = useState(false)
+  const [guideDismissed, setGuideDismissed] = useState(() => localStorage.getItem(DISMISSED_KEY) === '1')
+  function dismissGuide() {
+    localStorage.setItem(DISMISSED_KEY, '1')
+    setGuideDismissed(true)
+  }
 
   const demo = isDemoActive()
 
@@ -410,7 +417,16 @@ export default function App() {
         {dbLoading ? <ScreenSkeleton /> : (
         <Suspense fallback={<ScreenSkeleton />}>
         {!hasData || state.view === 'upload' ? (
-          state.deviceType == null ? (
+          !hasData && !guideDismissed ? (
+            <ConnectGuide
+              user={user}
+              demo={demo}
+              deviceType={state.deviceType}
+              onSelectDevice={setDeviceType}
+              onDismiss={dismissGuide}
+              onDone={dismissGuide}
+            />
+          ) : state.deviceType == null ? (
             <DeviceSelectScreen onSelect={setDeviceType} />
           ) : (
             <UploadScreen
