@@ -25,7 +25,7 @@ function stubSupabase(dataByTable: Record<string, unknown[]>) {
 }
 
 const emptyCtx: HealthContext = {
-  periodDays: 14, coachProfile: null, scores: null, metrics: [], sleep: [],
+  periodDays: 14, timezone: 'Europe/Berlin', coachProfile: null, scores: null, metrics: [], sleep: [],
   labs: [], supplements: [], intake: [], supplementLogs: [], notes: [],
   calendar: [], goals: [], experiments: [], environment: [],
 }
@@ -75,6 +75,45 @@ describe('healthContextToText: goals & experiments', () => {
   })
 })
 
+describe('healthContextToText: sleep timing', () => {
+  it('renders bedtime and wake time per night, converted to the given timezone', () => {
+    const text = healthContextToText({
+      ...emptyCtx,
+      timezone: 'Europe/Berlin',
+      sleep: [
+        { date: '2026-07-05', duration_hours: 7.2, deep_hours: 1.1, rem_hours: 1.7, core_hours: 4.4, bedtime: '2026-07-04T21:47:00Z', wake_time: '2026-07-05T05:10:00Z' },
+      ],
+    })
+    // Europe/Berlin в июле — UTC+2, значит 21:47 UTC = 23:47 локально, 05:10 UTC = 07:10 локально
+    expect(text).toContain('засыпание 23:47')
+    expect(text).toContain('подъём 07:10')
+  })
+
+  it('renders average bedtime across nights', () => {
+    const text = healthContextToText({
+      ...emptyCtx,
+      timezone: 'Europe/Berlin',
+      sleep: [
+        { date: '2026-07-05', duration_hours: 7.2, deep_hours: 1.1, rem_hours: 1.7, core_hours: 4.4, bedtime: '2026-07-04T21:40:00Z', wake_time: null },
+        { date: '2026-07-04', duration_hours: 7.0, deep_hours: 1.0, rem_hours: 1.6, core_hours: 4.2, bedtime: '2026-07-03T22:00:00Z', wake_time: null },
+      ],
+    })
+    // 23:40 и 00:00 локально → среднее 23:50
+    expect(text).toContain('Среднее время засыпания: 23:50')
+  })
+
+  it('omits per-night time when bedtime/wake_time are null, without breaking the line', () => {
+    const text = healthContextToText({
+      ...emptyCtx,
+      timezone: 'Europe/Berlin',
+      sleep: [{ date: '2026-07-05', duration_hours: 7.2, deep_hours: 1.1, rem_hours: 1.7, core_hours: 4.4, bedtime: null, wake_time: null }],
+    })
+    expect(text).toContain('2026-07-05: всего 7.2ч')
+    expect(text).not.toContain('засыпание')
+    expect(text).not.toContain('Среднее время засыпания')
+  })
+})
+
 // Полнота контекста: каждая секция реально попадает в текст для ИИ —
 // «молчаливое» выпадение секции регрессией не пройдёт (гарантия переехала
 // из клиентского buildContextSnapshot, удалённого в F2).
@@ -82,6 +121,7 @@ describe('healthContextToText: full coverage', () => {
   it('renders every populated section', () => {
     const text = healthContextToText({
       periodDays: 14,
+      timezone: 'Europe/Berlin',
       coachProfile: { summary: 'Похудеть к лету', facts: ['не ест глютен'] },
       scores: { date: '2026-07-05', readiness: 82, recovery_score: 78, sleep_score: 90, stress_score: 22, hrv_baseline: 48, rhr_baseline: 55, sleep_baseline: 7.4, steps_baseline: 9000 },
       metrics: [{ date: '2026-07-05', resting_heart_rate: 56, hrv: 47, sleep_hours: 7.2, steps: 9500, active_energy: 480, oxygen_saturation: 0.97 }],
