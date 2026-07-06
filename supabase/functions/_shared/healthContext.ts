@@ -5,10 +5,12 @@
 export interface HealthContextOptions {
   periodDays?: number          // окно агрегации (по умолчанию 14)
   includeCoachProfile?: boolean // подмешивать память коуча сверху
+  timezone?: string            // IANA tz для рендера локального времени (bedtime и т.п.)
 }
 
 export interface HealthContext {
   periodDays: number
+  timezone: string
   coachProfile: { summary: string; facts: string[] } | null
   scores: Record<string, any> | null
   metrics: Record<string, any>[]
@@ -27,6 +29,32 @@ export interface HealthContext {
 
 const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
 const num = (r: any[], k: string) => r.map(x => x[k]).filter((v: any) => v != null && !isNaN(v))
+
+function localMinutes(iso: string, tz: string): number {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false })
+      .formatToParts(new Date(iso)).map(p => [p.type, p.value]),
+  )
+  return parseInt(parts.hour) * 60 + parseInt(parts.minute)
+}
+
+function fmtLocalTime(iso: string, tz: string): string {
+  const mins = localMinutes(iso, tz)
+  return `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`
+}
+
+// Среднее время суток с учётом перехода через полночь: засыпание после
+// полуночи (00:xx-05:xx) считаем «поздним», а не «ранним утром».
+function avgLocalTime(isoList: string[], tz: string): string | null {
+  if (!isoList.length) return null
+  const mins = isoList.map(iso => {
+    const v = localMinutes(iso, tz)
+    return v < 12 * 60 ? v + 24 * 60 : v
+  })
+  let avg = mins.reduce((a, b) => a + b, 0) / mins.length
+  avg = ((avg % 1440) + 1440) % 1440
+  return `${String(Math.floor(avg / 60)).padStart(2, '0')}:${String(Math.round(avg % 60)).padStart(2, '0')}`
+}
 
 // Собирает структурированный контекст из БД (service-role или RLS-клиент).
 export async function buildHealthContext(
@@ -47,7 +75,7 @@ export async function buildHealthContext(
       .select('date, resting_heart_rate, hrv, sleep_hours, steps, active_energy, oxygen_saturation')
       .eq('user_id', userId).gte('date', sinceStr).order('date', { ascending: true }),
     supabase.from('sleep_sessions')
-      .select('date, duration_hours, deep_hours, rem_hours, core_hours')
+      .select('date, bedtime, wake_time, duration_hours, deep_hours, rem_hours, core_hours')
       .eq('user_id', userId).gte('date', sinceStr).order('date', { ascending: false }),
     supabase.from('lab_results')
       .select('marker, value, unit, ref_range, flag, date')
@@ -81,6 +109,7 @@ export async function buildHealthContext(
   const prof = profRes.data
   return {
     periodDays,
+    timezone: opts.timezone ?? 'Europe/Berlin',
     coachProfile: prof?.summary ? { summary: prof.summary, facts: Array.isArray(prof.facts) ? prof.facts : [] } : null,
     scores: scoreRes.data ?? null,
     metrics: mRes.data ?? [],
@@ -148,9 +177,14 @@ export function healthContextToText(ctx: HealthContext): string {
     if (dh.length) parts.push(`Глубокий: средн ${avg(dh)!.toFixed(1)} ч/ночь`)
     if (rh.length) parts.push(`REM: средн ${avg(rh)!.toFixed(1)} ч/ночь`)
     if (ch.length) parts.push(`Лёгкий/ядро: средн ${avg(ch)!.toFixed(1)} ч/ночь`)
-    const recent = ctx.sleep.slice(0, 7).map((s: any) =>
-      `${s.date}: всего ${s.duration_hours?.toFixed?.(1) ?? '—'}ч (глуб ${s.deep_hours?.toFixed?.(1) ?? '—'}, REM ${s.rem_hours?.toFixed?.(1) ?? '—'})`
-    ).join('\n')
+    const avgBed = avgLocalTime(ctx.sleep.map((s: any) => s.bedtime).filter(Boolean), ctx.timezone)
+    if (avgBed) parts.push(`Среднее время засыпания: ${avgBed}`)
+    const recent = ctx.sleep.slice(0, 7).map((s: any) => {
+      const times = s.bedtime && s.wake_time
+        ? ` [засыпание ${fmtLocalTime(s.bedtime, ctx.timezone)}, подъём ${fmtLocalTime(s.wake_time, ctx.timezone)}]`
+        : ''
+      return `${s.date}: всего ${s.duration_hours?.toFixed?.(1) ?? '—'}ч (глуб ${s.deep_hours?.toFixed?.(1) ?? '—'}, REM ${s.rem_hours?.toFixed?.(1) ?? '—'})${times}`
+    }).join('\n')
     parts.push(`Последние ночи:\n${recent}`)
   }
 
