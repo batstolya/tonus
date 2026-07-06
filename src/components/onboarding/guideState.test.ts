@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { stepsFor, loadGuideProgress, saveGuideProgress, clearGuideProgress } from './guideState'
+import { stepsFor, loadGuideProgress, saveGuideProgress, clearGuideProgress, ensureGuideOwner, DISMISSED_KEY } from './guideState'
 
 // Окружение vitest — node: подменяем localStorage простым in-memory стабом.
 const store = new Map<string, string>()
@@ -51,5 +51,25 @@ describe('прогресс в localStorage', () => {
     saveGuideProgress({ step: 3, phone: 'android' })
     clearGuideProgress()
     expect(loadGuideProgress()).toEqual({ step: 0, phone: null })
+  })
+})
+
+describe('ensureGuideOwner', () => {
+  it('тот же пользователь: прогресс и «Пропустить» сохраняются', () => {
+    ensureGuideOwner('user-a')
+    saveGuideProgress({ step: 4, phone: 'iphone' })
+    localStorage.setItem(DISMISSED_KEY, '1')
+    ensureGuideOwner('user-a')
+    expect(loadGuideProgress()).toEqual({ step: 4, phone: 'iphone' })
+    expect(localStorage.getItem(DISMISSED_KEY)).toBe('1')
+  })
+
+  it('другой пользователь: чужой прогресс и «Пропустить» стираются', () => {
+    ensureGuideOwner('user-a')
+    saveGuideProgress({ step: 4, phone: 'iphone' })
+    localStorage.setItem(DISMISSED_KEY, '1')
+    ensureGuideOwner('user-b')
+    expect(loadGuideProgress()).toEqual({ step: 0, phone: null })
+    expect(localStorage.getItem(DISMISSED_KEY)).toBeNull()
   })
 })
