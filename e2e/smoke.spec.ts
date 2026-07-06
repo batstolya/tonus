@@ -30,6 +30,18 @@ test('demo mode opens dashboard with generated data', async ({ page }) => {
   await expect(readiness).toBeVisible()
 })
 
+test('insights in demo show data patterns section', async ({ page }) => {
+  await page.goto('/')
+  await page.evaluate(() => localStorage.setItem('tonus_demo', '1'))
+  await page.goto('/#insights')
+  await page.reload()
+  await expect(
+    page.getByText(/Связи в твоих данных|Звʼязки у твоїх даних|Patterns in your data/),
+  ).toBeVisible({ timeout: 15_000 })
+  // фикстуры обязаны дать хотя бы 3 связи — витрина продукта
+  await expect(page.locator('.corr-card').nth(2)).toBeVisible()
+})
+
 test('hash routing opens sleep screen in demo', async ({ page }) => {
   await page.goto('/')
   await page.evaluate(() => localStorage.setItem('tonus_demo', '1'))
