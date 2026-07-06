@@ -5,6 +5,10 @@ import { useT } from '../../lib/i18n'
 import type { DeviceType } from '../../store/appStore'
 import { DeviceSelectScreen } from './DeviceSelectScreen'
 import { StepExplain } from './guide/StepExplain'
+import { StepInstallHAE } from './guide/StepInstallHAE'
+import { StepAutomation } from './guide/StepAutomation'
+import { StepWebhook } from './guide/StepWebhook'
+import { StepSchedule } from './guide/StepSchedule'
 import {
   stepsFor, loadGuideProgress, saveGuideProgress, clearGuideProgress,
 } from './guideState'
@@ -35,8 +39,8 @@ export function ConnectGuide({ user, demo, deviceType, onSelectDevice, onDismiss
   // Любой выход из гайда стирает прогресс: возврат всегда с первого шага.
   const exitToUpload = () => { clearGuideProgress(); onDismiss() }
 
-  // user/demo/onDone используются шагами задач 4-6.
-  void user; void demo; void onDone
+  // onDone используется шагом verify (задача 5).
+  void onDone
 
   return (
     <LazyMotion features={domMax} strict>
@@ -62,6 +66,14 @@ export function ConnectGuide({ user, demo, deviceType, onSelectDevice, onDismiss
                 <DeviceSelectScreen onSelect={d => { onSelectDevice(d); next() }} />
               ) : stepId === 'explain' ? (
                 <StepExplain />
+              ) : stepId === 'install' ? (
+                <StepInstallHAE />
+              ) : stepId === 'automation' ? (
+                <StepAutomation />
+              ) : stepId === 'webhook' ? (
+                <StepWebhook user={user} demo={demo} />
+              ) : stepId === 'schedule' ? (
+                <StepSchedule />
               ) : null}
             </m.div>
           </AnimatePresence>
