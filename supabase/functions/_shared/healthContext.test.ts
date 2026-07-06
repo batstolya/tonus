@@ -134,6 +134,41 @@ describe('healthContextToText: sleep timing', () => {
   })
 })
 
+describe('healthContextToText: weekly comparison blocks', () => {
+  const day = (n: number) => `2026-07-${String(n).padStart(2, '0')}`
+
+  it('renders last-7 and previous-7 day metric aggregates when 14+ days present', () => {
+    const metrics = []
+    for (let i = 1; i <= 14; i++) {
+      metrics.push({ date: day(i), resting_heart_rate: 55, hrv: 45, sleep_hours: i <= 7 ? 7.0 : 7.4, steps: 9000, active_energy: 400, oxygen_saturation: 0.97 })
+    }
+    const text = healthContextToText({ ...emptyCtx, metrics })
+    expect(text).toContain('Последние 7 дней: сон 7.4ч')
+    expect(text).toContain('Предыдущие 7 дней: сон 7.0ч')
+  })
+
+  it('renders only last-7 when fewer than 14 days present', () => {
+    const metrics = []
+    for (let i = 1; i <= 9; i++) {
+      metrics.push({ date: day(i), resting_heart_rate: 55, hrv: 45, sleep_hours: 7.2, steps: 9000, active_energy: 400, oxygen_saturation: 0.97 })
+    }
+    const text = healthContextToText({ ...emptyCtx, metrics })
+    expect(text).toContain('Последние 7 дней: сон 7.2ч')
+    expect(text).not.toContain('Предыдущие 7 дней')
+  })
+
+  it('renders last-7 and previous-7 sleep aggregates when 14+ nights present', () => {
+    const sleep = []
+    for (let i = 1; i <= 14; i++) {
+      sleep.push({ date: day(i), duration_hours: 7.2, deep_hours: i <= 7 ? 1.3 : 1.0, rem_hours: 1.7, core_hours: 4.2, bedtime: null, wake_time: null })
+    }
+    // ctx.sleep идёт по убыванию даты (новые первые) — slice(0,7) должен быть 14..8, slice(7,14) — 7..1
+    const text = healthContextToText({ ...emptyCtx, sleep: sleep.reverse() })
+    expect(text).toContain('Последние 7 ночей: сон 7.2ч, глубокий 1.0ч')
+    expect(text).toContain('Предыдущие 7 ночей: сон 7.2ч, глубокий 1.3ч')
+  })
+})
+
 // Полнота контекста: каждая секция реально попадает в текст для ИИ —
 // «молчаливое» выпадение секции регрессией не пройдёт (гарантия переехала
 // из клиентского buildContextSnapshot, удалённого в F2).
