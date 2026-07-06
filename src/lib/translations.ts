@@ -88,6 +88,24 @@ export const translations: Record<string, { uk: string; en: string }> = {
   'Интервал — каждые 1-3 часа': { uk: 'Інтервал — кожні 1-3 години', en: 'Interval — every 1-3 hours' },
   'Не забудь включить автоматизацию (Enable)': { uk: 'Не забудь увімкнути автоматизацію (Enable)', en: 'Don’t forget to switch the automation on (Enable)' },
   'Не удалось получить ссылку': { uk: 'Не вдалося отримати посилання', en: 'Couldn’t fetch your link' },
+  // Task 5 — проверка связи
+  'Проверим связь': { uk: 'Перевіримо звʼязок', en: 'Let’s test the connection' },
+  'Открой Health Auto Export и нажми Manual Export — мы ждём данные.': {
+    uk: 'Відкрий Health Auto Export і натисни Manual Export — ми чекаємо на дані.',
+    en: 'Open Health Auto Export and tap Manual Export — we’re waiting for your data.',
+  },
+  'Слушаем эфир…': { uk: 'Слухаємо ефір…', en: 'Listening…' },
+  'Данные пришли!': { uk: 'Дані надійшли!', en: 'Data received!' },
+  'Первые графики появятся после следующей синхронизации.': {
+    uk: 'Перші графіки зʼявляться після наступної синхронізації.',
+    en: 'Your first charts will appear after the next sync.',
+  },
+  'В приложение': { uk: 'До застосунку', en: 'Open the app' },
+  'Пока ничего не пришло. Проверь:': { uk: 'Поки нічого не надійшло. Перевір:', en: 'Nothing arrived yet. Check:' },
+  'URL вставлен целиком, вместе с token=': { uk: 'URL вставлено повністю, разом із token=', en: 'The URL is pasted in full, including token=' },
+  'Метод — POST, формат — JSON': { uk: 'Метод — POST, формат — JSON', en: 'Method — POST, format — JSON' },
+  'Автоматизация включена (Enable)': { uk: 'Автоматизацію увімкнено (Enable)', en: 'The automation is switched on (Enable)' },
+  'Проверить ещё раз': { uk: 'Перевірити ще раз', en: 'Try again' },
 
   // ── Авторизация ────────────────────────────────────────────
   'Личный хаб здоровья': { uk: 'Особистий хаб здоровʼя', en: 'Your personal health hub' },
