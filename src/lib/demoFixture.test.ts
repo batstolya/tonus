@@ -47,6 +47,23 @@ describe('makeDemoDaily', () => {
   })
 })
 
+describe('demo correlations showcase', () => {
+  it('fixtures produce at least 3 visible correlations (витрина «Связей»)', async () => {
+    const { computeLagCorrelations } = await import('./correlations')
+    const { makeDemoEnvironment } = await import('./demoFixture')
+    const res = computeLagCorrelations({
+      daily: makeDemoDaily(90),
+      scores: [],
+      intake: [],
+      environment: makeDemoEnvironment(90),
+    })
+    if ('needMoreDays' in res) throw new Error('фикстур должно хватать')
+    expect(res.correlations.length).toBeGreaterThanOrEqual(3)
+    // погодная связь — часть витрины F5
+    expect(res.correlations.some(c => c.factor === 'temp')).toBe(true)
+  })
+})
+
 describe('makeDemoHRSamples', () => {
   it('generates 10-minute samples with sane values', () => {
     const samples = makeDemoHRSamples(2)
