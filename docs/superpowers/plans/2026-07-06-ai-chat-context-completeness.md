@@ -760,24 +760,51 @@ git commit -m "feat(ai-context): attach recent goal-progress trend instead of ju
 
 ---
 
-### Task 7: Pass real user timezone from `chat-health`
+### Task 7: Pass real user timezone + today's date + age/sex from `chat-health`
 
 **Files:**
 - Modify: `supabase/functions/chat-health/index.ts`
 
+Audit additions beyond the original task: (a) the model currently has NO idea what today's date is — neither the system prompt nor the context mentions it. It can only guess from data dates, which breaks when sync lags and becomes critical in Phase C, where the model must compute `start_date`/`end_date` for tool calls ("сравни с маем" requires knowing the current date). (b) `profiles.birth_year`/`sex` exist (populated by the supplements AI feature via `supplements_profile_age.sql`) but never reach the health chat — age and sex are baseline interpretation context for any health question (resting HR norms, sleep needs).
+
 - [ ] **Step 1: Implement**
 
-In `chat-health/index.ts`, right before the `buildHealthContext` call (currently line ~87), fetch the user's profile timezone:
+In `chat-health/index.ts`, add the import (top of file, next to the other `_shared` imports):
 
 ```typescript
-    const { data: profile } = await supabase.from('profiles').select('timezone').eq('id', user.id).maybeSingle()
+import { localNow } from '../_shared/time.ts'
+```
+
+Right before the `buildHealthContext` call (currently line ~87), fetch the user's profile:
+
+```typescript
+    const { data: profile } = await supabase.from('profiles')
+      .select('timezone, birth_year, sex').eq('id', user.id).maybeSingle()
     const timezone = profile?.timezone ?? 'Europe/Berlin'
 
     // Контекст всегда свежий, из БД (30 дней + цели/эксперименты/профиль)
     const ctx = await buildHealthContext(supabase, user.id, { periodDays: 30, includeCoachProfile: true, timezone })
 ```
 
-(Replace the existing `const ctx = await buildHealthContext(...)` line — same call, just add `timezone` to the options object and the two lines fetching it above it.)
+(Replace the existing `const ctx = await buildHealthContext(...)` line — same call, just add `timezone` to the options object and the lines fetching the profile above it.)
+
+Then extend the first Gemini message (the one that concatenates `sys.text` + `contextText`) with today's date and, when known, age/sex. `localNow` may throw only on an invalid tz — `timezone` here is already the raw DB value, so validate the same way `buildHealthContext` now does, or simply reuse `ctx.timezone` (already validated by Task 1's `isValidTimezone` guard inside `buildHealthContext`):
+
+```typescript
+    const { date: todayStr } = localNow(ctx.timezone)
+    const sexTxt = profile?.sex === 'male' ? 'мужской' : profile?.sex === 'female' ? 'женский' : null
+    const ageTxt = profile?.birth_year ? `~${new Date().getFullYear() - profile.birth_year} лет` : null
+    const personLine = [ageTxt && `возраст ${ageTxt}`, sexTxt && `пол ${sexTxt}`].filter(Boolean).join(', ')
+    const metaLine = `\nСегодня: ${todayStr} (таймзона ${ctx.timezone}).${personLine ? ` Пользователь: ${personLine}.` : ''}`
+```
+
+And include `metaLine` in the first message right after `sys.text` (before `contextText`):
+
+```typescript
+        parts: [{ text: `${sys.text}\nОтвечай на ${replyLang} языке.${metaLine}${contextText}\n\nПользователь задаёт вопрос о своих данных здоровья.` }],
+```
+
+Why this matters beyond politeness: with today's date in the prompt, the model can also honestly notice "данные не обновлялись N дней" when the freshest metric date lags today — previously it couldn't tell.
 
 - [ ] **Step 2: Verify**
 
@@ -791,7 +818,7 @@ Run: `npx tsc --noEmit -p supabase/functions/chat-health 2>/dev/null || true`
 
 ```bash
 git add supabase/functions/chat-health/index.ts
-git commit -m "feat(chat): pass user's real profile timezone into health context instead of a hardcoded default"
+git commit -m "feat(chat): real profile timezone, today's date and age/sex reach the AI"
 ```
 
 ---
