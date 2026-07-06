@@ -45,3 +45,14 @@ export function clearGuideProgress(): void {
   localStorage.removeItem(STEP_KEY)
   localStorage.removeItem(PHONE_KEY)
 }
+
+const OWNER_KEY = 'tonus.connectGuideUser'
+
+// Прогресс и «Пропустить» принадлежат конкретному аккаунту: при входе другого
+// пользователя в этом же браузере гайд начинается заново, а не резюмирует чужой.
+export function ensureGuideOwner(userId: string): void {
+  if (localStorage.getItem(OWNER_KEY) === userId) return
+  localStorage.setItem(OWNER_KEY, userId)
+  localStorage.removeItem(DISMISSED_KEY)
+  clearGuideProgress()
+}
