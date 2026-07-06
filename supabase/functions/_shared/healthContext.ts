@@ -179,6 +179,17 @@ export function healthContextToText(ctx: HealthContext): string {
       `${r.date}: сон ${r.sleep_hours?.toFixed?.(1) ?? '—'}ч, ЧССп ${r.resting_heart_rate ?? '—'}, шаги ${r.steps ?? '—'}`
     ).join('\n')
     parts.push(`\nПоследние дни:\n${daily}`)
+    const fmtMetricsWeek = (arr: any[]) => {
+      const s = num(arr, 'sleep_hours'), r = num(arr, 'resting_heart_rate'), h = num(arr, 'hrv'), st = num(arr, 'steps')
+      const bits: string[] = []
+      if (s.length) bits.push(`сон ${avg(s)!.toFixed(1)}ч`)
+      if (r.length) bits.push(`ЧССп ${avg(r)!.toFixed(0)}`)
+      if (h.length) bits.push(`HRV ${avg(h)!.toFixed(0)}мс`)
+      if (st.length) bits.push(`шаги ${Math.round(avg(st)!).toLocaleString('ru-RU')}`)
+      return bits.join(', ')
+    }
+    if (rows.length >= 7) parts.push(`\nПоследние 7 дней: ${fmtMetricsWeek(rows.slice(-7))}`)
+    if (rows.length >= 14) parts.push(`Предыдущие 7 дней: ${fmtMetricsWeek(rows.slice(-14, -7))}`)
   } else {
     parts.push('Нет данных за период.')
   }
@@ -198,6 +209,16 @@ export function healthContextToText(ctx: HealthContext): string {
       return `${s.date}: всего ${s.duration_hours?.toFixed?.(1) ?? '—'}ч (глуб ${s.deep_hours?.toFixed?.(1) ?? '—'}, REM ${s.rem_hours?.toFixed?.(1) ?? '—'})${times}`
     }).join('\n')
     parts.push(`Последние ночи:\n${recent}`)
+    const fmtSleepWeek = (arr: any[]) => {
+      const dur = num(arr, 'duration_hours'), d = num(arr, 'deep_hours'), r = num(arr, 'rem_hours')
+      const bits: string[] = []
+      if (dur.length) bits.push(`сон ${avg(dur)!.toFixed(1)}ч`)
+      if (d.length) bits.push(`глубокий ${avg(d)!.toFixed(1)}ч`)
+      if (r.length) bits.push(`REM ${avg(r)!.toFixed(1)}ч`)
+      return bits.join(', ')
+    }
+    if (ctx.sleep.length >= 7) parts.push(`Последние 7 ночей: ${fmtSleepWeek(ctx.sleep.slice(0, 7))}`)
+    if (ctx.sleep.length >= 14) parts.push(`Предыдущие 7 ночей: ${fmtSleepWeek(ctx.sleep.slice(7, 14))}`)
   }
 
   if (ctx.labs.length) {
