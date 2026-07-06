@@ -10,6 +10,9 @@ import { useT, LANGS } from '../../lib/i18n'
 import { supabase } from '../../lib/supabase'
 import { callFunction } from '../../lib/edgeFunctions'
 import type { DeviceType } from '../../store/appStore'
+import { ConnectGuide } from '../onboarding/ConnectGuide'
+import { clearGuideProgress } from '../onboarding/guideState'
+import { isDemoActive } from '../../lib/demo'
 
 interface Props {
   user: User
@@ -97,6 +100,7 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
     try { return JSON.parse(localStorage.getItem('settings_archived') ?? '[]') } catch { return [] }
   })
   const [archiveOpen, setArchiveOpen] = useState(false)
+  const [showGuide, setShowGuide] = useState(false)
   const isArchived = (id: string) => archivedSections.includes(id)
   function persistArchived(next: string[]) {
     localStorage.setItem('settings_archived', JSON.stringify(next))
@@ -735,7 +739,27 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
               Xiaomi / Mi Band
             </button>
           </div>
+          <button
+            className="btn-secondary"
+            style={{ marginTop: 12 }}
+            onClick={() => { clearGuideProgress(); setShowGuide(true) }}
+          >
+            {t('Как подключить устройство')}
+          </button>
         </section>
+      )}
+
+      {showGuide && onDeviceTypeChange && (
+        <div className="guide-overlay">
+          <ConnectGuide
+            user={user}
+            demo={isDemoActive()}
+            deviceType={deviceType ?? null}
+            onSelectDevice={onDeviceTypeChange}
+            onDismiss={() => setShowGuide(false)}
+            onDone={() => setShowGuide(false)}
+          />
+        </div>
       )}
 
       <section className={`settings-section${isArchived('export') ? ' is-archived' : ''}`}>
