@@ -51,9 +51,21 @@ function avgLocalTime(isoList: string[], tz: string): string | null {
     const v = localMinutes(iso, tz)
     return v < 12 * 60 ? v + 24 * 60 : v
   })
-  let avg = mins.reduce((a, b) => a + b, 0) / mins.length
-  avg = ((avg % 1440) + 1440) % 1440
-  return `${String(Math.floor(avg / 60)).padStart(2, '0')}:${String(Math.round(avg % 60)).padStart(2, '0')}`
+  const avg = mins.reduce((a, b) => a + b, 0) / mins.length
+  // Округляем до целой минуты ДО разбиения на часы/минуты — иначе независимое
+  // Math.floor(avg/60) и Math.round(avg%60) могут разойтись у границы часа
+  // (напр. avg=1319.5 → floor даёт 21ч, round даёт 60мин → невалидные "21:60").
+  const total = ((Math.round(avg) % 1440) + 1440) % 1440
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+}
+
+function isValidTimezone(tz: string): boolean {
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: tz })
+    return true
+  } catch {
+    return false
+  }
 }
 
 // Собирает структурированный контекст из БД (service-role или RLS-клиент).
@@ -109,7 +121,7 @@ export async function buildHealthContext(
   const prof = profRes.data
   return {
     periodDays,
-    timezone: opts.timezone ?? 'Europe/Berlin',
+    timezone: opts.timezone && isValidTimezone(opts.timezone) ? opts.timezone : 'Europe/Berlin',
     coachProfile: prof?.summary ? { summary: prof.summary, facts: Array.isArray(prof.facts) ? prof.facts : [] } : null,
     scores: scoreRes.data ?? null,
     metrics: mRes.data ?? [],
