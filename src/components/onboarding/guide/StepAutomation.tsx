@@ -10,12 +10,16 @@ export function StepAutomation() {
   const { t } = useT()
   const [frame, setFrame] = useState(0)
   useEffect(() => {
+    // MotionConfig усмиряет только Motion-анимации; авто-листание — вручную.
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
     const id = setInterval(() => setFrame(f => (f + 1) % FRAMES.length), 2500)
     return () => clearInterval(id)
   }, [])
   const f = FRAMES[frame]
   return (
     <div className="guide-content">
+      {/* «Automations», «MQTT», «Home Assistant», «REST API» — дословные
+          надписи интерфейса HAE, не переводим. */}
       <AnimatePresence mode="wait">
         <m.div
           key={f}
