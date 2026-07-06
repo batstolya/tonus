@@ -27,12 +27,16 @@ export function ConnectGuide({ user, demo, deviceType, onSelectDevice, onDismiss
   const steps = stepsFor(deviceType, phone)
   const idx = Math.min(step, steps.length - 1)
   const stepId = steps[idx]
-  const next = () => setProgress(p => ({ ...p, step: idx + 1 }))
-  const back = () => setProgress(p => ({ ...p, step: Math.max(0, idx - 1) }))
+  // В апдейтере считаем от p.step (не от idx из замыкания рендера),
+  // чтобы сдвоенный клик до ре-рендера не потерял шаг.
+  const clampStep = (s: number) => Math.min(s, steps.length - 1)
+  const next = () => setProgress(p => ({ ...p, step: clampStep(p.step) + 1 }))
+  const back = () => setProgress(p => ({ ...p, step: Math.max(0, clampStep(p.step) - 1) }))
+  // Любой выход из гайда стирает прогресс: возврат всегда с первого шага.
   const exitToUpload = () => { clearGuideProgress(); onDismiss() }
 
-  // user/demo/onDone/exitToUpload используются шагами задач 4-6.
-  void user; void demo; void onDone; void exitToUpload
+  // user/demo/onDone используются шагами задач 4-6.
+  void user; void demo; void onDone
 
   return (
     <LazyMotion features={domMax} strict>
@@ -42,7 +46,7 @@ export function ConnectGuide({ user, demo, deviceType, onSelectDevice, onDismiss
             <div className="guide-dots" aria-hidden="true">
               {steps.map((s, i) => <span key={s} className={`guide-dot${i <= idx ? ' active' : ''}`} />)}
             </div>
-            <button className="guide-skip" onClick={onDismiss}>{t('Пропустить')}</button>
+            <button className="guide-skip" onClick={exitToUpload}>{t('Пропустить')}</button>
           </header>
 
           <AnimatePresence mode="wait">
