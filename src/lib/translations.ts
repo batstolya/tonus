@@ -119,6 +119,7 @@ export const translations: Record<string, { uk: string; en: string }> = {
     en: 'For now, use the one-time CSV import from account.xiaomi.com — we’ll let you know when auto-sync is ready.',
   },
   'Профиль': { uk: 'Профіль', en: 'Profile' },
+  'Как подключить устройство': { uk: 'Як підключити пристрій', en: 'How to connect a device' },
 
   // ── Авторизация ────────────────────────────────────────────
   'Личный хаб здоровья': { uk: 'Особистий хаб здоровʼя', en: 'Your personal health hub' },
