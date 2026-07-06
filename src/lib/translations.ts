@@ -87,6 +87,7 @@ export const translations: Record<string, { uk: string; en: string }> = {
   'Включи все метрики здоровья и сон': { uk: 'Увімкни всі метрики здоровʼя і сон', en: 'Enable all health metrics and sleep' },
   'Интервал — каждые 1-3 часа': { uk: 'Інтервал — кожні 1-3 години', en: 'Interval — every 1-3 hours' },
   'Не забудь включить автоматизацию (Enable)': { uk: 'Не забудь увімкнути автоматизацію (Enable)', en: 'Don’t forget to switch the automation on (Enable)' },
+  'Не удалось получить ссылку': { uk: 'Не вдалося отримати посилання', en: 'Couldn’t fetch your link' },
 
   // ── Авторизация ────────────────────────────────────────────
   'Личный хаб здоровья': { uk: 'Особистий хаб здоровʼя', en: 'Your personal health hub' },
