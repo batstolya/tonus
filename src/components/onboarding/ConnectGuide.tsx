@@ -9,6 +9,9 @@ import { StepInstallHAE } from './guide/StepInstallHAE'
 import { StepAutomation } from './guide/StepAutomation'
 import { StepWebhook } from './guide/StepWebhook'
 import { StepSchedule } from './guide/StepSchedule'
+import { StepPhone } from './guide/StepPhone'
+import { StepMiFitness } from './guide/StepMiFitness'
+import { StepAndroidSoon } from './guide/StepAndroidSoon'
 import { StepVerify } from './guide/StepVerify'
 import {
   stepsFor, loadGuideProgress, saveGuideProgress, clearGuideProgress,
@@ -74,6 +77,15 @@ export function ConnectGuide({ user, demo, deviceType, onSelectDevice, onDismiss
                 <StepSchedule />
               ) : stepId === 'verify' ? (
                 <StepVerify user={user} demo={demo} onDone={() => { clearGuideProgress(); onDone() }} />
+              ) : stepId === 'phone' ? (
+                <StepPhone
+                  onPick={ph => setProgress(p => ({ step: clampStep(p.step) + 1, phone: ph }))}
+                  onCsv={exitToUpload}
+                />
+              ) : stepId === 'mifitness' ? (
+                <StepMiFitness />
+              ) : stepId === 'android_soon' ? (
+                <StepAndroidSoon onCsv={exitToUpload} />
               ) : null}
             </m.div>
           </AnimatePresence>
