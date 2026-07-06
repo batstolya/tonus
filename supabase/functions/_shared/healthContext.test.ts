@@ -40,6 +40,12 @@ describe('buildHealthContext: goals & experiments', () => {
     expect(ctx.goals).toHaveLength(1)
     expect(ctx.experiments).toHaveLength(1)
   })
+
+  it('falls back to Europe/Berlin instead of throwing when given an invalid timezone', async () => {
+    const sb = stubSupabase({})
+    const ctx = await buildHealthContext(sb, 'user-1', { timezone: 'not-a-real-timezone' })
+    expect(ctx.timezone).toBe('Europe/Berlin')
+  })
 })
 
 describe('healthContextToText: goals & experiments', () => {
@@ -100,6 +106,20 @@ describe('healthContextToText: sleep timing', () => {
     })
     // 23:40 и 00:00 локально → среднее 23:50
     expect(text).toContain('Среднее время засыпания: 23:50')
+  })
+
+  it('rounds average bedtime to a valid HH:MM at an hour boundary (regression: no "HH:60")', () => {
+    const text = healthContextToText({
+      ...emptyCtx,
+      timezone: 'Europe/Berlin',
+      sleep: [
+        { date: '2026-07-05', duration_hours: 7.2, deep_hours: 1.1, rem_hours: 1.7, core_hours: 4.4, bedtime: '2026-07-04T19:59:00Z', wake_time: null },
+        { date: '2026-07-04', duration_hours: 7.0, deep_hours: 1.0, rem_hours: 1.6, core_hours: 4.2, bedtime: '2026-07-04T20:00:00Z', wake_time: null },
+      ],
+    })
+    // 21:59 и 22:00 локально → среднее 21:59.5, округляется до 22:00, а не "21:60"
+    expect(text).toContain('Среднее время засыпания: 22:00')
+    expect(text).not.toContain('21:60')
   })
 
   it('omits per-night time when bedtime/wake_time are null, without breaking the line', () => {
