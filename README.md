@@ -6,7 +6,7 @@
 
 [![CI](https://github.com/batstolya/tonus/actions/workflows/ci.yml/badge.svg)](https://github.com/batstolya/tonus/actions/workflows/ci.yml)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-116%20unit%20%2B%203%20e2e-34d399)
+![Tests](https://img.shields.io/badge/tests-154%20unit%20%2B%203%20e2e-34d399)
 ![React](https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=black)
 ![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%2B%20Edge-3ecf8e?logo=supabase&logoColor=white)
 ![Gemini](https://img.shields.io/badge/AI-Gemini%202.5-8e75ff)
@@ -37,7 +37,8 @@
 |---|---|---|
 | ⌚ **Автосинк Apple Health** — часы сами шлют данные каждый час | 🧠 **AI-инсайты** — Gemini ищет связи: сон ↔ кофе ↔ стресс ↔ HRV | 💬 **Чат со своими данными** — отвечает по твоим метрикам, не по интернету |
 | ✈️ **Telegram-бот** — логирование одной строкой: «кофе», «магний», «пробежка» | 📈 **Скоры готовности** — readiness / recovery / sleep / stress против личной 30-дневной нормы | 🔬 **Эксперименты** — меняешь привычку, Tonus честно меряет «до/после» |
-| 💊 Препараты и напоминания | 🧪 Анализы (авторазбор PDF) | 🍔 Питание по фото |
+| 🛡️ **Страж здоровья** — ранний сигнал болезни по RHR/температуре/HRV, за 24–48ч до симптомов | 🔗 **Связи в данных** — лаг-корреляции: «кофе сегодня → HRV завтра», честная статистика | 📱 **iPhone-виджет** — readiness на домашнем экране (Scriptable, `/widget` в боте) |
+| 💊 Препараты, напоминания и % соблюдения | 🧪 Анализы (авторазбор PDF) | 🍔 Питание по фото |
 | 🎯 Цели | 🩺 Жалобы и симптомы | 📤 Экспорт всех данных в один клик |
 
 Интерфейс: 🇺🇦 украинский · 🇬🇧 английский. Темы: светлая и тёмная.
@@ -58,7 +59,7 @@ flowchart LR
 ```
 
 - **Frontend:** React 19 + Vite 8 + TypeScript (strict) + Recharts + Motion
-- **Backend:** Supabase — Postgres с RLS и 18 edge-функций на Deno
+- **Backend:** Supabase — Postgres с RLS и 19 edge-функций на Deno
 - **AI:** Gemini 2.5 Flash с бюджет-гардом на токены
 - Формулы скоров зеркалированы клиент/сервер и защищены golden-тестами + тестом зеркальности
 
@@ -81,7 +82,7 @@ npm run dev        # http://localhost:5173
 Весь UI без бэкенда: кнопка **«Посмотреть демо»** на лендинге (или `VITE_DEMO=1` в `.env.local`) — 90 дней сгенерированных метрик.
 
 ```bash
-npm test           # vitest: 116 тестов (формулы, переводы, боты)
+npm test           # vitest: 154 теста (формулы, переводы, боты)
 npm run test:e2e   # playwright: смоук лендинга и демо
 npm run build      # tsc (strict) + vite build
 ```
@@ -97,7 +98,7 @@ npm run build      # tsc (strict) + vite build
 ## 📁 Структура
 
 - `src/` — фронтенд: компоненты по фичам, `lib/`, `hooks/`, `parsers/`, `store/`
-- `supabase/` — миграции и 18 edge-функций (общий код — в `_shared/`)
+- `supabase/` — миграции и 19 edge-функций (общий код — в `_shared/`)
 - `scripts/` — вспомогательные скрипты (в т.ч. перезапись медиа для README)
 - `claude-monitor/` — сервис мониторинга лимитов Claude (launchd/Docker)
 
