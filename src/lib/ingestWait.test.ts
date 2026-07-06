@@ -43,6 +43,17 @@ describe('waitForFirstIngest', () => {
     expect(poll).toHaveBeenCalledTimes(2)
   })
 
+  it('abort останавливает цикл — больше ни одного поллинга', async () => {
+    const ctrl = new AbortController()
+    const poll = vi.fn(async () => null)
+    const p = waitForFirstIngest(poll, { baseline: null, intervalMs: 5000, timeoutMs: 60000, signal: ctrl.signal })
+    await vi.advanceTimersByTimeAsync(6000) // 2 поллинга: 0мс и 5с
+    ctrl.abort()
+    await vi.advanceTimersByTimeAsync(30000)
+    await expect(p).resolves.toBe('aborted')
+    expect(poll).toHaveBeenCalledTimes(2)
+  })
+
   it('успех на первой же проверке — без ожидания интервала', async () => {
     const poll = vi.fn(async () => '2026-07-06T11:00:00Z')
     const p = waitForFirstIngest(poll, { baseline: null, intervalMs: 5000, timeoutMs: 60000 })

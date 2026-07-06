@@ -17,26 +17,30 @@ export function StepVerify({ user, demo, onDone }: { user: User | null; demo: bo
   const [status, setStatus] = useState<'waiting' | 'ok' | 'timeout'>(demo || !user ? 'ok' : 'waiting')
   const [attempt, setAttempt] = useState(0)
   // baseline снимаем один раз: старый last_ingest_at (до гайда) — не успех.
+  // При смене юзера (logout/login внутри шага) baseline переснимаем.
   const baseline = useRef<string | null | undefined>(undefined)
+  const baselineUid = useRef<string | null>(null)
 
   useEffect(() => {
     if (demo || !user || status !== 'waiting') return
     let cancelled = false
+    const ctrl = new AbortController()
     ;(async () => {
-      if (baseline.current === undefined) {
+      if (baseline.current === undefined || baselineUid.current !== user.id) {
+        baselineUid.current = user.id
         baseline.current = (await loadToken(user.id))?.last_ingest_at ?? null
       }
       const res = await waitForFirstIngest(
         async () => (await loadToken(user.id))?.last_ingest_at ?? null,
-        { baseline: baseline.current },
+        { baseline: baseline.current, signal: ctrl.signal },
       )
-      if (!cancelled) setStatus(res)
+      if (!cancelled && res !== 'aborted') setStatus(res)
     })()
-    return () => { cancelled = true }
+    return () => { cancelled = true; ctrl.abort() }
   }, [user, demo, attempt, status])
 
   return (
-    <div className="guide-content">
+    <div className="guide-content" role="status" aria-live="polite">
       {status === 'waiting' ? (
         <>
           <m.div
