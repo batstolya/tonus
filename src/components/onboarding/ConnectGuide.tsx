@@ -9,6 +9,7 @@ import { StepInstallHAE } from './guide/StepInstallHAE'
 import { StepAutomation } from './guide/StepAutomation'
 import { StepWebhook } from './guide/StepWebhook'
 import { StepSchedule } from './guide/StepSchedule'
+import { StepVerify } from './guide/StepVerify'
 import {
   stepsFor, loadGuideProgress, saveGuideProgress, clearGuideProgress,
 } from './guideState'
@@ -38,9 +39,6 @@ export function ConnectGuide({ user, demo, deviceType, onSelectDevice, onDismiss
   const back = () => setProgress(p => ({ ...p, step: Math.max(0, clampStep(p.step) - 1) }))
   // Любой выход из гайда стирает прогресс: возврат всегда с первого шага.
   const exitToUpload = () => { clearGuideProgress(); onDismiss() }
-
-  // onDone используется шагом verify (задача 5).
-  void onDone
 
   return (
     <LazyMotion features={domMax} strict>
@@ -74,6 +72,8 @@ export function ConnectGuide({ user, demo, deviceType, onSelectDevice, onDismiss
                 <StepWebhook user={user} demo={demo} />
               ) : stepId === 'schedule' ? (
                 <StepSchedule />
+              ) : stepId === 'verify' ? (
+                <StepVerify user={user} demo={demo} onDone={() => { clearGuideProgress(); onDone() }} />
               ) : null}
             </m.div>
           </AnimatePresence>
