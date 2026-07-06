@@ -284,6 +284,35 @@ git add supabase/functions/_shared/healthContext.ts supabase/functions/_shared/h
 git commit -m "feat(ai-context): honest last-7 vs previous-7-day comparisons instead of model guessing"
 ```
 
+- [ ] **Step 6 (audit follow-up): add per-week average bedtime to the sleep comparison blocks**
+
+The spec (section 4) requires the weekly blocks to include «среднее время засыпания из п.3» — the original task text above omitted it, and it's literally the user's original question ("сравни время засыпания эта неделя vs прошлая"). With only the whole-period average (Task 1), the model still can't compare bedtime week-over-week honestly.
+
+In `fmtSleepWeek` (which runs inside `healthContextToText` and therefore has access to `ctx.timezone`), add an average-bedtime bit using the `avgLocalTime` helper from Task 1:
+
+```typescript
+    const fmtSleepWeek = (arr: any[]) => {
+      const dur = num(arr, 'duration_hours'), d = num(arr, 'deep_hours'), r = num(arr, 'rem_hours')
+      const bits: string[] = []
+      if (dur.length) bits.push(`сон ${avg(dur)!.toFixed(1)}ч`)
+      if (d.length) bits.push(`глубокий ${avg(d)!.toFixed(1)}ч`)
+      if (r.length) bits.push(`REM ${avg(r)!.toFixed(1)}ч`)
+      const bed = avgLocalTime(arr.map((s: any) => s.bedtime).filter(Boolean), ctx.timezone)
+      if (bed) bits.push(`засыпание в среднем ${bed}`)
+      return bits.join(', ')
+    }
+```
+
+Also add `active_energy` and `oxygen_saturation` to `fmtMetricsWeek` (the spec says the weekly blocks carry «те же метрики, что уже агрегируются за весь период», which includes активные ккал и SpO2):
+
+```typescript
+      const en = num(arr, 'active_energy'), sp = num(arr, 'oxygen_saturation')
+      if (en.length) bits.push(`ккал ${Math.round(avg(en)!)}`)
+      if (sp.length) bits.push(`SpO2 ${(avg(sp)! * 100).toFixed(0)}%`)
+```
+
+Test: extend the existing weekly-comparison describe block — 14 nights where the older week's bedtimes are `19:30Z` and the newer week's are `21:00Z` (Europe/Berlin summer → local 21:30 vs 23:00) must render `Последние 7 ночей: ... засыпание в среднем 23:00` and `Предыдущие 7 ночей: ... засыпание в среднем 21:30`. Commit as `fix(ai-context): weekly sleep comparison includes average bedtime per spec`.
+
 ---
 
 ### Task 3: Health concerns + hair entries
@@ -488,13 +517,17 @@ Update the destructuring line again (from Task 3's `..., concernRes, concernLogR
   const [profRes, scoreRes, mRes, sRes, labRes, supRes, intakeRes, logRes, notesRes, calRes, goalRes, expRes, envRes, concernRes, concernLogRes, hairRes, alertRes] = await Promise.all([
 ```
 
-Add one entry at the end of the `Promise.all` array (after the `hair_entries` query from Task 3):
+Add one entry at the end of the `Promise.all` array (after the `hair_entries` query from Task 3). Note the `gte('created_at', ...)` period filter — the spec (section 6) requires alerts only for the context window; without it a months-old anomaly would render as if it were current and mislead the AI:
 
 ```typescript
     supabase.from('health_alerts')
       .select('date, level, message')
-      .eq('user_id', userId).eq('type', 'anomaly').order('created_at', { ascending: false }).limit(5),
+      .eq('user_id', userId).eq('type', 'anomaly')
+      .gte('created_at', `${sinceStr}T00:00:00Z`)
+      .order('created_at', { ascending: false }).limit(5),
 ```
+
+Add a test asserting the query is period-bound is not practical with the current `stubSupabase` (it ignores filters), so instead make sure the implementation includes the `gte` — the spec reviewer will check this by reading the code.
 
 Before `return`:
 
@@ -778,17 +811,27 @@ Change the constant near the top of the file:
 const MAX_HISTORY = 12 // last N messages to include verbatim
 ```
 
-Change the generation config (currently `thinkingConfig: { thinkingBudget: 0 }`):
+Change the generation config (currently `maxOutputTokens: 600` + `thinkingConfig: { thinkingBudget: 0 }`):
 
 ```typescript
-          thinkingConfig: { thinkingBudget: 1024 },
+          generationConfig: {
+            // В Gemini 2.5 thinking-токены ВХОДЯТ в maxOutputTokens: при 600 и
+            // бюджете мышления 1024 модель сожгла бы весь лимит на размышления
+            // и вернула пустой ответ (finishReason=MAX_TOKENS). Краткость
+            // видимого ответа держит системный промпт, не токен-лимит.
+            maxOutputTokens: 2048,
+            temperature: 0.5,
+            thinkingConfig: { thinkingBudget: 1024 },
+          },
 ```
+
+**Do NOT keep `maxOutputTokens: 600`** — Gemini 2.5 counts thinking tokens toward `maxOutputTokens` (unlike OpenAI's separate reasoning-token accounting), so 600 + thinkingBudget 1024 produces empty replies with `finishReason: MAX_TOKENS`. This is a documented gotcha (googleapis/python-genai issues #782/#811).
 
 - [ ] **Step 2: Commit**
 
 ```bash
 git add supabase/functions/chat-health/index.ts
-git commit -m "feat(chat): enable modest Gemini thinking budget and deepen conversation history to 12 messages"
+git commit -m "feat(chat): enable Gemini thinking budget (with matching output cap) and deepen history to 12"
 ```
 
 ---
@@ -834,9 +877,12 @@ describe('runChatLoop', () => {
     expect(result.totalTokens).toBe(230)
     expect(executeTool).toHaveBeenCalledWith('get_sleep_range', { start_date: '2026-06-01', end_date: '2026-06-30' })
     expect(callGemini).toHaveBeenCalledTimes(2)
-    // второй вызов должен получить историю с functionResponse
+    // второй вызов должен получить историю с functionResponse: v1beta REST API
+    // требует role 'user' для functionResponse-хода (role 'function' не принимается)
     const secondCallContents = callGemini.mock.calls[1][0]
-    expect(secondCallContents.some((m: ChatLoopMessage) => m.role === 'function')).toBe(true)
+    const fnResponseMsg = secondCallContents.find((m: ChatLoopMessage) =>
+      m.parts.some((p: any) => p.functionResponse))
+    expect(fnResponseMsg?.role).toBe('user')
   })
 
   it('caps at 2 extra rounds and forces a final call without tools', async () => {
@@ -858,7 +904,8 @@ describe('runChatLoop', () => {
     const result = await runChatLoop(baseContents, callGemini, executeTool)
     expect(result.reply).toBe('Не смог получить историю анализов.')
     const secondCallContents = callGemini.mock.calls[1][0]
-    const functionMsg = secondCallContents.find((m: ChatLoopMessage) => m.role === 'function')
+    const functionMsg = secondCallContents.find((m: ChatLoopMessage) =>
+      m.parts.some((p: any) => p.functionResponse))
     expect(JSON.stringify(functionMsg)).toContain('db down')
   })
 })
@@ -879,7 +926,9 @@ Create `supabase/functions/_shared/chatToolLoop.ts`:
 // без реального вызова Gemini или Supabase.
 
 export interface ChatLoopMessage {
-  role: 'user' | 'model' | 'function'
+  // v1beta REST API принимает только 'user' и 'model'; functionResponse
+  // передаётся ходом с role 'user' сразу после model-хода с functionCall.
+  role: 'user' | 'model'
   parts: any[]
 }
 
@@ -929,7 +978,7 @@ export async function runChatLoop(
       }
       functionResponses.push({ functionResponse: { name, response } })
     }
-    contents = [...contents, { role: 'function', parts: functionResponses }]
+    contents = [...contents, { role: 'user', parts: functionResponses }]
   }
 
   return { reply: 'Не удалось получить ответ.', totalTokens }
@@ -1672,7 +1721,10 @@ async function callGemini(contents: ChatLoopMessage[], withTools: boolean): Prom
   const body: Record<string, unknown> = {
     contents,
     generationConfig: {
-      maxOutputTokens: 600, // чат-ответы короткие, 2048 — перерасход
+      // thinking-токены входят в maxOutputTokens (Gemini 2.5), поэтому лимит
+      // должен вмещать бюджет мышления + видимый ответ; краткость ответа
+      // обеспечивает системный промпт, не токен-лимит
+      maxOutputTokens: 2048,
       temperature: 0.5,
       thinkingConfig: { thinkingBudget: 1024 },
     },
@@ -1724,6 +1776,8 @@ This phase cannot be fully verified by unit tests — it depends on real Gemini 
 - [ ] **Step 1: Deploy to a test/staging path or use the Supabase local stack**
 
 Follow the `deploying-tonus` skill for edge function deploy mechanics (`npx supabase functions deploy chat-health --project-ref <ref>` — check whether `chat-health` needs `--no-verify-jwt` the way `ingest-health` does; it currently doesn't, based on `index.ts` doing its own `auth.getUser()` check, so deploy without that flag unless the skill says otherwise).
+
+**Also redeploy `telegram-bot`** — it imports `_shared/healthContext.ts` too (each function bundles `_shared` at deploy time, so the bot keeps serving the old, narrower context until redeployed; same precedent as `_shared/football.ts` requiring all three football functions to be redeployed together). `chat-health` and `telegram-bot` are the only two importers (verified by grep).
 
 - [ ] **Step 2: Trigger a question that requires a range beyond the static 30-day context**
 
