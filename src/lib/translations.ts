@@ -106,6 +106,19 @@ export const translations: Record<string, { uk: string; en: string }> = {
   'Метод — POST, формат — JSON': { uk: 'Метод — POST, формат — JSON', en: 'Method — POST, format — JSON' },
   'Автоматизация включена (Enable)': { uk: 'Автоматизацію увімкнено (Enable)', en: 'The automation is switched on (Enable)' },
   'Проверить ещё раз': { uk: 'Перевірити ще раз', en: 'Try again' },
+  'Какой у тебя телефон?': { uk: 'Який у тебе телефон?', en: 'What phone do you have?' },
+  'Разовый импорт CSV': { uk: 'Разовий імпорт CSV', en: 'One-time CSV import' },
+  'Включи синк с Apple Health': { uk: 'Увімкни синхронізацію з Apple Health', en: 'Enable Apple Health sync' },
+  'В Mi Fitness: Профиль → Настройки → Apple Health → разреши запись данных. Дальше настроим как для Apple Watch.': {
+    uk: 'У Mi Fitness: Профіль → Налаштування → Apple Health → дозволь запис даних. Далі налаштуємо як для Apple Watch.',
+    en: 'In Mi Fitness: Profile → Settings → Apple Health → allow writing data. Then we set up the rest just like for Apple Watch.',
+  },
+  'Авто-синхронизация для Android скоро': { uk: 'Авто-синхронізація для Android незабаром', en: 'Auto-sync for Android is coming soon' },
+  'Пока используй разовый импорт CSV с account.xiaomi.com — мы сообщим, когда авто-синк будет готов.': {
+    uk: 'Поки що використовуй разовий імпорт CSV з account.xiaomi.com — ми повідомимо, коли авто-синк буде готовий.',
+    en: 'For now, use the one-time CSV import from account.xiaomi.com — we’ll let you know when auto-sync is ready.',
+  },
+  'Профиль': { uk: 'Профіль', en: 'Profile' },
 
   // ── Авторизация ────────────────────────────────────────────
   'Личный хаб здоровья': { uk: 'Особистий хаб здоровʼя', en: 'Your personal health hub' },
