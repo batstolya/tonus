@@ -1,6 +1,7 @@
 // Ожидание первого приёма данных авто-синка: поллим last_ingest_at,
 // успех — когда появилось значение, отличное от baseline (снятого до начала теста).
 // Поллер инъектируется, чтобы модуль не тянул supabase и тестировался в node.
+// Ошибка поллера (сетевой сбой) — не фатальна: трактуем как «данных ещё нет» и ретраим.
 
 export interface WaitOpts {
   baseline: string | null
@@ -14,7 +15,7 @@ export async function waitForFirstIngest(
 ): Promise<'ok' | 'timeout'> {
   const deadline = Date.now() + timeoutMs
   for (;;) {
-    const last = await poll()
+    const last = await poll().catch(() => null)
     if (last != null && last !== baseline) return 'ok'
     const nextPollTime = Date.now() + intervalMs
     if (nextPollTime > deadline) return 'timeout'
