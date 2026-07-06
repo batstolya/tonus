@@ -64,6 +64,29 @@ export const translations: Record<string, { uk: string; en: string }> = {
     uk: 'Годинник → телефон → Tonus. Налаштуємо один раз — далі все автоматично, щодня.',
     en: 'Watch → phone → Tonus. Set it up once — everything syncs automatically, every day.',
   },
+  'Установи Health Auto Export': { uk: 'Установи Health Auto Export', en: 'Install Health Auto Export' },
+  'Это приложение само отправляет данные Apple Health в Tonus. Есть бесплатный пробный период — хватит, чтобы всё проверить.': {
+    uk: 'Цей застосунок сам надсилає дані Apple Health у Tonus. Є безкоштовний пробний період — вистачить, щоб усе перевірити.',
+    en: 'This app sends your Apple Health data to Tonus automatically. It has a free trial — enough to check everything works.',
+  },
+  'Открыть в App Store': { uk: 'Відкрити в App Store', en: 'Open in App Store' },
+  'Создай автоматизацию': { uk: 'Створи автоматизацію', en: 'Create an automation' },
+  'В Health Auto Export открой вкладку Automations и нажми «+».': {
+    uk: 'У Health Auto Export відкрий вкладку Automations і натисни «+».',
+    en: 'In Health Auto Export, open the Automations tab and tap “+”.',
+  },
+  'Automations → «+»': { uk: 'Automations → «+»', en: 'Automations → “+”' },
+  'Тип: REST API': { uk: 'Тип: REST API', en: 'Type: REST API' },
+  'Метод POST · Формат JSON': { uk: 'Метод POST · Формат JSON', en: 'Method POST · Format JSON' },
+  'Вставь адрес Tonus': { uk: 'Встав адресу Tonus', en: 'Paste your Tonus address' },
+  'Скопируй персональную ссылку и вставь её в поле URL автоматизации.': {
+    uk: 'Скопіюй персональне посилання та встав його в поле URL автоматизації.',
+    en: 'Copy your personal link and paste it into the automation URL field.',
+  },
+  'Выбери данные и расписание': { uk: 'Вибери дані та розклад', en: 'Choose data and schedule' },
+  'Включи все метрики здоровья и сон': { uk: 'Увімкни всі метрики здоровʼя і сон', en: 'Enable all health metrics and sleep' },
+  'Интервал — каждые 1-3 часа': { uk: 'Інтервал — кожні 1-3 години', en: 'Interval — every 1-3 hours' },
+  'Не забудь включить автоматизацию (Enable)': { uk: 'Не забудь увімкнути автоматизацію (Enable)', en: 'Don’t forget to switch the automation on (Enable)' },
 
   // ── Авторизация ────────────────────────────────────────────
   'Личный хаб здоровья': { uk: 'Особистий хаб здоровʼя', en: 'Your personal health hub' },
