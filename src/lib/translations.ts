@@ -57,6 +57,14 @@ export const translations: Record<string, { uk: string; en: string }> = {
   'Экспорт через приложение «Здоровье» на iPhone': { uk: 'Експорт через застосунок «Здоровʼя» на iPhone', en: 'Export via the Health app on iPhone' },
   'Экспорт через account.xiaomi.com — CSV с данными': { uk: 'Експорт через account.xiaomi.com — CSV з даними', en: 'Export via account.xiaomi.com — CSV data' },
 
+  // ── Гайд подключения ──────────────────────────────────────
+  'Далее': { uk: 'Далі', en: 'Next' },
+  'Данные будут приходить сами': { uk: 'Дані надходитимуть самі', en: 'Your data will arrive on its own' },
+  'Часы → телефон → Tonus. Один раз настроим — дальше всё автоматически, каждый день.': {
+    uk: 'Годинник → телефон → Tonus. Налаштуємо один раз — далі все автоматично, щодня.',
+    en: 'Watch → phone → Tonus. Set it up once — everything syncs automatically, every day.',
+  },
+
   // ── Авторизация ────────────────────────────────────────────
   'Личный хаб здоровья': { uk: 'Особистий хаб здоровʼя', en: 'Your personal health hub' },
   'Вход': { uk: 'Вхід', en: 'Sign in' },
