@@ -4,6 +4,8 @@ import { checkBudget, budgetExceededMessage } from '../_shared/costGuard.ts'
 import { getPrompt } from '../_shared/prompts.ts'
 import { buildHealthContext, healthContextToText } from '../_shared/healthContext.ts'
 import { localNow } from '../_shared/time.ts'
+import { runChatLoop, type ChatLoopMessage } from '../_shared/chatToolLoop.ts'
+import { CHAT_TOOL_DECLARATIONS, executeChatTool } from '../_shared/chatTools.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
@@ -33,6 +35,32 @@ const SYSTEM_PROMPT = `Ты — персональный ассистент по
   не придумывай объяснение взамен.
 - Если инструмент вернул ошибку или пустой результат — сообщи об этом прямо,
   не выдумывай значения взамен.`
+
+async function callGemini(contents: ChatLoopMessage[], withTools: boolean): Promise<{ parts: any[]; tokensUsed: number }> {
+  const body: Record<string, unknown> = {
+    contents,
+    generationConfig: {
+      // thinking-токены входят в maxOutputTokens (Gemini 2.5), поэтому лимит
+      // должен вмещать бюджет мышления + видимый ответ; краткость ответа
+      // обеспечивает системный промпт, не токен-лимит
+      maxOutputTokens: 2048,
+      temperature: 0.5,
+      thinkingConfig: { thinkingBudget: 1024 },
+    },
+  }
+  if (withTools) body.tools = [{ functionDeclarations: CHAT_TOOL_DECLARATIONS }]
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
+  )
+  if (!res.ok) throw new Error(`Gemini error: ${await res.text()}`)
+  const data = await res.json()
+  return {
+    parts: data.candidates?.[0]?.content?.parts ?? [],
+    tokensUsed: data.usageMetadata?.totalTokenCount ?? 0,
+  }
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
@@ -112,7 +140,7 @@ serve(async (req) => {
 
     const sys = await getPrompt(supabase, 'chat-health-system', SYSTEM_PROMPT)
 
-    const geminiContents = [
+    const geminiContents: ChatLoopMessage[] = [
       // System context as first user message (Gemini pattern)
       {
         role: 'user',
@@ -121,40 +149,15 @@ serve(async (req) => {
       { role: 'model', parts: [{ text: 'Понял, буду отвечать на основе твоих данных.' }] },
       // Recent conversation history
       ...recentMessages.map(m => ({
-        role: m.role === 'user' ? 'user' : 'model',
+        role: (m.role === 'user' ? 'user' : 'model') as 'user' | 'model',
         parts: [{ text: m.content }],
       })),
       // New message
       { role: 'user', parts: [{ text: message }] },
     ]
 
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: geminiContents,
-          generationConfig: {
-            // thinking-токены входят в maxOutputTokens (Gemini 2.5), поэтому лимит
-            // должен вмещать бюджет мышления + видимый ответ; краткость ответа
-            // обеспечивает системный промпт, не токен-лимит
-            maxOutputTokens: 2048,
-            temperature: 0.5,
-            thinkingConfig: { thinkingBudget: 1024 },
-          },
-        }),
-      }
-    )
-
-    if (!geminiRes.ok) {
-      const err = await geminiRes.text()
-      throw new Error(`Gemini error: ${err}`)
-    }
-
-    const geminiData = await geminiRes.json()
-    const reply = geminiData.candidates?.[0]?.content?.parts?.[0]?.text ?? 'Не удалось получить ответ.'
-    const tokensUsed = geminiData.usageMetadata?.totalTokenCount ?? null
+    const executeTool = (name: string, args: Record<string, any>) => executeChatTool(supabase, user.id, name, args)
+    const { reply, totalTokens: tokensUsed } = await runChatLoop(geminiContents, callGemini, executeTool)
 
     // Save assistant reply
     await supabase.from('chat_messages').insert({
