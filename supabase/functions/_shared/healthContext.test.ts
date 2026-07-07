@@ -217,6 +217,15 @@ describe('healthContextToText: concerns & hair entries', () => {
     expect(text).toContain('после кофе хуже')
   })
 
+  it('renders a period-scoped fallback for concerns without recent logs (not "no logs ever")', () => {
+    const text = healthContextToText({
+      ...emptyCtx,
+      concerns: [{ name: 'Высыпания', category: 'skin', status: 'active', lastLog: null }],
+    })
+    expect(text).toContain('нет логов за последние 14 дн.')
+    expect(text).not.toContain('логов пока нет')
+  })
+
   it('renders latest hair entry', () => {
     const text = healthContextToText({
       ...emptyCtx,
