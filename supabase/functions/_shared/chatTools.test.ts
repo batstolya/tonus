@@ -143,4 +143,22 @@ describe('executeChatTool: get_correlations', () => {
     const result: any = await executeChatTool(sb, 'user-1', 'get_correlations', {})
     expect(result.error).toBeTruthy()
   })
+
+  it('surfaces a DB query error instead of masking it as insufficient data', async () => {
+    // один из шести запросов резолвится с error — не должно превратиться в needMoreDays
+    const sb = {
+      from() {
+        const self: any = new Proxy({}, {
+          get(_t, prop: string) {
+            if (prop === 'then') return (resolve: (v: unknown) => void) => resolve({ data: null, error: { message: 'db down' } })
+            return () => self
+          },
+        })
+        return self
+      },
+    }
+    const result: any = await executeChatTool(sb, 'user-1', 'get_correlations', {})
+    expect(result.correlations).toBeUndefined()
+    expect(result.error).toContain('Ошибка запроса данных')
+  })
 })
