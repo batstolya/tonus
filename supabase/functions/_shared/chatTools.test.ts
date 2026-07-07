@@ -18,9 +18,9 @@ function stubSupabase(dataByTable: Record<string, unknown[]>) {
 }
 
 describe('CHAT_TOOL_DECLARATIONS', () => {
-  it('declares exactly the three range/history tools', () => {
+  it('declares exactly the four range/history/correlation tools', () => {
     const names = CHAT_TOOL_DECLARATIONS.map((t: any) => t.name)
-    expect(names).toEqual(['get_metrics_range', 'get_sleep_range', 'get_lab_history'])
+    expect(names).toEqual(['get_metrics_range', 'get_sleep_range', 'get_lab_history', 'get_correlations'])
   })
 })
 
@@ -83,5 +83,64 @@ describe('executeChatTool', () => {
     const result: any = await executeChatTool(sb, 'user-1', 'get_metrics_range', { start_date: '2026-06-01', end_date: '2026-06-10' })
     expect(result.rows).toBeUndefined()
     expect(result.error).toContain('invalid input syntax')
+  })
+})
+
+describe('executeChatTool: get_correlations', () => {
+  const day = (i: number) => new Date(Date.UTC(2026, 4, 1 + i)).toISOString().slice(0, 10)
+
+  it('returns correlations when there is enough data', async () => {
+    const n = 30
+    const coffee = (i: number) => (i % 2 === 0 ? 4 : 0)
+    const metrics = Array.from({ length: n }, (_, i) => ({
+      date: day(i),
+      hrv: i > 0 && coffee(i - 1) > 2 ? 35 : 55,
+      resting_heart_rate: 55,
+      sleep_hours: 7.5,
+      steps: 9000,
+    }))
+    const intake = Array.from({ length: n }, (_, i) => coffee(i) > 0 ? { ts: `${day(i)}T08:00:00Z`, type: 'coffee' } : null).filter(Boolean)
+    const sb = stubSupabase({
+      daily_metrics: metrics,
+      sleep_sessions: [],
+      metrics_daily: [],
+      daily_scores: [],
+      intake_events: intake as any[],
+      environment_daily: [],
+    })
+    const result: any = await executeChatTool(sb, 'user-1', 'get_correlations', {})
+    expect(result.correlations).toBeTruthy()
+    expect(result.correlations.some((c: any) => c.factor === 'coffee' && c.outcome === 'hrv')).toBe(true)
+  })
+
+  it('filters by outcome when provided', async () => {
+    const n = 30
+    const coffee = (i: number) => (i % 2 === 0 ? 4 : 0)
+    const metrics = Array.from({ length: n }, (_, i) => ({
+      date: day(i),
+      hrv: i > 0 && coffee(i - 1) > 2 ? 35 : 55,
+      resting_heart_rate: i > 0 && coffee(i - 1) > 2 ? 65 : 55,
+      sleep_hours: 7.5,
+      steps: 9000,
+    }))
+    const intake = Array.from({ length: n }, (_, i) => coffee(i) > 0 ? { ts: `${day(i)}T08:00:00Z`, type: 'coffee' } : null).filter(Boolean)
+    const sb = stubSupabase({
+      daily_metrics: metrics, sleep_sessions: [], metrics_daily: [], daily_scores: [],
+      intake_events: intake as any[], environment_daily: [],
+    })
+    const result: any = await executeChatTool(sb, 'user-1', 'get_correlations', { outcome: 'hrv' })
+    // сначала убеждаемся, что фильтр не просто выдал пустой массив (что тривиально
+    // прошло бы .every() на []), а реально нашёл и оставил hrv-корреляцию
+    expect(result.correlations.length).toBeGreaterThan(0)
+    expect(result.correlations.every((c: any) => c.outcome === 'hrv')).toBe(true)
+  })
+
+  it('returns a plain error, not a throw, when there is too little data', async () => {
+    const sb = stubSupabase({
+      daily_metrics: [{ date: '2026-05-01', hrv: 50, resting_heart_rate: 55, sleep_hours: 7, steps: 9000 }],
+      sleep_sessions: [], metrics_daily: [], daily_scores: [], intake_events: [], environment_daily: [],
+    })
+    const result: any = await executeChatTool(sb, 'user-1', 'get_correlations', {})
+    expect(result.error).toBeTruthy()
   })
 })
