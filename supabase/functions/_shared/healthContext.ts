@@ -186,6 +186,9 @@ export function healthContextToText(ctx: HealthContext): string {
       if (r.length) bits.push(`ЧССп ${avg(r)!.toFixed(0)}`)
       if (h.length) bits.push(`HRV ${avg(h)!.toFixed(0)}мс`)
       if (st.length) bits.push(`шаги ${Math.round(avg(st)!).toLocaleString('ru-RU')}`)
+      const en = num(arr, 'active_energy'), sp = num(arr, 'oxygen_saturation')
+      if (en.length) bits.push(`ккал ${Math.round(avg(en)!)}`)
+      if (sp.length) bits.push(`SpO2 ${(avg(sp)! * 100).toFixed(0)}%`)
       return bits.join(', ')
     }
     if (rows.length >= 7) parts.push(`\nПоследние 7 дней: ${fmtMetricsWeek(rows.slice(-7))}`)
@@ -215,6 +218,8 @@ export function healthContextToText(ctx: HealthContext): string {
       if (dur.length) bits.push(`сон ${avg(dur)!.toFixed(1)}ч`)
       if (d.length) bits.push(`глубокий ${avg(d)!.toFixed(1)}ч`)
       if (r.length) bits.push(`REM ${avg(r)!.toFixed(1)}ч`)
+      const bed = avgLocalTime(arr.map((s: any) => s.bedtime).filter(Boolean), ctx.timezone)
+      if (bed) bits.push(`засыпание в среднем ${bed}`)
       return bits.join(', ')
     }
     if (ctx.sleep.length >= 7) parts.push(`Последние 7 ночей: ${fmtSleepWeek(ctx.sleep.slice(0, 7))}`)
