@@ -28,7 +28,7 @@ const emptyCtx: HealthContext = {
   periodDays: 14, timezone: 'Europe/Berlin', coachProfile: null, scores: null, metrics: [], sleep: [],
   labs: [], supplements: [], intake: [], supplementLogs: [], notes: [],
   calendar: [], goals: [], experiments: [], environment: [], concerns: [], hairEntries: [],
-  alerts: [],
+  alerts: [], recommendations: [],
 }
 
 describe('buildHealthContext: goals & experiments', () => {
@@ -292,6 +292,33 @@ describe('healthContextToText: health alerts', () => {
   })
 })
 
+describe('buildHealthContext: recommendations', () => {
+  it('loads accepted/dismissed/snoozed recommendations', async () => {
+    const sb = stubSupabase({
+      recommendations: [{ metric: 'sleepHours', text: 'Ложиться на 30 мин раньше', status: 'dismissed', created_at: '2026-06-01T00:00:00Z' }],
+    })
+    const ctx = await buildHealthContext(sb, 'user-1')
+    expect(ctx.recommendations).toHaveLength(1)
+    expect(ctx.recommendations[0].status).toBe('dismissed')
+  })
+})
+
+describe('healthContextToText: recommendations', () => {
+  it('renders past recommendations with status', () => {
+    const text = healthContextToText({
+      ...emptyCtx,
+      recommendations: [{ metric: 'sleepHours', text: 'Ложиться на 30 мин раньше', status: 'dismissed', created_at: '2026-06-01T00:00:00Z' }],
+    })
+    expect(text).toContain('Прошлые рекомендации ИИ')
+    expect(text).toContain('[dismissed] Ложиться на 30 мин раньше (метрика sleepHours)')
+  })
+
+  it('omits section when empty', () => {
+    const text = healthContextToText(emptyCtx)
+    expect(text).not.toContain('Прошлые рекомендации ИИ')
+  })
+})
+
 // Полнота контекста: каждая секция реально попадает в текст для ИИ —
 // «молчаливое» выпадение секции регрессией не пройдёт (гарантия переехала
 // из клиентского buildContextSnapshot, удалённого в F2).
@@ -319,6 +346,7 @@ describe('healthContextToText: full coverage', () => {
       concerns: [{ name: 'Высыпания', category: 'skin', status: 'active', lastLog: { date: '2026-07-04', severity: 3, note: null } }],
       hairEntries: [{ date: '2026-06-15', shedding_level: 2, density_rating: 3, hairline_rating: 4, scalp_note: null }],
       alerts: [{ date: '2026-07-03', level: 'red', message: 'Рост пульса покоя' }],
+      recommendations: [{ metric: 'sleepHours', text: 'Ложиться на 30 мин раньше', status: 'dismissed', created_at: '2026-06-01T00:00:00Z' }],
     })
     for (const marker of [
       'ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ', 'ОЦЕНКИ', 'Персональная норма', 'ЧСС покоя',
@@ -327,7 +355,7 @@ describe('healthContextToText: full coverage', () => {
       'Цели пользователя', 'Эксперименты пользователя',
       'Погода (2026-07-05)', 'давление 1008 гПа (-7 за сутки)',
       'Отслеживаемые симптомы', 'Замеры волос (2026-06-15)',
-      'Алерты стража здоровья',
+      'Алерты стража здоровья', 'Прошлые рекомендации ИИ',
     ]) {
       expect(text, `секция «${marker}» выпала из контекста`).toContain(marker)
     }
