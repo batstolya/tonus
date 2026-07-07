@@ -120,10 +120,10 @@ export async function buildHealthContext(
       .eq('user_id', userId).order('date', { ascending: false }).limit(2),
     supabase.from('health_concerns')
       .select('id, name, category, status')
-      .eq('user_id', userId).in('status', ['active', 'improving']).limit(10),
+      .eq('user_id', userId).in('status', ['active', 'improving']).order('created_at', { ascending: false }).limit(10),
     supabase.from('concern_logs')
       .select('concern_id, date, severity, note')
-      .eq('user_id', userId).gte('date', sinceStr).order('date', { ascending: false }).limit(30),
+      .eq('user_id', userId).gte('date', sinceStr).order('date', { ascending: false }).limit(100),
     supabase.from('hair_entries')
       .select('date, shedding_level, density_rating, hairline_rating, scalp_note')
       .eq('user_id', userId).gte('date', sinceStr).order('date', { ascending: false }).limit(6),
@@ -352,14 +352,14 @@ export function healthContextToText(ctx: HealthContext): string {
     for (const c of ctx.concerns) {
       const log = c.lastLog
         ? ` — последняя severity ${c.lastLog.severity ?? '—'}/5 (${c.lastLog.date}${c.lastLog.note ? `, "${c.lastLog.note}"` : ''})`
-        : ' — логов пока нет'
+        : ` — нет логов за последние ${ctx.periodDays} дн.`
       parts.push(`— ${c.name} (${c.category}, ${c.status})${log}`)
     }
   }
 
   if (ctx.hairEntries.length) {
     const h = ctx.hairEntries[0]
-    parts.push(`Замеры волос (${h.date}): выпадение ${h.shedding_level ?? '—'}/5, густота ${h.density_rating ?? '—'}/5, линия роста ${h.hairline_rating ?? '—'}/5${h.scalp_note ? ` ("${h.scalp_note}")` : ''}`)
+    parts.push(`\nЗамеры волос (${h.date}): выпадение ${h.shedding_level ?? '—'}/5, густота ${h.density_rating ?? '—'}/5, линия роста ${h.hairline_rating ?? '—'}/5${h.scalp_note ? ` ("${h.scalp_note}")` : ''}`)
   }
 
   if (ctx.calendar.length) {
