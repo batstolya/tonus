@@ -108,6 +108,12 @@ export async function executeChatTool(
       supabase.from('environment_daily').select('date, temp_c, pressure_hpa, daylight_minutes, precipitation_mm').eq('user_id', userId).gte('date', sinceStr),
     ])
 
+    // Ошибку любого из запросов не глотаем в «мало данных» — иначе модель
+    // спишет сбой БД на нехватку истории (как и у диапазонных инструментов)
+    if ([mRes, sRes, exRes, scoreRes, intakeRes, envRes].some((r: any) => r.error)) {
+      return { error: 'Ошибка запроса данных для корреляций' }
+    }
+
     const bedtimeByDate: Record<string, string> = {}
     for (const s of (sRes.data ?? [])) if (s.bedtime) bedtimeByDate[s.date] = s.bedtime
     const exerciseByDate: Record<string, number> = {}
