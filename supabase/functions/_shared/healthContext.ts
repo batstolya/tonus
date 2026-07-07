@@ -112,7 +112,7 @@ export async function buildHealthContext(
       .select('start_ts')
       .eq('user_id', userId).gte('start_ts', `${sinceStr}T00:00:00Z`).order('start_ts', { ascending: false }),
     supabase.from('goals')
-      .select('title, metric, baseline_value, target_value, direction, end_date, status')
+      .select('id, title, metric, baseline_value, target_value, direction, end_date, status')
       .eq('user_id', userId).in('status', ['active', 'achieved']).order('created_at', { ascending: false }).limit(10),
     supabase.from('experiments')
       .select('hypothesis, change_rule, target_metric, start_date, end_date, status, result')
@@ -139,6 +139,23 @@ export async function buildHealthContext(
       .eq('user_id', userId).in('status', ['accepted', 'dismissed', 'snoozed'])
       .order('created_at', { ascending: false }).limit(10),
   ])
+
+  // Последовательный follow-up: тренд goal_progress зависит от только что
+  // полученных id целей, поэтому не входит в параллельный батч выше.
+  const goalsRaw = goalRes.data ?? []
+  const goalIds = goalsRaw.map((g: any) => g.id).filter(Boolean)
+  let goalProgressData: any[] = []
+  if (goalIds.length) {
+    const since7 = new Date(); since7.setDate(since7.getDate() - 7)
+    const { data } = await supabase.from('goal_progress')
+      .select('goal_id, date, value, on_target')
+      .in('goal_id', goalIds).gte('date', since7.toISOString().slice(0, 10))
+      .order('date', { ascending: true })
+    goalProgressData = data ?? []
+  }
+  const progressByGoal: Record<string, any[]> = {}
+  for (const p of goalProgressData) (progressByGoal[p.goal_id] ??= []).push({ date: p.date, value: p.value, on_target: p.on_target })
+  const goals = goalsRaw.map((g: any) => ({ ...g, recentProgress: progressByGoal[g.id] ?? [] }))
 
   const concernLogsByConcern: Record<string, any> = {}
   for (const l of (concernLogRes.data ?? [])) {
@@ -168,7 +185,7 @@ export async function buildHealthContext(
     supplementLogs: logRes.data ?? [],
     notes: notesRes.data ?? [],
     calendar: calRes.data ?? [],
-    goals: goalRes.data ?? [],
+    goals,
     experiments: expRes.data ?? [],
     environment: envRes.data ?? [],
     concerns,
@@ -334,6 +351,11 @@ export function healthContextToText(ctx: HealthContext): string {
       const status = g.status === 'achieved' ? ' ✅ достигнута' : ''
       const base = g.baseline_value != null ? ` (старт ${g.baseline_value})` : ''
       parts.push(`— ${g.title}: ${dirTxt[g.direction] ?? g.direction} ${g.metric} до ${g.target_value}${base}, срок до ${g.end_date}${status}`)
+      if (g.recentProgress?.length) {
+        const onTarget = g.recentProgress.filter((p: any) => p.on_target).length
+        const values = g.recentProgress.map((p: any) => typeof p.value === 'number' ? p.value.toFixed(1) : p.value).join(', ')
+        parts.push(`  Последние ${g.recentProgress.length} дн.: ${values} (на цели: ${onTarget}/${g.recentProgress.length} дней)`)
+      }
     }
   }
 

@@ -82,6 +82,39 @@ describe('healthContextToText: goals & experiments', () => {
   })
 })
 
+describe('buildHealthContext: goal progress', () => {
+  it('attaches recent progress rows to each goal by id', async () => {
+    const sb = stubSupabase({
+      goals: [{ id: 'g1', title: 'Сон 8ч', metric: 'sleepHours', baseline_value: 6.8, target_value: 8, direction: 'up', end_date: '2026-08-01', status: 'active' }],
+      goal_progress: [
+        { goal_id: 'g1', date: '2026-07-04', value: 7.4, on_target: true },
+        { goal_id: 'g1', date: '2026-07-05', value: 7.6, on_target: true },
+      ],
+    })
+    const ctx = await buildHealthContext(sb, 'user-1')
+    expect(ctx.goals[0].recentProgress).toHaveLength(2)
+  })
+
+  it('does not query goal_progress when there are no goals', async () => {
+    const sb = stubSupabase({ goals: [] })
+    const ctx = await buildHealthContext(sb, 'user-1')
+    expect(ctx.goals).toHaveLength(0)
+  })
+})
+
+describe('healthContextToText: goal progress', () => {
+  it('renders recent progress line under the goal', () => {
+    const text = healthContextToText({
+      ...emptyCtx,
+      goals: [{
+        title: 'Сон 8ч', metric: 'sleepHours', baseline_value: 6.8, target_value: 8, direction: 'up', end_date: '2026-08-01', status: 'active',
+        recentProgress: [{ date: '2026-07-04', value: 7.4, on_target: true }, { date: '2026-07-05', value: 7.6, on_target: true }],
+      }],
+    })
+    expect(text).toContain('Последние 2 дн.: 7.4, 7.6 (на цели: 2/2 дней)')
+  })
+})
+
 describe('healthContextToText: sleep timing', () => {
   it('renders bedtime and wake time per night, converted to the given timezone', () => {
     const text = healthContextToText({
