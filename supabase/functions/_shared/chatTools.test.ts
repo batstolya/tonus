@@ -66,4 +66,22 @@ describe('executeChatTool', () => {
     const result: any = await executeChatTool(sb, 'user-1', 'delete_everything', {})
     expect(result.error).toContain('delete_everything')
   })
+
+  it('forwards a DB query error instead of returning empty rows', async () => {
+    // стаб, у которого запрос резолвится с error (напр. невалидная дата в БД)
+    const sb = {
+      from() {
+        const self: any = new Proxy({}, {
+          get(_t, prop: string) {
+            if (prop === 'then') return (resolve: (v: unknown) => void) => resolve({ data: null, error: { message: 'invalid input syntax for type date' } })
+            return () => self
+          },
+        })
+        return self
+      },
+    }
+    const result: any = await executeChatTool(sb, 'user-1', 'get_metrics_range', { start_date: '2026-06-01', end_date: '2026-06-10' })
+    expect(result.rows).toBeUndefined()
+    expect(result.error).toContain('invalid input syntax')
+  })
 })
