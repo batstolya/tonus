@@ -376,7 +376,9 @@ export function healthContextToText(ctx: HealthContext): string {
     parts.push('\nАлерты стража здоровья (⚠️ = red, требует внимания):')
     for (const a of ctx.alerts) {
       const mark = a.level === 'red' ? '⚠️ ' : ''
-      parts.push(`— ${mark}${a.date ?? ''} ${a.message}`)
+      // message пишется для Telegram (HTML + многострочность) — в промпт кладём плоскую строку
+      const msg = a.message.replace(/<\/?[^>]+>/g, '').replace(/\s+/g, ' ').trim()
+      parts.push(`— ${mark}${a.date ? a.date + ' ' : ''}${msg}`)
     }
   }
 
