@@ -8,7 +8,7 @@ import { localNow } from '../_shared/time.ts'
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-const MAX_HISTORY = 6 // last N messages to include verbatim
+const MAX_HISTORY = 12 // last N messages to include verbatim
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -126,9 +126,12 @@ serve(async (req) => {
         body: JSON.stringify({
           contents: geminiContents,
           generationConfig: {
-            maxOutputTokens: 600, // чат-ответы короткие, 2048 — перерасход
+            // thinking-токены входят в maxOutputTokens (Gemini 2.5), поэтому лимит
+            // должен вмещать бюджет мышления + видимый ответ; краткость ответа
+            // обеспечивает системный промпт, не токен-лимит
+            maxOutputTokens: 2048,
             temperature: 0.5,
-            thinkingConfig: { thinkingBudget: 0 },
+            thinkingConfig: { thinkingBudget: 1024 },
           },
         }),
       }
