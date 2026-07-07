@@ -389,7 +389,7 @@ export function healthContextToText(ctx: HealthContext): string {
   }
 
   if (ctx.recommendations.length) {
-    parts.push('\nПрошлые рекомендации ИИ (не повторяй отклонённые, учитывай принятые):')
+    parts.push('\nПрошлые рекомендации ИИ (не повторяй отклонённые [dismissed], учитывай принятые [accepted]; отложенные [snoozed] можно предложить снова, если контекст изменился):')
     for (const r of ctx.recommendations) {
       parts.push(`— [${r.status}] ${r.text} (метрика ${r.metric})`)
     }
