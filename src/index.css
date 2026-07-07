@@ -1492,6 +1492,10 @@ body {
 
 .chat-bubble { max-width: 85%; padding: 10px 14px; border-radius: 14px; font-size: 13px; line-height: 1.5; }
 .chat-bubble p { margin: 0; }
+.chat-bubble p + p, .chat-bubble p + ul, .chat-bubble ul + p { margin-top: 8px; }
+.chat-bubble ul { margin: 8px 0 0; padding-left: 18px; }
+.chat-bubble li { margin: 2px 0; }
+.chat-bubble strong { font-weight: 600; }
 .chat-bubble.user { align-self: flex-end; background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
 .chat-bubble.assistant { align-self: flex-start; background: var(--surface2); color: var(--text); border-bottom-left-radius: 4px; }
 
