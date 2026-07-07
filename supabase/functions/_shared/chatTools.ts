@@ -63,19 +63,23 @@ export async function executeChatTool(
     const cols = name === 'get_metrics_range'
       ? 'date, resting_heart_rate, hrv, sleep_hours, steps, active_energy, oxygen_saturation'
       : 'date, bedtime, wake_time, duration_hours, deep_hours, rem_hours, core_hours'
-    const { data } = await supabase.from(table).select(cols)
+    const { data, error } = await supabase.from(table).select(cols)
       .eq('user_id', userId).gte('date', start_date).lte('date', end_date)
       .order('date', { ascending: true })
+    // Ошибку запроса (напр. невалидная дата от модели) не глотаем в пустой
+    // список — иначе модель скажет «нет данных» вместо «не смог получить»
+    if (error) return { error: error.message ?? 'Ошибка запроса данных' }
     return { rows: data ?? [] }
   }
 
   if (name === 'get_lab_history') {
     const { marker } = args
     if (!marker) return { error: 'marker обязателен' }
-    const { data } = await supabase.from('lab_results')
+    const { data, error } = await supabase.from('lab_results')
       .select('date, value, unit, ref_range, flag')
       .eq('user_id', userId).eq('marker', marker)
       .order('date', { ascending: true }).limit(50)
+    if (error) return { error: error.message ?? 'Ошибка запроса данных' }
     return { rows: data ?? [] }
   }
 
