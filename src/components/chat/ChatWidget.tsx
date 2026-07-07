@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { sendChatMessage, type ChatMessage } from '../../lib/chat'
+import { parseChatMarkdown } from '../../lib/chatMarkdown'
 import { useT } from '../../lib/i18n'
 
 // Контекст для ИИ собирается на сервере (chat-health → _shared/healthContext,
@@ -11,11 +12,29 @@ interface Props {
   user: User
 }
 
+function InlineSpans({ spans }: { spans: { text: string; bold: boolean }[] }) {
+  return <>{spans.map((s, i) => s.bold ? <strong key={i}>{s.text}</strong> : <span key={i}>{s.text}</span>)}</>
+}
+
+// Ответы ИИ приходят в markdown (**жирный**, списки) — рендерим их структурно,
+// иначе пользователь видит сырые «**» и «*» (парсер: src/lib/chatMarkdown).
+function AssistantContent({ content }: { content: string }) {
+  const blocks = parseChatMarkdown(content)
+  return (
+    <>
+      {blocks.map((b, i) => b.type === 'list'
+        ? <ul key={i}>{b.items.map((item, j) => <li key={j}><InlineSpans spans={item} /></li>)}</ul>
+        : <p key={i}><InlineSpans spans={b.spans} /></p>,
+      )}
+    </>
+  )
+}
+
 function MsgBubble({ msg }: { msg: ChatMessage }) {
   const isUser = msg.role === 'user'
   return (
     <div className={`chat-bubble ${isUser ? 'user' : 'assistant'}`}>
-      <p>{msg.content}</p>
+      {isUser ? <p>{msg.content}</p> : <AssistantContent content={msg.content} />}
     </div>
   )
 }
