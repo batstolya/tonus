@@ -145,6 +145,9 @@ describe('healthContextToText: weekly comparison blocks', () => {
     const text = healthContextToText({ ...emptyCtx, metrics })
     expect(text).toContain('Последние 7 дней: сон 7.4ч')
     expect(text).toContain('Предыдущие 7 дней: сон 7.0ч')
+    // недельный блок несёт те же метрики, что и агрегат за весь период
+    expect(text).toContain('ккал 400')
+    expect(text).toContain('SpO2 97%')
   })
 
   it('renders only last-7 when fewer than 14 days present', () => {
@@ -166,6 +169,22 @@ describe('healthContextToText: weekly comparison blocks', () => {
     const text = healthContextToText({ ...emptyCtx, sleep: sleep.reverse() })
     expect(text).toContain('Последние 7 ночей: сон 7.2ч, глубокий 1.0ч')
     expect(text).toContain('Предыдущие 7 ночей: сон 7.2ч, глубокий 1.3ч')
+  })
+
+  it('renders average bedtime per week in the weekly sleep aggregates', () => {
+    const sleep = []
+    for (let i = 1; i <= 14; i++) {
+      // старая неделя (дни 1–7): 19:30 UTC = 21:30 в Берлине (июль, UTC+2);
+      // новая неделя (дни 8–14): 21:00 UTC = 23:00 локально
+      sleep.push({
+        date: day(i), duration_hours: 7.2, deep_hours: i <= 7 ? 1.3 : 1.0, rem_hours: 1.7, core_hours: 4.2,
+        bedtime: `${day(i)}T${i <= 7 ? '19:30' : '21:00'}:00Z`, wake_time: null,
+      })
+    }
+    // ctx.sleep идёт по убыванию даты (новые первые)
+    const text = healthContextToText({ ...emptyCtx, sleep: sleep.reverse() })
+    expect(text).toContain('Последние 7 ночей: сон 7.2ч, глубокий 1.0ч, REM 1.7ч, засыпание в среднем 23:00')
+    expect(text).toContain('Предыдущие 7 ночей: сон 7.2ч, глубокий 1.3ч, REM 1.7ч, засыпание в среднем 21:30')
   })
 })
 
