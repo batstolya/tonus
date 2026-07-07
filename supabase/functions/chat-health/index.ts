@@ -4,7 +4,7 @@ import { checkBudget, budgetExceededMessage } from '../_shared/costGuard.ts'
 import { getPrompt } from '../_shared/prompts.ts'
 import { buildHealthContext, healthContextToText } from '../_shared/healthContext.ts'
 import { localNow } from '../_shared/time.ts'
-import { runChatLoop, type ChatLoopMessage } from '../_shared/chatToolLoop.ts'
+import { runChatLoop, type ChatLoopMessage, type GeminiPart } from '../_shared/chatToolLoop.ts'
 import { CHAT_TOOL_DECLARATIONS, executeChatTool } from '../_shared/chatTools.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
@@ -36,7 +36,7 @@ const SYSTEM_PROMPT = `Ты — персональный ассистент по
 - Если инструмент вернул ошибку или пустой результат — сообщи об этом прямо,
   не выдумывай значения взамен.`
 
-async function callGemini(contents: ChatLoopMessage[], withTools: boolean): Promise<{ parts: any[]; tokensUsed: number }> {
+async function callGemini(contents: ChatLoopMessage[], withTools: boolean): Promise<{ parts: GeminiPart[]; tokensUsed: number }> {
   const body: Record<string, unknown> = {
     contents,
     generationConfig: {
@@ -156,7 +156,7 @@ serve(async (req) => {
       { role: 'user', parts: [{ text: message }] },
     ]
 
-    const executeTool = (name: string, args: Record<string, any>) => executeChatTool(supabase, user.id, name, args)
+    const executeTool = (name: string, args: Record<string, unknown>) => executeChatTool(supabase, user.id, name, args)
     const { reply, totalTokens: tokensUsed } = await runChatLoop(geminiContents, callGemini, executeTool)
 
     // Save assistant reply

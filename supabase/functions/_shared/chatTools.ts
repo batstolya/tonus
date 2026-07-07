@@ -3,7 +3,7 @@
 // Каждый инструмент — обычный Supabase-запрос с eq('user_id', userId), те же
 // RLS-гарантии, что и у остального контекста.
 
-import { computeLagCorrelations, type CorrDailyRow } from './correlations.ts'
+import { computeLagCorrelations, type CorrDailyRow, type EnvDay } from './correlations.ts'
 
 export const CHAT_TOOL_DECLARATIONS = [
   {
@@ -54,6 +54,26 @@ export const CHAT_TOOL_DECLARATIONS = [
   },
 ]
 
+// Минимальная форма Supabase-клиента, которой пользуются эти инструменты:
+// цепочка билдера (from().select().eq()...), в конце awaited в { data, error }.
+// Достаточно для типобезопасности без зависимости от сгенерированных типов БД.
+interface QueryResult {
+  data: Record<string, unknown>[] | null
+  error: { message?: string } | null
+}
+interface QueryBuilder extends PromiseLike<QueryResult> {
+  select: (cols: string) => QueryBuilder
+  eq: (col: string, val: unknown) => QueryBuilder
+  gte: (col: string, val: unknown) => QueryBuilder
+  lte: (col: string, val: unknown) => QueryBuilder
+  in: (col: string, vals: unknown[]) => QueryBuilder
+  order: (col: string, opts: { ascending: boolean }) => QueryBuilder
+  limit: (n: number) => QueryBuilder
+}
+export interface SupabaseLike {
+  from: (table: string) => QueryBuilder
+}
+
 const MAX_RANGE_DAYS = 60
 
 function daysBetween(start: string, end: string): number {
@@ -61,13 +81,14 @@ function daysBetween(start: string, end: string): number {
 }
 
 export async function executeChatTool(
-  supabase: any,
+  supabase: SupabaseLike,
   userId: string,
   name: string,
-  args: Record<string, any>,
+  args: Record<string, unknown>,
 ): Promise<unknown> {
   if (name === 'get_metrics_range' || name === 'get_sleep_range') {
-    const { start_date, end_date } = args
+    const start_date = args.start_date as string | undefined
+    const end_date = args.end_date as string | undefined
     if (!start_date || !end_date) return { error: 'start_date и end_date обязательны' }
     if (daysBetween(start_date, end_date) > MAX_RANGE_DAYS) {
       return { error: `Диапазон слишком большой, максимум ${MAX_RANGE_DAYS} дней` }
@@ -86,7 +107,7 @@ export async function executeChatTool(
   }
 
   if (name === 'get_lab_history') {
-    const { marker } = args
+    const marker = args.marker as string | undefined
     if (!marker) return { error: 'marker обязателен' }
     const { data, error } = await supabase.from('lab_results')
       .select('date, value, unit, ref_range, flag')
@@ -110,30 +131,30 @@ export async function executeChatTool(
 
     // Ошибку любого из запросов не глотаем в «мало данных» — иначе модель
     // спишет сбой БД на нехватку истории (как и у диапазонных инструментов)
-    if ([mRes, sRes, exRes, scoreRes, intakeRes, envRes].some((r: any) => r.error)) {
+    if ([mRes, sRes, exRes, scoreRes, intakeRes, envRes].some((r) => r.error)) {
       return { error: 'Ошибка запроса данных для корреляций' }
     }
 
     const bedtimeByDate: Record<string, string> = {}
-    for (const s of (sRes.data ?? [])) if (s.bedtime) bedtimeByDate[s.date] = s.bedtime
+    for (const s of (sRes.data ?? [])) if (s.bedtime) bedtimeByDate[s.date as string] = s.bedtime as string
     const exerciseByDate: Record<string, number> = {}
-    for (const e of (exRes.data ?? [])) exerciseByDate[e.date] = e.sum_val
+    for (const e of (exRes.data ?? [])) exerciseByDate[e.date as string] = e.sum_val as number
 
-    const daily: CorrDailyRow[] = (mRes.data ?? []).map((m: any) => ({
-      date: m.date,
-      sleepHours: m.sleep_hours ?? undefined,
-      hrv: m.hrv ?? undefined,
-      restingHeartRate: m.resting_heart_rate ?? undefined,
-      steps: m.steps ?? undefined,
-      exerciseMinutes: exerciseByDate[m.date],
-      sleepBedtime: bedtimeByDate[m.date],
+    const daily: CorrDailyRow[] = (mRes.data ?? []).map((m) => ({
+      date: m.date as string,
+      sleepHours: (m.sleep_hours as number | null) ?? undefined,
+      hrv: (m.hrv as number | null) ?? undefined,
+      restingHeartRate: (m.resting_heart_rate as number | null) ?? undefined,
+      steps: (m.steps as number | null) ?? undefined,
+      exerciseMinutes: exerciseByDate[m.date as string],
+      sleepBedtime: bedtimeByDate[m.date as string],
     }))
 
     const result = computeLagCorrelations({
       daily,
-      scores: (scoreRes.data ?? []).map((s: any) => ({ date: s.date, readiness: s.readiness })),
-      intake: (intakeRes.data ?? []).map((i: any) => ({ ts: i.ts, type: i.type })),
-      environment: envRes.data ?? [],
+      scores: (scoreRes.data ?? []).map((s) => ({ date: s.date as string, readiness: s.readiness as number })),
+      intake: (intakeRes.data ?? []).map((i) => ({ ts: i.ts as string, type: i.type as string })),
+      environment: (envRes.data ?? []) as unknown as EnvDay[],
     })
 
     if ('needMoreDays' in result) {

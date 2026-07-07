@@ -28,7 +28,7 @@ describe('runChatLoop', () => {
     // требует role 'user' для functionResponse-хода (role 'function' не принимается)
     const secondCallContents = callGemini.mock.calls[1][0]
     const fnResponseMsg = secondCallContents.find((m: ChatLoopMessage) =>
-      m.parts.some((p: any) => p.functionResponse))
+      m.parts.some((p) => p.functionResponse))
     expect(fnResponseMsg?.role).toBe('user')
   })
 
@@ -52,7 +52,7 @@ describe('runChatLoop', () => {
     expect(result.reply).toBe('Не смог получить историю анализов.')
     const secondCallContents = callGemini.mock.calls[1][0]
     const functionMsg = secondCallContents.find((m: ChatLoopMessage) =>
-      m.parts.some((p: any) => p.functionResponse))
+      m.parts.some((p) => p.functionResponse))
     expect(JSON.stringify(functionMsg)).toContain('db down')
   })
 })
