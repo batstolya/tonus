@@ -3,6 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { checkBudget, budgetExceededMessage } from '../_shared/costGuard.ts'
 import { getPrompt } from '../_shared/prompts.ts'
 import { buildHealthContext, healthContextToText } from '../_shared/healthContext.ts'
+import { localNow } from '../_shared/time.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
@@ -83,9 +84,21 @@ serve(async (req) => {
       content: message,
     })
 
+    const { data: profile } = await supabase.from('profiles')
+      .select('timezone, birth_year, sex').eq('id', user.id).maybeSingle()
+    const timezone = profile?.timezone ?? 'Europe/Berlin'
+
     // Контекст всегда свежий, из БД (30 дней + цели/эксперименты/профиль)
-    const ctx = await buildHealthContext(supabase, user.id, { periodDays: 30, includeCoachProfile: true })
+    const ctx = await buildHealthContext(supabase, user.id, { periodDays: 30, includeCoachProfile: true, timezone })
     const contextText = `\n\n=== ДАННЫЕ ПОЛЬЗОВАТЕЛЯ (30 дней) ===\n${healthContextToText(ctx)}`
+
+    // Мета: сегодняшняя дата в таймзоне пользователя + возраст/пол (ctx.timezone
+    // уже провалидирован в buildHealthContext — сырое значение могло быть мусором)
+    const { date: todayStr } = localNow(ctx.timezone)
+    const sexTxt = profile?.sex === 'male' ? 'мужской' : profile?.sex === 'female' ? 'женский' : null
+    const ageTxt = profile?.birth_year ? `~${new Date().getFullYear() - profile.birth_year} лет` : null
+    const personLine = [ageTxt && `возраст ${ageTxt}`, sexTxt && `пол ${sexTxt}`].filter(Boolean).join(', ')
+    const metaLine = `\nСегодня: ${todayStr} (таймзона ${ctx.timezone}).${personLine ? ` Пользователь: ${personLine}.` : ''}`
 
     const sys = await getPrompt(supabase, 'chat-health-system', SYSTEM_PROMPT)
 
@@ -93,7 +106,7 @@ serve(async (req) => {
       // System context as first user message (Gemini pattern)
       {
         role: 'user',
-        parts: [{ text: `${sys.text}\nОтвечай на ${replyLang} языке.${contextText}\n\nПользователь задаёт вопрос о своих данных здоровья.` }],
+        parts: [{ text: `${sys.text}\nОтвечай на ${replyLang} языке.${metaLine}${contextText}\n\nПользователь задаёт вопрос о своих данных здоровья.` }],
       },
       { role: 'model', parts: [{ text: 'Понял, буду отвечать на основе твоих данных.' }] },
       // Recent conversation history
