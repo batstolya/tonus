@@ -27,6 +27,7 @@ export interface HealthContext {
   environment: { date: string; temp_c: number | null; pressure_hpa: number | null; daylight_minutes: number | null; precipitation_mm: number | null }[]
   concerns: { name: string; category: string; status: string; lastLog: { date: string; severity: number | null; note: string | null } | null }[]
   hairEntries: { date: string; shedding_level: number | null; density_rating: number | null; hairline_rating: number | null; scalp_note: string | null }[]
+  alerts: { date: string | null; level: 'yellow' | 'red'; message: string }[]
 }
 
 const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
@@ -80,7 +81,7 @@ export async function buildHealthContext(
   const since = new Date(); since.setDate(since.getDate() - periodDays)
   const sinceStr = since.toISOString().slice(0, 10)
 
-  const [profRes, scoreRes, mRes, sRes, labRes, supRes, intakeRes, logRes, notesRes, calRes, goalRes, expRes, envRes, concernRes, concernLogRes, hairRes] = await Promise.all([
+  const [profRes, scoreRes, mRes, sRes, labRes, supRes, intakeRes, logRes, notesRes, calRes, goalRes, expRes, envRes, concernRes, concernLogRes, hairRes, alertRes] = await Promise.all([
     opts.includeCoachProfile
       ? supabase.from('coach_profile').select('summary, facts').eq('user_id', userId).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -127,6 +128,11 @@ export async function buildHealthContext(
     supabase.from('hair_entries')
       .select('date, shedding_level, density_rating, hairline_rating, scalp_note')
       .eq('user_id', userId).gte('date', sinceStr).order('date', { ascending: false }).limit(6),
+    supabase.from('health_alerts')
+      .select('date, level, message')
+      .eq('user_id', userId).eq('type', 'anomaly')
+      .gte('created_at', `${sinceStr}T00:00:00Z`)
+      .order('created_at', { ascending: false }).limit(5),
   ])
 
   const concernLogsByConcern: Record<string, any> = {}
@@ -139,6 +145,9 @@ export async function buildHealthContext(
       ? { date: concernLogsByConcern[c.id].date, severity: concernLogsByConcern[c.id].severity, note: concernLogsByConcern[c.id].note }
       : null,
   }))
+
+  // Легаси-строки health_alerts (dedup напоминаний) не несут level/message — фильтруем.
+  const alerts = (alertRes.data ?? []).filter((a: any) => a.level != null)
 
   const prof = profRes.data
   return {
@@ -159,6 +168,7 @@ export async function buildHealthContext(
     environment: envRes.data ?? [],
     concerns,
     hairEntries: hairRes.data ?? [],
+    alerts,
   }
 }
 
@@ -360,6 +370,14 @@ export function healthContextToText(ctx: HealthContext): string {
   if (ctx.hairEntries.length) {
     const h = ctx.hairEntries[0]
     parts.push(`\nЗамеры волос (${h.date}): выпадение ${h.shedding_level ?? '—'}/5, густота ${h.density_rating ?? '—'}/5, линия роста ${h.hairline_rating ?? '—'}/5${h.scalp_note ? ` ("${h.scalp_note}")` : ''}`)
+  }
+
+  if (ctx.alerts.length) {
+    parts.push('\nАлерты стража здоровья (⚠️ = red, требует внимания):')
+    for (const a of ctx.alerts) {
+      const mark = a.level === 'red' ? '⚠️ ' : ''
+      parts.push(`— ${mark}${a.date ?? ''} ${a.message}`)
+    }
   }
 
   if (ctx.calendar.length) {
