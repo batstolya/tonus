@@ -28,6 +28,7 @@ export interface HealthContext {
   concerns: { name: string; category: string; status: string; lastLog: { date: string; severity: number | null; note: string | null } | null }[]
   hairEntries: { date: string; shedding_level: number | null; density_rating: number | null; hairline_rating: number | null; scalp_note: string | null }[]
   alerts: { date: string | null; level: 'yellow' | 'red'; message: string }[]
+  recommendations: { metric: string; text: string; status: string; created_at: string }[]
 }
 
 const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
@@ -81,7 +82,7 @@ export async function buildHealthContext(
   const since = new Date(); since.setDate(since.getDate() - periodDays)
   const sinceStr = since.toISOString().slice(0, 10)
 
-  const [profRes, scoreRes, mRes, sRes, labRes, supRes, intakeRes, logRes, notesRes, calRes, goalRes, expRes, envRes, concernRes, concernLogRes, hairRes, alertRes] = await Promise.all([
+  const [profRes, scoreRes, mRes, sRes, labRes, supRes, intakeRes, logRes, notesRes, calRes, goalRes, expRes, envRes, concernRes, concernLogRes, hairRes, alertRes, recRes] = await Promise.all([
     opts.includeCoachProfile
       ? supabase.from('coach_profile').select('summary, facts').eq('user_id', userId).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -133,6 +134,10 @@ export async function buildHealthContext(
       .eq('user_id', userId).eq('type', 'anomaly')
       .gte('created_at', `${sinceStr}T00:00:00Z`)
       .order('created_at', { ascending: false }).limit(5),
+    supabase.from('recommendations')
+      .select('metric, text, status, created_at')
+      .eq('user_id', userId).in('status', ['accepted', 'dismissed', 'snoozed'])
+      .order('created_at', { ascending: false }).limit(10),
   ])
 
   const concernLogsByConcern: Record<string, any> = {}
@@ -169,6 +174,7 @@ export async function buildHealthContext(
     concerns,
     hairEntries: hairRes.data ?? [],
     alerts,
+    recommendations: recRes.data ?? [],
   }
 }
 
@@ -379,6 +385,13 @@ export function healthContextToText(ctx: HealthContext): string {
       // message пишется для Telegram (HTML + многострочность) — в промпт кладём плоскую строку
       const msg = a.message.replace(/<\/?[^>]+>/g, '').replace(/\s+/g, ' ').trim()
       parts.push(`— ${mark}${a.date ? a.date + ' ' : ''}${msg}`)
+    }
+  }
+
+  if (ctx.recommendations.length) {
+    parts.push('\nПрошлые рекомендации ИИ (не повторяй отклонённые, учитывай принятые):')
+    for (const r of ctx.recommendations) {
+      parts.push(`— [${r.status}] ${r.text} (метрика ${r.metric})`)
     }
   }
 
