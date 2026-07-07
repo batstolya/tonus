@@ -267,6 +267,25 @@ describe('healthContextToText: health alerts', () => {
     expect(text).toContain('⚠️ 2026-07-03 Резкий рост пульса покоя и падение HRV')
   })
 
+  it('flattens Telegram-formatted messages (HTML + multi-line) into a plain single line', () => {
+    const text = healthContextToText({
+      ...emptyCtx,
+      alerts: [{ date: '2026-07-03', level: 'red', message: '<b>Рост пульса покоя</b>\nHRV упал ниже нормы.\n<i>Это не диагноз.</i>' }],
+    })
+    expect(text).toContain('— ⚠️ 2026-07-03 Рост пульса покоя HRV упал ниже нормы. Это не диагноз.')
+    expect(text).not.toContain('<b>')
+    expect(text).not.toContain('Рост пульса покоя\n')
+  })
+
+  it('renders alerts without a date with a single space after the mark', () => {
+    const text = healthContextToText({
+      ...emptyCtx,
+      alerts: [{ date: null, level: 'red', message: 'Сообщение' }],
+    })
+    expect(text).toContain('— ⚠️ Сообщение')
+    expect(text).not.toContain('⚠️  ') // без двойного пробела при date = null
+  })
+
   it('omits section when empty', () => {
     const text = healthContextToText(emptyCtx)
     expect(text).not.toContain('Алерты стража здоровья')
