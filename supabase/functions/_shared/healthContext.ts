@@ -143,8 +143,8 @@ export async function buildHealthContext(
   // Последовательный follow-up: тренд goal_progress зависит от только что
   // полученных id целей, поэтому не входит в параллельный батч выше.
   const goalsRaw = goalRes.data ?? []
-  const goalIds = goalsRaw.map((g: any) => g.id).filter(Boolean)
-  let goalProgressData: any[] = []
+  const goalIds = goalsRaw.map((g) => g.id).filter(Boolean)
+  let goalProgressData: Record<string, unknown>[] = []
   if (goalIds.length) {
     const since7 = new Date(); since7.setDate(since7.getDate() - 7)
     const { data } = await supabase.from('goal_progress')
@@ -155,13 +155,13 @@ export async function buildHealthContext(
   }
   const progressByGoal: Record<string, any[]> = {}
   for (const p of goalProgressData) (progressByGoal[p.goal_id] ??= []).push({ date: p.date, value: p.value, on_target: p.on_target })
-  const goals = goalsRaw.map((g: any) => ({ ...g, recentProgress: progressByGoal[g.id] ?? [] }))
+  const goals = goalsRaw.map((g) => ({ ...g, recentProgress: progressByGoal[g.id] ?? [] }))
 
   const concernLogsByConcern: Record<string, any> = {}
   for (const l of (concernLogRes.data ?? [])) {
     if (!concernLogsByConcern[l.concern_id]) concernLogsByConcern[l.concern_id] = l // первое вхождение = самое свежее (data ordered desc)
   }
-  const concerns = (concernRes.data ?? []).map((c: any) => ({
+  const concerns = (concernRes.data ?? []).map((c) => ({
     name: c.name, category: c.category, status: c.status,
     lastLog: concernLogsByConcern[c.id]
       ? { date: concernLogsByConcern[c.id].date, severity: concernLogsByConcern[c.id].severity, note: concernLogsByConcern[c.id].note }
@@ -169,7 +169,7 @@ export async function buildHealthContext(
   }))
 
   // Легаси-строки health_alerts (dedup напоминаний) не несут level/message — фильтруем.
-  const alerts = (alertRes.data ?? []).filter((a: any) => a.level != null)
+  const alerts = (alertRes.data ?? []).filter((a) => a.level != null)
 
   const prof = profRes.data
   return {
@@ -232,11 +232,11 @@ export function healthContextToText(ctx: HealthContext): string {
     if (steps.length) parts.push(`Шаги: средн ${Math.round(avg(steps)!).toLocaleString('ru-RU')}/день`)
     if (energy.length) parts.push(`Активные ккал: средн ${Math.round(avg(energy)!)}/день`)
     if (spo2.length) parts.push(`SpO2: средн ${(avg(spo2)! * 100).toFixed(0)}%`)
-    const daily = rows.slice(-5).map((r: any) =>
+    const daily = rows.slice(-5).map((r) =>
       `${r.date}: сон ${r.sleep_hours?.toFixed?.(1) ?? '—'}ч, ЧССп ${r.resting_heart_rate ?? '—'}, шаги ${r.steps ?? '—'}`
     ).join('\n')
     parts.push(`\nПоследние дни:\n${daily}`)
-    const fmtMetricsWeek = (arr: any[]) => {
+    const fmtMetricsWeek = (arr: typeof ctx.metrics) => {
       const s = num(arr, 'sleep_hours'), r = num(arr, 'resting_heart_rate'), h = num(arr, 'hrv'), st = num(arr, 'steps')
       const bits: string[] = []
       if (s.length) bits.push(`сон ${avg(s)!.toFixed(1)}ч`)
@@ -260,22 +260,22 @@ export function healthContextToText(ctx: HealthContext): string {
     if (dh.length) parts.push(`Глубокий: средн ${avg(dh)!.toFixed(1)} ч/ночь`)
     if (rh.length) parts.push(`REM: средн ${avg(rh)!.toFixed(1)} ч/ночь`)
     if (ch.length) parts.push(`Лёгкий/ядро: средн ${avg(ch)!.toFixed(1)} ч/ночь`)
-    const avgBed = avgLocalTime(ctx.sleep.map((s: any) => s.bedtime).filter(Boolean), ctx.timezone)
+    const avgBed = avgLocalTime(ctx.sleep.map((s) => s.bedtime).filter(Boolean), ctx.timezone)
     if (avgBed) parts.push(`Среднее время засыпания: ${avgBed}`)
-    const recent = ctx.sleep.slice(0, 7).map((s: any) => {
+    const recent = ctx.sleep.slice(0, 7).map((s) => {
       const times = s.bedtime && s.wake_time
         ? ` [засыпание ${fmtLocalTime(s.bedtime, ctx.timezone)}, подъём ${fmtLocalTime(s.wake_time, ctx.timezone)}]`
         : ''
       return `${s.date}: всего ${s.duration_hours?.toFixed?.(1) ?? '—'}ч (глуб ${s.deep_hours?.toFixed?.(1) ?? '—'}, REM ${s.rem_hours?.toFixed?.(1) ?? '—'})${times}`
     }).join('\n')
     parts.push(`Последние ночи:\n${recent}`)
-    const fmtSleepWeek = (arr: any[]) => {
+    const fmtSleepWeek = (arr: typeof ctx.sleep) => {
       const dur = num(arr, 'duration_hours'), d = num(arr, 'deep_hours'), r = num(arr, 'rem_hours')
       const bits: string[] = []
       if (dur.length) bits.push(`сон ${avg(dur)!.toFixed(1)}ч`)
       if (d.length) bits.push(`глубокий ${avg(d)!.toFixed(1)}ч`)
       if (r.length) bits.push(`REM ${avg(r)!.toFixed(1)}ч`)
-      const bed = avgLocalTime(arr.map((s: any) => s.bedtime).filter(Boolean), ctx.timezone)
+      const bed = avgLocalTime(arr.map((s) => s.bedtime).filter(Boolean), ctx.timezone)
       if (bed) bits.push(`засыпание в среднем ${bed}`)
       return bits.join(', ')
     }
@@ -352,8 +352,8 @@ export function healthContextToText(ctx: HealthContext): string {
       const base = g.baseline_value != null ? ` (старт ${g.baseline_value})` : ''
       parts.push(`— ${g.title}: ${dirTxt[g.direction] ?? g.direction} ${g.metric} до ${g.target_value}${base}, срок до ${g.end_date}${status}`)
       if (g.recentProgress?.length) {
-        const onTarget = g.recentProgress.filter((p: any) => p.on_target).length
-        const values = g.recentProgress.map((p: any) => typeof p.value === 'number' ? p.value.toFixed(1) : p.value).join(', ')
+        const onTarget = g.recentProgress.filter((p) => p.on_target).length
+        const values = g.recentProgress.map((p) => typeof p.value === 'number' ? p.value.toFixed(1) : p.value).join(', ')
         parts.push(`  Последние ${g.recentProgress.length} дн.: ${values} (на цели: ${onTarget}/${g.recentProgress.length} дней)`)
       }
     }
