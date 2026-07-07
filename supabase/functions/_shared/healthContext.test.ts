@@ -28,6 +28,7 @@ const emptyCtx: HealthContext = {
   periodDays: 14, timezone: 'Europe/Berlin', coachProfile: null, scores: null, metrics: [], sleep: [],
   labs: [], supplements: [], intake: [], supplementLogs: [], notes: [],
   calendar: [], goals: [], experiments: [], environment: [], concerns: [], hairEntries: [],
+  alerts: [],
 }
 
 describe('buildHealthContext: goals & experiments', () => {
@@ -242,6 +243,36 @@ describe('healthContextToText: concerns & hair entries', () => {
   })
 })
 
+describe('buildHealthContext: health alerts', () => {
+  it('loads anomaly alerts and drops legacy reminder-dedup rows without a level', async () => {
+    const sb = stubSupabase({
+      health_alerts: [
+        { date: '2026-07-03', level: 'red', message: 'Резкий рост пульса покоя и падение HRV' },
+        { date: null, level: null, message: null }, // легаси dedup-строка (hair_photo_reminder и т.п.)
+      ],
+    })
+    const ctx = await buildHealthContext(sb, 'user-1')
+    expect(ctx.alerts).toHaveLength(1)
+    expect(ctx.alerts[0].level).toBe('red')
+  })
+})
+
+describe('healthContextToText: health alerts', () => {
+  it('renders red alerts with a warning mark', () => {
+    const text = healthContextToText({
+      ...emptyCtx,
+      alerts: [{ date: '2026-07-03', level: 'red', message: 'Резкий рост пульса покоя и падение HRV' }],
+    })
+    expect(text).toContain('Алерты стража здоровья')
+    expect(text).toContain('⚠️ 2026-07-03 Резкий рост пульса покоя и падение HRV')
+  })
+
+  it('omits section when empty', () => {
+    const text = healthContextToText(emptyCtx)
+    expect(text).not.toContain('Алерты стража здоровья')
+  })
+})
+
 // Полнота контекста: каждая секция реально попадает в текст для ИИ —
 // «молчаливое» выпадение секции регрессией не пройдёт (гарантия переехала
 // из клиентского buildContextSnapshot, удалённого в F2).
@@ -268,6 +299,7 @@ describe('healthContextToText: full coverage', () => {
       ],
       concerns: [{ name: 'Высыпания', category: 'skin', status: 'active', lastLog: { date: '2026-07-04', severity: 3, note: null } }],
       hairEntries: [{ date: '2026-06-15', shedding_level: 2, density_rating: 3, hairline_rating: 4, scalp_note: null }],
+      alerts: [{ date: '2026-07-03', level: 'red', message: 'Рост пульса покоя' }],
     })
     for (const marker of [
       'ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ', 'ОЦЕНКИ', 'Персональная норма', 'ЧСС покоя',
@@ -276,6 +308,7 @@ describe('healthContextToText: full coverage', () => {
       'Цели пользователя', 'Эксперименты пользователя',
       'Погода (2026-07-05)', 'давление 1008 гПа (-7 за сутки)',
       'Отслеживаемые симптомы', 'Замеры волос (2026-06-15)',
+      'Алерты стража здоровья',
     ]) {
       expect(text, `секция «${marker}» выпала из контекста`).toContain(marker)
     }
