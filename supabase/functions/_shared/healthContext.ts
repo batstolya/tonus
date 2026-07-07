@@ -25,6 +25,8 @@ export interface HealthContext {
   experiments: Record<string, any>[]
   // последние дни environment_daily (свежий первым)
   environment: { date: string; temp_c: number | null; pressure_hpa: number | null; daylight_minutes: number | null; precipitation_mm: number | null }[]
+  concerns: { name: string; category: string; status: string; lastLog: { date: string; severity: number | null; note: string | null } | null }[]
+  hairEntries: { date: string; shedding_level: number | null; density_rating: number | null; hairline_rating: number | null; scalp_note: string | null }[]
 }
 
 const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
@@ -78,7 +80,7 @@ export async function buildHealthContext(
   const since = new Date(); since.setDate(since.getDate() - periodDays)
   const sinceStr = since.toISOString().slice(0, 10)
 
-  const [profRes, scoreRes, mRes, sRes, labRes, supRes, intakeRes, logRes, notesRes, calRes, goalRes, expRes, envRes] = await Promise.all([
+  const [profRes, scoreRes, mRes, sRes, labRes, supRes, intakeRes, logRes, notesRes, calRes, goalRes, expRes, envRes, concernRes, concernLogRes, hairRes] = await Promise.all([
     opts.includeCoachProfile
       ? supabase.from('coach_profile').select('summary, facts').eq('user_id', userId).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -116,7 +118,27 @@ export async function buildHealthContext(
     supabase.from('environment_daily')
       .select('date, temp_c, pressure_hpa, daylight_minutes, precipitation_mm')
       .eq('user_id', userId).order('date', { ascending: false }).limit(2),
+    supabase.from('health_concerns')
+      .select('id, name, category, status')
+      .eq('user_id', userId).in('status', ['active', 'improving']).limit(10),
+    supabase.from('concern_logs')
+      .select('concern_id, date, severity, note')
+      .eq('user_id', userId).gte('date', sinceStr).order('date', { ascending: false }).limit(30),
+    supabase.from('hair_entries')
+      .select('date, shedding_level, density_rating, hairline_rating, scalp_note')
+      .eq('user_id', userId).gte('date', sinceStr).order('date', { ascending: false }).limit(6),
   ])
+
+  const concernLogsByConcern: Record<string, any> = {}
+  for (const l of (concernLogRes.data ?? [])) {
+    if (!concernLogsByConcern[l.concern_id]) concernLogsByConcern[l.concern_id] = l // первое вхождение = самое свежее (data ordered desc)
+  }
+  const concerns = (concernRes.data ?? []).map((c: any) => ({
+    name: c.name, category: c.category, status: c.status,
+    lastLog: concernLogsByConcern[c.id]
+      ? { date: concernLogsByConcern[c.id].date, severity: concernLogsByConcern[c.id].severity, note: concernLogsByConcern[c.id].note }
+      : null,
+  }))
 
   const prof = profRes.data
   return {
@@ -135,6 +157,8 @@ export async function buildHealthContext(
     goals: goalRes.data ?? [],
     experiments: expRes.data ?? [],
     environment: envRes.data ?? [],
+    concerns,
+    hairEntries: hairRes.data ?? [],
   }
 }
 
@@ -321,6 +345,21 @@ export function healthContextToText(ctx: HealthContext): string {
     }
     if (e.precipitation_mm != null && e.precipitation_mm > 0) bits.push(`осадки ${e.precipitation_mm} мм`)
     if (bits.length) parts.push(`\nПогода (${e.date}): ${bits.join(', ')}. Резкие перепады давления могут влиять на сон/HRV.`)
+  }
+
+  if (ctx.concerns.length) {
+    parts.push('\nОтслеживаемые симптомы:')
+    for (const c of ctx.concerns) {
+      const log = c.lastLog
+        ? ` — последняя severity ${c.lastLog.severity ?? '—'}/5 (${c.lastLog.date}${c.lastLog.note ? `, "${c.lastLog.note}"` : ''})`
+        : ' — логов пока нет'
+      parts.push(`— ${c.name} (${c.category}, ${c.status})${log}`)
+    }
+  }
+
+  if (ctx.hairEntries.length) {
+    const h = ctx.hairEntries[0]
+    parts.push(`Замеры волос (${h.date}): выпадение ${h.shedding_level ?? '—'}/5, густота ${h.density_rating ?? '—'}/5, линия роста ${h.hairline_rating ?? '—'}/5${h.scalp_note ? ` ("${h.scalp_note}")` : ''}`)
   }
 
   if (ctx.calendar.length) {

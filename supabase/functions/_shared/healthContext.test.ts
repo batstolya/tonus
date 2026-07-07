@@ -27,7 +27,7 @@ function stubSupabase(dataByTable: Record<string, unknown[]>) {
 const emptyCtx: HealthContext = {
   periodDays: 14, timezone: 'Europe/Berlin', coachProfile: null, scores: null, metrics: [], sleep: [],
   labs: [], supplements: [], intake: [], supplementLogs: [], notes: [],
-  calendar: [], goals: [], experiments: [], environment: [],
+  calendar: [], goals: [], experiments: [], environment: [], concerns: [], hairEntries: [],
 }
 
 describe('buildHealthContext: goals & experiments', () => {
@@ -188,6 +188,51 @@ describe('healthContextToText: weekly comparison blocks', () => {
   })
 })
 
+describe('buildHealthContext: concerns & hair entries', () => {
+  it('loads active concerns with their latest log, and recent hair entries', async () => {
+    const sb = stubSupabase({
+      health_concerns: [{ id: 'c1', name: 'Высыпания', category: 'skin', status: 'active' }],
+      concern_logs: [
+        { concern_id: 'c1', date: '2026-07-04', severity: 3, note: 'после кофе хуже' },
+        { concern_id: 'c1', date: '2026-06-20', severity: 4, note: null },
+      ],
+      hair_entries: [{ date: '2026-06-15', shedding_level: 2, density_rating: 3, hairline_rating: 4, scalp_note: null }],
+    })
+    const ctx = await buildHealthContext(sb, 'user-1')
+    expect(ctx.concerns).toHaveLength(1)
+    expect(ctx.concerns[0].lastLog).toEqual({ date: '2026-07-04', severity: 3, note: 'после кофе хуже' })
+    expect(ctx.hairEntries).toHaveLength(1)
+  })
+})
+
+describe('healthContextToText: concerns & hair entries', () => {
+  it('renders concerns with latest log', () => {
+    const text = healthContextToText({
+      ...emptyCtx,
+      concerns: [{ name: 'Высыпания', category: 'skin', status: 'active', lastLog: { date: '2026-07-04', severity: 3, note: 'после кофе хуже' } }],
+    })
+    expect(text).toContain('Отслеживаемые симптомы')
+    expect(text).toContain('Высыпания (skin, active)')
+    expect(text).toContain('severity 3/5')
+    expect(text).toContain('после кофе хуже')
+  })
+
+  it('renders latest hair entry', () => {
+    const text = healthContextToText({
+      ...emptyCtx,
+      hairEntries: [{ date: '2026-06-15', shedding_level: 2, density_rating: 3, hairline_rating: 4, scalp_note: null }],
+    })
+    expect(text).toContain('Замеры волос (2026-06-15)')
+    expect(text).toContain('выпадение 2/5')
+  })
+
+  it('omits sections when empty', () => {
+    const text = healthContextToText(emptyCtx)
+    expect(text).not.toContain('Отслеживаемые симптомы')
+    expect(text).not.toContain('Замеры волос')
+  })
+})
+
 // Полнота контекста: каждая секция реально попадает в текст для ИИ —
 // «молчаливое» выпадение секции регрессией не пройдёт (гарантия переехала
 // из клиентского buildContextSnapshot, удалённого в F2).
@@ -212,6 +257,8 @@ describe('healthContextToText: full coverage', () => {
         { date: '2026-07-05', temp_c: 24.3, pressure_hpa: 1008, daylight_minutes: 950, precipitation_mm: 0 },
         { date: '2026-07-04', temp_c: 22.1, pressure_hpa: 1015, daylight_minutes: 952, precipitation_mm: 2 },
       ],
+      concerns: [{ name: 'Высыпания', category: 'skin', status: 'active', lastLog: { date: '2026-07-04', severity: 3, note: null } }],
+      hairEntries: [{ date: '2026-06-15', shedding_level: 2, density_rating: 3, hairline_rating: 4, scalp_note: null }],
     })
     for (const marker of [
       'ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ', 'ОЦЕНКИ', 'Персональная норма', 'ЧСС покоя',
@@ -219,6 +266,7 @@ describe('healthContextToText: full coverage', () => {
       'Приём препаратов', 'Заметки дня', 'Календарь',
       'Цели пользователя', 'Эксперименты пользователя',
       'Погода (2026-07-05)', 'давление 1008 гПа (-7 за сутки)',
+      'Отслеживаемые симптомы', 'Замеры волос (2026-06-15)',
     ]) {
       expect(text, `секция «${marker}» выпала из контекста`).toContain(marker)
     }
