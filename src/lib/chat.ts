@@ -5,11 +5,17 @@ import { supabase } from './supabase'
 // эксперименты, профиль коуча. Клиент шлёт только сообщение и историю —
 // клиентского билдера контекста больше нет, дрейф двух копий закрыт.
 
+export interface ChatDebug {
+  reason: string
+  tools: string[]
+}
+
 export interface ChatMessage {
   id: string
   role: 'user' | 'assistant'
   content: string
   created_at: string
+  debug?: ChatDebug // только у свежеполученного ответа; в БД/истории отсутствует
 }
 
 // Используется QuickLog/MetricsScreen для типизации событий быстрого лога.
@@ -46,7 +52,7 @@ export async function sendChatMessage(
   message: string,
   sessionId: string | null,
   lang = 'ru',
-): Promise<{ reply: string; sessionId: string }> {
+): Promise<{ reply: string; sessionId: string; debug?: ChatDebug }> {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) throw new Error('Не авторизован')
 
