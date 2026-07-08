@@ -6,6 +6,7 @@ import { buildHealthContext, healthContextToText } from '../_shared/healthContex
 import { localNow } from '../_shared/time.ts'
 import { runChatLoop, type ChatLoopMessage, type GeminiPart } from '../_shared/chatToolLoop.ts'
 import { CHAT_TOOL_DECLARATIONS, executeChatTool } from '../_shared/chatTools.ts'
+import { parseDebugReply, formatToolTrace } from '../_shared/chatDebug.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
@@ -35,6 +36,9 @@ const SYSTEM_PROMPT = `Ты — персональный ассистент по
   не придумывай объяснение взамен.
 - Если инструмент вернул ошибку или пустой результат — сообщи об этом прямо,
   не выдумывай значения взамен.`
+
+const DEBUG = Deno.env.get('CHAT_DEBUG_REASON') === '1'
+const DEBUG_INSTRUCTION = `\n\nВАЖНО (диагностический режим): итоговый ответ верни СТРОГО как JSON-объект без markdown-ограждения и без текста вокруг: {"answer": "<твой обычный ответ пользователю>", "reason": "<на каких именно данных/инструментах построен ответ, 1-2 предложения>"}. Промежуточные вызовы инструментов делай как обычно — JSON нужен только в самом последнем, текстовом ответе.`
 
 async function callGemini(contents: ChatLoopMessage[], withTools: boolean): Promise<{ parts: GeminiPart[]; tokensUsed: number }> {
   const body: Record<string, unknown> = {
@@ -144,7 +148,7 @@ serve(async (req) => {
       // System context as first user message (Gemini pattern)
       {
         role: 'user',
-        parts: [{ text: `${sys.text}\nОтвечай на ${replyLang} языке.${metaLine}${contextText}\n\nПользователь задаёт вопрос о своих данных здоровья.` }],
+        parts: [{ text: `${sys.text}\nОтвечай на ${replyLang} языке.${metaLine}${contextText}\n\nПользователь задаёт вопрос о своих данных здоровья.${DEBUG ? DEBUG_INSTRUCTION : ''}` }],
       },
       { role: 'model', parts: [{ text: 'Понял, буду отвечать на основе твоих данных.' }] },
       // Recent conversation history
@@ -157,14 +161,16 @@ serve(async (req) => {
     ]
 
     const executeTool = (name: string, args: Record<string, unknown>) => executeChatTool(supabase, user.id, name, args)
-    const { reply, totalTokens: tokensUsed } = await runChatLoop(geminiContents, callGemini, executeTool)
+    const { reply: rawReply, totalTokens: tokensUsed, toolCalls } = await runChatLoop(geminiContents, callGemini, executeTool)
+    const { answer, reason } = DEBUG ? parseDebugReply(rawReply) : { answer: rawReply, reason: '' }
+    const debug = DEBUG ? { reason, tools: formatToolTrace(toolCalls) } : undefined
 
     // Save assistant reply
     await supabase.from('chat_messages').insert({
       user_id: user.id,
       session_id: session.id,
       role: 'assistant',
-      content: reply,
+      content: answer,
       tokens_used: tokensUsed,
     })
 
@@ -176,7 +182,7 @@ serve(async (req) => {
     // Update session updated_at
     await supabase.from('chat_sessions').update({ updated_at: new Date().toISOString() }).eq('id', session.id)
 
-    return new Response(JSON.stringify({ reply, sessionId: session.id }), {
+    return new Response(JSON.stringify({ reply: answer, sessionId: session.id, ...(debug ? { debug } : {}) }), {
       headers: { ...CORS, 'Content-Type': 'application/json' },
     })
   } catch (e: any) {
