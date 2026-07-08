@@ -35,6 +35,11 @@ function MsgBubble({ msg }: { msg: ChatMessage }) {
   return (
     <div className={`chat-bubble ${isUser ? 'user' : 'assistant'}`}>
       {isUser ? <p>{msg.content}</p> : <AssistantContent content={msg.content} />}
+      {!isUser && msg.debug && (
+        <div className="chat-debug">
+          (причина: {msg.debug.reason || '—'} · данные: {msg.debug.tools.length ? msg.debug.tools.join(', ') : 'инструменты не вызывались'})
+        </div>
+      )}
     </div>
   )
 }
@@ -73,7 +78,7 @@ export function ChatWidget(_props: Props) {
     setError(null)
 
     try {
-      const { reply, sessionId: newSessionId } = await sendChatMessage(text, sessionId, lang)
+      const { reply, sessionId: newSessionId, debug } = await sendChatMessage(text, sessionId, lang)
       if (!sessionId) setSessionId(newSessionId)
 
       const assistantMsg: ChatMessage = {
@@ -81,6 +86,7 @@ export function ChatWidget(_props: Props) {
         role: 'assistant',
         content: reply,
         created_at: new Date().toISOString(),
+        debug,
       }
       setMessages(prev => [...prev, assistantMsg])
     } catch (e) {
