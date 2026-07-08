@@ -56,3 +56,25 @@ describe('runChatLoop', () => {
     expect(JSON.stringify(functionMsg)).toContain('db down')
   })
 })
+
+describe('runChatLoop toolCalls', () => {
+  it('собирает все вызванные инструменты в порядке вызова', async () => {
+    const responses = [
+      { parts: [{ functionCall: { name: 'get_sleep_range', args: { start_date: '2026-06-01', end_date: '2026-06-30' } } }], tokensUsed: 10 },
+      { parts: [{ text: '{"answer":"ок","reason":"по данным сна"}' }], tokensUsed: 5 },
+    ]
+    let i = 0
+    const callGemini = async () => responses[i++]
+    const executeTool = async () => ({ rows: [] })
+    const res = await runChatLoop([{ role: 'user', parts: [{ text: 'q' }] }], callGemini, executeTool)
+    expect(res.toolCalls).toEqual([{ name: 'get_sleep_range', args: { start_date: '2026-06-01', end_date: '2026-06-30' } }])
+    expect(res.reply).toContain('answer')
+  })
+
+  it('без вызовов инструментов toolCalls пустой', async () => {
+    const callGemini = async () => ({ parts: [{ text: 'просто текст' }], tokensUsed: 3 })
+    const executeTool = async () => ({})
+    const res = await runChatLoop([{ role: 'user', parts: [{ text: 'q' }] }], callGemini, executeTool)
+    expect(res.toolCalls).toEqual([])
+  })
+})
