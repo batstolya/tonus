@@ -29,6 +29,7 @@ export type ExecuteTool = (name: string, args: Record<string, unknown>) => Promi
 export interface ChatLoopResult {
   reply: string
   totalTokens: number
+  toolCalls: { name: string; args: Record<string, unknown> }[]
 }
 
 const MAX_TOOL_ROUNDS = 2 // доп. раунды сверх начального вызова; последний раунд всегда без tools
@@ -40,6 +41,7 @@ export async function runChatLoop(
 ): Promise<ChatLoopResult> {
   let contents = initialContents
   let totalTokens = 0
+  const toolCalls: { name: string; args: Record<string, unknown> }[] = []
 
   for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
     const withTools = round < MAX_TOOL_ROUNDS
@@ -49,13 +51,14 @@ export async function runChatLoop(
     const functionCalls = res.parts.filter((p) => p.functionCall)
     if (!functionCalls.length) {
       const text = res.parts.find((p) => typeof p.text === 'string')?.text ?? 'Не удалось получить ответ.'
-      return { reply: text, totalTokens }
+      return { reply: text, totalTokens, toolCalls }
     }
 
     contents = [...contents, { role: 'model', parts: res.parts }]
     const functionResponses: GeminiPart[] = []
     for (const fc of functionCalls) {
       const { name, args } = fc.functionCall!
+      toolCalls.push({ name, args: args ?? {} })
       let response: unknown
       try {
         response = await executeTool(name, args ?? {})
@@ -67,5 +70,5 @@ export async function runChatLoop(
     contents = [...contents, { role: 'user', parts: functionResponses }]
   }
 
-  return { reply: 'Не удалось получить ответ.', totalTokens }
+  return { reply: 'Не удалось получить ответ.', totalTokens, toolCalls }
 }
