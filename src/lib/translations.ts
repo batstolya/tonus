@@ -57,6 +57,70 @@ export const translations: Record<string, { uk: string; en: string }> = {
   'Экспорт через приложение «Здоровье» на iPhone': { uk: 'Експорт через застосунок «Здоровʼя» на iPhone', en: 'Export via the Health app on iPhone' },
   'Экспорт через account.xiaomi.com — CSV с данными': { uk: 'Експорт через account.xiaomi.com — CSV з даними', en: 'Export via account.xiaomi.com — CSV data' },
 
+  // ── Гайд подключения ──────────────────────────────────────
+  'Далее': { uk: 'Далі', en: 'Next' },
+  'Данные будут приходить сами': { uk: 'Дані надходитимуть самі', en: 'Your data will arrive on its own' },
+  'Часы → телефон → Tonus. Один раз настроим — дальше всё автоматически, каждый день.': {
+    uk: 'Годинник → телефон → Tonus. Налаштуємо один раз — далі все автоматично, щодня.',
+    en: 'Watch → phone → Tonus. Set it up once — everything syncs automatically, every day.',
+  },
+  'Установи Health Auto Export': { uk: 'Установи Health Auto Export', en: 'Install Health Auto Export' },
+  'Это приложение само отправляет данные Apple Health в Tonus. Есть бесплатный пробный период — хватит, чтобы всё проверить.': {
+    uk: 'Цей застосунок сам надсилає дані Apple Health у Tonus. Є безкоштовний пробний період — вистачить, щоб усе перевірити.',
+    en: 'This app sends your Apple Health data to Tonus automatically. It has a free trial — enough to check everything works.',
+  },
+  'Открыть в App Store': { uk: 'Відкрити в App Store', en: 'Open in App Store' },
+  'Создай автоматизацию': { uk: 'Створи автоматизацію', en: 'Create an automation' },
+  'В Health Auto Export открой вкладку Automations и нажми «+».': {
+    uk: 'У Health Auto Export відкрий вкладку Automations і натисни «+».',
+    en: 'In Health Auto Export, open the Automations tab and tap “+”.',
+  },
+  'Automations → «+»': { uk: 'Automations → «+»', en: 'Automations → “+”' },
+  'Тип: REST API': { uk: 'Тип: REST API', en: 'Type: REST API' },
+  'Метод POST · Формат JSON': { uk: 'Метод POST · Формат JSON', en: 'Method POST · Format JSON' },
+  'Вставь адрес Tonus': { uk: 'Встав адресу Tonus', en: 'Paste your Tonus address' },
+  'Скопируй персональную ссылку и вставь её в поле URL автоматизации.': {
+    uk: 'Скопіюй персональне посилання та встав його в поле URL автоматизації.',
+    en: 'Copy your personal link and paste it into the automation URL field.',
+  },
+  'Выбери данные и расписание': { uk: 'Вибери дані та розклад', en: 'Choose data and schedule' },
+  'Включи все метрики здоровья и сон': { uk: 'Увімкни всі метрики здоровʼя і сон', en: 'Enable all health metrics and sleep' },
+  'Интервал — каждые 1-3 часа': { uk: 'Інтервал — кожні 1-3 години', en: 'Interval — every 1-3 hours' },
+  'Не забудь включить автоматизацию (Enable)': { uk: 'Не забудь увімкнути автоматизацію (Enable)', en: 'Don’t forget to switch the automation on (Enable)' },
+  'Не удалось получить ссылку': { uk: 'Не вдалося отримати посилання', en: 'Couldn’t fetch your link' },
+  // Task 5 — проверка связи
+  'Проверим связь': { uk: 'Перевіримо звʼязок', en: 'Let’s test the connection' },
+  'Открой Health Auto Export и нажми Manual Export — мы ждём данные.': {
+    uk: 'Відкрий Health Auto Export і натисни Manual Export — ми чекаємо на дані.',
+    en: 'Open Health Auto Export and tap Manual Export — we’re waiting for your data.',
+  },
+  'Слушаем эфир…': { uk: 'Слухаємо ефір…', en: 'Listening…' },
+  'Данные пришли!': { uk: 'Дані надійшли!', en: 'Data received!' },
+  'Первые графики появятся после следующей синхронизации.': {
+    uk: 'Перші графіки зʼявляться після наступної синхронізації.',
+    en: 'Your first charts will appear after the next sync.',
+  },
+  'В приложение': { uk: 'До застосунку', en: 'Open the app' },
+  'Пока ничего не пришло. Проверь:': { uk: 'Поки нічого не надійшло. Перевір:', en: 'Nothing arrived yet. Check:' },
+  'URL вставлен целиком, вместе с token=': { uk: 'URL вставлено повністю, разом із token=', en: 'The URL is pasted in full, including token=' },
+  'Метод — POST, формат — JSON': { uk: 'Метод — POST, формат — JSON', en: 'Method — POST, format — JSON' },
+  'Автоматизация включена (Enable)': { uk: 'Автоматизацію увімкнено (Enable)', en: 'The automation is switched on (Enable)' },
+  'Проверить ещё раз': { uk: 'Перевірити ще раз', en: 'Try again' },
+  'Какой у тебя телефон?': { uk: 'Який у тебе телефон?', en: 'What phone do you have?' },
+  'Разовый импорт CSV': { uk: 'Разовий імпорт CSV', en: 'One-time CSV import' },
+  'Включи синк с Apple Health': { uk: 'Увімкни синхронізацію з Apple Health', en: 'Enable Apple Health sync' },
+  'В Mi Fitness: Профиль → Настройки → Apple Health → разреши запись данных. Дальше настроим как для Apple Watch.': {
+    uk: 'У Mi Fitness: Профіль → Налаштування → Apple Health → дозволь запис даних. Далі налаштуємо як для Apple Watch.',
+    en: 'In Mi Fitness: Profile → Settings → Apple Health → allow writing data. Then we set up the rest just like for Apple Watch.',
+  },
+  'Авто-синхронизация для Android скоро': { uk: 'Авто-синхронізація для Android незабаром', en: 'Auto-sync for Android is coming soon' },
+  'Пока используй разовый импорт CSV с account.xiaomi.com — мы сообщим, когда авто-синк будет готов.': {
+    uk: 'Поки що використовуй разовий імпорт CSV з account.xiaomi.com — ми повідомимо, коли авто-синк буде готовий.',
+    en: 'For now, use the one-time CSV import from account.xiaomi.com — we’ll let you know when auto-sync is ready.',
+  },
+  'Профиль': { uk: 'Профіль', en: 'Profile' },
+  'Как подключить устройство': { uk: 'Як підключити пристрій', en: 'How to connect a device' },
+
   // ── Авторизация ────────────────────────────────────────────
   'Личный хаб здоровья': { uk: 'Особистий хаб здоровʼя', en: 'Your personal health hub' },
   'Вход': { uk: 'Вхід', en: 'Sign in' },
@@ -839,4 +903,19 @@ export const translations: Record<string, { uk: string; en: string }> = {
   '☕ Записал: кофе в 14:20': { uk: '☕ Записав: кава о 14:20', en: '☕ Logged: coffee at 14:20' },
   'кофе': { uk: 'кава', en: 'coffee' },
   '📊 За 2 недели: сон +40 мин, HRV +6 мс': { uk: '📊 За 2 тижні: сон +40 хв, HRV +6 мс', en: '📊 Last 2 weeks: sleep +40 min, HRV +6 ms' },
+
+  // ── Серия (геймифицированный home) ─────────────────────────
+  'Серия': { uk: 'Серія', en: 'Streak' },
+  'Дней подряд': { uk: 'Днів поспіль', en: 'Day streak' },
+  'Заморозки': { uk: 'Заморозки', en: 'Freezes' },
+  'Недель подряд': { uk: 'Тижнів поспіль', en: 'Week streak' },
+  'Синхронизация ожидается': { uk: 'Синхронізація очікується', en: 'Sync pending' },
+  'данные есть': { uk: 'дані є', en: 'has data' },
+  'пропуск': { uk: 'пропуск', en: 'missed' },
+  'заморожено': { uk: 'заморожено', en: 'frozen' },
+  'Подключи Apple Health, чтобы начать серию': {
+    uk: 'Підключи Apple Health, щоб почати серію',
+    en: 'Connect Apple Health to start your streak',
+  },
+  'Настроить синхронизацию': { uk: 'Налаштувати синхронізацію', en: 'Set up sync' },
 }
