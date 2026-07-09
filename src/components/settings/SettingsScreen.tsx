@@ -189,9 +189,32 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
       })
     loadDailyNoteSettings(user.id).then(s => { setNoteEnabled(s.enabled); setNoteTime(s.time) }).catch(() => {})
     loadReportSettings(user.id).then(setRep).catch(() => {})
-    supabase.from('profiles').select('location_label').eq('id', user.id).maybeSingle()
-      .then(({ data }) => { if (data?.location_label) setLocLabel(data.location_label) })
   }, [user.id])
+
+  // Локация: сразу показываем сохранённую подпись, затем освежаем её в текущем
+  // языке интерфейса по сохранённым координатам. Раньше подпись сохранялась на
+  // языке момента (напр. русском) и «застревала» на нём при смене языка.
+  useEffect(() => {
+    let cancelled = false
+    supabase.from('profiles').select('location_label, latitude, longitude').eq('id', user.id).maybeSingle()
+      .then(async ({ data }) => {
+        if (cancelled || !data) return
+        if (data.location_label) setLocLabel(data.location_label)
+        if (data.latitude == null || data.longitude == null) return
+        try {
+          const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${data.latitude}&longitude=${data.longitude}&localityLanguage=${lang}`)
+          const g = await res.json()
+          const parts = [g.city || g.locality, g.principalSubdivision, g.countryName].filter(Boolean)
+          const label = parts.join(', ')
+          if (!cancelled && label && label !== data.location_label) {
+            setLocLabel(label)
+            // без await builder supabase-js не выполняется — запрос бы не ушёл
+            await supabase.from('profiles').update({ location_label: label }).eq('id', user.id)
+          }
+        } catch { /* нет сети/геокодера — оставляем сохранённую подпись */ }
+      })
+    return () => { cancelled = true }
+  }, [user.id, lang])
 
   function patchRep(patch: Partial<ReportSettings>) {
     setRep(r => r ? { ...r, ...patch } : r)
