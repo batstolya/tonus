@@ -1939,3 +1939,64 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 .guide-pulse { width: 72px; height: 72px; border-radius: 50%; background: var(--green, #34d399); }
 .guide-success { color: var(--green, #34d399); }
 .guide-overlay { position: fixed; inset: 0; z-index: 1000; background: var(--bg, #0e0f13); overflow-y: auto; }
+
+/* ── Gamified home: streak widget ───────────────────────────── */
+.streak-widget {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  margin: 12px 0;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.streak-widget-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+.streak-widget-title { font-weight: 600; }
+.streak-widget-pending {
+  font-size: 12px; color: var(--text-muted);
+  background: var(--surface2); padding: 2px 8px; border-radius: 999px;
+}
+.streak-widget-row { display: flex; gap: 24px; }
+.streak-metric { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.streak-metric-emoji { font-size: 20px; line-height: 1; }
+.streak-metric-value { font-size: 28px; font-weight: 700; }
+.streak-metric-label { font-size: 12px; color: var(--text-muted); }
+
+/* ── Gamified home: activity calendar ───────────────────────── */
+.activity-cal {
+  border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px 18px; margin: 12px 0;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.activity-cal-title { font-weight: 600; margin-bottom: 12px; }
+.activity-cal-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;
+}
+.activity-cal-dow { font-size: 11px; color: var(--text-muted); text-align: center; }
+.activity-cal-cell {
+  aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  border-radius: 999px; font-size: 12px;
+}
+.activity-cal-cell.blank { background: transparent; }
+.activity-cal-cell.status-active { background: var(--green); color: #fff; }
+.activity-cal-cell.status-frozen { background: var(--surface2); }
+.activity-cal-cell.status-missed { background: var(--surface2); color: var(--text-muted); }
+.activity-cal-cell.status-future { color: var(--text-muted); opacity: 0.45; }
+.activity-cal-cell.is-today { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* ── Gamified home: empty state ─────────────────────────────── */
+.empty-state {
+  border: 1px dashed var(--border); border-radius: var(--radius);
+  padding: 24px; text-align: center; margin: 12px 0;
+  background: var(--surface);
+}
+.empty-state-icon { font-size: 32px; margin-bottom: 8px; }
+.empty-state-title { font-weight: 600; margin-bottom: 4px; }
+.empty-state-text { font-size: 13px; color: var(--text-muted); margin: 0 0 12px; }
+.empty-state-cta {
+  border: none; border-radius: 999px; padding: 8px 16px; cursor: pointer;
+  background: var(--accent); color: #fff; font-weight: 600;
+}
