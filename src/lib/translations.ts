@@ -903,4 +903,19 @@ export const translations: Record<string, { uk: string; en: string }> = {
   '☕ Записал: кофе в 14:20': { uk: '☕ Записав: кава о 14:20', en: '☕ Logged: coffee at 14:20' },
   'кофе': { uk: 'кава', en: 'coffee' },
   '📊 За 2 недели: сон +40 мин, HRV +6 мс': { uk: '📊 За 2 тижні: сон +40 хв, HRV +6 мс', en: '📊 Last 2 weeks: sleep +40 min, HRV +6 ms' },
+
+  // ── Серия (геймифицированный home) ─────────────────────────
+  'Серия': { uk: 'Серія', en: 'Streak' },
+  'Дней подряд': { uk: 'Днів поспіль', en: 'Day streak' },
+  'Заморозки': { uk: 'Заморозки', en: 'Freezes' },
+  'Недель подряд': { uk: 'Тижнів поспіль', en: 'Week streak' },
+  'Синхронизация ожидается': { uk: 'Синхронізація очікується', en: 'Sync pending' },
+  'данные есть': { uk: 'дані є', en: 'has data' },
+  'пропуск': { uk: 'пропуск', en: 'missed' },
+  'заморожено': { uk: 'заморожено', en: 'frozen' },
+  'Подключи Apple Health, чтобы начать серию': {
+    uk: 'Підключи Apple Health, щоб почати серію',
+    en: 'Connect Apple Health to start your streak',
+  },
+  'Настроить синхронизацию': { uk: 'Налаштувати синхронізацію', en: 'Set up sync' },
 }
