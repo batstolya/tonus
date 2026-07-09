@@ -160,7 +160,8 @@ export interface StreakState {
   frozenDates: string[]    // dates bridged by a freeze (for the calendar)
 }
 
-function isActive(d: DailyMetrics): boolean {
+// Exported: ActivityCalendar reuses this predicate (no duplicated metric list).
+export function isActiveDay(d: DailyMetrics): boolean {
   return CORE_KEYS.some(k => d[k] != null)
 }
 
@@ -185,57 +186,71 @@ function startOfWeek(date: Date): Date {
   return addDays(c, -day)
 }
 
+function countWeek(active: Set<string>, monday: Date): number {
+  let n = 0
+  for (let i = 0; i < 7; i++) if (active.has(ymd(addDays(monday, i)))) n++
+  return n
+}
+
+// Consecutive weeks meeting the threshold. Completed weeks are counted from last
+// week backwards; the current (partial) week only adds once it reaches the
+// threshold itself — otherwise weekly would be 0 every Mon-Thu no matter what.
 function computeWeekly(active: Set<string>, today: Date): number {
-  let weeks = 0
-  let monday = startOfWeek(today)
-  while (true) {
-    let count = 0
-    for (let i = 0; i < 7; i++) if (active.has(ymd(addDays(monday, i)))) count++
-    if (count >= WEEKLY_MIN_DAYS) { weeks++; monday = addDays(monday, -7) } else break
+  const curMonday = startOfWeek(today)
+  let weeks = countWeek(active, curMonday) >= WEEKLY_MIN_DAYS ? 1 : 0
+  let monday = addDays(curMonday, -7)
+  while (countWeek(active, monday) >= WEEKLY_MIN_DAYS) {
+    weeks++
+    monday = addDays(monday, -7)
   }
   return weeks
 }
 
+// Forward walk from the first active day. Freezes are earned by days BEFORE a
+// gap, so a backward walk cannot work: by the time it reaches the gap it has
+// only counted the days after it, and there is nothing to bridge with.
 export function computeStreak(daily: DailyMetrics[], today: Date = new Date()): StreakState {
   const empty: StreakState = {
     current: 0, freezesAvailable: 0, freezesSpent: 0, weekly: 0, todayPending: false, frozenDates: [],
   }
   const active = new Set<string>()
-  for (const d of daily) if (isActive(d)) active.add(d.date)
+  for (const d of daily) if (isActiveDay(d)) active.add(d.date)
   if (active.size === 0) return empty
 
   const todayStr = ymd(today)
-  const todayActive = active.has(todayStr)
-  // Grace: if today has no data yet, start the walk at yesterday.
-  let cursor = todayActive ? new Date(today) : addDays(today, -1)
+  const first = [...active].sort()[0]
 
-  let current = 0
-  let freezesSpent = 0
-  const frozenDates: string[] = []
-  const earned = () => Math.min(MAX_FREEZES, Math.floor(current / FREEZE_EARN_EVERY))
+  let streak = 0
+  let freezes = 0
+  let spent = 0
+  let frozenDates: string[] = []
+  let cursor = new Date(first + 'T12:00:00') // noon dodges DST edges
 
   while (true) {
     const cur = ymd(cursor)
+    if (cur > todayStr) break
     if (active.has(cur)) {
-      current++
-      cursor = addDays(cursor, -1)
-    } else if (earned() - freezesSpent > 0) {
-      freezesSpent++
+      streak++
+      // Earn 1 freeze every FREEZE_EARN_EVERY consecutive days, inventory capped.
+      if (streak % FREEZE_EARN_EVERY === 0) freezes = Math.min(MAX_FREEZES, freezes + 1)
+    } else if (cur === todayStr) {
+      // Today's sync may still arrive: no break, no freeze spent.
+    } else if (freezes > 0) {
+      freezes--
+      spent++
       frozenDates.push(cur)
-      cursor = addDays(cursor, -1)
     } else {
-      break
+      streak = 0; freezes = 0; spent = 0; frozenDates = []
     }
+    cursor = addDays(cursor, 1)
   }
 
-  const freezesAvailable = Math.max(0, earned() - freezesSpent)
-  const weekly = computeWeekly(active, today)
   return {
-    current,
-    freezesAvailable,
-    freezesSpent,
-    weekly,
-    todayPending: !todayActive && current > 0,
+    current: streak,
+    freezesAvailable: freezes,
+    freezesSpent: spent,
+    weekly: computeWeekly(active, today),
+    todayPending: !active.has(todayStr) && streak > 0,
     frozenDates,
   }
 }
@@ -542,14 +557,12 @@ Create `src/components/dashboard/ActivityCalendar.tsx`. Current month; each day 
 ```tsx
 import { motion } from 'motion/react'
 import type { DailyMetrics } from '../../types'
-import { computeStreak } from '../../lib/streak'
+import { computeStreak, isActiveDay } from '../../lib/streak'
 import { useT } from '../../lib/i18n'
 
 interface Props {
   daily: DailyMetrics[]
 }
-
-const CORE_KEYS: (keyof DailyMetrics)[] = ['steps', 'sleepHours', 'restingHeartRate', 'hrv']
 
 function ymd(date: Date): string {
   const y = date.getFullYear()
@@ -566,7 +579,7 @@ export function ActivityCalendar({ daily }: Props) {
   const todayStr = ymd(today)
 
   const active = new Set<string>()
-  for (const d of daily) if (CORE_KEYS.some(k => d[k] != null)) active.add(d.date)
+  for (const d of daily) if (isActiveDay(d)) active.add(d.date)
   const frozen = new Set(computeStreak(daily, today).frozenDates)
 
   const year = today.getFullYear()
@@ -835,6 +848,13 @@ Capture a screenshot for the user.
 ## Self-Review Notes (author)
 
 - **Spec coverage:** streak engine (Task 1) ✓, freeze currency (Task 1) ✓, activity calendar (Task 5) ✓, EmptyState + no-history fallback (Tasks 3, 7) ✓, i18n (Task 2) ✓, unit + component tests (Tasks 1,3,4,5) ✓, Motion animations & existing tokens (Tasks 4,5,6) ✓, staleness banner superseded on home by streak block (Task 7) ✓.
-- **Type consistency:** `StreakState` fields (`current`, `freezesAvailable`, `freezesSpent`, `weekly`, `todayPending`, `frozenDates`) and `computeStreak(daily, today?)` signature are identical across engine, widget, calendar, and tests. `CORE_KEYS` set matches between `streak.ts` and `ActivityCalendar.tsx` (duplicated intentionally — the calendar recomputes the active set locally).
+- **Type consistency:** `StreakState` fields (`current`, `freezesAvailable`, `freezesSpent`, `weekly`, `todayPending`, `frozenDates`) and `computeStreak(daily, today?)` signature are identical across engine, widget, calendar, and tests. The active-day predicate lives once in `streak.ts` (`isActiveDay`) and is imported by `ActivityCalendar`.
 - **No placeholders:** every step ships concrete code/commands.
+- **Revision 2026-07-09:** algorithm switched from backward to forward walk. The
+  backward walk was buggy: freezes are earned by days *before* a gap, but a
+  backward walk reaches the gap having counted only the days after it — bridging
+  was impossible and the engine failed its own bridging test. `weekly` also
+  required the threshold from the current (partial) week, making it 0 most of
+  the week; now completed weeks count and the current week adds once it reaches
+  the threshold. Spec updated to match.
 ```
