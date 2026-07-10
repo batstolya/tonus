@@ -5,8 +5,6 @@ import type { AppView } from '../../store/appStore'
 import { generateInsights } from '../../utils/insights'
 import { AiAnalysisBlock } from './AiAnalysisBlock'
 import { DataGaps } from '../ui/DataGaps'
-import { StreakWidget } from './StreakWidget'
-import { ActivityCalendar } from './ActivityCalendar'
 import { EmptyState } from '../ui/EmptyState'
 import { computeReadiness, computeEarlyWarning, readinessVerdict } from '../../lib/readiness'
 import { baselineDeviations } from '../../lib/scores'
@@ -414,17 +412,12 @@ export function Dashboard({ daily, events, onNavigate, user, quickLog }: Props) 
       {user && <p className="dashboard-greeting">{greeting(user, t)}</p>}
       <h2>{t('Дашборд')}</h2>
 
-      {daily.length === 0 ? (
+      {daily.length === 0 && (
         <EmptyState
           icon="🔥"
           title={t('Подключи Apple Health, чтобы начать серию')}
           cta={{ label: t('Настроить синхронизацию'), onClick: () => onNavigate('settings') }}
         />
-      ) : (
-        <>
-          <StreakWidget daily={daily} />
-          <ActivityCalendar daily={daily} />
-        </>
       )}
 
       <EarlyWarningBanner daily={daily} />
