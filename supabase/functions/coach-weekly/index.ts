@@ -1,13 +1,15 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { checkBudget } from '../_shared/costGuard.ts'
+import { isValidCronSecret } from '../_shared/auth.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 const TG_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') ?? ''
+const CRON_SECRET = Deno.env.get('TONUS_CRON_SECRET') ?? ''
 
-const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' }
+const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, x-cron-secret' }
 const avg = (a: number[]) => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null
 
 // Машинно-проверяемое условие фокуса (зеркало validateFocusCheck из src/lib/coach.ts; Deno не импортит из src).
@@ -161,8 +163,12 @@ serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
     const authHeader = req.headers.get('Authorization') ?? ''
     const body = await req.json().catch(() => ({}))
-    // нет токена пользователя → режим cron (всем); есть → конкретному пользователю
-    const cronMode = !authHeader || authHeader.includes(SUPABASE_SERVICE_KEY.slice(0, 20))
+    // Явные пути (спека §3.2): cron-секрет → массовый режим; JWT → свой юзер; иначе 401.
+    // Отсутствие Authorization больше НЕ означает доверие, и service key не является маркером.
+    const cronMode = isValidCronSecret(req, CRON_SECRET)
+    if (!cronMode && !authHeader) {
+      return new Response('unauthorized', { status: 401, headers: CORS })
+    }
 
     let sent = 0
     if (cronMode && !body.userId) {
