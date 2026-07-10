@@ -1967,6 +1967,30 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 .streak-metric-value { font-size: 28px; font-weight: 700; }
 .streak-metric-label { font-size: 12px; color: var(--text-muted); }
 
+.streak-stats {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  margin: 12px 0;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.streak-stats-row { margin-bottom: 12px; }
+.streak-stats-row:last-child { margin-bottom: 0; }
+.streak-stats-item { display: flex; flex-direction: column; gap: 6px; }
+.streak-stats-label { font-size: 13px; color: var(--text-muted); font-weight: 500; }
+.streak-stats-value { font-size: 22px; font-weight: 700; color: var(--text); }
+.streak-stats-bar {
+  height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden;
+}
+.streak-stats-bar-fill {
+  height: 100%; background: var(--green); border-radius: 3px; transition: width 0.4s ease-out;
+}
+
+.streak-menu-panel .streak-stats {
+  margin: 0; padding: 14px 16px; border: none; border-radius: 0; box-shadow: none; background: transparent; border-bottom: 1px solid var(--border);
+}
+
 /* Compact topbar entry point. The full streak and calendar open on demand. */
 .streak-menu { position: relative; }
 .streak-menu-trigger {

@@ -4,6 +4,7 @@ import { computeStreak } from '../../lib/streak'
 import { useT } from '../../lib/i18n'
 import { ActivityCalendar } from './ActivityCalendar'
 import { StreakWidget } from './StreakWidget'
+import { StreakStats } from './StreakStats'
 
 interface Props {
   daily: DailyMetrics[]
@@ -56,6 +57,7 @@ export function StreakMenu({ daily }: Props) {
             <span>{t('Серия')}</span>
             <button type="button" className="streak-menu-close" onClick={() => setOpen(false)} aria-label={t('Закрыть')}>×</button>
           </div>
+          <StreakStats daily={daily} />
           <StreakWidget daily={daily} />
           <ActivityCalendar daily={daily} />
         </section>
