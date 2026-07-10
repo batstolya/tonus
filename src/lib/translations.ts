@@ -921,6 +921,15 @@ export const translations: Record<string, { uk: string; en: string }> = {
   'Предыдущий месяц': { uk: 'Попередній місяць', en: 'Previous month' },
   'Следующий месяц': { uk: 'Наступний місяць', en: 'Next month' },
 
+  // ── Колокольчик уведомлений ────────────────────────────────
+  'Уведомления': { uk: 'Сповіщення', en: 'Notifications' },
+  'Все спокойно — сигналов нет': { uk: 'Все спокійно — сигналів немає', en: 'All clear — no signals' },
+  'Стрик {n} дн. под угрозой': { uk: 'Стрік {n} дн. під загрозою', en: '{n}-day streak at risk' },
+  'Иначе сгорит заморозка (осталось {n})': { uk: 'Інакше згорить заморозка (лишилось {n})', en: 'Otherwise a freeze burns ({n} left)' },
+  'Заморозок нет — стрик обнулится в полночь': { uk: 'Заморозок немає — стрік обнулиться опівночі', en: 'No freezes left — the streak resets at midnight' },
+  'Нет данных {n} дн.': { uk: 'Немає даних {n} дн.', en: 'No data for {n} days' },
+  'Проверь авто-синхронизацию на iPhone': { uk: 'Перевір авто-синхронізацію на iPhone', en: 'Check auto-sync on your iPhone' },
+
   'Подключи Apple Health, чтобы начать серию': {
     uk: 'Підключи Apple Health, щоб почати серію',
     en: 'Connect Apple Health to start your streak',
