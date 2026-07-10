@@ -33,3 +33,8 @@ mobile-auth.png
 # playwright
 test-results/
 playwright-report/
+
+# claude-monitor runtime artifacts (never commit sessions/cache/state)
+claude-monitor/browser-profile/
+claude-monitor/data/*.pid
+claude-monitor/data/state.json
