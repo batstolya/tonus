@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { ActivityCalendar } from './ActivityCalendar'
 import { translations } from '../../lib/translations'
 
-const KEYS = ['данные есть', 'пропуск', 'заморожено', 'Предыдущий месяц', 'Следующий месяц']
+const KEYS = ['активный день', 'без активности', 'нет данных', 'заморожено', 'Предыдущий месяц', 'Следующий месяц']
 
 describe('ActivityCalendar', () => {
   it('exports a component', () => {
