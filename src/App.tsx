@@ -16,6 +16,7 @@ import { DashboardSkeleton, ScreenSkeleton } from './components/ui/Skeleton'
 const UploadScreen = lazy(() => import('./components/upload/UploadScreen').then(m => ({ default: m.UploadScreen })))
 const Dashboard = lazy(() => import('./components/dashboard/Dashboard').then(m => ({ default: m.Dashboard })))
 const StreakMenu = lazy(() => import('./components/dashboard/StreakMenu').then(m => ({ default: m.StreakMenu })))
+const NotificationBell = lazy(() => import('./components/dashboard/NotificationBell').then(m => ({ default: m.NotificationBell })))
 const HealthAlertBanner = lazy(() => import('./components/dashboard/HealthAlertBanner'))
 const HeartRateScreen = lazy(() => import('./components/heart-rate/HeartRateScreen').then(m => ({ default: m.HeartRateScreen })))
 const MetricsScreen = lazy(() => import('./components/metrics/MetricsScreen').then(m => ({ default: m.MetricsScreen })))
@@ -323,6 +324,7 @@ export default function App() {
               {hasData && (
                 <Suspense fallback={null}>
                   <StreakMenu daily={state.daily} />
+                  <NotificationBell daily={state.daily} userId={user?.id ?? null} demo={demo} />
                 </Suspense>
               )}
               <div className="lang-picker">
