@@ -914,6 +914,11 @@ export const translations: Record<string, { uk: string; en: string }> = {
   'данные есть': { uk: 'дані є', en: 'has data' },
   'пропуск': { uk: 'пропуск', en: 'missed' },
   'заморожено': { uk: 'заморожено', en: 'frozen' },
+  'Активных дней': { uk: 'Активних днів', en: 'Active days' },
+  'Личный рекорд': { uk: 'Особистий рекорд', en: 'Personal record' },
+  'До': { uk: 'До', en: 'Until' },
+  'дней': { uk: 'днів', en: 'days' },
+
   'Подключи Apple Health, чтобы начать серию': {
     uk: 'Підключи Apple Health, щоб почати серію',
     en: 'Connect Apple Health to start your streak',
