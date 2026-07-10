@@ -1,6 +1,6 @@
 import { motion } from 'motion/react'
 import type { DailyMetrics } from '../../types'
-import { computeStreak, isActiveDay, WEEKLY_MIN_DAYS } from '../../lib/streak'
+import { computeStreak, isActiveDay, hasDayData, WEEKLY_MIN_DAYS } from '../../lib/streak'
 import { useT } from '../../lib/i18n'
 
 interface Props {
@@ -18,7 +18,7 @@ function ymd(date: Date): string {
   return `${y}-${m}-${dd}`
 }
 
-type Status = 'active' | 'frozen' | 'missed' | 'future'
+type Status = 'active' | 'frozen' | 'idle' | 'missed' | 'future'
 
 // Календар обраного місяця (в духе mate.academy): дні-кружки + колонка
 // тижневих чекмарок зліва (тиждень з >= WEEKLY_MIN_DAYS активними днями).
@@ -29,7 +29,11 @@ export function ActivityCalendar({ daily, year, month, minYm, onNavigate }: Prop
   const todayStr = ymd(today)
 
   const active = new Set<string>()
-  for (const d of daily) if (isActiveDay(d)) active.add(d.date)
+  const withData = new Set<string>()
+  for (const d of daily) {
+    if (isActiveDay(d)) active.add(d.date)
+    if (hasDayData(d)) withData.add(d.date)
+  }
   const frozen = new Set(computeStreak(daily, today).frozenDates)
 
   const m0 = month - 1
@@ -38,10 +42,13 @@ export function ActivityCalendar({ daily, year, month, minYm, onNavigate }: Prop
   const lead = (first.getDay() + 6) % 7 // Mon-first grid
   const weeksCount = Math.ceil((lead + daysInMonth) / 7)
 
+  // idle = дані є, поріг руху не закритий (лінивий день);
+  // missed = даних взагалі нема (дірка в синку). До cutoff idle не буває.
   const statusOf = (date: string): Status => {
     if (date > todayStr) return 'future'
     if (active.has(date)) return 'active'
     if (frozen.has(date)) return 'frozen'
+    if (withData.has(date)) return 'idle'
     return 'missed'
   }
 
@@ -72,7 +79,11 @@ export function ActivityCalendar({ daily, year, month, minYm, onNavigate }: Prop
   const monthLabel = `${monthName.charAt(0).toUpperCase()}${monthName.slice(1)} ${year}`
 
   const label = (status: Status) =>
-    status === 'active' ? t('данные есть') : status === 'frozen' ? t('заморожено') : status === 'missed' ? t('пропуск') : ''
+    status === 'active' ? t('активный день')
+      : status === 'frozen' ? t('заморожено')
+      : status === 'idle' ? t('без активности')
+      : status === 'missed' ? t('нет данных')
+      : ''
 
   const weekdays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
 
