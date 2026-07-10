@@ -40,28 +40,33 @@ export function computeReadiness(daily: DailyMetrics[]): ReadinessScore | null {
   const recentRHR = avg(recentSlice.map(d => d.restingHeartRate).filter((v): v is number => v != null))
   const recentSleep = avg(recentSlice.map(d => d.sleepHours).filter((v): v is number => v != null))
 
-  // HRV: 40pts, higher is better
+  // Each component is centred so a day exactly at the personal norm earns 75-85%
+  // of its points; the top of the scale is reserved for better-than-usual days.
+  // Without this centring the score saturates at 100 on any ordinary day.
+
+  // HRV: 40pts, higher is better; norm = 75%, +50% over baseline = cap
   let hrvScore: number | null = null
-  if (recentHRV != null && baseHRV != null && baseHRV > 0) {
-    hrvScore = Math.min(40, Math.max(0, 40 * (recentHRV / baseHRV)))
-  } else if (recentHRV != null) {
-    // No baseline: use absolute score (50ms = full marks)
-    hrvScore = Math.min(40, 40 * (recentHRV / 50))
+  if (recentHRV != null) {
+    // No baseline: 50ms is treated as the norm level
+    const ratio = baseHRV != null && baseHRV > 0 ? recentHRV / baseHRV : recentHRV / 50
+    hrvScore = 40 * Math.min(1, Math.max(0, 0.75 + 0.5 * (ratio - 1)))
   }
 
-  // RHR: 30pts, lower is better
+  // RHR: 30pts, lower is better; norm = 75%, steeper slope because resting HR
+  // varies only a few percent — a +6% elevation is a real signal
   let rhrScore: number | null = null
-  if (recentRHR != null && baseRHR != null && baseRHR > 0) {
-    rhrScore = Math.min(30, Math.max(0, 30 * (baseRHR / recentRHR)))
-  } else if (recentRHR != null) {
-    // No baseline: 55 bpm = full marks
-    rhrScore = Math.min(30, 30 * (55 / recentRHR))
+  if (recentRHR != null && recentRHR > 0) {
+    // No baseline: 55 bpm is treated as the norm level
+    const ratio = baseRHR != null && baseRHR > 0 ? baseRHR / recentRHR : 55 / recentRHR
+    rhrScore = 30 * Math.min(1, Math.max(0, 0.75 + 2 * (ratio - 1)))
   }
 
-  // Sleep: 30pts, 8h = full marks
+  // Sleep: 30pts, absolute scale; 8h = 85%, full marks from 9h
   let sleepScore: number | null = null
   if (recentSleep != null) {
-    sleepScore = Math.min(30, 30 * (recentSleep / 8))
+    sleepScore = recentSleep <= 8
+      ? 25.5 * (recentSleep / 8)
+      : 25.5 + 4.5 * Math.min(1, recentSleep - 8)
   }
 
   const components = { hrv: hrvScore, rhr: rhrScore, sleep: sleepScore }
