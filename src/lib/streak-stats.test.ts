@@ -5,7 +5,7 @@ import type { DailyMetrics } from '../types'
 function metric(date: string, hasData = true): DailyMetrics {
   return {
     date,
-    ...(hasData ? { steps: 5000 } : {}),
+    ...(hasData ? { steps: 12000 } : {}),
   }
 }
 
