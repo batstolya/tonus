@@ -911,3 +911,34 @@ alter table context_notes add column if not exists wellbeing smallint;
 -- Разрешаем строку без текстовой заметки (день, где есть только оценка 1–5).
 alter table context_notes alter column note drop not null;
 
+-- ══════════ canonical read-model (спека §2.2, inventory 2026-07-10) ══════════
+-- Порядок первых 8 колонок = порядок текущего prod view; новые колонки —
+-- только в конец. security_invoker: RLS исходных таблиц действует для JWT.
+create or replace view daily_metrics with (security_invoker = true) as
+with days as (
+  select user_id, date from metrics_daily
+  union
+  select user_id, date from sleep_sessions
+)
+select
+  days.user_id,
+  days.date,
+  max(m.avg_val) filter (where m.metric = 'restingHeartRate') as resting_heart_rate,
+  max(m.avg_val) filter (where m.metric = 'hrv')              as hrv,
+  max(m.sum_val) filter (where m.metric = 'steps')            as steps,
+  max(m.sum_val) filter (where m.metric = 'activeEnergy')     as active_energy,
+  max(m.avg_val) filter (where m.metric = 'oxygenSaturation') as oxygen_saturation,
+  max(s.duration_hours)                                       as sleep_hours,
+  max(m.avg_val) filter (where m.metric = 'wristTemperature') as wrist_temperature,
+  max(m.avg_val) filter (where m.metric = 'respiratoryRate')  as respiratory_rate
+from days
+left join metrics_daily m on m.user_id = days.user_id and m.date = days.date
+left join sleep_sessions s on s.user_id = days.user_id and s.date = days.date
+group by days.user_id, days.date;
+
+-- daily_summary: временный compatibility alias (удалить отдельной миграцией
+-- после перевода biweekly-report на daily_metrics).
+create or replace view daily_summary with (security_invoker = true) as
+select user_id, date, resting_heart_rate, hrv, sleep_hours, steps,
+       active_energy, oxygen_saturation
+from daily_metrics;
