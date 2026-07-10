@@ -12,11 +12,12 @@ import {
   type FootballMatchUpsert,
   type TheStatsApiFixture,
 } from '../_shared/football.ts'
+import { isValidCronSecret } from '../_shared/auth.ts'
 
 const FOOTBALL_FIXTURES_PROVIDER = (Deno.env.get('FOOTBALL_FIXTURES_PROVIDER') ?? 'espn') as 'api-football' | 'thestatsapi' | 'espn' | 'football-data'
 const API_FOOTBALL_KEY = Deno.env.get('API_FOOTBALL_KEY') ?? ''
 const FOOTBALL_DATA_TOKEN = Deno.env.get('FOOTBALL_DATA_TOKEN') ?? ''
-const FOOTBALL_INTERNAL_SECRET = Deno.env.get('FOOTBALL_INTERNAL_SECRET') ?? ''
+const CRON_SECRET = Deno.env.get('TONUS_CRON_SECRET') ?? Deno.env.get('FOOTBALL_INTERNAL_SECRET') ?? ''
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
@@ -33,7 +34,7 @@ interface ApiFootballResponse<T> {
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
-  if (FOOTBALL_INTERNAL_SECRET && req.headers.get('x-cron-secret') !== FOOTBALL_INTERNAL_SECRET) {
+  if (!isValidCronSecret(req, CRON_SECRET)) {
     return json({ error: 'unauthorized' }, 401)
   }
 

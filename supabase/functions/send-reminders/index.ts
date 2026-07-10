@@ -1,10 +1,12 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { localToIso } from '../_shared/time.ts'
+import { isValidCronSecret } from '../_shared/auth.ts'
 
 const TG_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+const CRON_SECRET = Deno.env.get('TONUS_CRON_SECRET') ?? Deno.env.get('CRON_SECRET') ?? ''
 
 async function tgSend(chatId: string, text: string, replyMarkup?: unknown): Promise<number | null> {
   const res = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
@@ -32,7 +34,9 @@ function localNow(tz: string) {
   }
 }
 
-serve(async () => {
+serve(async (req) => {
+  // Fail closed: без корректного cron-секрета не читаем таблицы и не шлём (спека §3.2).
+  if (!isValidCronSecret(req, CRON_SECRET)) return new Response('unauthorized', { status: 401 })
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
   const nowMs = Date.now()
 

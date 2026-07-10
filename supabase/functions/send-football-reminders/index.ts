@@ -1,9 +1,10 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { buildFootballReminderText, buildFootballReminderKeyboard, type FootballReminderView } from '../_shared/football.ts'
+import { isValidCronSecret } from '../_shared/auth.ts'
 
 const TELEGRAM_BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN')!
-const FOOTBALL_INTERNAL_SECRET = Deno.env.get('FOOTBALL_INTERNAL_SECRET') ?? ''
+const CRON_SECRET = Deno.env.get('TONUS_CRON_SECRET') ?? Deno.env.get('FOOTBALL_INTERNAL_SECRET') ?? ''
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
@@ -22,7 +23,7 @@ interface ClaimedReminder extends FootballReminderView {
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
-  if (FOOTBALL_INTERNAL_SECRET && req.headers.get('x-cron-secret') !== FOOTBALL_INTERNAL_SECRET) {
+  if (!isValidCronSecret(req, CRON_SECRET)) {
     return json({ error: 'unauthorized' }, 401)
   }
 
