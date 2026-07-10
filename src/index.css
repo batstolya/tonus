@@ -1943,53 +1943,17 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 .guide-success { color: var(--green, #34d399); }
 .guide-overlay { position: fixed; inset: 0; z-index: 1000; background: var(--bg, #0e0f13); overflow-y: auto; }
 
-/* ── Gamified home: streak widget ───────────────────────────── */
-.streak-widget {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px 18px;
-  margin: 12px 0;
-  background: var(--surface);
-  box-shadow: var(--shadow);
+/* ── Gamified home: streak stat cards ───────────────────────── */
+.streak-cards {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 14px 16px;
 }
-.streak-widget-head {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 12px;
+.streak-card {
+  display: flex; flex-direction: column; gap: 2px;
+  background: var(--surface2); border-radius: 10px; padding: 10px 12px;
 }
-.streak-widget-title { font-weight: 600; }
-.streak-widget-pending {
-  font-size: 12px; color: var(--text-muted);
-  background: var(--surface2); padding: 2px 8px; border-radius: 999px;
-}
-.streak-widget-row { display: flex; gap: 24px; }
-.streak-metric { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
-.streak-metric-emoji { font-size: 20px; line-height: 1; }
-.streak-metric-value { font-size: 28px; font-weight: 700; }
-.streak-metric-label { font-size: 12px; color: var(--text-muted); }
-
-.streak-stats {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px 18px;
-  margin: 12px 0;
-  background: var(--surface);
-  box-shadow: var(--shadow);
-}
-.streak-stats-row { margin-bottom: 12px; }
-.streak-stats-row:last-child { margin-bottom: 0; }
-.streak-stats-item { display: flex; flex-direction: column; gap: 6px; }
-.streak-stats-label { font-size: 13px; color: var(--text-muted); font-weight: 500; }
-.streak-stats-value { font-size: 22px; font-weight: 700; color: var(--text); }
-.streak-stats-bar {
-  height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden;
-}
-.streak-stats-bar-fill {
-  height: 100%; background: var(--green); border-radius: 3px; transition: width 0.4s ease-out;
-}
-
-.streak-menu-panel .streak-stats {
-  margin: 0; padding: 14px 16px; border: none; border-radius: 0; box-shadow: none; background: transparent; border-bottom: 1px solid var(--border);
-}
+.streak-card-value { font-size: 18px; font-weight: 700; display: inline-flex; align-items: baseline; gap: 6px; }
+.streak-card-emoji { font-size: 15px; }
+.streak-card-label { font-size: 12px; color: var(--text-muted); }
 
 /* Compact topbar entry point. The full streak and calendar open on demand. */
 .streak-menu { position: relative; }
@@ -2013,7 +1977,16 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 }
 .streak-menu-head {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 16px 0; font-size: 15px; font-weight: 700;
+  padding: 14px 16px 0;
+}
+.streak-menu-title { font-size: 15px; font-weight: 700; }
+.streak-menu-counters { display: flex; align-items: center; gap: 12px; }
+.streak-menu-counter {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.streak-menu-pending {
+  font-size: 12px; color: var(--text-muted); padding: 4px 16px 0;
 }
 .streak-menu-close {
   width: 28px; height: 28px; display: grid; place-items: center;
@@ -2021,15 +1994,9 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
   font-size: 22px; line-height: 1; cursor: pointer;
 }
 .streak-menu-close:hover { color: var(--text); background: var(--surface2); }
-.streak-menu-panel .streak-widget,
 .streak-menu-panel .activity-cal {
-  margin: 0; padding: 14px 16px; border: none; border-radius: 0; box-shadow: none; background: transparent;
+  margin: 0; padding: 14px 16px 4px; border: none; border-radius: 0; box-shadow: none; background: transparent;
 }
-.streak-menu-panel .streak-widget { border-bottom: 1px solid var(--border); }
-.streak-menu-panel .streak-widget-head { margin-bottom: 10px; }
-.streak-menu-panel .streak-widget-row { gap: 28px; }
-.streak-menu-panel .activity-cal-title { margin-bottom: 10px; }
-.streak-menu-panel .activity-cal-grid { max-width: none; }
 
 /* ── Gamified home: activity calendar ───────────────────────── */
 .activity-cal {
@@ -2038,12 +2005,32 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
   background: var(--surface);
   box-shadow: var(--shadow);
 }
-.activity-cal-title { font-weight: 600; margin-bottom: 12px; }
+.activity-cal-nav {
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  margin-bottom: 10px;
+}
+.activity-cal-month { font-weight: 600; font-size: 14px; text-transform: capitalize; }
+.activity-cal-arrow {
+  width: 28px; height: 28px; display: grid; place-items: center;
+  color: var(--text); background: transparent; border: none; border-radius: 6px;
+  font-size: 18px; line-height: 1; cursor: pointer;
+}
+.activity-cal-arrow:hover:not(:disabled) { background: var(--surface2); }
+.activity-cal-arrow:disabled { color: var(--text-muted); opacity: 0.4; cursor: default; }
 .activity-cal-grid {
-  display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;
+  display: grid; grid-template-columns: 22px repeat(7, 1fr); gap: 6px;
+  align-items: center;
   max-width: 420px; /* иначе кружки-дни разрастаются на широкой карточке */
 }
 .activity-cal-dow { font-size: 11px; color: var(--text-muted); text-align: center; }
+.activity-cal-week {
+  width: 18px; height: 18px; border-radius: 999px;
+  border: 1.5px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; justify-self: center;
+}
+.activity-cal-week.done { background: var(--green); border-color: var(--green); color: #fff; }
+.activity-cal-cell.adjacent { color: var(--text-muted); opacity: 0.35; font-size: 12px; }
 .activity-cal-cell {
   aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
   border-radius: 999px; font-size: 12px;
