@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { DailyMetrics } from '../../types'
-import { computeStreak } from '../../lib/streak'
+import { computeStreak, isActiveDay } from '../../lib/streak'
 import { useT } from '../../lib/i18n'
 import { ActivityCalendar } from './ActivityCalendar'
-import { StreakWidget } from './StreakWidget'
 import { StreakStats } from './StreakStats'
 
 interface Props {
@@ -15,8 +14,15 @@ interface Props {
 export function StreakMenu({ daily }: Props) {
   const { t } = useT()
   const [open, setOpen] = useState(false)
+  const now = new Date()
+  const nowYm = { year: now.getFullYear(), month: now.getMonth() + 1 }
+  const [ym, setYm] = useState(nowYm)
   const rootRef = useRef<HTMLDivElement>(null)
   const streak = computeStreak(daily)
+
+  // Межа навігації назад — найраніший місяць з даними.
+  const firstActive = daily.filter(isActiveDay).map(d => d.date).sort()[0]
+  const minYm = (firstActive ?? `${nowYm.year}-${String(nowYm.month).padStart(2, '0')}`).slice(0, 7)
 
   useEffect(() => {
     if (!open) return
@@ -36,6 +42,12 @@ export function StreakMenu({ daily }: Props) {
     }
   }, [open])
 
+  const togglePanel = () => {
+    // Кожне відкриття починається з поточного місяця.
+    if (!open) setYm(nowYm)
+    setOpen(value => !value)
+  }
+
   return (
     <div className="streak-menu" ref={rootRef}>
       <button
@@ -44,7 +56,7 @@ export function StreakMenu({ daily }: Props) {
         aria-label={t('Серия')}
         aria-expanded={open}
         aria-controls="streak-menu-panel"
-        onClick={() => setOpen(value => !value)}
+        onClick={togglePanel}
       >
         <span className="streak-menu-flame" aria-hidden>🔥</span>
         <span className="streak-menu-count">{streak.current}</span>
@@ -52,14 +64,30 @@ export function StreakMenu({ daily }: Props) {
       </button>
 
       {open && (
-        <section id="streak-menu-panel" className="streak-menu-panel" role="dialog" aria-label={t('Серия')}>
+        <section id="streak-menu-panel" className="streak-menu-panel" role="dialog" aria-label={t('Текущий стрик')}>
           <div className="streak-menu-head">
-            <span>{t('Серия')}</span>
-            <button type="button" className="streak-menu-close" onClick={() => setOpen(false)} aria-label={t('Закрыть')}>×</button>
+            <span className="streak-menu-title">{t('Текущий стрик')}</span>
+            <div className="streak-menu-counters">
+              <span className="streak-menu-counter" title={t('Дней подряд')}>
+                <span aria-hidden>🔥</span>{streak.current}
+              </span>
+              <span className="streak-menu-counter" title={t('Недель подряд')}>
+                <span aria-hidden>⚡</span>{streak.weekly}
+              </span>
+              <button type="button" className="streak-menu-close" onClick={() => setOpen(false)} aria-label={t('Закрыть')}>×</button>
+            </div>
           </div>
-          <StreakStats daily={daily} />
-          <StreakWidget daily={daily} />
-          <ActivityCalendar daily={daily} />
+          {streak.todayPending && (
+            <div className="streak-menu-pending">{t('Синхронизация ожидается')}</div>
+          )}
+          <ActivityCalendar
+            daily={daily}
+            year={ym.year}
+            month={ym.month}
+            minYm={minYm}
+            onNavigate={(year, month) => setYm({ year, month })}
+          />
+          <StreakStats daily={daily} year={ym.year} month={ym.month} />
         </section>
       )}
     </div>
