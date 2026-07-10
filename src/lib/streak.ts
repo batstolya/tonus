@@ -4,8 +4,13 @@ import type { DailyMetrics } from '../types'
 export const FREEZE_EARN_EVERY = 7 // 1 freeze earned per this many streak days
 export const MAX_FREEZES = 3        // cap on stored freezes
 export const WEEKLY_MIN_DAYS = 5    // active days needed for a week to "count"
+export const ACTIVE_STEPS_MIN = 7000   // steps to close the day
+export const ACTIVE_EXERCISE_MIN = 30  // exercise minutes to close the day
+// До этой даты «активный день» = «данные пришли»; история и стрик, заработанные
+// по старому правилу, не переписываются задним числом.
+export const ACTIVITY_RULE_SINCE = '2026-07-10'
 
-// Core metrics: a day is "active" if any of these is present.
+// Core metrics: a day has data if any of these is present.
 const CORE_KEYS: (keyof DailyMetrics)[] = ['steps', 'sleepHours', 'restingHeartRate', 'hrv']
 
 export interface StreakState {
@@ -17,9 +22,18 @@ export interface StreakState {
   frozenDates: string[]    // dates bridged by a freeze (for the calendar)
 }
 
-// Exported: ActivityCalendar reuses this predicate (no duplicated metric list).
-export function isActiveDay(d: DailyMetrics): boolean {
+// «Данные за день есть» — старая семантика активности; нужна календарю
+// (отличать ленивый день от дыры в синке) и строке прогресса дня.
+export function hasDayData(d: DailyMetrics): boolean {
   return CORE_KEYS.some(k => d[k] != null)
+}
+
+// «Активный день» — единый предикат всей стрик-механики (стрик, заморозки,
+// недели, рекорды, календарь, месячная статистика). С ACTIVITY_RULE_SINCE это
+// трекер привычки: день закрыт движением, а не фактом синка.
+export function isActiveDay(d: DailyMetrics): boolean {
+  if (d.date < ACTIVITY_RULE_SINCE) return hasDayData(d)
+  return (d.steps ?? 0) >= ACTIVE_STEPS_MIN || (d.exerciseMinutes ?? 0) >= ACTIVE_EXERCISE_MIN
 }
 
 // Local-time YYYY-MM-DD (matches how DailyMetrics.date is stored).
