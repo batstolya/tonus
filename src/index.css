@@ -817,7 +817,7 @@ body {
   .theme-toggle { display: none !important; }
   .streak-menu-trigger { min-height: 32px; padding: 0 8px; }
   .streak-menu-label { display: none; }
-  .streak-menu-panel { right: -42px; width: min(420px, calc(100vw - 24px)); max-height: calc(100vh - 68px); }
+  .streak-menu-panel { right: -42px; width: min(340px, calc(100vw - 24px)); max-height: calc(100vh - 68px); }
 
   /* Show burger on mobile */
   .burger-btn { display: flex !important; align-items: center; justify-content: center; }
@@ -1945,15 +1945,15 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 
 /* ── Gamified home: streak stat cards ───────────────────────── */
 .streak-cards {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 14px 16px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px 14px 14px;
 }
 .streak-card {
-  display: flex; flex-direction: column; gap: 2px;
-  background: var(--surface2); border-radius: 10px; padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 1px;
+  background: var(--surface2); border-radius: 10px; padding: 8px 10px;
 }
-.streak-card-value { font-size: 18px; font-weight: 700; display: inline-flex; align-items: baseline; gap: 6px; }
-.streak-card-emoji { font-size: 15px; }
-.streak-card-label { font-size: 12px; color: var(--text-muted); }
+.streak-card-value { font-size: 15px; font-weight: 700; display: inline-flex; align-items: baseline; gap: 5px; }
+.streak-card-emoji { font-size: 13px; }
+.streak-card-label { font-size: 11px; color: var(--text-muted); }
 
 /* Compact topbar entry point. The full streak and calendar open on demand. */
 .streak-menu { position: relative; }
@@ -1971,31 +1971,31 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 .streak-menu-label { color: var(--text-muted); font-weight: 500; }
 .streak-menu-panel {
   position: absolute; z-index: 20; top: calc(100% + 10px); right: 0;
-  width: min(420px, calc(100vw - 32px)); max-height: calc(100vh - 78px);
+  width: min(340px, calc(100vw - 32px)); max-height: calc(100vh - 78px);
   overflow-y: auto; background: var(--surface); border: 1px solid var(--border);
   border-radius: 12px; box-shadow: var(--card-shadow); animation: fadeIn 0.18s ease-out;
 }
 .streak-menu-head {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 16px 0;
+  padding: 12px 14px 0;
 }
-.streak-menu-title { font-size: 15px; font-weight: 700; }
-.streak-menu-counters { display: flex; align-items: center; gap: 12px; }
+.streak-menu-title { font-size: 14px; font-weight: 700; }
+.streak-menu-counters { display: flex; align-items: center; gap: 10px; }
 .streak-menu-counter {
-  display: inline-flex; align-items: center; gap: 4px;
-  font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums;
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums;
 }
 .streak-menu-pending {
-  font-size: 12px; color: var(--text-muted); padding: 4px 16px 0;
+  font-size: 11px; color: var(--text-muted); padding: 4px 14px 0;
 }
 .streak-menu-close {
-  width: 28px; height: 28px; display: grid; place-items: center;
+  width: 24px; height: 24px; display: grid; place-items: center;
   color: var(--text-muted); background: transparent; border: none; border-radius: 6px;
-  font-size: 22px; line-height: 1; cursor: pointer;
+  font-size: 20px; line-height: 1; cursor: pointer;
 }
 .streak-menu-close:hover { color: var(--text); background: var(--surface2); }
 .streak-menu-panel .activity-cal {
-  margin: 0; padding: 14px 16px 4px; border: none; border-radius: 0; box-shadow: none; background: transparent;
+  margin: 0; padding: 10px 14px 2px; border: none; border-radius: 0; box-shadow: none; background: transparent;
 }
 
 /* ── Gamified home: activity calendar ───────────────────────── */
@@ -2006,33 +2006,34 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
   box-shadow: var(--shadow);
 }
 .activity-cal-nav {
-  display: flex; align-items: center; justify-content: center; gap: 12px;
-  margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  margin-bottom: 8px;
 }
-.activity-cal-month { font-weight: 600; font-size: 14px; text-transform: capitalize; }
+.activity-cal-month { font-weight: 600; font-size: 13px; }
 .activity-cal-arrow {
-  width: 28px; height: 28px; display: grid; place-items: center;
+  width: 24px; height: 24px; display: grid; place-items: center;
   color: var(--text); background: transparent; border: none; border-radius: 6px;
-  font-size: 18px; line-height: 1; cursor: pointer;
+  font-size: 16px; line-height: 1; cursor: pointer;
 }
 .activity-cal-arrow:hover:not(:disabled) { background: var(--surface2); }
 .activity-cal-arrow:disabled { color: var(--text-muted); opacity: 0.4; cursor: default; }
+/* Компактная сетка в духе mate: фиксированные 30px-ячейки по центру,
+   а не 1fr — иначе кружки-дни разрастаются на широкой карточке. */
 .activity-cal-grid {
-  display: grid; grid-template-columns: 22px repeat(7, 1fr); gap: 6px;
-  align-items: center;
-  max-width: 420px; /* иначе кружки-дни разрастаются на широкой карточке */
+  display: grid; grid-template-columns: 18px repeat(7, 30px);
+  gap: 4px 8px; align-items: center; justify-content: center;
 }
-.activity-cal-dow { font-size: 11px; color: var(--text-muted); text-align: center; }
+.activity-cal-dow { font-size: 10px; color: var(--text-muted); text-align: center; }
 .activity-cal-week {
-  width: 18px; height: 18px; border-radius: 999px;
+  width: 15px; height: 15px; border-radius: 999px;
   border: 1.5px solid var(--border);
   display: flex; align-items: center; justify-content: center;
-  font-size: 11px; justify-self: center;
+  font-size: 9px; justify-self: center;
 }
 .activity-cal-week.done { background: var(--green); border-color: var(--green); color: #fff; }
-.activity-cal-cell.adjacent { color: var(--text-muted); opacity: 0.35; font-size: 12px; }
+.activity-cal-cell.adjacent { color: var(--text-muted); opacity: 0.35; font-size: 11px; }
 .activity-cal-cell {
-  aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
   border-radius: 999px; font-size: 12px;
 }
 .activity-cal-cell.blank { background: transparent; }

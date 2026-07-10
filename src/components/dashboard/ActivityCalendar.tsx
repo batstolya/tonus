@@ -66,7 +66,10 @@ export function ActivityCalendar({ daily, year, month, minYm, onNavigate }: Prop
     const d = new Date(year, m0 + delta, 1)
     onNavigate(d.getFullYear(), d.getMonth() + 1)
   }
-  const monthLabel = new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(first)
+  // Вручную «Місяць Рік»: year:'numeric' у uk дає хвіст «р.», а CSS-capitalize
+  // капіталізував би і його.
+  const monthName = new Intl.DateTimeFormat(locale, { month: 'long' }).format(first)
+  const monthLabel = `${monthName.charAt(0).toUpperCase()}${monthName.slice(1)} ${year}`
 
   const label = (status: Status) =>
     status === 'active' ? t('данные есть') : status === 'frozen' ? t('заморожено') : status === 'missed' ? t('пропуск') : ''
