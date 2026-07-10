@@ -8,6 +8,7 @@ import { buildClassifyPrompt } from '../_shared/classifyPrompt.ts'
 import { daysSinceFreshData, freshestDataTs } from '../_shared/staleness.ts'
 import { detectSaveIntent } from '../_shared/saveIntent.ts'
 import { parseFootballCallback, buildFootballResponseText, localizeRoundName } from '../_shared/football.ts'
+import { isValidTelegramSecret } from '../_shared/auth.ts'
 
 const TG_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -636,6 +637,10 @@ async function checkStaleness(chatId: number | string, userId: string, supabase:
 // ── Main handler ──────────────────────────────────────────────────────────────
 
 serve(async (req) => {
+  // Fail closed: секрет обязателен в runtime (спека §3.1).
+  if (!WEBHOOK_SECRET) return new Response('webhook secret not configured', { status: 503 })
+  // Проверяем заголовок Telegram ДО чтения тела, setupCommands и createClient.
+  if (!isValidTelegramSecret(req, WEBHOOK_SECRET)) return new Response('unauthorized', { status: 401 })
 
   const body = await req.json().catch(() => null)
   if (!body) return new Response('ok')
