@@ -1,12 +1,13 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { isValidCronSecret } from '../_shared/auth.ts'
 
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' }
 const CAL_BASE = 'https://cal.beskarstaff.com'
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const ENC_KEY_B64 = Deno.env.get('CAL_ENC_KEY') ?? ''
-const CRON_SECRET = Deno.env.get('CRON_SECRET') ?? ''
+const CRON_SECRET = Deno.env.get('TONUS_CRON_SECRET') ?? Deno.env.get('CRON_SECRET') ?? ''
 
 // ---- AES-GCM encrypt/decrypt (key only in env, never in DB) ----
 async function aesKey() {
@@ -121,7 +122,7 @@ serve(async (req) => {
     const admin = createClient(SUPABASE_URL, SERVICE_KEY)
 
     // ---- CRON path: secret header, sync every enabled user ----
-    if (CRON_SECRET && req.headers.get('x-cron-secret') === CRON_SECRET) {
+    if (isValidCronSecret(req, CRON_SECRET)) {
       const { data: rows } = await admin.from('cal_sync').select('user_id, cal_email, cal_password_enc').eq('enabled', true)
       const results = []
       for (const row of rows ?? []) results.push(await syncOne(admin, row))
