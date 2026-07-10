@@ -51,7 +51,7 @@ export function StreakStats({ daily }: Props) {
       {milestone && (
         <div className="streak-stats-row">
           <div className="streak-stats-item">
-            <span className="streak-stats-label">{t('До')} {milestone.nextMilestone} {t('дней')}</span>
+            <span className="streak-stats-label">{t('До {n} дней', { n: milestone.nextMilestone })}</span>
             <span className="streak-stats-value">
               {milestone.daysToGo} {t('дн.')}
             </span>

@@ -41,12 +41,6 @@ function ymd(date: Date): string {
   return `${y}-${m}-${d}`
 }
 
-function addDays(date: Date, n: number): Date {
-  const c = new Date(date)
-  c.setDate(c.getDate() + n)
-  return c
-}
-
 export function getAllStreakRecords(daily: DailyMetrics[], today: Date = new Date()): StreakRecord[] {
   const active = new Set<string>()
   for (const d of daily) if (isActiveDay(d)) active.add(d.date)

@@ -93,9 +93,10 @@ describe('getAllStreakRecords', () => {
 describe('getMilestoneProgress', () => {
   it('finds next milestone and progress toward it', () => {
     const progress = getMilestoneProgress(45)
-    expect(progress.nextMilestone).toBe(50)
-    expect(progress.daysToGo).toBe(5)
-    expect(progress.percent).toBe(90)
+    expect(progress).not.toBeNull()
+    expect(progress!.nextMilestone).toBe(50)
+    expect(progress!.daysToGo).toBe(5)
+    expect(progress!.percent).toBe(90)
   })
 
   it('returns null when at a major milestone', () => {
@@ -106,7 +107,8 @@ describe('getMilestoneProgress', () => {
 
   it('works for milestone 1', () => {
     const progress = getMilestoneProgress(5)
-    expect(progress.nextMilestone).toBe(10)
-    expect(progress.daysToGo).toBe(5)
+    expect(progress).not.toBeNull()
+    expect(progress!.nextMilestone).toBe(10)
+    expect(progress!.daysToGo).toBe(5)
   })
 })
