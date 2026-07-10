@@ -63,6 +63,32 @@ function computeWeekly(active: Set<string>, today: Date): number {
   return weeks
 }
 
+// Найдовша серія тижнів поспіль з >= WEEKLY_MIN_DAYS активними днями за всю
+// історію. Поточний частковий тиждень рахується, лише якщо вже досяг порогу
+// (його count природно < порогу до того) — та сама семантика, що в computeWeekly.
+export function getWeeklyRecord(daily: DailyMetrics[], today: Date = new Date()): number {
+  const active = new Set<string>()
+  for (const d of daily) if (isActiveDay(d)) active.add(d.date)
+  if (active.size === 0) return 0
+
+  const first = [...active].sort()[0]
+  let monday = startOfWeek(new Date(first + 'T12:00:00'))
+  const lastMonday = startOfWeek(today)
+
+  let best = 0
+  let run = 0
+  while (monday.getTime() <= lastMonday.getTime()) {
+    if (countWeek(active, monday) >= WEEKLY_MIN_DAYS) {
+      run++
+      if (run > best) best = run
+    } else {
+      run = 0
+    }
+    monday = addDays(monday, 7)
+  }
+  return best
+}
+
 // Forward walk from the first active day. Freezes are earned by days BEFORE a
 // gap, so a backward walk cannot work: by the time it reaches the gap it has
 // only counted the days after it, and there is nothing to bridge with.
