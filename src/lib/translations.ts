@@ -916,8 +916,7 @@ export const translations: Record<string, { uk: string; en: string }> = {
   'заморожено': { uk: 'заморожено', en: 'frozen' },
   'Активных дней': { uk: 'Активних днів', en: 'Active days' },
   'Личный рекорд': { uk: 'Особистий рекорд', en: 'Personal record' },
-  'До': { uk: 'До', en: 'Until' },
-  'дней': { uk: 'днів', en: 'days' },
+  'До {n} дней': { uk: 'До {n} днів', en: 'Until {n} days' },
 
   'Подключи Apple Health, чтобы начать серию': {
     uk: 'Підключи Apple Health, щоб почати серію',
