@@ -6,9 +6,6 @@ export const MAX_FREEZES = 3        // cap on stored freezes
 export const WEEKLY_MIN_DAYS = 5    // active days needed for a week to "count"
 export const ACTIVE_STEPS_MIN = 7000   // steps to close the day
 export const ACTIVE_EXERCISE_MIN = 30  // exercise minutes to close the day
-// До этой даты «активный день» = «данные пришли»; история и стрик, заработанные
-// по старому правилу, не переписываются задним числом.
-export const ACTIVITY_RULE_SINCE = '2026-07-10'
 
 // Core metrics: a day has data if any of these is present.
 const CORE_KEYS: (keyof DailyMetrics)[] = ['steps', 'sleepHours', 'restingHeartRate', 'hrv']
@@ -29,10 +26,9 @@ export function hasDayData(d: DailyMetrics): boolean {
 }
 
 // «Активный день» — единый предикат всей стрик-механики (стрик, заморозки,
-// недели, рекорды, календарь, месячная статистика). С ACTIVITY_RULE_SINCE это
-// трекер привычки: день закрыт движением, а не фактом синка.
+// недели, рекорды, календарь, месячная статистика). Трекер привычки: день
+// закрыт движением, а не фактом синка; правило действует на всю историю.
 export function isActiveDay(d: DailyMetrics): boolean {
-  if (d.date < ACTIVITY_RULE_SINCE) return hasDayData(d)
   return (d.steps ?? 0) >= ACTIVE_STEPS_MIN || (d.exerciseMinutes ?? 0) >= ACTIVE_EXERCISE_MIN
 }
 

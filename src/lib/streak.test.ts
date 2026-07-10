@@ -121,14 +121,10 @@ describe('getWeeklyRecord', () => {
   })
 })
 
-describe('isActiveDay (activity rule with cutoff)', () => {
-  it('before the cutoff any day with data is active (old rule)', () => {
-    expect(isActiveDay({ date: '2026-07-09', hrv: 50 })).toBe(true)
-    expect(isActiveDay({ date: '2025-01-01', sleepHours: 7 })).toBe(true)
-  })
-
-  it('after the cutoff data alone is not enough', () => {
+describe('isActiveDay (activity rule)', () => {
+  it('synced data alone is not enough — applies to the whole history', () => {
     expect(isActiveDay({ date: '2026-07-15', hrv: 50, sleepHours: 8, steps: 3000 })).toBe(false)
+    expect(isActiveDay({ date: '2025-01-01', sleepHours: 7 })).toBe(false)
   })
 
   it('steps at or above the threshold make the day active', () => {
