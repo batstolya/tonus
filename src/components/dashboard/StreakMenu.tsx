@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import type { DailyMetrics } from '../../types'
-import { computeStreak, isActiveDay } from '../../lib/streak'
+import {
+  computeStreak, isActiveDay, hasDayData,
+  ACTIVE_STEPS_MIN, ACTIVE_EXERCISE_MIN,
+} from '../../lib/streak'
 import { useT } from '../../lib/i18n'
 import { ActivityCalendar } from './ActivityCalendar'
 import { StreakStats } from './StreakStats'
@@ -9,16 +12,33 @@ interface Props {
   daily: DailyMetrics[]
 }
 
+function ymd(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const dd = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${dd}`
+}
+
 // Compact topbar entry point. The full streak and calendar only take space
 // after the user asks for them, keeping the dashboard focused on health data.
 export function StreakMenu({ daily }: Props) {
-  const { t } = useT()
+  const { t, locale } = useT()
   const [open, setOpen] = useState(false)
   const now = new Date()
   const nowYm = { year: now.getFullYear(), month: now.getMonth() + 1 }
   const [ym, setYm] = useState(nowYm)
   const rootRef = useRef<HTMLDivElement>(null)
   const streak = computeStreak(daily)
+
+  // Сьогоднішній прогрес до порогу активності: показуємо, поки день не закритий.
+  const todayEntry = daily.find(d => d.date === ymd(now))
+  const todayActive = todayEntry ? isActiveDay(todayEntry) : false
+  const todayHasData = todayEntry ? hasDayData(todayEntry) : false
+  const todaySteps = todayEntry?.steps ?? 0
+  const todayExercise = todayEntry?.exerciseMinutes ?? 0
+  const todayPercent = Math.min(100, Math.round(
+    Math.max(todaySteps / ACTIVE_STEPS_MIN, todayExercise / ACTIVE_EXERCISE_MIN) * 100,
+  ))
 
   // Межа навігації назад — найраніший місяць з даними.
   const firstActive = daily.filter(isActiveDay).map(d => d.date).sort()[0]
@@ -77,7 +97,18 @@ export function StreakMenu({ daily }: Props) {
               <button type="button" className="streak-menu-close" onClick={() => setOpen(false)} aria-label={t('Закрыть')}>×</button>
             </div>
           </div>
-          {streak.todayPending && (
+          {!todayActive && todayHasData && (
+            <div className="streak-menu-today">
+              <span className="streak-menu-today-text">
+                {t('Сегодня')}: 🚶 {todaySteps.toLocaleString(locale)} / {ACTIVE_STEPS_MIN.toLocaleString(locale)}
+                {' · '}🏃 {todayExercise} / {ACTIVE_EXERCISE_MIN} {t('мин')}
+              </span>
+              <div className="streak-menu-today-bar">
+                <div className="streak-menu-today-fill" style={{ width: `${todayPercent}%` }} />
+              </div>
+            </div>
+          )}
+          {!todayHasData && streak.todayPending && (
             <div className="streak-menu-pending">{t('Синхронизация ожидается')}</div>
           )}
           <ActivityCalendar

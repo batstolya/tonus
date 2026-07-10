@@ -1988,6 +1988,16 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 .streak-menu-pending {
   font-size: 11px; color: var(--text-muted); padding: 4px 14px 0;
 }
+.streak-menu-today {
+  display: flex; flex-direction: column; gap: 4px; padding: 6px 14px 0;
+}
+.streak-menu-today-text { font-size: 11px; color: var(--text-muted); }
+.streak-menu-today-bar {
+  height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden;
+}
+.streak-menu-today-fill {
+  height: 100%; background: var(--green); border-radius: 2px; transition: width 0.4s ease-out;
+}
 .streak-menu-close {
   width: 24px; height: 24px; display: grid; place-items: center;
   color: var(--text-muted); background: transparent; border: none; border-radius: 6px;
@@ -2039,7 +2049,11 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 .activity-cal-cell.blank { background: transparent; }
 .activity-cal-cell.status-active { background: var(--green); color: #fff; }
 .activity-cal-cell.status-frozen { background: var(--surface2); }
-.activity-cal-cell.status-missed { background: var(--surface2); color: var(--text-muted); }
+/* idle: дані є, поріг руху не закритий; missed: даних нема (дірка в синку) */
+.activity-cal-cell.status-idle { background: var(--surface2); color: var(--text-muted); }
+.activity-cal-cell.status-missed {
+  border: 1px solid var(--border); color: var(--text-muted); opacity: 0.55;
+}
 .activity-cal-cell.status-future { color: var(--text-muted); opacity: 0.45; }
 .activity-cal-cell.is-today { outline: 2px solid var(--accent); outline-offset: 1px; }
 
