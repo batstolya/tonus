@@ -1,7 +1,11 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { localToIso } from '../_shared/time.ts'
+import { localToIso, localDate } from '../_shared/time.ts'
 import { isValidCronSecret } from '../_shared/auth.ts'
+import {
+  deliverReminder, nextActionOnFailure,
+  type ClaimedReminder, type TelegramTransport,
+} from '../_shared/reminderDelivery.ts'
 
 const TG_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -39,6 +43,7 @@ serve(async (req) => {
   if (!isValidCronSecret(req, CRON_SECRET)) return new Response('unauthorized', { status: 401 })
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
   const nowMs = Date.now()
+  const runId = crypto.randomUUID()
 
   // ── 1. Создать события для наступивших доз ──────────────────────────────────
   const { data: settings } = await supabase
@@ -69,62 +74,91 @@ serve(async (req) => {
     }
   }
 
-  // ── 2. Отправить pending + наступившие snooze ───────────────────────────────
-  const { data: due } = await supabase
-    .from('reminder_events')
-    .select('id, user_id, supplement_id, status, snooze_until, supplements(name, default_dose, unit)')
-    .in('status', ['pending', 'snoozed'])
-    .limit(100)
-
-  let sent = 0
-  for (const ev of due ?? []) {
-    if (ev.status === 'snoozed' && ev.snooze_until && new Date(ev.snooze_until).getTime() > nowMs) continue
-
-    // уже отмечен на сайте сегодня? → пропустить (двусторонняя синхронизация частично)
-    const today = new Date().toISOString().slice(0, 10)
-    const { data: log } = await supabase
-      .from('supplement_logs')
-      .select('taken')
-      .eq('user_id', ev.user_id)
-      .eq('supplement_id', ev.supplement_id)
-      .eq('date', today)
-      .maybeSingle()
-    if (log?.taken) {
-      await supabase.from('reminder_events').update({ status: 'taken', responded_at: new Date().toISOString() }).eq('id', ev.id)
-      continue
-    }
-
-    // привязанный telegram-чат
-    const { data: link } = await supabase
-      .from('telegram_links')
-      .select('telegram_chat_id')
-      .eq('user_id', ev.user_id)
-      .eq('status', 'active')
-      .maybeSingle()
-    if (!link?.telegram_chat_id) continue
-
-    const sup: any = ev.supplements
-    const dose = sup?.default_dose ? ` ${sup.default_dose}${sup.unit ? ' ' + sup.unit : ''}` : ''
-    const keyboard = {
-      inline_keyboard: [
-        [{ text: '✅ Принял', callback_data: `rem_take_${ev.id}` }],
-        [
-          { text: '⏰ +1 час', callback_data: `rem_snz_${ev.id}_60` },
-          { text: '⏰ +2 часа', callback_data: `rem_snz_${ev.id}_120` },
-        ],
-        [{ text: '⏭ Пропустить', callback_data: `rem_skip_${ev.id}` }],
-      ],
-    }
-    const msgId = await tgSend(
-      link.telegram_chat_id,
-      `💊 Пора принять <b>${sup?.name ?? 'препарат'}</b>${dose}`,
-      keyboard
-    )
-    await supabase.from('reminder_events')
-      .update({ status: 'sent', tg_message_id: msgId })
-      .eq('id', ev.id)
-    sent++
+  // ── 2. Доставка due-событий через атомарный claim (спека automation §2.2–2.3) ─
+  // Claim RPC (FOR UPDATE SKIP LOCKED) исключает дубли при overlapping cron.
+  // Каждый переход подтверждается claim_token; ошибка одной строки не
+  // прерывает batch (§4.1).
+  const { data: claimedRows, error: claimErr } = await supabase
+    .rpc('claim_due_reminder_events', { p_limit: 20 })
+  if (claimErr) {
+    // Ошибка конфигурации/схемы — job обязан упасть видимо, а не вернуть 200 (§4.1).
+    return new Response(JSON.stringify({ runId, error: `claim failed: ${claimErr.message}` }), {
+      status: 500, headers: { 'Content-Type': 'application/json' },
+    })
   }
+  const claimed = (claimedRows ?? []) as ClaimedReminder[]
+  const transport: TelegramTransport = (body) =>
+    fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+
+  let sent = 0, skipped = 0, retried = 0, failed = 0, deliveryUnknown = 0
+  for (const ev of claimed) {
+    try {
+      // §2.4: локальная дата события в его timezone (не UTC-дата сервера) —
+      // доза, принятая поздно вечером по Киеву, не «уезжает» на завтра.
+      const localDay = localDate(ev.timezone || 'Europe/Kyiv', new Date(ev.due_at))
+      const { data: log } = await supabase
+        .from('supplement_logs')
+        .select('taken')
+        .eq('user_id', ev.user_id)
+        .eq('supplement_id', ev.supplement_id)
+        .eq('date', localDay)
+        .maybeSingle()
+      if (log?.taken) {
+        await supabase.rpc('complete_reminder_delivery', {
+          p_event_id: ev.id, p_claim_token: ev.claim_token, p_status: 'taken',
+        })
+        skipped++
+        continue
+      }
+
+      if (!ev.telegram_chat_id) {
+        // подтверждённый неуспех: ретрай по policy, после лимита — failed
+        await supabase.rpc('fail_reminder_delivery', {
+          p_event_id: ev.id, p_claim_token: ev.claim_token,
+          p_error: 'no active telegram link', p_unknown: false,
+        })
+        if (nextActionOnFailure(ev.attempt_count, false) === 'retry') retried++
+        else failed++
+        continue
+      }
+
+      const outcome = await deliverReminder(transport, ev)
+      if (outcome.kind === 'sent') {
+        await supabase.rpc('complete_reminder_delivery', {
+          p_event_id: ev.id, p_claim_token: ev.claim_token,
+          p_telegram_message_id: outcome.messageId,
+        })
+        sent++
+      } else {
+        const unknown = outcome.kind === 'unknown'
+        await supabase.rpc('fail_reminder_delivery', {
+          p_event_id: ev.id, p_claim_token: ev.claim_token,
+          p_error: outcome.error, p_unknown: unknown,
+        })
+        const action = nextActionOnFailure(ev.attempt_count, unknown)
+        if (action === 'retry') retried++
+        else if (action === 'delivery_unknown') deliveryUnknown++
+        else failed++
+      }
+    } catch (e) {
+      // Неожиданная ошибка строки — фиксируем и продолжаем batch (§4.1).
+      await supabase.rpc('fail_reminder_delivery', {
+        p_event_id: ev.id, p_claim_token: ev.claim_token,
+        p_error: String(e).slice(0, 500), p_unknown: false,
+      }).catch(() => {})
+      failed++
+    }
+  }
+
+  // backlog против SLO (§4.2): сколько due-событий осталось после этого тика
+  const { count: remaining } = await supabase
+    .from('reminder_events')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'pending')
 
   // ── 3. Пометить просроченные как missed (sent > 3ч без ответа) ───────────────
   const staleBefore = new Date(nowMs - 3 * 3600 * 1000).toISOString()
@@ -306,7 +340,10 @@ serve(async (req) => {
       const avgF = (a: number[]) => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null
       const sinceM = new Date(nowMs - 21 * 86400000).toISOString().slice(0, 10)
       const sinceE = new Date(nowMs - 7 * 86400000).toISOString()
-      const kyivHour = (iso: string) => (new Date(iso).getUTCHours() + 3) % 24
+      // §2.4: настоящий час в Киеве через Intl (жёсткое +3 ломалось на зимнем времени)
+      const kyivHour = (iso: string) => Number(new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Europe/Kyiv', hour: '2-digit', hour12: false,
+      }).format(new Date(iso)))
 
       for (const l of links ?? []) {
         const { data: rs } = await supabase.from('report_settings').select('paused').eq('user_id', l.user_id).maybeSingle()
@@ -456,7 +493,19 @@ serve(async (req) => {
     }
   }
 
-  return new Response(JSON.stringify({ created, sent, notesSent, reportsSent, morningsSent, alertsSent, nudgesSent, followupsSent, generalRemindersSent }), {
+  // Structured execution result (§4.1) + backlog signal (§4.2)
+  return new Response(JSON.stringify({
+    runId,
+    claimed: claimed.length,
+    sent,
+    skipped,
+    retried,
+    failed,
+    deliveryUnknown,
+    remaining: remaining ?? 0,
+    durationMs: Date.now() - nowMs,
+    created, notesSent, reportsSent, morningsSent, alertsSent, nudgesSent, followupsSent, generalRemindersSent,
+  }), {
     headers: { 'Content-Type': 'application/json' },
   })
 })
