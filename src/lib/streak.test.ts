@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { computeStreak, getWeeklyRecord, FREEZE_EARN_EVERY, MAX_FREEZES, WEEKLY_MIN_DAYS } from './streak'
+import { computeStreak, getWeeklyRecord, isActiveDay, hasDayData, FREEZE_EARN_EVERY, MAX_FREEZES, WEEKLY_MIN_DAYS, ACTIVE_STEPS_MIN, ACTIVE_EXERCISE_MIN } from './streak'
 import type { DailyMetrics } from '../types'
 
 // Build a DailyMetrics with `steps` so the day counts as "active".
 function day(date: string): DailyMetrics {
-  return { date, steps: 5000 }
+  return { date, steps: 12000 }
 }
 // A day present in the array but with no core metric → NOT active.
 function emptyDay(date: string): DailyMetrics {
@@ -118,5 +118,36 @@ describe('getWeeklyRecord', () => {
     // З 4 днями поточний тиждень ще не рахується.
     const notReached = [...base, ...week('2026-07-06', 4)]
     expect(getWeeklyRecord(notReached, new Date('2026-07-10T12:00:00'))).toBe(1)
+  })
+})
+
+describe('isActiveDay (activity rule with cutoff)', () => {
+  it('before the cutoff any day with data is active (old rule)', () => {
+    expect(isActiveDay({ date: '2026-07-09', hrv: 50 })).toBe(true)
+    expect(isActiveDay({ date: '2025-01-01', sleepHours: 7 })).toBe(true)
+  })
+
+  it('after the cutoff data alone is not enough', () => {
+    expect(isActiveDay({ date: '2026-07-15', hrv: 50, sleepHours: 8, steps: 3000 })).toBe(false)
+  })
+
+  it('steps at or above the threshold make the day active', () => {
+    expect(isActiveDay({ date: '2026-07-15', steps: ACTIVE_STEPS_MIN })).toBe(true)
+    expect(isActiveDay({ date: '2026-07-15', steps: ACTIVE_STEPS_MIN - 1 })).toBe(false)
+  })
+
+  it('exercise minutes at or above the threshold make the day active', () => {
+    expect(isActiveDay({ date: '2026-07-15', exerciseMinutes: ACTIVE_EXERCISE_MIN, steps: 100 })).toBe(true)
+    expect(isActiveDay({ date: '2026-07-15', exerciseMinutes: ACTIVE_EXERCISE_MIN - 1 })).toBe(false)
+  })
+})
+
+describe('hasDayData', () => {
+  it('is true when any core metric is present, regardless of date', () => {
+    expect(hasDayData({ date: '2026-07-15', hrv: 50 })).toBe(true)
+    expect(hasDayData({ date: '2026-07-09', steps: 100 })).toBe(true)
+  })
+  it('is false for an empty day', () => {
+    expect(hasDayData({ date: '2026-07-15' })).toBe(false)
   })
 })
