@@ -1,10 +1,14 @@
 import { motion } from 'motion/react'
 import type { DailyMetrics } from '../../types'
-import { computeStreak, isActiveDay } from '../../lib/streak'
+import { computeStreak, isActiveDay, WEEKLY_MIN_DAYS } from '../../lib/streak'
 import { useT } from '../../lib/i18n'
 
 interface Props {
   daily: DailyMetrics[]
+  year: number
+  month: number // 1-12
+  minYm: string // 'YYYY-MM' — найраніший місяць з даними (межа навігації назад)
+  onNavigate: (year: number, month: number) => void
 }
 
 function ymd(date: Date): string {
@@ -16,10 +20,11 @@ function ymd(date: Date): string {
 
 type Status = 'active' | 'frozen' | 'missed' | 'future'
 
-// Текущий месяц кружками-днями (в духе mate.academy): активный залит, сегодня
-// подсвечен, закрытый заморозкой — ❄️. Чистый CSS-grid, без recharts.
-export function ActivityCalendar({ daily }: Props) {
-  const { t } = useT()
+// Календар обраного місяця (в духе mate.academy): дні-кружки + колонка
+// тижневих чекмарок зліва (тиждень з >= WEEKLY_MIN_DAYS активними днями).
+// Навігація ‹ › в межах [minYm, поточний місяць]. Чистий CSS-grid, без recharts.
+export function ActivityCalendar({ daily, year, month, minYm, onNavigate }: Props) {
+  const { t, locale } = useT()
   const today = new Date()
   const todayStr = ymd(today)
 
@@ -27,50 +32,89 @@ export function ActivityCalendar({ daily }: Props) {
   for (const d of daily) if (isActiveDay(d)) active.add(d.date)
   const frozen = new Set(computeStreak(daily, today).frozenDates)
 
-  const year = today.getFullYear()
-  const month = today.getMonth()
-  const first = new Date(year, month, 1)
-  const daysInMonth = new Date(year, month + 1, 0).getDate()
-  const leadBlanks = (first.getDay() + 6) % 7 // Mon-first grid
+  const m0 = month - 1
+  const first = new Date(year, m0, 1)
+  const daysInMonth = new Date(year, m0 + 1, 0).getDate()
+  const lead = (first.getDay() + 6) % 7 // Mon-first grid
+  const weeksCount = Math.ceil((lead + daysInMonth) / 7)
 
-  const cells: { key: string; blank?: boolean; date?: string; day?: number; status?: Status }[] = []
-  for (let i = 0; i < leadBlanks; i++) cells.push({ key: `b${i}`, blank: true })
-  for (let d = 1; d <= daysInMonth; d++) {
-    const date = ymd(new Date(year, month, d))
-    let status: Status
-    if (date > todayStr) status = 'future'
-    else if (active.has(date)) status = 'active'
-    else if (frozen.has(date)) status = 'frozen'
-    else status = 'missed'
-    cells.push({ key: date, date, day: d, status })
+  const statusOf = (date: string): Status => {
+    if (date > todayStr) return 'future'
+    if (active.has(date)) return 'active'
+    if (frozen.has(date)) return 'frozen'
+    return 'missed'
   }
 
-  const label = (status?: Status) =>
+  // Тиждень рахується по повному Пн-Нд, включно з днями сусідніх місяців —
+  // так само тижні рахує computeWeekly/getWeeklyRecord.
+  const weekMonday = (w: number) => new Date(year, m0, 1 - lead + w * 7)
+  const weekActive = (monday: Date) => {
+    let n = 0
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday)
+      d.setDate(d.getDate() + i)
+      if (active.has(ymd(d))) n++
+    }
+    return n
+  }
+
+  const ym = `${year}-${String(month).padStart(2, '0')}`
+  const nowYm = todayStr.slice(0, 7)
+  const canPrev = ym > minYm
+  const canNext = ym < nowYm
+  const shift = (delta: number) => {
+    const d = new Date(year, m0 + delta, 1)
+    onNavigate(d.getFullYear(), d.getMonth() + 1)
+  }
+  const monthLabel = new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(first)
+
+  const label = (status: Status) =>
     status === 'active' ? t('данные есть') : status === 'frozen' ? t('заморожено') : status === 'missed' ? t('пропуск') : ''
 
   const weekdays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
 
   return (
     <div className="activity-cal">
-      <div className="activity-cal-title">{t('Активность')}</div>
+      <div className="activity-cal-nav">
+        <button type="button" className="activity-cal-arrow" onClick={() => shift(-1)}
+          disabled={!canPrev} aria-label={t('Предыдущий месяц')}>‹</button>
+        <span className="activity-cal-month">{monthLabel}</span>
+        <button type="button" className="activity-cal-arrow" onClick={() => shift(1)}
+          disabled={!canNext} aria-label={t('Следующий месяц')}>›</button>
+      </div>
       <div className="activity-cal-grid">
+        <div className="activity-cal-dow" />
         {weekdays.map(w => <div key={w} className="activity-cal-dow">{t(w)}</div>)}
-        {cells.map((c, i) =>
-          c.blank ? (
-            <div key={c.key} className="activity-cal-cell blank" />
-          ) : (
-            <motion.div
-              key={c.key}
-              className={`activity-cal-cell status-${c.status}${c.date === todayStr ? ' is-today' : ''}`}
-              title={label(c.status)}
-              initial={{ opacity: 0, scale: 0.6 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: Math.min(0.4, i * 0.008), duration: 0.2 }}
-            >
-              {c.status === 'frozen' ? '❄️' : c.day}
-            </motion.div>
-          )
-        )}
+        {Array.from({ length: weeksCount }, (_, w) => {
+          const monday = weekMonday(w)
+          const done = weekActive(monday) >= WEEKLY_MIN_DAYS
+          return [
+            <div key={`w${ymd(monday)}`} className={`activity-cal-week${done ? ' done' : ''}`} aria-hidden>
+              {done ? '✓' : ''}
+            </div>,
+            ...Array.from({ length: 7 }, (_, i) => {
+              const d = new Date(monday)
+              d.setDate(d.getDate() + i)
+              const date = ymd(d)
+              if (d.getMonth() !== m0) {
+                return <div key={date} className="activity-cal-cell adjacent">{d.getDate()}</div>
+              }
+              const status = statusOf(date)
+              return (
+                <motion.div
+                  key={date}
+                  className={`activity-cal-cell status-${status}${date === todayStr ? ' is-today' : ''}`}
+                  title={label(status)}
+                  initial={{ opacity: 0, scale: 0.6 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: Math.min(0.4, (w * 7 + i) * 0.008), duration: 0.2 }}
+                >
+                  {status === 'frozen' ? '❄️' : d.getDate()}
+                </motion.div>
+              )
+            }),
+          ]
+        })}
       </div>
     </div>
   )
