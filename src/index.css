@@ -815,6 +815,9 @@ body {
   .sync-label { display: none !important; }
   .signout-btn { display: none !important; }
   .theme-toggle { display: none !important; }
+  .streak-menu-trigger { min-height: 32px; padding: 0 8px; }
+  .streak-menu-label { display: none; }
+  .streak-menu-panel { right: -42px; width: min(420px, calc(100vw - 24px)); max-height: calc(100vh - 68px); }
 
   /* Show burger on mobile */
   .burger-btn { display: flex !important; align-items: center; justify-content: center; }
@@ -1963,6 +1966,46 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 .streak-metric-emoji { font-size: 20px; line-height: 1; }
 .streak-metric-value { font-size: 28px; font-weight: 700; }
 .streak-metric-label { font-size: 12px; color: var(--text-muted); }
+
+/* Compact topbar entry point. The full streak and calendar open on demand. */
+.streak-menu { position: relative; }
+.streak-menu-trigger {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 34px; padding: 0 10px;
+  color: var(--text); background: var(--surface2);
+  border: 1px solid var(--border); border-radius: 8px;
+  font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.streak-menu-trigger:hover, .streak-menu-trigger.active { background: var(--border); border-color: var(--accent-border); }
+.streak-menu-flame { font-size: 17px; line-height: 1; }
+.streak-menu-count { font-size: 15px; font-variant-numeric: tabular-nums; }
+.streak-menu-label { color: var(--text-muted); font-weight: 500; }
+.streak-menu-panel {
+  position: absolute; z-index: 20; top: calc(100% + 10px); right: 0;
+  width: min(420px, calc(100vw - 32px)); max-height: calc(100vh - 78px);
+  overflow-y: auto; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; box-shadow: var(--card-shadow); animation: fadeIn 0.18s ease-out;
+}
+.streak-menu-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px 0; font-size: 15px; font-weight: 700;
+}
+.streak-menu-close {
+  width: 28px; height: 28px; display: grid; place-items: center;
+  color: var(--text-muted); background: transparent; border: none; border-radius: 6px;
+  font-size: 22px; line-height: 1; cursor: pointer;
+}
+.streak-menu-close:hover { color: var(--text); background: var(--surface2); }
+.streak-menu-panel .streak-widget,
+.streak-menu-panel .activity-cal {
+  margin: 0; padding: 14px 16px; border: none; border-radius: 0; box-shadow: none; background: transparent;
+}
+.streak-menu-panel .streak-widget { border-bottom: 1px solid var(--border); }
+.streak-menu-panel .streak-widget-head { margin-bottom: 10px; }
+.streak-menu-panel .streak-widget-row { gap: 28px; }
+.streak-menu-panel .activity-cal-title { margin-bottom: 10px; }
+.streak-menu-panel .activity-cal-grid { max-width: none; }
 
 /* ── Gamified home: activity calendar ───────────────────────── */
 .activity-cal {

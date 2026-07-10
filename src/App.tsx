@@ -15,6 +15,7 @@ import { DashboardSkeleton, ScreenSkeleton } from './components/ui/Skeleton'
 // в стартовый бандл (лендинг и авторизация открываются без них).
 const UploadScreen = lazy(() => import('./components/upload/UploadScreen').then(m => ({ default: m.UploadScreen })))
 const Dashboard = lazy(() => import('./components/dashboard/Dashboard').then(m => ({ default: m.Dashboard })))
+const StreakMenu = lazy(() => import('./components/dashboard/StreakMenu').then(m => ({ default: m.StreakMenu })))
 const HealthAlertBanner = lazy(() => import('./components/dashboard/HealthAlertBanner'))
 const HeartRateScreen = lazy(() => import('./components/heart-rate/HeartRateScreen').then(m => ({ default: m.HeartRateScreen })))
 const MetricsScreen = lazy(() => import('./components/metrics/MetricsScreen').then(m => ({ default: m.MetricsScreen })))
@@ -319,6 +320,11 @@ export default function App() {
             </nav>
 
             <div className="topbar-right">
+              {hasData && (
+                <Suspense fallback={null}>
+                  <StreakMenu daily={state.daily} />
+                </Suspense>
+              )}
               <div className="lang-picker">
                 <button
                   className="theme-toggle lang-toggle"

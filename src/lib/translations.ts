@@ -907,6 +907,7 @@ export const translations: Record<string, { uk: string; en: string }> = {
   // ── Серия (геймифицированный home) ─────────────────────────
   'Серия': { uk: 'Серія', en: 'Streak' },
   'Дней подряд': { uk: 'Днів поспіль', en: 'Day streak' },
+  'Закрыть': { uk: 'Закрити', en: 'Close' },
   'Заморозки': { uk: 'Заморозки', en: 'Freezes' },
   'Недель подряд': { uk: 'Тижнів поспіль', en: 'Week streak' },
   'Синхронизация ожидается': { uk: 'Синхронізація очікується', en: 'Sync pending' },
