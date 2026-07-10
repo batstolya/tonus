@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { computeStreak, FREEZE_EARN_EVERY, MAX_FREEZES, WEEKLY_MIN_DAYS } from './streak'
+import { computeStreak, getWeeklyRecord, FREEZE_EARN_EVERY, MAX_FREEZES, WEEKLY_MIN_DAYS } from './streak'
 import type { DailyMetrics } from '../types'
 
 // Build a DailyMetrics with `steps` so the day counts as "active".
@@ -77,5 +77,46 @@ describe('computeStreak', () => {
     const s = computeStreak(run('2026-07-09', 14), TODAY)
     expect(WEEKLY_MIN_DAYS).toBe(5)
     expect(s.weekly).toBeGreaterThanOrEqual(1)
+  })
+})
+
+describe('getWeeklyRecord', () => {
+  // Тиждень Пн-Нд з n активними днями від понеділка `monday`.
+  function week(monday: string, n: number): DailyMetrics[] {
+    const out: DailyMetrics[] = []
+    const start = new Date(monday + 'T12:00:00')
+    for (let i = 0; i < n; i++) {
+      const d = new Date(start)
+      d.setDate(d.getDate() + i)
+      out.push(day(d.toISOString().slice(0, 10)))
+    }
+    return out
+  }
+
+  it('returns 0 for empty data', () => {
+    expect(getWeeklyRecord([], new Date('2026-07-10T12:00:00'))).toBe(0)
+  })
+
+  it('returns 0 when no week reaches the threshold', () => {
+    expect(getWeeklyRecord(week('2026-06-01', 4), new Date('2026-07-10T12:00:00'))).toBe(0)
+  })
+
+  it('finds the longest run even if it is not the last one', () => {
+    const data = [
+      ...week('2026-05-04', 5), ...week('2026-05-11', 5), ...week('2026-05-18', 5), // 3 тижні
+      ...week('2026-05-25', 2),                                                     // розрив
+      ...week('2026-06-01', 5), ...week('2026-06-08', 5),                           // 2 тижні
+    ]
+    expect(getWeeklyRecord(data, new Date('2026-06-14T12:00:00'))).toBe(3)
+  })
+
+  it('counts the current partial week only once it reaches the threshold', () => {
+    const base = [...week('2026-06-29', 7)] // повний минулий тиждень
+    // Поточний тиждень (Пн 2026-07-06), сьогодні п'ятниця 2026-07-10: 5 активних днів.
+    const reached = [...base, ...week('2026-07-06', 5)]
+    expect(getWeeklyRecord(reached, new Date('2026-07-10T12:00:00'))).toBe(2)
+    // З 4 днями поточний тиждень ще не рахується.
+    const notReached = [...base, ...week('2026-07-06', 4)]
+    expect(getWeeklyRecord(notReached, new Date('2026-07-10T12:00:00'))).toBe(1)
   })
 })
