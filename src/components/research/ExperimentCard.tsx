@@ -70,7 +70,8 @@ export function ExperimentCard({ exp, daily, aiLoading, aiError, onExplain, onDe
   const [showAI, setShowAI] = useState(false)
   const st = expStatusInfo(exp)
   const result = computeResult(daily, exp)
-  const hasResult = st.kind !== 'planned' && result.insufficient === null
+  const finished = st.kind === 'done' || st.kind === 'cancelled'
+  const hasResult = finished && result.insufficient === null
     && result.baselineMean !== null && result.expMean !== null
 
   const total = Math.max(1, daysBetween(exp.start_date, exp.end_date))
@@ -115,7 +116,7 @@ export function ExperimentCard({ exp, daily, aiLoading, aiError, onExplain, onDe
         <p className="settings-muted expd-note">{t('Начнётся {d}', { d: exp.start_date })}</p>
       )}
 
-      {(st.kind === 'done' || st.kind === 'cancelled') && (hasResult
+      {finished && (hasResult
         ? <ResultRow r={result} t={t} />
         : (
           <div className="expd-nodata">
