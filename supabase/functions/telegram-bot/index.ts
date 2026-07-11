@@ -747,7 +747,12 @@ serve(async (req) => {
         // уже обработано (повторное нажатие) — просто убираем кнопки, без новых записей
         await resolve(`${ev.status === 'taken' ? '✅' : '⏭'} <b>${name}</b> — уже отмечено сегодня.`)
       } else if (action === 'take') {
-        const today = now.slice(0, 10)
+        // Дата приёма — локальный день ДОЗЫ (due_at в tz напоминания), не UTC-«сейчас»:
+        // поздний приём после полуночи по Киеву не уезжает на другой день (§2.4).
+        const { data: rs } = await supabase
+          .from('reminder_settings').select('timezone')
+          .eq('user_id', userId).eq('supplement_id', ev.supplement_id).maybeSingle()
+        const today = localDate(rs?.timezone || 'Europe/Kyiv', ev.due_at ? new Date(ev.due_at) : new Date())
         await supabase.from('supplement_logs').upsert(
           { user_id: userId, supplement_id: ev.supplement_id, date: today, taken: true },
           { onConflict: 'user_id,supplement_id,date' }
