@@ -2,6 +2,8 @@
 // Один источник правды: бот, коуч, отчёты используют его, чтобы логика
 // контекста не разъезжалась между функциями (см. new-speca-refactoring #1).
 
+import { plannedDaysInRange, attendance } from './workoutPlan.ts'
+
 export interface HealthContextOptions {
   periodDays?: number          // окно агрегации (по умолчанию 14)
   includeCoachProfile?: boolean // подмешивать память коуча сверху
@@ -29,6 +31,9 @@ export interface HealthContext {
   hairEntries: { date: string; shedding_level: number | null; density_rating: number | null; hairline_rating: number | null; scalp_note: string | null }[]
   alerts: { date: string | null; level: 'yellow' | 'red'; message: string }[]
   recommendations: { metric: string; text: string; status: string; created_at: string }[]
+  // расписание тренировок + дни-факты за 7 дней (exerciseMinutes ≥ 30 ∪ workout intake)
+  workoutSchedule: { weekdays: number[]; time: string; enabled: boolean } | null
+  workoutDoneDays: string[]
 }
 
 const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
@@ -82,7 +87,9 @@ export async function buildHealthContext(
   const since = new Date(); since.setDate(since.getDate() - periodDays)
   const sinceStr = since.toISOString().slice(0, 10)
 
-  const [profRes, scoreRes, mRes, sRes, labRes, supRes, intakeRes, logRes, notesRes, calRes, goalRes, expRes, envRes, concernRes, concernLogRes, hairRes, alertRes, recRes] = await Promise.all([
+  const since7 = new Date(); since7.setDate(since7.getDate() - 7)
+  const since7Str = since7.toISOString().slice(0, 10)
+  const [profRes, scoreRes, mRes, sRes, labRes, supRes, intakeRes, logRes, notesRes, calRes, goalRes, expRes, envRes, concernRes, concernLogRes, hairRes, alertRes, recRes, wsRes, exminRes] = await Promise.all([
     opts.includeCoachProfile
       ? supabase.from('coach_profile').select('summary, facts').eq('user_id', userId).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -138,6 +145,13 @@ export async function buildHealthContext(
       .select('metric, text, status, created_at')
       .eq('user_id', userId).in('status', ['accepted', 'dismissed', 'snoozed'])
       .order('created_at', { ascending: false }).limit(10),
+    supabase.from('workout_schedule')
+      .select('weekdays, time, enabled')
+      .eq('user_id', userId).maybeSingle(),
+    // exerciseMinutes живёт только в EAV (нет в daily_metrics view) — прямой запрос допустим
+    supabase.from('metrics_daily')
+      .select('date, sum_val')
+      .eq('user_id', userId).eq('metric', 'exerciseMinutes').gte('date', since7Str),
   ])
 
   // Последовательный follow-up: тренд goal_progress зависит от только что
@@ -171,6 +185,11 @@ export async function buildHealthContext(
   // Легаси-строки health_alerts (dedup напоминаний) не несут level/message — фильтруем.
   const alerts = (alertRes.data ?? []).filter((a) => a.level != null)
 
+  // Факт тренировки за 7 дней: exerciseMinutes ≥ 30 (порог стрика) ∪ workout из intake
+  const workoutDone = new Set<string>()
+  for (const r of exminRes.data ?? []) if ((r.sum_val ?? 0) >= 30) workoutDone.add(r.date)
+  for (const e of intakeRes.data ?? []) if (e.type === 'workout' && e.ts >= `${since7Str}T00:00:00Z`) workoutDone.add(String(e.ts).slice(0, 10))
+
   const prof = profRes.data
   return {
     periodDays,
@@ -192,6 +211,8 @@ export async function buildHealthContext(
     hairEntries: hairRes.data ?? [],
     alerts,
     recommendations: recRes.data ?? [],
+    workoutSchedule: wsRes.data ?? null,
+    workoutDoneDays: [...workoutDone],
   }
 }
 
@@ -218,6 +239,20 @@ export function healthContextToText(ctx: HealthContext): string {
     if (s.rhr_baseline != null) base.push(`пульс покоя ~${Math.round(s.rhr_baseline)}`)
     if (s.sleep_baseline != null) base.push(`сон ~${s.sleep_baseline.toFixed(1)}ч`)
     if (base.length) parts.push(`Персональная норма (30 дней): ${base.join(', ')}. Сравнивай текущие значения с этой нормой, а не с абсолютной.`)
+  }
+
+  if (ctx.workoutSchedule?.enabled && ctx.workoutSchedule.weekdays?.length) {
+    const ws = ctx.workoutSchedule
+    const names = ['', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
+    // сегодня и понедельник текущей недели в tz пользователя
+    const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: ctx.timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
+    const t = new Date(todayStr + 'T00:00:00Z')
+    const todayWd = t.getUTCDay() === 0 ? 7 : t.getUTCDay()
+    const monday = new Date(t); monday.setUTCDate(t.getUTCDate() - (todayWd - 1))
+    const planned = plannedDaysInRange(ws.weekdays, monday.toISOString().slice(0, 10), todayStr)
+    const a = attendance(planned, new Set(ctx.workoutDoneDays))
+    const today = ws.weekdays.includes(todayWd) ? `сегодня плановая тренировка в ${ws.time}` : 'сегодня отдых по плану'
+    parts.push(`=== ТРЕНИРОВКИ ===\nПлан: ${ws.weekdays.map(d => names[d]).join('/')} в ${ws.time}. Эта неделя: ${a.done} из ${a.total} (по сегодня). ${today.charAt(0).toUpperCase() + today.slice(1)}.`)
   }
 
   const rows = ctx.metrics
