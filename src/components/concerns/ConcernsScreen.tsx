@@ -8,6 +8,7 @@ import {
 } from '../../lib/concerns'
 import { LoadError } from '../ui/LoadError'
 import { useT } from '../../lib/i18n'
+import { isMasked, loadPinHash, unlock } from '../../lib/privacy'
 
 interface Props { user: User; onNavigateHair?: () => void }
 
@@ -184,12 +185,21 @@ export function ConcernsScreen({ user, onNavigateHair }: Props) {
   const [category, setCategory] = useState('skin')
   const [startedAt, setStartedAt] = useState('')
   const [notes, setNotes] = useState('')
+  const [isPrivate, setIsPrivate] = useState(false)
   const [saving, setSaving] = useState(false)
+
+  // Приватность: PIN задан? какая карточка ждёт разблокировки?
+  const [pinSet, setPinSet] = useState(false)
+  const [unlockFor, setUnlockFor] = useState<HealthConcern | null>(null)
+  const [pinInput, setPinInput] = useState('')
+  const [pinError, setPinError] = useState(false)
 
   const [loadError, setLoadError] = useState(false)
   const reload = useCallback(async () => {
     try {
-      setConcerns(await loadAllConcerns(user.id))
+      const [cs, hash] = await Promise.all([loadAllConcerns(user.id), loadPinHash(user.id)])
+      setConcerns(cs)
+      setPinSet(!!hash)
       setLoadError(false)
     } catch {
       setLoadError(true)
@@ -204,10 +214,21 @@ export function ConcernsScreen({ user, onNavigateHair }: Props) {
     const c = await addConcern(user.id, {
       name: name.trim(), category, status: 'active',
       started_at: startedAt || null, notes: notes.trim() || null,
+      is_private: isPrivate && pinSet,
     })
     if (c) setConcerns(prev => [c, ...prev])
-    setName(''); setNotes(''); setStartedAt(''); setShowForm(false)
+    setName(''); setNotes(''); setStartedAt(''); setIsPrivate(false); setShowForm(false)
     setSaving(false)
+  }
+
+  async function handleUnlock() {
+    if (await unlock(user.id, pinInput)) {
+      const c = unlockFor
+      setUnlockFor(null); setPinInput(''); setPinError(false)
+      if (c) setSelected(c)
+    } else {
+      setPinError(true)
+    }
   }
 
   if (selected) {
@@ -263,6 +284,12 @@ export function ConcernsScreen({ user, onNavigateHair }: Props) {
               <input className="log-input" placeholder={t('Необязательно')} value={notes} onChange={e => setNotes(e.target.value)} />
             </div>
           </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: pinSet ? 'pointer' : 'default', opacity: pinSet ? 1 : 0.6 }}>
+            <input type="checkbox" checked={isPrivate && pinSet} disabled={!pinSet}
+              onChange={e => setIsPrivate(e.target.checked)} />
+            🔒 {t('Приватная — скрывать за PIN')}
+            {!pinSet && <span className="settings-muted" style={{ fontSize: 12 }}>({t('сначала задай PIN в Настройках')})</span>}
+          </label>
           <button className="btn-primary" onClick={handleAdd} disabled={saving || !name.trim()}>
             {saving ? t('Сохранение…') : t('Добавить проблему')}
           </button>
@@ -273,22 +300,47 @@ export function ConcernsScreen({ user, onNavigateHair }: Props) {
         <p className="empty-hint">{t('Проблем не добавлено. Нажми «+ Добавить» чтобы начать отслеживать.')}</p>
       )}
 
+      {unlockFor && (
+        <div className="goals-form" style={{ marginBottom: 16 }}>
+          <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>🔒 {t('Введи PIN, чтобы открыть запись')}</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <input className="log-input" type="password" inputMode="numeric" autoFocus
+              placeholder="PIN" value={pinInput} style={{ width: 120 }}
+              onChange={e => { setPinInput(e.target.value); setPinError(false) }}
+              onKeyDown={e => e.key === 'Enter' && handleUnlock()} />
+            <button className="btn-primary" onClick={handleUnlock} disabled={!pinInput}>{t('Открыть')}</button>
+            <button className="btn-ghost" onClick={() => { setUnlockFor(null); setPinInput('') }}>{t('Отмена')}</button>
+          </div>
+          {pinError && <p style={{ color: 'var(--red)', fontSize: 13, marginTop: 6 }}>{t('Неверный PIN')}</p>}
+        </div>
+      )}
+
       <div className="concerns-list">
-        {active.map(c => (
-          <button key={c.id} className="concern-card" onClick={() => setSelected(c)}>
-            <div className="concern-card-top">
-              <span className="concern-name">{c.name}</span>
-              <span className="concern-status" style={{ color: STATUS_LABELS[c.status]?.color }}>
-                {t(STATUS_LABELS[c.status]?.label ?? '')}
-              </span>
-            </div>
-            <div className="concern-card-bottom">
-              <span className="concern-cat">{t(CATEGORIES[c.category] ?? c.category)}</span>
-              {c.started_at && <span className="concern-since">{t('с')} {c.started_at}</span>}
-              <span className="concern-arrow">›</span>
-            </div>
-          </button>
-        ))}
+        {active.map(c => {
+          const masked = isMasked(c.is_private, pinSet)
+          return (
+            <button key={c.id} className={`concern-card${masked ? ' concern-card-masked' : ''}`}
+              onClick={() => masked ? (setUnlockFor(c), setPinError(false)) : setSelected(c)}>
+              <div className="concern-card-top">
+                <span className="concern-name">{masked ? `🔒 ${t('Скрытая запись')}` : <>{c.is_private && '🔒 '}{c.name}</>}</span>
+                {!masked && (
+                  <span className="concern-status" style={{ color: STATUS_LABELS[c.status]?.color }}>
+                    {t(STATUS_LABELS[c.status]?.label ?? '')}
+                  </span>
+                )}
+              </div>
+              <div className="concern-card-bottom">
+                {masked
+                  ? <span className="concern-cat">{t('Нажми, чтобы ввести PIN')}</span>
+                  : <>
+                      <span className="concern-cat">{t(CATEGORIES[c.category] ?? c.category)}</span>
+                      {c.started_at && <span className="concern-since">{t('с')} {c.started_at}</span>}
+                    </>}
+                <span className="concern-arrow">›</span>
+              </div>
+            </button>
+          )
+        })}
       </div>
 
       {resolved.length > 0 && (
@@ -298,20 +350,26 @@ export function ConcernsScreen({ user, onNavigateHair }: Props) {
           </button>
           {showResolved && (
             <div className="concerns-list">
-              {resolved.map(c => (
-                <button key={c.id} className="concern-card resolved" onClick={() => setSelected(c)}>
-                  <div className="concern-card-top">
-                    <span className="concern-name">{c.name}</span>
-                    <span className="concern-status" style={{ color: STATUS_LABELS[c.status]?.color }}>
-                      {STATUS_LABELS[c.status]?.label}
-                    </span>
-                  </div>
-                  <div className="concern-card-bottom">
-                    <span className="concern-cat">{CATEGORIES[c.category] ?? c.category}</span>
-                    <span className="concern-arrow">›</span>
-                  </div>
-                </button>
-              ))}
+              {resolved.map(c => {
+                const masked = isMasked(c.is_private, pinSet)
+                return (
+                  <button key={c.id} className={`concern-card resolved${masked ? ' concern-card-masked' : ''}`}
+                    onClick={() => masked ? (setUnlockFor(c), setPinError(false)) : setSelected(c)}>
+                    <div className="concern-card-top">
+                      <span className="concern-name">{masked ? `🔒 ${t('Скрытая запись')}` : c.name}</span>
+                      {!masked && (
+                        <span className="concern-status" style={{ color: STATUS_LABELS[c.status]?.color }}>
+                          {STATUS_LABELS[c.status]?.label}
+                        </span>
+                      )}
+                    </div>
+                    <div className="concern-card-bottom">
+                      <span className="concern-cat">{masked ? t('Нажми, чтобы ввести PIN') : (CATEGORIES[c.category] ?? c.category)}</span>
+                      <span className="concern-arrow">›</span>
+                    </div>
+                  </button>
+                )
+              })}
             </div>
           )}
         </div>
