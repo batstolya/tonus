@@ -1,9 +1,12 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { isValidCronSecret } from '../_shared/auth.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' }
+// Свой секрет для cron-джобы (ENV_CRON_SECRET) с фолбэком на общий
+const CRON_SECRET = Deno.env.get('ENV_CRON_SECRET') ?? Deno.env.get('TONUS_CRON_SECRET') ?? ''
+const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, x-cron-secret' }
 
 // Default location: Munich, Germany
 const DEFAULT_LAT = 48.1351
@@ -12,8 +15,27 @@ const DEFAULT_LON = 11.5820
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
   try {
-    const authHeader = req.headers.get('Authorization') ?? ''
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+
+    // ── CRON path: секрет в заголовке → синк всех пользователей с профилем ──
+    if (isValidCronSecret(req, CRON_SECRET)) {
+      const { data: profiles } = await supabase.from('profiles').select('id, latitude, longitude')
+      const results: { user: string; synced?: number; error?: string }[] = []
+      for (const p of profiles ?? []) {
+        try {
+          const synced = await syncUser(supabase, p.id,
+            typeof p.latitude === 'number' ? p.latitude : DEFAULT_LAT,
+            typeof p.longitude === 'number' ? p.longitude : DEFAULT_LON)
+          results.push({ user: p.id, synced })
+        } catch (e: any) {
+          results.push({ user: p.id, error: e.message })
+        }
+      }
+      return new Response(JSON.stringify({ ran: results.length, results }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
+    }
+
+    // ── UI path: user JWT ──
+    const authHeader = req.headers.get('Authorization') ?? ''
     const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
     if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS })
 
@@ -30,6 +52,16 @@ serve(async (req) => {
       lon = profile.longitude
     }
 
+    const synced = await syncUser(supabase, user.id, lat, lon)
+    return new Response(JSON.stringify({ synced }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
+  } catch (e: any) {
+    return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } })
+  }
+})
+
+// Синк среды одного пользователя: погода+AQI+пыльца+Kp за 30 дней → environment_daily
+async function syncUser(supabase: SupabaseClient, userId: string, lat: number, lon: number): Promise<number> {
+  {
     // Fetch last 30 days from Open-Meteo (free, no key)
     const end = new Date().toISOString().slice(0, 10)
     const start = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
@@ -104,7 +136,7 @@ serve(async (req) => {
     }
 
     const rows = dates.map((date, i) => ({
-      user_id: user.id,
+      user_id: userId,
       date,
       temp_c: temps[i] ?? null,
       pressure_hpa: pressures[i] ?? null,
@@ -118,8 +150,6 @@ serve(async (req) => {
     const { error } = await supabase.from('environment_daily').upsert(rows, { onConflict: 'user_id,date' })
     if (error) throw new Error(error.message)
 
-    return new Response(JSON.stringify({ synced: rows.length }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
-  } catch (e: any) {
-    return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } })
+    return rows.length
   }
-})
+}
