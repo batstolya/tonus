@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { checkBudget } from '../_shared/costGuard.ts'
 import { daysSinceFreshData } from '../_shared/staleness.ts'
+import { plannedDaysInRange, attendance } from '../_shared/workoutPlan.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -136,7 +137,7 @@ serve(async (req) => {
     }
 
     // Load metrics + sleep + nutrition + supplements + labs for both periods
-    const [r1, r2, s1, s2, intake, supLogs, supList, labs, noteRowsRes] = await Promise.all([
+    const [r1, r2, s1, s2, intake, supLogs, supList, labs, noteRowsRes, wsRes, exminRes] = await Promise.all([
       supabase.from('daily_summary').select('*').eq('user_id', user.id).gte('date', fmt(p1Start)).lte('date', fmt(p1End)),
       supabase.from('daily_summary').select('*').eq('user_id', user.id).gte('date', fmt(p2Start)).lte('date', fmt(p2End)),
       supabase.from('sleep_sessions').select('date, bedtime, wake_time, duration_hours, deep_hours, rem_hours, core_hours').eq('user_id', user.id).gte('date', fmt(p1Start)).lte('date', fmt(p1End)).order('date'),
@@ -146,6 +147,9 @@ serve(async (req) => {
       supabase.from('supplements').select('id, name').eq('user_id', user.id).eq('active', true),
       supabase.from('lab_results').select('marker, value, unit, date').eq('user_id', user.id).order('date', { ascending: false }).limit(60),
       supabase.from('context_notes').select('date, note').eq('user_id', user.id).gte('date', fmt(p1Start)).lte('date', fmt(p1End)).order('date'),
+      supabase.from('workout_schedule').select('weekdays, time, enabled').eq('user_id', user.id).maybeSingle(),
+      // exerciseMinutes есть только в EAV (нет в daily_summary/daily_metrics view)
+      supabase.from('metrics_daily').select('date, sum_val').eq('user_id', user.id).eq('metric', 'exerciseMinutes').gte('date', fmt(p1Start)).lte('date', fmt(p1End)),
     ])
 
     const digest1 = buildDigest(r1.data ?? [], 'Последние 2 недели', s1.data ?? [])
@@ -222,6 +226,19 @@ serve(async (req) => {
       return lines.join('\n')
     })()
 
+    // Тренировки: соблюдение плана (спека workout-schedule §4)
+    const workoutBlock = (() => {
+      const ws = wsRes.data
+      if (!ws?.enabled || !ws.weekdays?.length) return ''
+      const planned = plannedDaysInRange(ws.weekdays, fmt(p1Start), fmt(p1End))
+      if (!planned.length) return ''
+      const done = new Set<string>()
+      for (const r of exminRes.data ?? []) if ((r.sum_val ?? 0) >= 30) done.add(r.date)
+      for (const e of intake.data ?? []) if (e.type === 'workout') done.add(String(e.ts).slice(0, 10))
+      const a = attendance(planned, done)
+      return `\n🏋️ Тренировки: ${a.done} из ${a.total} по плану (${ws.weekdays.length}×/нед в ${ws.time})`
+    })()
+
     const noteRows = noteRowsRes.data
     const notesBlock = noteRows?.length
       ? `\nЗаметки дня (со слов пользователя — объясняют всплески и просадки):\n${noteRows.map((n: any) => `${n.date}: ${n.note}`).join('\n')}`
@@ -261,7 +278,7 @@ ${sensitive ? '  💊 Препараты — соблюдение приёма\n
     const prompt = `Ты — опытный аналитик здоровья. Напиши отчёт для пользователя за ${periodLabel}.
 
 ${digest1}
-${spo2Block}${sleepStagesBlock}${nutritionBlock}${safeAdherenceBlock}${safeLabsBlock}${notesBlock}
+${spo2Block}${sleepStagesBlock}${nutritionBlock}${workoutBlock}${safeAdherenceBlock}${safeLabsBlock}${notesBlock}
 
 ДЛЯ СРАВНЕНИЯ — предыдущий период:
 ${digest2}
