@@ -205,14 +205,14 @@ function ForecastCard({ daily, intakeEvents }: { daily: DailyMetrics[]; intakeEv
     <div className="readiness-card" onClick={() => setOpen(o => !o)} style={{ cursor: forecast.factors.length ? 'pointer' : 'default' }}>
       <div className="readiness-top">
         <div className="readiness-left">
-          <div className="readiness-label">{t('Прогноз на завтра')}</div>
-          <div className="readiness-score" style={{ color }}>
+          <div className="forecast-label">{t('Прогноз на завтра')}</div>
+          <div className="forecast-score" style={{ color }}>
             <CountUp value={forecast.score} />
             {diff != null && Math.abs(diff) > 3 && (
               <span className="card-unit" style={{ marginLeft: 6 }}>{diff > 0 ? '↑' : '↓'}</span>
             )}
           </div>
-          <div className="readiness-sublabel" style={{ color }}>
+          <div className="forecast-sublabel" style={{ color }}>
             {forecast.adviceId && advice[forecast.adviceId] ? advice[forecast.adviceId] : t('Ожидается обычный день')}
           </div>
         </div>
