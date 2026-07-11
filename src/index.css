@@ -1616,6 +1616,8 @@ body {
 .concern-card { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; text-align: left; cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; }
 .concern-card:hover { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .concern-card.resolved { opacity: 0.6; }
+.concern-card-masked { border-style: dashed; }
+.concern-card-masked .concern-name { color: var(--text-muted); }
 .concern-card-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
 .concern-name { font-size: 15px; font-weight: 600; }
 .concern-status { font-size: 12px; font-weight: 600; }

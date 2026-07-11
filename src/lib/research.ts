@@ -1,6 +1,7 @@
 import { supabase } from './supabase'
 import type { DailyMetrics } from '../types'
 import { computeDailyScores } from './scores'
+import { loadPinHash, maskConcernLabel } from './privacy'
 
 // ── Типы ────────────────────────────────────────────────────────────────────
 export interface Finding {
@@ -78,7 +79,7 @@ export async function loadResearchData(userId: string, daily: DailyMetrics[], pe
     supabase.from('intake_events').select('ts, type').eq('user_id', userId).gte('ts', `${sinceStr}T00:00:00Z`),
     supabase.from('supplements').select('id, name').eq('user_id', userId).eq('active', true),
     supabase.from('supplement_logs').select('supplement_id, date, taken').eq('user_id', userId).gte('date', sinceStr).eq('taken', true),
-    supabase.from('health_concerns').select('id, name').eq('user_id', userId),
+    supabase.from('health_concerns').select('id, name, is_private').eq('user_id', userId),
     supabase.from('concern_logs').select('concern_id, date, severity').eq('user_id', userId).gte('date', sinceStr),
     supabase.from('environment_daily').select('date, temp_c, pressure_hpa, daylight_minutes, air_quality, pollen, kp_index').eq('user_id', userId).gte('date', sinceStr),
     supabase.from('context_notes').select('date, wellbeing').eq('user_id', userId).gte('date', sinceStr),
@@ -171,9 +172,11 @@ export async function loadResearchData(userId: string, daily: DailyMetrics[], pe
     { key: 'ev_late_meal', label: 'Поздняя еда (после 21:00)' },
     ...sups.map((s: any) => ({ key: `sup_${s.id}`, label: `Приём: ${s.name}` })),
   ]
+  // Приватные проблемы участвуют в анализе, но имя маскируется, пока заперто
+  const pinSet = !!(await loadPinHash(userId))
   const concernKeys = concerns
     .filter((c: any) => sevByConcern[c.id])
-    .map((c: any) => ({ key: `cn_${c.id}`, label: `Проблема: ${c.name}` }))
+    .map((c: any) => ({ key: `cn_${c.id}`, label: `Проблема: ${maskConcernLabel(c.name, !!c.is_private, pinSet)}` }))
 
   const rows = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date))
   return { rows, eventKeys, metricKeys: [...METRICS.map(m => ({ key: m.key as string, label: m.label, betterHigh: m.betterHigh })), ...extraOutcomes], concernKeys, envKeys }
