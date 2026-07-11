@@ -6,6 +6,7 @@ import { loadDailyNoteSettings, saveDailyNoteSettings } from '../../lib/dailyNot
 import { loadReportSettings, saveReportSettings, type ReportSettings } from '../../lib/reportSettings'
 import { exportAllJSON, exportMetricsCSV } from '../../lib/exportData'
 import { AutoSyncSettings } from './AutoSyncSettings'
+import { WorkoutScheduleSettings } from './WorkoutScheduleSettings'
 import { useT, LANGS } from '../../lib/i18n'
 import { supabase } from '../../lib/supabase'
 import { callFunction } from '../../lib/edgeFunctions'
@@ -684,6 +685,8 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
         <ArchiveBtn id="autosync" onArchive={archiveSection} />
         <AutoSyncSettings user={user} />
       </div>
+
+      {user && <WorkoutScheduleSettings user={user} />}
 
       <section className={`settings-section${isArchived('environment') ? ' is-archived' : ''}`}>
         <ArchiveBtn id="environment" onArchive={archiveSection} />
