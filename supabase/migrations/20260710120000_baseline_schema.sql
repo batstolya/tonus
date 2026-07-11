@@ -206,9 +206,7 @@ exception when duplicate_object then null; end $policy$;
 
 -- Supabase Storage bucket (run manually in dashboard or via CLI):
 -- insert into storage.buckets (id, name, public) values ('lab-files', 'lab-files', false);
--- do $policy$ begin
-  create policy "user lab files storage" on storage.objects for all using (auth.uid()::text = (storage.foldername(name))[1]);
-exception when duplicate_object then null; end $policy$;
+-- create policy "user lab files storage" on storage.objects for all using (auth.uid()::text = (storage.foldername(name))[1]);
 
 -- ══════════ from supabase/phase5_chat.sql ══════════
 -- Chat sessions
