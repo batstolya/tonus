@@ -115,9 +115,28 @@ export function computeProgress(goal: Goal, daily: DailyMetrics[]): GoalProgress
 
 export async function loadGoals(userId: string): Promise<Goal[]> {
   const { data, error } = await supabase.from('goals').select('*').eq('user_id', userId)
-    .in('status', ['active', 'paused']).order('created_at', { ascending: false })
+    .order('created_at', { ascending: false })
   if (error) throw error
   return (data ?? []) as Goal[]
+}
+
+// ── Жизненный цикл: истёкшие активные цели закрываются как achieved/failed ──
+export function isExpired(goal: Goal, today = new Date().toISOString().slice(0, 10)): boolean {
+  return goal.status === 'active' && goal.end_date < today
+}
+
+// Итог по средней за период: достигла цель или нет (no_data — не достигла)
+export function finalStatus(goal: Goal, daily: DailyMetrics[]): 'achieved' | 'failed' {
+  return computeProgress(goal, daily).status === 'achieved' ? 'achieved' : 'failed'
+}
+
+export async function finalizeExpiredGoals(goals: Goal[], daily: DailyMetrics[]): Promise<Goal[]> {
+  return Promise.all(goals.map(async g => {
+    if (!isExpired(g)) return g
+    const status = finalStatus(g, daily)
+    await updateGoalStatus(g.id, status)
+    return { ...g, status }
+  }))
 }
 
 export async function createGoal(userId: string, goal: Omit<Goal, 'id' | 'user_id' | 'created_at'>): Promise<Goal | null> {
