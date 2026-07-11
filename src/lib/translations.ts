@@ -825,13 +825,14 @@ export const translations: Record<string, { uk: string; en: string }> = {
   'Идёт сейчас': { uk: 'Йде зараз', en: 'Running now' },
   'Запланированные': { uk: 'Заплановані', en: 'Planned' },
   'Завершённые': { uk: 'Завершені', en: 'Completed' },
-  'Мало данных: {n} из {m} дней в базовом периоде.': {
-    uk: 'Мало даних: {n} із {m} днів у базовому періоді.',
-    en: 'Not enough data: {n} of {m} days in the baseline period.',
+  'Недостаточно данных': { uk: 'Недостатньо даних', en: 'Not enough data' },
+  'В базовом периоде только {n} из {m} дней с данными.': {
+    uk: 'У базовому періоді лише {n} із {m} днів із даними.',
+    en: 'Only {n} of {m} days with data in the baseline period.',
   },
-  'Мало данных: {n} из {m} дней в периоде эксперимента.': {
-    uk: 'Мало даних: {n} із {m} днів у періоді експерименту.',
-    en: 'Not enough data: {n} of {m} days in the experiment period.',
+  'В периоде эксперимента только {n} из {m} дней с данными.': {
+    uk: 'У періоді експерименту лише {n} із {m} днів із даними.',
+    en: 'Only {n} of {m} days with data in the experiment period.',
   },
   'Данные по метрике начинаются {d}.': {
     uk: 'Дані за метрикою починаються {d}.',
