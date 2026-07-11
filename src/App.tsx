@@ -37,6 +37,7 @@ import type { AppView } from './store/appStore'
 import type { CalendarEvent, DailyMetrics, HeartRateSample } from './types'
 import { useAuth } from './hooks/useAuth'
 import { useTheme } from './hooks/useTheme'
+import { ThemeMenu } from './components/common/ThemeMenu'
 import { isDemoActive, enableDemo, disableDemo } from './lib/demo'
 import { supabase } from './lib/supabase'
 import { syncMetricsToSupabase, loadMetricsFromSupabase, syncHRSamples, loadHRSamples } from './lib/sync'
@@ -116,7 +117,7 @@ export default function App() {
   const { t, lang, setLang, locale } = useT()
   const { state, setView, setDaily, setEvents, setProgress, setError, setDeviceType } = useAppStore()
   const { user, loading, passwordRecovery, setPasswordRecovery } = useAuth()
-  const { theme, toggle: toggleTheme } = useTheme('light')
+  const { theme, mode: themeMode, setMode: setThemeMode, toggle: toggleTheme } = useTheme('light')
   const [syncMsg, setSyncMsg] = useState<string | null>(null)
   const [intakeEvents, setIntakeEvents] = useState<Parameters<typeof QuickLog>[0]['events']>([])
   const [dbLoading, setDbLoading] = useState(true)
@@ -350,9 +351,7 @@ export default function App() {
                   </>
                 )}
               </div>
-              <button className="theme-toggle" onClick={toggleTheme} title={t('Сменить тему')}>
-                {theme === 'dark' ? '☀️' : '🌙'}
-              </button>
+              <ThemeMenu mode={themeMode} onSelect={setThemeMode} />
               <button
                 className={`theme-toggle${state.view === 'settings' ? ' active' : ''}`}
                 onClick={() => setView('settings')}
@@ -384,13 +383,14 @@ export default function App() {
                 >
                   <span>⚙️</span><span>{t('Настройки')}</span>
                 </button>
-                <button
-                  className="mobile-nav-btn"
-                  onClick={() => { toggleTheme(); setMobileMenuOpen(false) }}
-                >
-                  <span>{theme === 'dark' ? '☀️' : '🌙'}</span>
-                  <span>{theme === 'dark' ? t('Светлая тема') : t('Тёмная тема')}</span>
-                </button>
+                <div className="mobile-theme-row">
+                  {([['light', 'Светлая'], ['dark', 'Тёмная'], ['system', 'Системная']] as const).map(([m, label]) => (
+                    <button key={m} className={`mobile-theme-btn${themeMode === m ? ' active' : ''}`}
+                      onClick={() => setThemeMode(m)}>
+                      {t(label)}
+                    </button>
+                  ))}
+                </div>
                 <button
                   className="mobile-nav-btn"
                   onClick={() => setLang(lang === 'ru' ? 'uk' : lang === 'uk' ? 'en' : 'ru')}
