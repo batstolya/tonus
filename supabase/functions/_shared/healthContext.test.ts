@@ -373,8 +373,8 @@ describe('healthContextToText: full coverage', () => {
       goals: [{ title: 'Сон 8ч', metric: 'sleepHours', baseline_value: 6.8, target_value: 8, direction: 'up', end_date: '2026-08-01', status: 'active' }],
       experiments: [{ hypothesis: 'Магний перед сном', change_rule: 'mg', target_metric: 'sleepHours', start_date: '2026-06-01', end_date: '2026-06-15', status: 'completed', result: { deltaPct: 7.2 } }],
       environment: [
-        { date: '2026-07-05', temp_c: 24.3, pressure_hpa: 1008, daylight_minutes: 950, precipitation_mm: 0 },
-        { date: '2026-07-04', temp_c: 22.1, pressure_hpa: 1015, daylight_minutes: 952, precipitation_mm: 2 },
+        { date: '2026-07-05', temp_c: 24.3, pressure_hpa: 1008, daylight_minutes: 950, precipitation_mm: 0, kp_index: 6 },
+        { date: '2026-07-04', temp_c: 22.1, pressure_hpa: 1015, daylight_minutes: 952, precipitation_mm: 2, kp_index: 2 },
       ],
       concerns: [{ name: 'Высыпания', category: 'skin', status: 'active', lastLog: { date: '2026-07-04', severity: 3, note: null } }],
       hairEntries: [{ date: '2026-06-15', shedding_level: 2, density_rating: 3, hairline_rating: 4, scalp_note: null }],
@@ -386,7 +386,7 @@ describe('healthContextToText: full coverage', () => {
       'Фазы сна', 'Анализы', 'Ферритин', 'Препараты: Магний', 'кофе',
       'Приём препаратов', 'Заметки дня', 'Календарь',
       'Цели пользователя', 'Эксперименты пользователя',
-      'Погода (2026-07-05)', 'давление 1008 гПа (-7 за сутки)',
+      'Погода (2026-07-05)', 'давление 1008 гПа (-7 за сутки)', 'магнитная буря (Kp 6)',
       'Отслеживаемые симптомы', 'Замеры волос (2026-06-15)',
       'Алерты стража здоровья', 'Прошлые рекомендации ИИ',
     ]) {

@@ -26,7 +26,7 @@ export interface HealthContext {
   goals: Record<string, any>[]
   experiments: Record<string, any>[]
   // последние дни environment_daily (свежий первым)
-  environment: { date: string; temp_c: number | null; pressure_hpa: number | null; daylight_minutes: number | null; precipitation_mm: number | null }[]
+  environment: { date: string; temp_c: number | null; pressure_hpa: number | null; daylight_minutes: number | null; precipitation_mm: number | null; kp_index: number | null }[]
   concerns: { name: string; category: string; status: string; lastLog: { date: string; severity: number | null; note: string | null } | null }[]
   hairEntries: { date: string; shedding_level: number | null; density_rating: number | null; hairline_rating: number | null; scalp_note: string | null }[]
   alerts: { date: string | null; level: 'yellow' | 'red'; message: string }[]
@@ -125,7 +125,7 @@ export async function buildHealthContext(
       .select('hypothesis, change_rule, target_metric, start_date, end_date, status, result')
       .eq('user_id', userId).in('status', ['active', 'completed']).order('created_at', { ascending: false }).limit(6),
     supabase.from('environment_daily')
-      .select('date, temp_c, pressure_hpa, daylight_minutes, precipitation_mm')
+      .select('date, temp_c, pressure_hpa, daylight_minutes, precipitation_mm, kp_index')
       .eq('user_id', userId).order('date', { ascending: false }).limit(2),
     supabase.from('health_concerns')
       .select('id, name, category, status')
@@ -417,7 +417,8 @@ export function healthContextToText(ctx: HealthContext): string {
       bits.push(`давление ${Math.round(e.pressure_hpa)} гПа${delta != null && delta !== 0 ? ` (${delta > 0 ? '+' : ''}${delta} за сутки)` : ''}`)
     }
     if (e.precipitation_mm != null && e.precipitation_mm > 0) bits.push(`осадки ${e.precipitation_mm} мм`)
-    if (bits.length) parts.push(`\nПогода (${e.date}): ${bits.join(', ')}. Резкие перепады давления могут влиять на сон/HRV.`)
+    if (e.kp_index != null && e.kp_index >= 5) bits.push(`магнитная буря (Kp ${e.kp_index})`)
+    if (bits.length) parts.push(`\nПогода (${e.date}): ${bits.join(', ')}. Резкие перепады давления и магнитные бури могут влиять на сон/HRV.`)
   }
 
   if (ctx.concerns.length) {
