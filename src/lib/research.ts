@@ -58,6 +58,7 @@ const ENV_FACTORS: { col: string; key: string; label: string }[] = [
   { col: 'daylight_minutes', key: 'env_daylight', label: 'Среда: световой день' },
   { col: 'air_quality', key: 'env_aqi', label: 'Среда: AQI' },
   { col: 'pollen', key: 'env_pollen', label: 'Среда: пыльца' },
+  { col: 'kp_index', key: 'env_kp', label: 'Среда: магнитные бури (Kp)' },
 ]
 
 // ── Сбор факторов по дням ───────────────────────────────────────────────────
@@ -79,7 +80,7 @@ export async function loadResearchData(userId: string, daily: DailyMetrics[], pe
     supabase.from('supplement_logs').select('supplement_id, date, taken').eq('user_id', userId).gte('date', sinceStr).eq('taken', true),
     supabase.from('health_concerns').select('id, name').eq('user_id', userId),
     supabase.from('concern_logs').select('concern_id, date, severity').eq('user_id', userId).gte('date', sinceStr),
-    supabase.from('environment_daily').select('date, temp_c, pressure_hpa, daylight_minutes, air_quality, pollen').eq('user_id', userId).gte('date', sinceStr),
+    supabase.from('environment_daily').select('date, temp_c, pressure_hpa, daylight_minutes, air_quality, pollen, kp_index').eq('user_id', userId).gte('date', sinceStr),
     supabase.from('context_notes').select('date, wellbeing').eq('user_id', userId).gte('date', sinceStr),
   ])
 

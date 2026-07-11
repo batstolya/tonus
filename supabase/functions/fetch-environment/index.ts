@@ -83,6 +83,26 @@ serve(async (req) => {
       return b && b.polN ? Math.round((b.polSum / b.polN) * 10) / 10 : null
     }
 
+    // ── Kp-индекс, магнитные бури (best-effort: сбой GFZ не ломает синк) ──
+    // Глобальный индекс, координаты не нужны. За день берём максимум по
+    // 3-часовым слотам — буря определяется пиком (Kp >= 5).
+    const kpByDate: Record<string, number> = {}
+    try {
+      const kpRes = await fetch(`https://kp.gfz.de/app/json/?start=${start}T00:00:00Z&end=${end}T23:59:59Z&index=Kp`)
+      if (kpRes.ok) {
+        const kp = await kpRes.json()
+        const times: string[] = kp.datetime ?? []
+        const vals: (number | null)[] = kp.Kp ?? []
+        for (let i = 0; i < times.length; i++) {
+          const d = times[i].slice(0, 10)
+          const v = vals[i]
+          if (typeof v === 'number' && (kpByDate[d] == null || v > kpByDate[d])) kpByDate[d] = v
+        }
+      }
+    } catch (_e) {
+      // GFZ недоступен — продолжаем без Kp
+    }
+
     const rows = dates.map((date, i) => ({
       user_id: user.id,
       date,
@@ -92,6 +112,7 @@ serve(async (req) => {
       precipitation_mm: precips[i] ?? null,
       air_quality: dailyAqi(date),
       pollen: dailyPollen(date),
+      kp_index: kpByDate[date] ?? null,
     }))
 
     const { error } = await supabase.from('environment_daily').upsert(rows, { onConflict: 'user_id,date' })
