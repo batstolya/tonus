@@ -3,7 +3,7 @@ import type { User } from '@supabase/supabase-js'
 import type { DailyMetrics } from '../../types'
 import { useT } from '../../lib/i18n'
 import {
-  loadGoals, createGoal, updateGoalStatus, deleteGoal,
+  loadGoals, createGoal, updateGoalStatus, deleteGoal, finalizeExpiredGoals,
   loadRecommendations, updateRecommendationStatus,
   computeBaseline, computeProgress,
   METRIC_CONFIG,
@@ -87,13 +87,13 @@ export function GoalsScreen({ user, daily }: Props) {
   const reload = useCallback(async () => {
     try {
       const [g, r] = await Promise.all([loadGoals(user.id), loadRecommendations(user.id)])
-      setGoals(g)
+      setGoals(await finalizeExpiredGoals(g, daily))
       setRecs(r)
       setLoadError(false)
     } catch {
       setLoadError(true)
     }
-  }, [user.id])
+  }, [user.id, daily])
 
   useEffect(() => { reload() }, [reload])
 
@@ -159,6 +159,7 @@ export function GoalsScreen({ user, daily }: Props) {
   }
 
   const activeGoals = goals.filter(g => g.status === 'active')
+  const finishedGoals = goals.filter(g => g.status === 'achieved' || g.status === 'failed')
 
   return (
     <div className="screen">
@@ -297,6 +298,45 @@ export function GoalsScreen({ user, daily }: Props) {
                       onClick={() => { updateGoalStatus(goal.id, 'paused'); setGoals(g => g.filter(x => x.id !== goal.id)) }}>
                       ⏸
                     </button>
+                    <button className="supp-delete" title={t('Удалить')}
+                      onClick={() => { deleteGoal(goal.id); setGoals(g => g.filter(x => x.id !== goal.id)) }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M9 6V4h6v2"/></svg>
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
+
+      {finishedGoals.length > 0 && (
+        <>
+          <h3 className="goals-section-title">{t('Завершённые')}</h3>
+          <div className="goals-list">
+            {finishedGoals.map(goal => {
+              const prog = computeProgress(goal, daily)
+              const achieved = goal.status === 'achieved'
+              return (
+                <div key={goal.id} className="goal-card goal-card-finished">
+                  <div className="goal-card-left" aria-hidden style={{ fontSize: 26, width: 52, textAlign: 'center' }}>
+                    {achieved ? '🏆' : '✕'}
+                  </div>
+                  <div className="goal-card-body">
+                    <div className="goal-card-title">{goal.title}</div>
+                    <div className="goal-card-meta">
+                      <span>{t('Цель:')} {fmtVal(goal.target_value, goal.metric)}</span>
+                      {prog.currentAvg !== null &&
+                        <span>{t('Итог:')} <b>{fmtVal(prog.currentAvg, goal.metric)}</b></span>}
+                      <span>{goal.start_date} — {goal.end_date}</span>
+                    </div>
+                    <div className="goal-card-stat">
+                      <span style={{ color: achieved ? 'var(--green)' : 'var(--text-muted)' }}>
+                        {achieved ? t('Достигнута') : t('Не достигнута')}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="goal-card-actions">
                     <button className="supp-delete" title={t('Удалить')}
                       onClick={() => { deleteGoal(goal.id); setGoals(g => g.filter(x => x.id !== goal.id)) }}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M9 6V4h6v2"/></svg>
