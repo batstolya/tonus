@@ -692,22 +692,31 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
 
       <section className={`settings-section${isArchived('environment') ? ' is-archived' : ''}`}>
         <ArchiveBtn id="environment" onArchive={archiveSection} />
-        <h3 className="settings-section-title">🌤 {t('Данные среды')}</h3>
-        <p className="settings-muted" style={{ marginBottom: 10 }}>
-          {t('Температура, давление, световой день, осадки — с Open-Meteo по твоей локации.')}
+        <h3 className="settings-section-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: 8 }}><path d="M17.5 19a4.5 4.5 0 1 0 0-9h-1.8A7 7 0 1 0 4 14.9"/></svg>
+          {t('Данные среды')}
+        </h3>
+        <p className="settings-muted" style={{ marginBottom: 12 }}>
+          {t('Погода, воздух и магнитные бури для корреляций — обновляются автоматически раз в сутки.')}
         </p>
 
         {locLabel && !editingLoc ? (
           // Локация уже выбрана — показываем только её и кнопку синхронизации
           <>
-            <div className="settings-muted" style={{ marginBottom: 10, fontSize: 13 }}>
-              📍 {t('Локация:')} <b>{locLabel}</b>
-              {' · '}
-              <button className="link-btn" onClick={() => { setEditingLoc(true); setLocMsg(null) }}>{t('Изменить')}</button>
+            <div className="rep-setting">
+              <span className="settings-label">{t('Локация')}</span>
+              <span style={{ fontSize: 14 }}>
+                <b>{locLabel}</b>
+                {' · '}
+                <button className="link-btn" onClick={() => { setEditingLoc(true); setLocMsg(null) }}>{t('Изменить')}</button>
+              </span>
             </div>
-            <button className="btn-secondary" onClick={handleSyncEnvironment} disabled={envSyncing}>
-              {envSyncing ? t('Синхронизирую…') : t('Синхронизировать среду')}
-            </button>
+            <div className="rep-setting">
+              <span className="settings-label">{t('Синхронизация')}</span>
+              <button className="btn-secondary" onClick={handleSyncEnvironment} disabled={envSyncing}>
+                {envSyncing ? t('Синхронизирую…') : t('Обновить сейчас')}
+              </button>
+            </div>
           </>
         ) : (
           // Локация не выбрана (или режим изменения) — показываем выбор
