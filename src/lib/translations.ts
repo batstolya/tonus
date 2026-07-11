@@ -431,6 +431,7 @@ export const translations: Record<string, { uk: string; en: string }> = {
   'Перепад давления': { uk: 'Перепад тиску', en: 'Pressure swing' },
   'Температура за окном': { uk: 'Температура надворі', en: 'Outdoor temperature' },
   'Световой день': { uk: 'Світловий день', en: 'Daylight hours' },
+  'Магнитные бури': { uk: 'Магнітні бурі', en: 'Geomagnetic storms' },
   'Соблюдение': { uk: 'Дотримання', en: 'Adherence' },
   'В среднем': { uk: 'У середньому', en: 'On average' },
   'Когда лучшие показатели?': { uk: 'Коли найкращі показники?', en: 'When were my best metrics?' },

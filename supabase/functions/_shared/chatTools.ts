@@ -126,7 +126,7 @@ export async function executeChatTool(
       supabase.from('metrics_daily').select('date, sum_val').eq('user_id', userId).eq('metric', 'exerciseMinutes').gte('date', sinceStr),
       supabase.from('daily_scores').select('date, readiness').eq('user_id', userId).gte('date', sinceStr),
       supabase.from('intake_events').select('ts, type').eq('user_id', userId).gte('ts', `${sinceStr}T00:00:00Z`).in('type', ['coffee', 'alcohol']),
-      supabase.from('environment_daily').select('date, temp_c, pressure_hpa, daylight_minutes, precipitation_mm').eq('user_id', userId).gte('date', sinceStr),
+      supabase.from('environment_daily').select('date, temp_c, pressure_hpa, daylight_minutes, precipitation_mm, kp_index').eq('user_id', userId).gte('date', sinceStr),
     ])
 
     // Ошибку любого из запросов не глотаем в «мало данных» — иначе модель
