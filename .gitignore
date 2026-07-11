@@ -34,7 +34,10 @@ mobile-auth.png
 test-results/
 playwright-report/
 
-# claude-monitor runtime artifacts (never commit sessions/cache/state)
+# claude-monitor runtime artifacts (never commit sessions/cache/state/secrets)
+claude-monitor/.env
 claude-monitor/browser-profile/
-claude-monitor/data/*.pid
-claude-monitor/data/state.json
+claude-monitor/data/
+
+# supabase CLI local artifacts
+supabase/.temp/
