@@ -6,6 +6,7 @@ import {
   deliverReminder, nextActionOnFailure,
   type ClaimedReminder, type TelegramTransport,
 } from '../_shared/reminderDelivery.ts'
+import { shiftTime, workoutNotificationText } from '../_shared/workoutPlan.ts'
 
 const TG_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -493,6 +494,35 @@ serve(async (req) => {
     }
   }
 
+  // ── 11. Уведомление о тренировке за N часов (спека workout-schedule §2) ─────
+  let workoutNoticesSent = 0
+  {
+    const { data: schedules } = await supabase
+      .from('workout_schedule')
+      .select('user_id, weekdays, time, notify_hours_before, timezone, last_notified_date')
+      .eq('enabled', true)
+    for (const ws of schedules ?? []) {
+      const { hhmm, weekday, dateStr } = localNow(ws.timezone || 'Europe/Kyiv')
+      if (!ws.weekdays?.includes(weekday)) continue
+      if (ws.last_notified_date === dateStr) continue
+      if (!timeDue(shiftTime(ws.time, ws.notify_hours_before ?? 4), hhmm)) continue
+      const { data: link } = await supabase
+        .from('telegram_links').select('telegram_chat_id').eq('user_id', ws.user_id).eq('status', 'active').maybeSingle()
+      if (!link?.telegram_chat_id) continue
+      const { data: score } = await supabase
+        .from('daily_scores').select('readiness, hrv_baseline').eq('user_id', ws.user_id).eq('date', dateStr).maybeSingle()
+      const { data: hrvRow } = await supabase
+        .from('daily_metrics').select('hrv').eq('user_id', ws.user_id).eq('date', dateStr).maybeSingle()
+      const text = workoutNotificationText(ws.time, score ? {
+        readiness: score.readiness, hrv: hrvRow?.hrv ?? null, hrvBaseline: score.hrv_baseline,
+      } : null)
+      await tgSend(link.telegram_chat_id, text)
+      // send → mark (как в утренней сводке): редкий дубль при сбое между ними приемлем
+      await supabase.from('workout_schedule').update({ last_notified_date: dateStr }).eq('user_id', ws.user_id)
+      workoutNoticesSent++
+    }
+  }
+
   // Structured execution result (§4.1) + backlog signal (§4.2)
   return new Response(JSON.stringify({
     runId,
@@ -505,6 +535,7 @@ serve(async (req) => {
     remaining: remaining ?? 0,
     durationMs: Date.now() - nowMs,
     created, notesSent, reportsSent, morningsSent, alertsSent, nudgesSent, followupsSent, generalRemindersSent,
+    workoutNoticesSent,
   }), {
     headers: { 'Content-Type': 'application/json' },
   })
