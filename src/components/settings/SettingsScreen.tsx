@@ -7,6 +7,7 @@ import { loadReportSettings, saveReportSettings, type ReportSettings } from '../
 import { exportAllJSON, exportMetricsCSV } from '../../lib/exportData'
 import { AutoSyncSettings } from './AutoSyncSettings'
 import { WorkoutScheduleSettings } from './WorkoutScheduleSettings'
+import { PrivacySettings } from './PrivacySettings'
 import { useT, LANGS } from '../../lib/i18n'
 import { supabase } from '../../lib/supabase'
 import { callFunction } from '../../lib/edgeFunctions'
@@ -687,6 +688,7 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
       </div>
 
       {user && <WorkoutScheduleSettings user={user} />}
+      {user && <PrivacySettings user={user} />}
 
       <section className={`settings-section${isArchived('environment') ? ' is-archived' : ''}`}>
         <ArchiveBtn id="environment" onArchive={archiveSection} />

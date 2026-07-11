@@ -8,6 +8,7 @@ export interface HealthConcern {
   status: 'active' | 'improving' | 'resolved'
   started_at: string | null
   notes: string | null
+  is_private: boolean
   created_at: string
 }
 
