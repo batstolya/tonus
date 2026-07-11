@@ -7,6 +7,7 @@ import {
 import { useT } from '../../lib/i18n'
 import { ActivityCalendar } from './ActivityCalendar'
 import { StreakStats } from './StreakStats'
+import { WorkoutPlanCard } from './WorkoutPlanCard'
 
 interface Props {
   daily: DailyMetrics[]
@@ -119,6 +120,7 @@ export function StreakMenu({ daily }: Props) {
             onNavigate={(year, month) => setYm({ year, month })}
           />
           <StreakStats daily={daily} year={ym.year} month={ym.month} />
+          <WorkoutPlanCard daily={daily} />
         </section>
       )}
     </div>
