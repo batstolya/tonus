@@ -18,10 +18,11 @@ describe('WorkoutPlanCard', () => {
     expect(typeof WorkoutPlanCard).toBe('function')
   })
 
-  it('demo fixture: Пн/Ср/Пт 19:00, включено', () => {
+  it('demo fixture: Пн волейбол / Ср футбол / Пт волейбол, включено', () => {
     const ws = makeDemoWorkoutSchedule()
-    expect(ws.weekdays).toEqual([1, 3, 5])
-    expect(ws.time).toBe('19:00')
+    expect(Object.keys(ws.day_times).sort()).toEqual(['1', '3', '5'])
+    expect(ws.day_times['1']).toEqual({ time: '18:45', label: 'волейбол' })
+    expect(ws.day_times['3'].label).toBe('футбол')
     expect(ws.enabled).toBe(true)
   })
 
