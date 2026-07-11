@@ -12,6 +12,8 @@ import {
 } from '../../lib/experiments'
 import { ExperimentCard } from './ExperimentCard'
 import { LoadError } from '../ui/LoadError'
+import { isDemoActive } from '../../lib/demo'
+import { makeDemoExperiments } from '../../lib/demoFixture'
 
 interface Props { user: User; daily: DailyMetrics[] }
 
@@ -25,7 +27,7 @@ interface Suggestion {
 
 export function ExperimentsScreen({ user, daily }: Props) {
   const { t } = useT()
-  const [exps, setExps] = useState<ExperimentRow[]>([])
+  const [exps, setExps] = useState<ExperimentRow[]>(() => isDemoActive() ? makeDemoExperiments() : [])
   const [loadError, setLoadError] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [aiLoading, setAiLoading] = useState<string | null>(null)
@@ -49,6 +51,7 @@ export function ExperimentsScreen({ user, daily }: Props) {
   })
 
   function loadExps() {
+    if (isDemoActive()) return // фикстура уже в начальном стейте
     supabase.from('experiments').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
       .then(({ data, error }) => {
         if (error) setLoadError(true)
@@ -77,6 +80,22 @@ export function ExperimentsScreen({ user, daily }: Props) {
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
+    if (isDemoActive()) {
+      setExps(prev => [{
+        id: `demo-${Date.now()}`,
+        hypothesis: form.hypothesis,
+        change_rule: form.change_rule,
+        target_metric: form.target_metric,
+        baseline_days: form.baseline_days,
+        baseline_start: computeBaselineStart(form.start_date, form.baseline_days),
+        start_date: form.start_date,
+        end_date: form.end_date,
+        status: form.end_date < localDate() ? 'completed' : 'active',
+        result: null, ai_explanation: null, created_at: new Date().toISOString(),
+      }, ...prev])
+      setShowForm(false)
+      return
+    }
     const { data, error } = await supabase.from('experiments').insert({
       user_id: user.id,
       hypothesis: form.hypothesis,
@@ -97,6 +116,16 @@ export function ExperimentsScreen({ user, daily }: Props) {
   // «Подобрать (ИИ)» — генерим гипотезы из 30 дней метрик
   async function handleSuggest() {
     setSuggestLoading(true); setSuggestError(null)
+    if (isDemoActive()) {
+      setTimeout(() => {
+        setSuggestions([
+          { hypothesis: 'Отказ от экрана за час до сна ускорит засыпание', change_rule: 'Телефон в другой комнате после 22:30', target_metric: 'sleepHours', rationale: 'В демо-данных поздний отбой связан с недосыпом.' },
+          { hypothesis: '8000+ шагов в день поднимут HRV', change_rule: 'Прогулка в обед минимум 30 минут', target_metric: 'hrv', rationale: 'Активные дни в демо-данных предшествуют более высокому HRV.' },
+        ])
+        setSuggestLoading(false)
+      }, 500)
+      return
+    }
     try {
       const json = await callFunction<{ suggestions?: Suggestion[]; message?: string }>('suggest-experiments', { mode: 'generate' })
       const valid = (json.suggestions ?? []).filter(s => isValidMetric(s.target_metric))
@@ -144,6 +173,14 @@ export function ExperimentsScreen({ user, daily }: Props) {
 
   async function handleAI(exp: ExperimentRow, result: ExperimentResult) {
     setAiLoading(exp.id); setAiError(null)
+    if (isDemoActive()) {
+      const explanation = `Средние за периоды: ${result.baselineMean} → ${result.expMean} (${result.deltaPct}%). Размер эффекта ${effectLabel(result.cohenD)}. В демо-режиме это заглушка — в приложении разбор пишет ИИ на основе твоих данных.`
+      setTimeout(() => {
+        setExps(prev => prev.map(e => e.id === exp.id ? { ...e, result, ai_explanation: explanation } : e))
+        setAiLoading(null)
+      }, 500)
+      return
+    }
     try {
       const prompt = `Эксперимент: "${exp.hypothesis}". Изменение: "${exp.change_rule}". Метрика: ${metricLabel(exp.target_metric)}. До: ${result.baselineMean} (n=${result.baselineN}). Во время: ${result.expMean} (n=${result.expN}). Дельта: ${result.delta} (${result.deltaPct}%). d Коэна: ${result.cohenD} (${effectLabel(result.cohenD)}). Объясни результат кратко: что наблюдается, возможные объяснения, оговорки. На русском, 3-5 предложений.`
       const json = await callFunction<{ reply?: string }>('deep-research', { findings: prompt, periodLabel: `${exp.baseline_days} дн` })
@@ -158,7 +195,7 @@ export function ExperimentsScreen({ user, daily }: Props) {
   }
 
   async function handleDelete(id: string) {
-    await supabase.from('experiments').delete().eq('id', id)
+    if (!isDemoActive()) await supabase.from('experiments').delete().eq('id', id)
     setExps(prev => prev.filter(e => e.id !== id))
   }
 
@@ -277,16 +314,16 @@ export function ExperimentsScreen({ user, daily }: Props) {
       ) : (
         <div className="expd-sections">
           {active.length > 0 && <>
-            <div className="expd-section-title">{t('Идёт сейчас')}</div>
+            <h3 className="expd-section-title">{t('Идёт сейчас')}</h3>
             <div className="expd-list">{renderCards(active)}</div>
           </>}
           {planned.length > 0 && <>
-            <div className="expd-section-title">{t('Запланированные')}</div>
-            <div className="expd-list">{renderCards(planned)}</div>
+            <h3 className="expd-section-title">{t('Запланированные')}<span className="expd-count">{planned.length}</span></h3>
+            <div className="expd-grid">{renderCards(planned)}</div>
           </>}
           {finished.length > 0 && <>
-            <div className="expd-section-title">{t('Завершённые')}</div>
-            <div className="expd-list">{renderCards(finished)}</div>
+            <h3 className="expd-section-title">{t('Завершённые')}<span className="expd-count">{finished.length}</span></h3>
+            <div className="expd-grid">{renderCards(finished)}</div>
           </>}
         </div>
       )}

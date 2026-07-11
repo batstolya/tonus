@@ -1,5 +1,6 @@
 // Фикстурные данные демо-режима и живой панели лендинга (VITE_DEMO / кнопка «Посмотреть демо»).
 import type { DailyMetrics, HeartRateSample } from '../types'
+import { localDate, addDays, computeBaselineStart, type ExperimentRow } from './experiments'
 
 function rnd(seed: number) {
   // детерминированный псевдорандом, чтобы картинка была стабильной
@@ -53,6 +54,69 @@ export function makeDemoDaily(days = 90): DailyMetrics[] {
     })
   }
   return out
+}
+
+// Эксперименты для демо: все состояния карточки — идёт, запланирован,
+// завершён с результатом (числа считаются вживую из makeDemoDaily),
+// завершён с готовым разбором ИИ и завершён с нехваткой данных.
+export function makeDemoExperiments(): ExperimentRow[] {
+  const td = localDate()
+  const mk = (over: Partial<ExperimentRow> & Pick<ExperimentRow, 'id' | 'hypothesis' | 'change_rule' | 'target_metric' | 'start_date' | 'end_date' | 'status'>): ExperimentRow => ({
+    baseline_days: 14,
+    baseline_start: computeBaselineStart(over.start_date, over.baseline_days ?? 14),
+    result: null,
+    ai_explanation: null,
+    created_at: `${over.start_date}T09:00:00Z`,
+    ...over,
+  })
+  return [
+    mk({
+      id: 'demo-exp-active',
+      hypothesis: 'Прогулка 30 минут после ужина улучшит глубокий сон',
+      change_rule: 'Гуляю 21:00–21:30 каждый день',
+      target_metric: 'sleepDeep',
+      start_date: addDays(td, -6),
+      end_date: addDays(td, 8),
+      status: 'active',
+    }),
+    mk({
+      id: 'demo-exp-planned',
+      hypothesis: 'Магний за час до сна увеличит REM-фазу',
+      change_rule: 'Принимаю магний в 22:00',
+      target_metric: 'sleepREM',
+      start_date: addDays(td, 4),
+      end_date: addDays(td, 18),
+      status: 'active',
+    }),
+    mk({
+      id: 'demo-exp-done-1',
+      hypothesis: 'Отказ от кофе после 16:00 улучшит качество сна',
+      change_rule: 'Последняя чашка кофе до 16:00',
+      target_metric: 'sleepDeep',
+      start_date: addDays(td, -30),
+      end_date: addDays(td, -16),
+      status: 'completed',
+    }),
+    mk({
+      id: 'demo-exp-done-2',
+      hypothesis: 'Ранний отбой поднимет HRV на следующий день',
+      change_rule: 'Ложусь до 23:00',
+      target_metric: 'hrv',
+      start_date: addDays(td, -50),
+      end_date: addDays(td, -36),
+      status: 'completed',
+      ai_explanation: 'Средний HRV во время эксперимента вырос относительно базового периода. Это согласуется с известной связью раннего отбоя и восстановления, но двухнедельное окно короткое: часть эффекта могут объяснять тренировки и стресс. Продолжай привычку ещё 2–3 недели, чтобы подтвердить тренд.',
+    }),
+    mk({
+      id: 'demo-exp-done-3',
+      hypothesis: 'Дыхательные практики поднимут SpO₂ во сне',
+      change_rule: 'Дыхательная гимнастика перед сном',
+      target_metric: 'oxygenSaturation',
+      start_date: addDays(td, -110),
+      end_date: addDays(td, -96),
+      status: 'completed',
+    }),
+  ]
 }
 
 // Погода/среда для демо (environment_daily). Жара синхронизирована с
