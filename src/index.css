@@ -1679,6 +1679,11 @@ body {
 .exp-progress-bar span { display: block; height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.3s; }
 
 /* Эксперименты — mate-style дашборд (секции + карточки) */
+.expd-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.expd-header-text { flex: 1; min-width: 240px; }
+.expd-header-text h2 { margin: 0; }
+.expd-header-text p { font-size: 14px; color: var(--text-muted); margin: 6px 0 0; line-height: 1.5; max-width: 640px; }
+.expd-header .exp-header-actions { flex-shrink: 0; }
 .expd-sections { margin-top: 8px; }
 .expd-section-title { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 700; margin: 24px 0 12px; }
 .expd-sections .expd-section-title:first-child { margin-top: 0; }
