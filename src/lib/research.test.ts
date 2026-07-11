@@ -42,6 +42,29 @@ describe('computeFindings — среда', () => {
   })
 })
 
+describe('computeFindings — магнитные бури (Kp)', () => {
+  // 10 дней: в дни с высоким Kp HRV падает (r≈-1)
+  const kpRows = Array.from({ length: 10 }, (_, i) => ({
+    date: `2026-06-${String(i + 1).padStart(2, '0')}`,
+    hrv: 60 - i * 2,
+    env_kp: 1 + i * 0.7,
+  }))
+  const kpData: ResearchData = {
+    rows: kpRows,
+    eventKeys: [],
+    metricKeys: [{ key: 'hrv', label: 'HRV', betterHigh: true }],
+    concernKeys: [],
+    envKeys: [{ key: 'env_kp', label: 'Среда: магнитные бури (Kp)' }],
+  }
+
+  it('Kp-индекс коррелирует с метриками как немодифицируемый фактор среды', () => {
+    const f = computeFindings(kpData).find(x => x.a === 'Среда: магнитные бури (Kp)' && x.b === 'HRV')
+    expect(f).toBeDefined()
+    expect(f!.modifiable).toBe(false)
+    expect(f!.r!).toBeLessThan(-0.5)
+  })
+})
+
 describe('computeFindings — outcome keys', () => {
   // 12 дней: дни с кофе → самочувствие 2, без кофе → 4 (сильный эффект)
   const wbRows = Array.from({ length: 12 }, (_, i) => {

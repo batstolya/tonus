@@ -62,6 +62,16 @@ describe('demo correlations showcase', () => {
     // погодная связь — часть витрины F5
     expect(res.correlations.some(c => c.factor === 'temp')).toBe(true)
   })
+
+  it('kp_index в фикстуре среды: диапазон 0–9 и есть дни с бурей (Kp >= 5)', async () => {
+    const { makeDemoEnvironment } = await import('./demoFixture')
+    const env = makeDemoEnvironment(90)
+    for (const d of env) {
+      expect(d.kp_index).toBeGreaterThanOrEqual(0)
+      expect(d.kp_index).toBeLessThanOrEqual(9)
+    }
+    expect(env.some(d => d.kp_index >= 5)).toBe(true)
+  })
 })
 
 describe('makeDemoHRSamples', () => {
