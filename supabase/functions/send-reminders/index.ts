@@ -6,7 +6,7 @@ import {
   deliverReminder, nextActionOnFailure,
   type ClaimedReminder, type TelegramTransport,
 } from '../_shared/reminderDelivery.ts'
-import { shiftTime, workoutNotificationText } from '../_shared/workoutPlan.ts'
+import { shiftTime, workoutNotificationText, type DayEntry, type DayTimes } from '../_shared/workoutPlan.ts'
 import { forecastReadiness } from '../_shared/forecast.ts'
 import { forecastBlock } from '../_shared/forecastMessage.ts'
 import { computeBaselineStart, computeResult, type ExpDaily, type ExperimentRow } from '../_shared/experiments.ts'
@@ -551,13 +551,18 @@ serve(async (req) => {
   {
     const { data: schedules } = await supabase
       .from('workout_schedule')
-      .select('user_id, weekdays, time, notify_hours_before, timezone, last_notified_date')
+      .select('user_id, weekdays, time, day_times, notify_hours_before, timezone, last_notified_date')
       .eq('enabled', true)
     for (const ws of schedules ?? []) {
       const { hhmm, weekday, dateStr } = localNow(ws.timezone || 'Europe/Kyiv')
-      if (!ws.weekdays?.includes(weekday)) continue
+      // Время своё на каждый день (day_times); legacy-строки без day_times
+      // читаем по старой модели weekdays[]+time.
+      const dayTimes = (ws.day_times ?? {}) as DayTimes
+      const entry: DayEntry | null = dayTimes[String(weekday)]
+        ?? (ws.weekdays?.includes(weekday) && ws.time ? { time: ws.time } : null)
+      if (!entry) continue
       if (ws.last_notified_date === dateStr) continue
-      if (!timeDue(shiftTime(ws.time, ws.notify_hours_before ?? 4), hhmm)) continue
+      if (!timeDue(shiftTime(entry.time, ws.notify_hours_before ?? 4), hhmm)) continue
       const { data: link } = await supabase
         .from('telegram_links').select('telegram_chat_id').eq('user_id', ws.user_id).eq('status', 'active').maybeSingle()
       if (!link?.telegram_chat_id) continue
@@ -565,7 +570,7 @@ serve(async (req) => {
         .from('daily_scores').select('readiness, hrv_baseline').eq('user_id', ws.user_id).eq('date', dateStr).maybeSingle()
       const { data: hrvRow } = await supabase
         .from('daily_metrics').select('hrv').eq('user_id', ws.user_id).eq('date', dateStr).maybeSingle()
-      const text = workoutNotificationText(ws.time, score ? {
+      const text = workoutNotificationText(entry, score ? {
         readiness: score.readiness, hrv: hrvRow?.hrv ?? null, hrvBaseline: score.hrv_baseline,
       } : null)
       await tgSend(link.telegram_chat_id, text)

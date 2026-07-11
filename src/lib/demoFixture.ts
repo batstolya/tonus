@@ -158,7 +158,15 @@ export function makeDemoHRSamples(days = 7): HeartRateSample[] {
   return out
 }
 
-// Демо-расписание тренировок для WorkoutPlanCard (Пн/Ср/Пт 19:00).
+// Демо-расписание тренировок для WorkoutPlanCard (Пн волейбол / Ср футбол / Пт волейбол).
 export function makeDemoWorkoutSchedule() {
-  return { weekdays: [1, 3, 5], time: '19:00', notify_hours_before: 4, enabled: true }
+  return {
+    day_times: {
+      '1': { time: '18:45', label: 'волейбол' },
+      '3': { time: '19:00', label: 'футбол' },
+      '5': { time: '20:30', label: 'волейбол' },
+    },
+    notify_hours_before: 4,
+    enabled: true,
+  }
 }

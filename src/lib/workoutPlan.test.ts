@@ -1,5 +1,20 @@
 import { describe, it, expect } from 'vitest'
-import { plannedDaysInRange, attendance, nextPlannedWorkout } from './workoutPlan'
+import { plannedDaysInRange, attendance, nextPlannedWorkout, scheduleWeekdays, sportEmoji, type DayTimes } from './workoutPlan'
+
+const DT: DayTimes = {
+  '1': { time: '18:45', label: 'волейбол' },
+  '3': { time: '19:00', label: 'футбол' },
+  '5': { time: '20:30', label: 'волейбол' },
+}
+
+describe('scheduleWeekdays / sportEmoji (зеркало _shared)', () => {
+  it('дни из ключей, отсортированы', () => expect(scheduleWeekdays(DT)).toEqual([1, 3, 5]))
+  it('эмодзи по виду спорта', () => {
+    expect(sportEmoji('волейбол')).toBe('🏐')
+    expect(sportEmoji('футбол')).toBe('⚽')
+    expect(sportEmoji(undefined)).toBe('🏋️')
+  })
+})
 
 describe('plannedDaysInRange (зеркало _shared)', () => {
   it('Пн/Ср/Пт в неделе 2026-07-06..12', () => {
@@ -18,24 +33,25 @@ describe('attendance (зеркало _shared)', () => {
   })
 })
 
-describe('nextPlannedWorkout', () => {
-  // 2026-07-11 — суббота (локальное время конструктора Date)
-  const sat = new Date(2026, 6, 11, 10, 0) // Сб 10:00
+describe('nextPlannedWorkout (per-day times)', () => {
+  // 2026-07-11 — суббота
+  const sat = new Date(2026, 6, 11, 10, 0)
 
-  it('сегодня плановый день и время не прошло → сегодня', () => {
-    const r = nextPlannedWorkout([6], '19:00', sat)
-    expect(r).toEqual({ date: '2026-07-11', time: '19:00', inDays: 0 })
+  it('от субботы ближайшая — Пн 18:45 волейбол (через 2 дня)', () => {
+    expect(nextPlannedWorkout(DT, sat)).toEqual(
+      { date: '2026-07-13', time: '18:45', label: 'волейбол', inDays: 2 })
   })
-  it('сегодня плановый, но время прошло → следующая неделя', () => {
-    const late = new Date(2026, 6, 11, 20, 0) // Сб 20:00
-    const r = nextPlannedWorkout([6], '19:00', late)
-    expect(r).toEqual({ date: '2026-07-18', time: '19:00', inDays: 7 })
+  it('в среду до 19:00 — сегодня футбол', () => {
+    const wed = new Date(2026, 6, 8, 12, 0)
+    expect(nextPlannedWorkout(DT, wed)).toEqual(
+      { date: '2026-07-08', time: '19:00', label: 'футбол', inDays: 0 })
   })
-  it('ближайший из Пн/Ср/Пт от субботы → понедельник (через 2 дня)', () => {
-    const r = nextPlannedWorkout([1, 3, 5], '19:00', sat)
-    expect(r).toEqual({ date: '2026-07-13', time: '19:00', inDays: 2 })
+  it('в среду после 19:00 — пятница 20:30', () => {
+    const wedLate = new Date(2026, 6, 8, 21, 0)
+    expect(nextPlannedWorkout(DT, wedLate)).toEqual(
+      { date: '2026-07-10', time: '20:30', label: 'волейбол', inDays: 2 })
   })
   it('пустое расписание → null', () => {
-    expect(nextPlannedWorkout([], '19:00', sat)).toBeNull()
+    expect(nextPlannedWorkout({}, sat)).toBeNull()
   })
 })

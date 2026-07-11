@@ -2,7 +2,7 @@
 // Один источник правды: бот, коуч, отчёты используют его, чтобы логика
 // контекста не разъезжалась между функциями (см. new-speca-refactoring #1).
 
-import { plannedDaysInRange, attendance } from './workoutPlan.ts'
+import { plannedDaysInRange, attendance, scheduleWeekdays, type DayTimes } from './workoutPlan.ts'
 
 export interface HealthContextOptions {
   periodDays?: number          // окно агрегации (по умолчанию 14)
@@ -32,7 +32,7 @@ export interface HealthContext {
   alerts: { date: string | null; level: 'yellow' | 'red'; message: string }[]
   recommendations: { metric: string; text: string; status: string; created_at: string }[]
   // расписание тренировок + дни-факты за 7 дней (exerciseMinutes ≥ 30 ∪ workout intake)
-  workoutSchedule: { weekdays: number[]; time: string; enabled: boolean } | null
+  workoutSchedule: { day_times: DayTimes; enabled: boolean } | null
   workoutDoneDays: string[]
 }
 
@@ -146,7 +146,7 @@ export async function buildHealthContext(
       .eq('user_id', userId).in('status', ['accepted', 'dismissed', 'snoozed'])
       .order('created_at', { ascending: false }).limit(10),
     supabase.from('workout_schedule')
-      .select('weekdays, time, enabled')
+      .select('day_times, enabled')
       .eq('user_id', userId).maybeSingle(),
     // exerciseMinutes живёт только в EAV (нет в daily_metrics view) — прямой запрос допустим
     supabase.from('metrics_daily')
@@ -241,18 +241,26 @@ export function healthContextToText(ctx: HealthContext): string {
     if (base.length) parts.push(`Персональная норма (30 дней): ${base.join(', ')}. Сравнивай текущие значения с этой нормой, а не с абсолютной.`)
   }
 
-  if (ctx.workoutSchedule?.enabled && ctx.workoutSchedule.weekdays?.length) {
-    const ws = ctx.workoutSchedule
+  const wsDays = ctx.workoutSchedule?.enabled ? scheduleWeekdays(ctx.workoutSchedule.day_times) : []
+  if (ctx.workoutSchedule && wsDays.length) {
+    const dt = ctx.workoutSchedule.day_times
     const names = ['', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
     // сегодня и понедельник текущей недели в tz пользователя
     const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: ctx.timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
     const t = new Date(todayStr + 'T00:00:00Z')
     const todayWd = t.getUTCDay() === 0 ? 7 : t.getUTCDay()
     const monday = new Date(t); monday.setUTCDate(t.getUTCDate() - (todayWd - 1))
-    const planned = plannedDaysInRange(ws.weekdays, monday.toISOString().slice(0, 10), todayStr)
+    const planned = plannedDaysInRange(wsDays, monday.toISOString().slice(0, 10), todayStr)
     const a = attendance(planned, new Set(ctx.workoutDoneDays))
-    const today = ws.weekdays.includes(todayWd) ? `сегодня плановая тренировка в ${ws.time}` : 'сегодня отдых по плану'
-    parts.push(`=== ТРЕНИРОВКИ ===\nПлан: ${ws.weekdays.map(d => names[d]).join('/')} в ${ws.time}. Эта неделя: ${a.done} из ${a.total} (по сегодня). ${today.charAt(0).toUpperCase() + today.slice(1)}.`)
+    const plan = wsDays.map(d => {
+      const e = dt[String(d)]
+      return `${names[d]} ${e.time}${e.label ? ` (${e.label})` : ''}`
+    }).join(', ')
+    const todayEntry = dt[String(todayWd)]
+    const today = todayEntry
+      ? `Сегодня по плану ${todayEntry.label ?? 'тренировка'} в ${todayEntry.time}.`
+      : 'Сегодня отдых по плану.'
+    parts.push(`=== ТРЕНИРОВКИ ===\nПлан: ${plan}. Эта неделя: ${a.done} из ${a.total} (по сегодня). ${today}`)
   }
 
   const rows = ctx.metrics
