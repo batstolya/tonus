@@ -150,6 +150,28 @@ describe('computeLagCorrelations', () => {
     expect(hit!.r).toBeLessThan(-0.5)
   })
 
+  it('environment factor: magnetic storm → lower HRV same day (lag 0)', () => {
+    const n = 30
+    // чёт — буря (Kp высокий), нечет — спокойно; в дни бури hrv ниже
+    const env = Array.from({ length: n }, (_, i) => ({
+      date: dayStr(i),
+      temp_c: 20,
+      pressure_hpa: 1013,
+      daylight_minutes: 900,
+      precipitation_mm: 0,
+      kp_index: i % 2 === 0 ? 6 : 1.5,
+    }))
+    const daily = makeDaily(n, i => ({
+      hrv: i % 2 === 0 ? 38 + (i % 3) : 56 + (i % 3),
+      sleepHours: 7.5,
+    }))
+    const res = found(computeLagCorrelations({ daily, scores: [], intake: [], environment: env }))
+    const hit = res.find(c => c.factor === 'magneticStorm' && c.outcome === 'hrv' && c.lag === 0)
+    expect(hit, 'magneticStorm → hrv (lag 0) не найдена').toBeDefined()
+    expect(hit!.r).toBeLessThan(-0.5)
+    expect(hit!.direction).toBe('down')
+  })
+
   it('works without environment data (backwards compatible)', () => {
     const daily = makeDaily(30, i => ({
       steps: i % 2 === 0 ? 12000 : 3000,

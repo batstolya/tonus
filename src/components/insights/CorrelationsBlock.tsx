@@ -24,6 +24,7 @@ const FACTOR_LABELS: Record<CorrFactor, { emoji: string; label: string }> = {
   pressureDelta: { emoji: '🌦️', label: 'Перепад давления' },
   temp: { emoji: '🌡️', label: 'Температура за окном' },
   daylight: { emoji: '☀️', label: 'Световой день' },
+  magneticStorm: { emoji: '🧲', label: 'Магнитные бури' },
 }
 
 const OUTCOME_LABELS: Record<CorrOutcome, string> = {
@@ -46,7 +47,7 @@ export function CorrelationsBlock({ daily, intakeEvents }: Props) {
     const since = new Date(Date.now() - 48 * 86400000).toISOString().slice(0, 10)
     supabase
       .from('environment_daily')
-      .select('date, temp_c, pressure_hpa, daylight_minutes, precipitation_mm')
+      .select('date, temp_c, pressure_hpa, daylight_minutes, precipitation_mm, kp_index')
       .gte('date', since).order('date')
       .then(({ data }) => { if (!cancelled) setEnv((data as EnvDay[]) ?? []) })
     return () => { cancelled = true }
