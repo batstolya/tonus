@@ -1601,6 +1601,8 @@ body {
 .goals-list { display: flex; flex-direction: column; gap: 10px; }
 .goal-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; display: flex; align-items: center; gap: 16px; }
 .goal-card-left { flex-shrink: 0; }
+.goal-card-finished { opacity: 0.75; }
+.goal-card-finished:hover { opacity: 1; }
 .goal-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .goal-card-title { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
 .goal-trend { font-size: 16px; color: var(--text-muted); }
