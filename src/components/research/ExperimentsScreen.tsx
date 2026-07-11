@@ -212,8 +212,11 @@ export function ExperimentsScreen({ user, daily }: Props) {
 
   return (
     <div className="screen">
-      <div className="screen-header">
-        <h2>{t('Эксперименты')}</h2>
+      <div className="expd-header">
+        <div className="expd-header-text">
+          <h2>{t('Эксперименты')}</h2>
+          <p>{t('Активная проверка гипотезы: что изменилось, когда ты поменял привычку? До/после с размером эффекта.')}</p>
+        </div>
         <div className="exp-header-actions">
           <button className="btn-suggest" onClick={handleSuggest} disabled={suggestLoading}>
             {suggestLoading
@@ -227,10 +230,6 @@ export function ExperimentsScreen({ user, daily }: Props) {
       </div>
 
       {loadError && <LoadError onRetry={loadExps} />}
-
-      <p className="settings-muted" style={{ marginBottom: 16 }}>
-        {t('Активная проверка гипотезы: что изменилось, когда ты поменял привычку? До/после с размером эффекта.')}
-      </p>
 
       {suggestError && !suggestions.length && (
         <p className="settings-muted" style={{ marginBottom: 16 }}>{suggestError}</p>
