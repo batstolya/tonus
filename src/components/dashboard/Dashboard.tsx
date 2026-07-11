@@ -4,7 +4,6 @@ import type { DailyMetrics, HeartRateSample, CalendarEvent } from '../../types'
 import type { AppView } from '../../store/appStore'
 import { generateInsights } from '../../utils/insights'
 import { AiAnalysisBlock } from './AiAnalysisBlock'
-import { WorkoutPlanCard } from './WorkoutPlanCard'
 import { DataGaps } from '../ui/DataGaps'
 import { EmptyState } from '../ui/EmptyState'
 import { computeReadiness, computeEarlyWarning, readinessVerdict } from '../../lib/readiness'
@@ -425,7 +424,6 @@ export function Dashboard({ daily, events, onNavigate, user, quickLog }: Props) 
       {user && <CoachFocusCard user={user} daily={daily} />}
       <ReadinessCard daily={daily} />
       <StressDaysCard daily={daily} />
-      <WorkoutPlanCard daily={daily} />
 
       <motion.div className="cards-grid" variants={cardsGridV} initial="hidden" animate="show">
         {cards.map(c => (
