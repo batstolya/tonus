@@ -122,19 +122,21 @@ export function makeDemoExperiments(): ExperimentRow[] {
 // Погода/среда для демо (environment_daily). Жара синхронизирована с
 // makeDemoDaily тем же сидом r(21) — «Жара → сон хуже» видна в корреляциях.
 export function makeDemoEnvironment(days = 90) {
-  const out: { date: string; temp_c: number; pressure_hpa: number; daylight_minutes: number; precipitation_mm: number }[] = []
+  const out: { date: string; temp_c: number; pressure_hpa: number; daylight_minutes: number; precipitation_mm: number; kp_index: number }[] = []
   const today = new Date()
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date(today)
     d.setDate(d.getDate() - i)
     const r = (k: number) => rnd(i * 7 + k)
     const hotDay = r(21) > 0.7
+    const stormDay = r(27) > 0.88 // редкие магнитные бури (Kp >= 5)
     out.push({
       date: d.toISOString().slice(0, 10),
       temp_c: hotDay ? 28 + r(22) * 5 : 15 + r(22) * 8,
       pressure_hpa: 1013 + Math.sin(i / 4) * 9 + r(23) * 5,
       daylight_minutes: 880 + Math.round(r(24) * 120),
       precipitation_mm: r(25) > 0.75 ? r(26) * 12 : 0,
+      kp_index: Math.round((stormDay ? 5 + r(28) * 3 : 1 + r(28) * 3) * 10) / 10,
     })
   }
   return out
