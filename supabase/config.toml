@@ -9,7 +9,7 @@ project_id = "mxnmubakfzqoosgsqmhh"
 # Список ПОЛНЫЙ — отражает реальные verify_jwt=false на платформе (сверено
 # 2026-06-21 через Management API). Все НЕперечисленные функции получают
 # verify_jwt=true (дефолт) — это правильно для вызываемых из UI/сервера с JWT
-# (analyze-health, chat-health, fetch-environment, classify-meal, deep-research,
+# (analyze-health, chat-health, classify-meal, deep-research,
 #  biweekly-report, extract-lab, generate-recommendations, suggest-experiments,
 #  fetch-cal, fetch-ics). Полнота списка делает безопасным даже deploy-all.
 
@@ -29,6 +29,9 @@ verify_jwt = false   # football cron, авторизуется через x-cron
 verify_jwt = false   # football reminder cron, авторизуется через x-cron-secret если задан
 
 [functions.sync-cal]
+verify_jwt = false   # cron (x-cron-secret) + UI (user JWT) — делает свою авторизацию
+
+[functions.fetch-environment]
 verify_jwt = false   # cron (x-cron-secret) + UI (user JWT) — делает свою авторизацию
 
 [functions.telegram-bot]
