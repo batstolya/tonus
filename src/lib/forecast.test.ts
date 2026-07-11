@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { forecastReadiness, type ForecastInput } from './forecast'
+import { forecastReadiness as forecastServer } from '../../supabase/functions/_shared/forecast'
 
 const base = (over: Partial<ForecastInput> = {}): ForecastInput => ({
   readinessLast3: [70, 70, 70],
@@ -72,5 +73,18 @@ describe('forecastReadiness', () => {
   it('без негативных факторов advice отсутствует', () => {
     const f = forecastReadiness(base({ readinessLast3: [60, 65, 70] }))!
     expect(f.adviceId).toBeNull()
+  })
+})
+
+describe('parity клиент ↔ сервер', () => {
+  it('идентичный выход на сетке входов', () => {
+    const grid: ForecastInput[] = []
+    for (const r of [[50, 60, 70], [80, 75, 72], [30, 30, 30], [null, 70, 70]] as const)
+      for (const alco of [false, true])
+        for (const kp of [null, 6])
+          grid.push(base({ readinessLast3: [...r], alcoholToday: alco, kpToday: kp, sleepLast3: [6, 6, 6], exerciseMinutesToday: 90 }))
+    expect(grid.length).toBeGreaterThan(10)
+    for (const input of grid)
+      expect(forecastServer(input)).toEqual(forecastReadiness(input))
   })
 })
