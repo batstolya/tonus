@@ -7,7 +7,7 @@
 
 export type CorrFactor =
   | 'coffee' | 'alcohol' | 'exerciseMinutes' | 'steps' | 'bedtime'
-  | 'pressure' | 'pressureDelta' | 'temp' | 'daylight'
+  | 'pressure' | 'pressureDelta' | 'temp' | 'daylight' | 'magneticStorm'
 export type CorrOutcome = 'sleepHours' | 'hrv' | 'restingHeartRate' | 'readiness'
 
 export interface CorrDailyRow {
@@ -26,6 +26,7 @@ export interface EnvDay {
   pressure_hpa: number | null
   daylight_minutes: number | null
   precipitation_mm: number | null
+  kp_index?: number | null // Kp-индекс (магнитные бури), максимум за день
 }
 
 export interface Correlation {
@@ -117,6 +118,7 @@ export function computeLagCorrelations(input: CorrelationsInput): CorrelationsRe
       }
       case 'temp': return envByDay.get(d.date)?.temp_c ?? null
       case 'daylight': return envByDay.get(d.date)?.daylight_minutes ?? null
+      case 'magneticStorm': return envByDay.get(d.date)?.kp_index ?? null
     }
   }
   const outcomeValue = (o: CorrOutcome, i: number): number | null => {
@@ -131,7 +133,7 @@ export function computeLagCorrelations(input: CorrelationsInput): CorrelationsRe
 
   const factors: CorrFactor[] = [
     'coffee', 'alcohol', 'exerciseMinutes', 'steps', 'bedtime',
-    'pressure', 'pressureDelta', 'temp', 'daylight',
+    'pressure', 'pressureDelta', 'temp', 'daylight', 'magneticStorm',
   ]
   const outcomes: CorrOutcome[] = ['sleepHours', 'hrv', 'restingHeartRate', 'readiness']
   const lags: (0 | 1)[] = [0, 1]
