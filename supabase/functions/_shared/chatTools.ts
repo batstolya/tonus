@@ -80,6 +80,20 @@ function daysBetween(start: string, end: string): number {
   return Math.round((Date.parse(`${end}T00:00:00Z`) - Date.parse(`${start}T00:00:00Z`)) / 86400000)
 }
 
+// UTC ISO → локальное «YYYY-MM-DD HH:MM» в поясе tz. hourCycle h23 держит
+// полночь как 00:00 (а не 24:00). Битый/пустой вход → null.
+export function toLocalDateTime(iso: string | null | undefined, tz: string): string | null {
+  if (!iso) return null
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return null
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz, hourCycle: 'h23',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit',
+  }).formatToParts(d).map((x) => [x.type, x.value]))
+  return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}`
+}
+
 export async function executeChatTool(
   supabase: SupabaseLike,
   userId: string,
@@ -103,6 +117,20 @@ export async function executeChatTool(
     // Ошибку запроса (напр. невалидная дата от модели) не глотаем в пустой
     // список — иначе модель скажет «нет данных» вместо «не смог получить»
     if (error) return { error: error.message ?? 'Ошибка запроса данных' }
+
+    // Сон: bedtime/wake_time хранятся в UTC. Модель должна отдавать время в
+    // поясе пользователя (как таблица в приложении), иначе «отбой 23:35» вместо
+    // локального 01:35. Переводим в profiles.timezone (фолбэк Europe/Kyiv).
+    if (name === 'get_sleep_range') {
+      const { data: tzRows } = await supabase.from('profiles').select('timezone').eq('id', userId).limit(1)
+      const tz = (tzRows?.[0] as { timezone?: string } | undefined)?.timezone || 'Europe/Kyiv'
+      const rows = (data ?? []).map((r) => ({
+        ...(r as Record<string, unknown>),
+        bedtime: toLocalDateTime((r as { bedtime?: string }).bedtime, tz),
+        wake_time: toLocalDateTime((r as { wake_time?: string }).wake_time, tz),
+      }))
+      return { rows }
+    }
     return { rows: data ?? [] }
   }
 
