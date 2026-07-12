@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { User } from '@supabase/supabase-js'
-import type { CalendarEvent } from '../../types'
+import type { CalendarEvent, DailyMetrics } from '../../types'
+import { DoctorReport } from './DoctorReport'
 import { loadMonthUsage, loadBudget, saveBudget } from '../../lib/aiUsage'
 import { loadDailyNoteSettings, saveDailyNoteSettings } from '../../lib/dailyNote'
 import { loadReportSettings, saveReportSettings, type ReportSettings } from '../../lib/reportSettings'
@@ -27,6 +28,7 @@ interface Props {
   onNavigate?: (view: any) => void
   deviceType?: DeviceType | null
   onDeviceTypeChange?: (d: DeviceType) => void
+  daily?: DailyMetrics[]
 }
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -65,7 +67,7 @@ function ArchiveBtn({ id, onArchive }: { id: string; onArchive: (id: string) => 
   )
 }
 
-export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnected, lastSync, onCalEvents, onNavigate, deviceType, onDeviceTypeChange }: Props) {
+export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnected, lastSync, onCalEvents, onNavigate, deviceType, onDeviceTypeChange, daily }: Props) {
   const { t, lang, setLang, locale } = useT()
   const [cost, setCost] = useState<number | null>(null)
   const [tokens, setTokens] = useState(0)
@@ -103,6 +105,7 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
   })
   const [archiveOpen, setArchiveOpen] = useState(false)
   const [showGuide, setShowGuide] = useState(false)
+  const [showDoctorReport, setShowDoctorReport] = useState(false)
   const isArchived = (id: string) => archivedSections.includes(id)
   function persistArchived(next: string[]) {
     localStorage.setItem('settings_archived', JSON.stringify(next))
@@ -786,6 +789,12 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
         </section>
       )}
 
+      {showDoctorReport && (
+        <div className="guide-overlay">
+          <DoctorReport user={user} daily={daily ?? []} onClose={() => setShowDoctorReport(false)} />
+        </div>
+      )}
+
       {showGuide && onDeviceTypeChange && (
         <div className="guide-overlay">
           <ConnectGuide
@@ -814,6 +823,9 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
           </button>
           <button className="btn-secondary" onClick={() => handleExport('csv')} disabled={exporting !== null}>
             {exporting === 'csv' ? '…' : `📊 ${t('Метрики (CSV)')}`}
+          </button>
+          <button className="btn-secondary" onClick={() => setShowDoctorReport(true)}>
+            {`🖨 ${t('Отчёт для врача')}`}
           </button>
         </div>
       </section>

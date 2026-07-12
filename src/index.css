@@ -2182,3 +2182,41 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
   border: none; border-radius: 999px; padding: 8px 16px; cursor: pointer;
   background: var(--accent); color: #fff; font-weight: 600;
 }
+
+/* ── Отчёт для врача (SPEC-DOCTOR-REPORT) ─────────────────────────────────── */
+.dr-setup { max-width: 560px; margin: 0 auto; padding: 24px; background: var(--card-bg, var(--bg)); border-radius: 16px; }
+.dr-setup h2 { margin: 0 0 8px; }
+.dr-setup-hint { font-size: 13px; color: var(--text-muted); }
+.dr-setup-row { display: flex; align-items: center; gap: 8px; margin: 14px 0; font-size: 14px; }
+.dr-setup-row > span { min-width: 120px; color: var(--text-muted); }
+.dr-chip { padding: 6px 14px; border-radius: 999px; border: 1px solid var(--border, #ccc); background: transparent; cursor: pointer; color: inherit; }
+.dr-chip-on { background: var(--accent, #4f6ef7); color: #fff; border-color: transparent; }
+.dr-setup-sections { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; font-size: 14px; }
+.dr-setup-sections > span { color: var(--text-muted); }
+.dr-check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.dr-setup-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+.dr-btn { padding: 8px 18px; border-radius: 10px; border: 1px solid var(--border, #ccc); background: transparent; cursor: pointer; color: inherit; }
+.dr-btn-primary { background: var(--accent, #4f6ef7); color: #fff; border-color: transparent; }
+.dr-toolbar { display: flex; gap: 10px; justify-content: flex-end; padding: 12px 24px; }
+.dr-ai-error { text-align: center; font-size: 13px; color: var(--red); }
+
+.dr-doc { max-width: 760px; margin: 0 auto; padding: 24px; background: #fff; color: #111; border-radius: 8px; font-size: 13px; line-height: 1.45; }
+.dr-doc h1 { font-size: 20px; margin: 0 0 4px; }
+.dr-doc h2 { font-size: 15px; margin: 18px 0 6px; border-bottom: 1px solid #ddd; padding-bottom: 3px; }
+.dr-doc h3 { font-size: 13px; margin: 12px 0 4px; }
+.dr-meta { color: #555; margin: 0 0 2px; }
+.dr-disclaimer { color: #777; font-size: 11px; margin: 0 0 8px; }
+.dr-doc table { width: 100%; border-collapse: collapse; margin: 6px 0; break-inside: avoid; }
+.dr-doc th, .dr-doc td { border: 1px solid #ccc; padding: 4px 8px; text-align: left; }
+.dr-doc th { background: #f3f3f3; font-weight: 600; }
+.dr-flagged td { background: #fff3f0; font-weight: 600; }
+.dr-ai-block { border: 1.5px dashed #888; border-radius: 8px; padding: 10px 14px; margin-top: 16px; }
+.dr-ai-note { font-size: 11px; color: #777; margin: 6px 0 0; }
+
+@media print {
+  body * { visibility: hidden; }
+  .dr-doc, .dr-doc * { visibility: visible; }
+  .dr-doc { position: absolute; inset: 0; max-width: none; border-radius: 0; padding: 0; }
+  .dr-toolbar, .dr-ai-error { display: none; }
+  @page { size: A4; margin: 15mm; }
+}
