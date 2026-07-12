@@ -91,14 +91,23 @@ async function fetchGoogleEvents(token: string): Promise<CalendarEvent[]> {
 
   if (!res.ok) throw new Error('Ошибка Google Calendar API')
 
-  const json = await res.json()
+  interface GCalItem {
+    id: string
+    status?: string
+    summary?: string
+    description?: string
+    location?: string
+    start?: { dateTime?: string }
+    end?: { dateTime?: string }
+  }
+  const json = await res.json() as { items?: GCalItem[] }
   const items: CalendarEvent[] = (json.items ?? [])
-    .filter((item: any) => item.status !== 'cancelled' && item.start?.dateTime)
-    .map((item: any) => ({
+    .filter((item) => item.status !== 'cancelled' && item.start?.dateTime)
+    .map((item) => ({
       uid: item.id,
       title: item.summary ?? '(без названия)',
-      start: new Date(item.start.dateTime),
-      end: new Date(item.end?.dateTime ?? item.start.dateTime),
+      start: new Date(item.start!.dateTime!),
+      end: new Date(item.end?.dateTime ?? item.start!.dateTime!),
       description: item.description ?? undefined,
       location: item.location ?? undefined,
     }))
