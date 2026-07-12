@@ -244,10 +244,12 @@ export function ExperimentsScreen({ user, daily }: Props) {
           <div className="exp-suggest-grid">
             {suggestions.map((s, i) => (
               <div key={i} className="exp-suggest-card">
-                <span className="exp-suggest-metric">{metricLabel(s.target_metric)}</span>
-                <div className="exp-suggest-hyp">{s.hypothesis}</div>
-                <div className="exp-suggest-change">{t('Меняем')}: {s.change_rule}</div>
-                {s.rationale && <div className="exp-suggest-why">{s.rationale}</div>}
+                <div className="exp-suggest-body">
+                  <span className="exp-suggest-metric">{metricLabel(s.target_metric)}</span>
+                  <div className="exp-suggest-hyp">{s.hypothesis}</div>
+                  <div className="exp-suggest-change">{t('Меняем')}: {s.change_rule}</div>
+                  {s.rationale && <div className="exp-suggest-why">{s.rationale}</div>}
+                </div>
                 <button className="btn btn-secondary exp-suggest-apply" onClick={() => applySuggestion(s)}>
                   {t('Применить')}
                 </button>
