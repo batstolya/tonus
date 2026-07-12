@@ -129,14 +129,15 @@ export function makeDemoEnvironment(days = 90) {
     d.setDate(d.getDate() - i)
     const r = (k: number) => rnd(i * 7 + k)
     const hotDay = r(21) > 0.7
-    const stormDay = r(27) > 0.88 // редкие магнитные бури (Kp >= 5)
+    // Сегодня (i===0) — гарантированная буря, чтобы индикатор был виден в демо.
+    const stormDay = i === 0 || r(27) > 0.88 // редкие магнитные бури (Kp >= 5)
     out.push({
       date: d.toISOString().slice(0, 10),
       temp_c: hotDay ? 28 + r(22) * 5 : 15 + r(22) * 8,
       pressure_hpa: 1013 + Math.sin(i / 4) * 9 + r(23) * 5,
       daylight_minutes: 880 + Math.round(r(24) * 120),
       precipitation_mm: r(25) > 0.75 ? r(26) * 12 : 0,
-      kp_index: Math.round((stormDay ? 5 + r(28) * 3 : 1 + r(28) * 3) * 10) / 10,
+      kp_index: i === 0 ? 6.2 : Math.round((stormDay ? 5 + r(28) * 3 : 1 + r(28) * 3) * 10) / 10,
     })
   }
   return out
