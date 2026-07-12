@@ -17,6 +17,7 @@ const UploadScreen = lazy(() => import('./components/upload/UploadScreen').then(
 const Dashboard = lazy(() => import('./components/dashboard/Dashboard').then(m => ({ default: m.Dashboard })))
 const StreakMenu = lazy(() => import('./components/dashboard/StreakMenu').then(m => ({ default: m.StreakMenu })))
 const NotificationBell = lazy(() => import('./components/dashboard/NotificationBell').then(m => ({ default: m.NotificationBell })))
+const GeoStormBadge = lazy(() => import('./components/dashboard/GeoStormBadge').then(m => ({ default: m.GeoStormBadge })))
 const HealthAlertBanner = lazy(() => import('./components/dashboard/HealthAlertBanner'))
 const HeartRateScreen = lazy(() => import('./components/heart-rate/HeartRateScreen').then(m => ({ default: m.HeartRateScreen })))
 const MetricsScreen = lazy(() => import('./components/metrics/MetricsScreen').then(m => ({ default: m.MetricsScreen })))
@@ -324,6 +325,7 @@ export default function App() {
             <div className="topbar-right">
               {hasData && (
                 <Suspense fallback={null}>
+                  <GeoStormBadge />
                   <StreakMenu daily={state.daily} />
                   <NotificationBell daily={state.daily} userId={user?.id ?? null} demo={demo} />
                 </Suspense>
