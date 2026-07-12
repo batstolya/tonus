@@ -30,7 +30,7 @@ describe('verdictMessage', () => {
   it('мало данных: честное «данных мало», без чисел эффекта', () => {
     const msg = verdictMessage('Магний перед сном', 'hrv', thinResult)
     expect(msg).toContain('Магний перед сном')
-    expect(msg).toContain('данных мало')
+    expect(msg).toContain('Данных мало')
     expect(msg).not.toContain('d =')
   })
 
