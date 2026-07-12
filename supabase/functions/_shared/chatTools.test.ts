@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { executeChatTool, CHAT_TOOL_DECLARATIONS, toLocalDateTime, type SupabaseLike } from './chatTools'
+import { executeChatTool, CHAT_TOOL_DECLARATIONS, toLocalDateTime, effectiveWakeIso, type SupabaseLike } from './chatTools'
 
 function stubSupabase(dataByTable: Record<string, unknown[]>): SupabaseLike {
   return {
@@ -173,6 +173,16 @@ describe('executeChatTool: get_correlations', () => {
     const result: Record<string, unknown> = await executeChatTool(sb, 'user-1', 'get_correlations', {})
     expect(result.correlations).toBeUndefined()
     expect(result.error).toContain('Ошибка запроса данных')
+  })
+})
+
+describe('effectiveWakeIso', () => {
+  it('нормальную ночь не трогает', () => {
+    expect(effectiveWakeIso('2026-06-21T00:00:00Z', '2026-06-21T08:00:00Z', 7.5)).toBe('2026-06-21T08:00:00Z')
+  })
+  it('битый wake → отбой + длительность', () => {
+    const w = effectiveWakeIso('2026-06-13T00:14:24Z', '2026-06-13T23:55:33Z', 7.3178)
+    expect(w!.slice(0, 16)).toBe('2026-06-13T07:33')
   })
 })
 
