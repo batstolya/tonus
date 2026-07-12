@@ -74,7 +74,9 @@ export function ExperimentCard({ exp, daily, aiLoading, aiError, onExplain, onDe
   const { t } = useT()
   const [showAI, setShowAI] = useState(false)
   const st = expStatusInfo(exp)
-  const result = computeResult(daily, exp)
+  // Завершённые: правда одна — вердикт, сохранённый сервером при закрытии
+  // (SPEC-EXPERIMENT-LOOP §2.3); пересчёт — фолбэк для старых записей.
+  const result = exp.result ?? computeResult(daily, exp)
   const finished = st.kind === 'done' || st.kind === 'cancelled'
   const hasResult = finished && result.insufficient === null
     && result.baselineMean !== null && result.expMean !== null
