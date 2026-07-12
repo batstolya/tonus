@@ -24,7 +24,7 @@ export async function loadReportSettings(userId: string): Promise<ReportSettings
     .select('*')
     .eq('user_id', userId)
     .maybeSingle()
-  return { ...DEFAULTS, ...(data ?? {}) }
+  return { ...DEFAULTS, ...(data ?? {}) } as ReportSettings
 }
 
 export async function saveReportSettings(

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { User } from '@supabase/supabase-js'
 import type { DailyMetrics } from '../../types'
+import type { Json } from '../../lib/database.types'
 import { supabase } from '../../lib/supabase'
 import { callFunction } from '../../lib/edgeFunctions'
 import { EXPERIMENT_PREFILL_KEY, type ExperimentPrefill } from '../../lib/levers'
@@ -186,7 +187,7 @@ export function ExperimentsScreen({ user, daily }: Props) {
       const json = await callFunction<{ reply?: string }>('deep-research', { findings: prompt, periodLabel: `${exp.baseline_days} дн` })
       const explanation = json.reply ?? ''
       if (!explanation) throw new Error('empty reply')
-      await supabase.from('experiments').update({ result, ai_explanation: explanation }).eq('id', exp.id)
+      await supabase.from('experiments').update({ result: result as unknown as Json, ai_explanation: explanation }).eq('id', exp.id)
       setExps(prev => prev.map(e => e.id === exp.id ? { ...e, result, ai_explanation: explanation } : e))
     } catch {
       setAiError({ id: exp.id, msg: t('Не удалось получить разбор. Попробуй ещё раз.') })

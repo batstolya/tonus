@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import type { DailyMetrics } from '../types'
+import type { Json } from './database.types'
 import { computeDailyScores } from './scores'
 import { loadPinHash, maskConcernLabel } from './privacy'
 
@@ -264,10 +265,10 @@ export interface ResearchRun {
 export async function saveResearchRun(userId: string, periodDays: number, findings: Finding[], reply: string): Promise<ResearchRun | null> {
   const { data } = await supabase
     .from('research_runs')
-    .insert({ user_id: userId, period_days: periodDays, findings, reply })
+    .insert({ user_id: userId, period_days: periodDays, findings: findings as unknown as Json, reply })
     .select('id, period_days, findings, reply, created_at')
     .single()
-  return (data as ResearchRun) ?? null
+  return (data as unknown as ResearchRun) ?? null
 }
 
 export async function loadResearchRuns(userId: string): Promise<ResearchRun[]> {
@@ -277,7 +278,7 @@ export async function loadResearchRuns(userId: string): Promise<ResearchRun[]> {
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(30)
-  return (data as ResearchRun[]) ?? []
+  return (data as unknown as ResearchRun[]) ?? []
 }
 
 export async function deleteResearchRun(id: string): Promise<void> {
