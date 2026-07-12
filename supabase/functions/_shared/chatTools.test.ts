@@ -18,9 +18,9 @@ function stubSupabase(dataByTable: Record<string, unknown[]>): SupabaseLike {
 }
 
 describe('CHAT_TOOL_DECLARATIONS', () => {
-  it('declares exactly the four range/history/correlation tools', () => {
+  it('declares exactly the range/history/correlation/extreme tools', () => {
     const names = CHAT_TOOL_DECLARATIONS.map((t) => t.name)
-    expect(names).toEqual(['get_metrics_range', 'get_sleep_range', 'get_lab_history', 'get_correlations'])
+    expect(names).toEqual(['get_metrics_range', 'get_sleep_range', 'get_lab_history', 'get_correlations', 'get_extreme_days'])
   })
 })
 
@@ -70,6 +70,25 @@ describe('executeChatTool', () => {
     const sb = stubSupabase({ lab_results: [] })
     const result: Record<string, unknown> = await executeChatTool(sb, 'user-1', 'get_lab_history', {})
     expect(result.error).toBeTruthy()
+  })
+
+  it('get_extreme_days: best deep sleep maps to {date, value} from sleep_sessions', async () => {
+    const sb = stubSupabase({ sleep_sessions: [{ date: '2025-07-17', deep_hours: 2.06 }, { date: '2025-05-11', deep_hours: 1.97 }] })
+    const result: Record<string, unknown> = await executeChatTool(sb, 'user-1', 'get_extreme_days', { metric: 'deep_hours', direction: 'highest', limit: 5 })
+    expect(result.metric).toBe('deep_hours')
+    expect(result.days).toEqual([{ date: '2025-07-17', value: 2.06 }, { date: '2025-05-11', value: 1.97 }])
+  })
+
+  it('get_extreme_days: hrv reads from daily_metrics', async () => {
+    const sb = stubSupabase({ daily_metrics: [{ date: '2026-03-01', hrv: 140 }] })
+    const result: Record<string, unknown> = await executeChatTool(sb, 'user-1', 'get_extreme_days', { metric: 'hrv', direction: 'highest' })
+    expect(result.days).toEqual([{ date: '2026-03-01', value: 140 }])
+  })
+
+  it('get_extreme_days: rejects unknown metric or missing direction', async () => {
+    const sb = stubSupabase({})
+    expect((await executeChatTool(sb, 'user-1', 'get_extreme_days', { metric: 'nonsense', direction: 'highest' }) as Record<string, unknown>).error).toBeTruthy()
+    expect((await executeChatTool(sb, 'user-1', 'get_extreme_days', { metric: 'hrv' }) as Record<string, unknown>).error).toBeTruthy()
   })
 
   it('returns an error for an unknown tool name', async () => {
