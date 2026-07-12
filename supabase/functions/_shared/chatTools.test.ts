@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { executeChatTool, CHAT_TOOL_DECLARATIONS, toLocalDateTime, effectiveWakeIso, type SupabaseLike } from './chatTools'
+import { executeChatTool, CHAT_TOOL_DECLARATIONS, toLocalDateTime, effectiveWakeIso, numericAverages, type SupabaseLike } from './chatTools'
 
 function stubSupabase(dataByTable: Record<string, unknown[]>): SupabaseLike {
   return {
@@ -47,6 +47,23 @@ describe('executeChatTool', () => {
     const sb = stubSupabase({ sleep_sessions: [{ date: '2026-06-01', bedtime: '2026-05-31T21:40:00Z' }] })
     const result: Record<string, unknown> = await executeChatTool(sb, 'user-1', 'get_sleep_range', { start_date: '2026-06-01', end_date: '2026-06-10' })
     expect(result.rows).toHaveLength(1)
+  })
+
+  it('returns server-computed sleep averages in summary (не модель считает)', async () => {
+    // 3 из реальных июльских ночей: deep 1.67, 1.42, 1.61 → avg 1.567
+    const sb = stubSupabase({
+      sleep_sessions: [
+        { date: '2026-07-01', bedtime: '2026-06-30T23:35:00Z', wake_time: '2026-07-01T06:48:00Z', duration_hours: 6.99, deep_hours: 1.67, rem_hours: 2.1, core_hours: 3.2 },
+        { date: '2026-07-02', bedtime: '2026-07-01T23:10:00Z', wake_time: '2026-07-02T06:12:00Z', duration_hours: 7.02, deep_hours: 1.42, rem_hours: 1.5, core_hours: 4.1 },
+        { date: '2026-07-03', bedtime: '2026-07-02T22:25:00Z', wake_time: '2026-07-03T06:52:00Z', duration_hours: 8.43, deep_hours: 1.61, rem_hours: 1.82, core_hours: 5.0 },
+      ],
+      profiles: [{ timezone: 'Europe/Berlin' }],
+    })
+    const result: Record<string, unknown> = await executeChatTool(sb, 'user-1', 'get_sleep_range', { start_date: '2026-07-01', end_date: '2026-07-03' })
+    const summary = result.summary as { nights: number; averages: Record<string, { avg: number; n: number }> }
+    expect(summary.nights).toBe(3)
+    expect(summary.averages.deep_hours.avg).toBe(1.567)
+    expect(summary.averages.duration_hours.avg).toBe(7.48)
   })
 
   it('converts sleep bedtime/wake_time to the user timezone (UTC → local)', async () => {
@@ -173,6 +190,24 @@ describe('executeChatTool: get_correlations', () => {
     const result: Record<string, unknown> = await executeChatTool(sb, 'user-1', 'get_correlations', {})
     expect(result.correlations).toBeUndefined()
     expect(result.error).toContain('Ошибка запроса данных')
+  })
+})
+
+describe('numericAverages', () => {
+  it('среднее по числовым колонкам, null пропускает', () => {
+    const rows = [{ a: 2, b: 10 }, { a: 4, b: null }, { a: 6, b: 20 }]
+    const r = numericAverages(rows, ['a', 'b'])
+    expect(r.a).toEqual({ avg: 4, n: 3 })
+    expect(r.b).toEqual({ avg: 15, n: 2 }) // null не в счёте
+  })
+  it('точное среднее, где модель ошибается (даёт 7.834, а не «примерно 7.78»)', () => {
+    const july = [6.99, 7.02, 8.43, 7.98, 7.36, 8.63, 8.949, 7.909, 7.234]
+    const r = numericAverages(july.map((v) => ({ d: v })), ['d'])
+    expect(r.d.avg).toBe(7.834)
+    expect(r.d.n).toBe(9)
+  })
+  it('нет числовых значений — ключа нет', () => {
+    expect(numericAverages([{ a: null }], ['a'])).toEqual({})
   })
 })
 
