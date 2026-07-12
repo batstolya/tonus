@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="440" viewBox="0 0 880 440" role="img" aria-labelledby="title desc">
+  <title id="title">Tonus system architecture</title>
+  <desc id="desc">Apple Health and Telegram send data to Deno Edge Functions. Manual imports run in the React PWA. The application uses Supabase Auth, Postgres with row-level security, and Gemini for grounded AI features. Calendar and environment providers add context through Edge Functions.</desc>
+  <defs>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#111735"/>
+      <stop offset="1" stop-color="#242b68"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#4fd1b5"/>
+      <stop offset="1" stop-color="#7c83ff"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth">
+      <path d="M0 0 8 4 0 8Z" fill="#7c83ff"/>
+    </marker>
+    <marker id="arrowMint" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth">
+      <path d="M0 0 8 4 0 8Z" fill="#4fd1b5"/>
+    </marker>
+    <filter id="shadow" x="-20%" y="-30%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="#111735" flood-opacity=".16"/>
+    </filter>
+    <style>
+      .label { fill: #f8fafc; font-family: Arial, Helvetica, sans-serif; font-size: 15px; font-weight: 600; }
+      .sub { fill: #cbd5e1; font-family: Arial, Helvetica, sans-serif; font-size: 12px; }
+      .section { fill: #64748b; font-family: Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; letter-spacing: .08em; }
+      .flow { fill: none; stroke: #7c83ff; stroke-width: 2; stroke-linecap: round; marker-end: url(#arrow); }
+      .flow-mint { fill: none; stroke: #4fd1b5; stroke-width: 2; stroke-linecap: round; marker-end: url(#arrowMint); }
+      .flow-two { fill: none; stroke: #7c83ff; stroke-width: 2; stroke-linecap: round; marker-start: url(#arrow); marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <text class="section" x="22" y="27">SIGNALS</text>
+  <text class="section" x="231" y="27">EXPERIENCE</text>
+  <text class="section" x="453" y="27">SECURE DATA CORE</text>
+  <text class="section" x="728" y="27">INTELLIGENCE</text>
+
+  <rect x="420" y="42" width="270" height="378" rx="24" fill="#0f2530" stroke="#4fd1b5" stroke-opacity=".7"/>
+  <text x="446" y="68" fill="#4fd1b5" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700">SUPABASE</text>
+
+  <g filter="url(#shadow)">
+    <rect x="20" y="50" width="166" height="58" rx="16" fill="url(#panel)" stroke="#4fd1b5"/>
+    <text class="label" x="38" y="76">⌚ Apple Health</text>
+    <text class="sub" x="38" y="94">hourly auto-sync</text>
+
+    <rect x="20" y="126" width="166" height="58" rx="16" fill="url(#panel)" stroke="#7c83ff"/>
+    <text class="label" x="38" y="152">↥ Manual import</text>
+    <text class="sub" x="38" y="170">ZIP / XML in browser</text>
+
+    <rect x="20" y="202" width="166" height="58" rx="16" fill="url(#panel)" stroke="#4fd1b5"/>
+    <text class="label" x="38" y="228">✈ Telegram</text>
+    <text class="sub" x="38" y="246">log · chat · reminders</text>
+
+    <rect x="20" y="278" width="166" height="58" rx="16" fill="url(#panel)" stroke="#c879d8"/>
+    <text class="label" x="38" y="304">▣ Calendars</text>
+    <text class="sub" x="38" y="322">Google · ICS</text>
+
+    <rect x="20" y="354" width="166" height="58" rx="16" fill="url(#panel)" stroke="#c879d8"/>
+    <text class="label" x="38" y="380">◎ Environment</text>
+    <text class="sub" x="38" y="398">weather · AQI · Kp</text>
+
+    <rect x="226" y="126" width="160" height="134" rx="20" fill="url(#panel)" stroke="url(#edge)" stroke-width="2"/>
+    <text class="label" x="255" y="165">⚛ React PWA</text>
+    <text class="sub" x="255" y="188">Vite · TypeScript</text>
+    <text class="sub" x="255" y="209">Vercel</text>
+    <rect x="255" y="222" width="102" height="22" rx="11" fill="#7c83ff" fill-opacity=".2"/>
+    <text x="271" y="237" fill="#cbd5ff" font-family="Arial, Helvetica, sans-serif" font-size="11">demo included</text>
+
+    <rect x="446" y="86" width="218" height="60" rx="16" fill="url(#panel)" stroke="#7c83ff"/>
+    <text class="label" x="473" y="113">🔐 Auth</text>
+    <text class="sub" x="473" y="132">user JWT boundaries</text>
+
+    <rect x="446" y="174" width="218" height="82" rx="16" fill="url(#panel)" stroke="#4fd1b5"/>
+    <text class="label" x="473" y="207">⚡ Deno Edge Functions</text>
+    <text class="sub" x="473" y="229">AI · ingest · automation</text>
+    <text class="sub" x="473" y="245">webhooks · cron workers</text>
+
+    <rect x="446" y="296" width="218" height="82" rx="16" fill="url(#panel)" stroke="#4fd1b5"/>
+    <text class="label" x="473" y="329">Postgres + RLS</text>
+    <text class="sub" x="473" y="351">personal health timeline</text>
+    <text class="sub" x="473" y="367">user-owned rows</text>
+
+    <rect x="724" y="174" width="136" height="82" rx="18" fill="url(#panel)" stroke="#c879d8" stroke-width="2"/>
+    <text class="label" x="745" y="207">✦ Gemini</text>
+    <text class="sub" x="745" y="229">grounded chat</text>
+    <text class="sub" x="745" y="245">OCR · vision</text>
+  </g>
+
+  <path class="flow-mint" d="M186 79 C296 79 326 190 446 208"/>
+  <path class="flow" d="M186 155 H226"/>
+  <path class="flow-mint" d="M186 231 H446"/>
+  <path class="flow" d="M186 307 C315 307 336 245 446 225"/>
+  <path class="flow" d="M186 383 C318 383 341 258 446 235"/>
+
+  <path class="flow-two" d="M386 151 C413 134 420 118 446 116"/>
+  <path class="flow-two" d="M386 193 H446"/>
+  <path class="flow-two" d="M386 235 C414 264 420 323 446 337"/>
+  <path class="flow-mint" d="M555 256 V296"/>
+  <path class="flow-two" d="M664 215 H724"/>
+</svg>
