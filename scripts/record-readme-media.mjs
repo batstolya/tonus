@@ -13,15 +13,16 @@ const BASE = 'http://localhost:4173'
 const OUT = 'docs/media'
 const WIDTH = 960
 const HEIGHT = 600
-const FRAME_MS = 100
+const CAPTURE_MS = 125
+const GIF_DELAY_MS = 120
 
 fs.mkdirSync(OUT, { recursive: true })
 
 async function captureFor(page, frames, durationMs) {
-  const count = Math.round(durationMs / FRAME_MS)
+  const count = Math.round(durationMs / CAPTURE_MS)
   for (let i = 0; i < count; i += 1) {
     frames.push(await page.screenshot({ type: 'png', animations: 'allow' }))
-    await page.waitForTimeout(FRAME_MS)
+    await page.waitForTimeout(CAPTURE_MS)
   }
 }
 
@@ -40,14 +41,35 @@ async function enableDemo(page) {
   await page.waitForTimeout(500)
 }
 
-async function openDemoView(page, hash, readyText) {
-  await page.goto(`${BASE}/#${hash}`)
-  await page.getByText(readyText, { exact: false }).first().waitFor({ timeout: 15_000 })
-  await page.waitForTimeout(350)
-}
-
 async function centerInViewport(locator) {
   await locator.evaluate(element => element.scrollIntoView({ behavior: 'instant', block: 'center' }))
+}
+
+async function simplifyLandingBackdrop(page) {
+  await page.addStyleTag({
+    content: '.lp-bg{display:none!important}.landing{background:#f7f8fc!important}',
+  })
+}
+
+async function localizeDemoExperimentCards(page) {
+  await page.evaluate(() => {
+    const copy = new Map([
+      ['Прогулка 30 минут после ужина улучшит глубокий сон', 'A 30-minute walk after dinner improves deep sleep'],
+      ['Гуляю 21:00–21:30 каждый день', 'Walk from 9:00 to 9:30 pm every day'],
+      ['Магний за час до сна увеличит REM-фазу', 'Magnesium one hour before bed increases REM sleep'],
+      ['Принимаю магний в 22:00', 'Take magnesium at 10:00 pm'],
+      ['Отказ от кофе после 16:00 улучшит качество сна', 'No coffee after 4 pm improves sleep quality'],
+      ['Последняя чашка кофе до 16:00', 'Last coffee before 4 pm'],
+      ['Ранний отбой поднимет HRV на следующий день', 'Earlier bedtime raises next-day HRV'],
+      ['Ложусь до 23:00', 'In bed before 11 pm'],
+      ['Дыхательные практики поднимут SpO₂ во сне', 'Breathing practice raises sleep SpO₂'],
+      ['Дыхательная гимнастика перед сном', 'Breathing practice before bed'],
+    ])
+    for (const element of document.querySelectorAll('.expc-title, .expc-rule')) {
+      const translated = copy.get(element.textContent?.trim() ?? '')
+      if (translated) element.textContent = translated
+    }
+  })
 }
 
 async function installCursor(page) {
@@ -106,7 +128,6 @@ async function clickWithCursor(page, locator) {
 const scenarios = [
   {
     name: 'daily-signal',
-    durationMs: 6500,
     flow: async (page, frames) => {
       await enableDemo(page)
       await installCursor(page)
@@ -114,47 +135,15 @@ const scenarios = [
       await clickWithCursor(page, page.getByRole('button', { name: 'Streak' }))
       await captureFor(page, frames, 3000)
       await clickWithCursor(page, page.locator('.streak-menu-close'))
-      await captureFor(page, frames, 1300)
+      await captureFor(page, frames, 1000)
     },
   },
   {
     name: 'ask-your-data',
-    durationMs: 7000,
     flow: async (page, frames) => {
       await page.goto(BASE)
+      await simplifyLandingBackdrop(page)
       const block = page.locator('.chat-stage')
-      await block.waitFor({ timeout: 15_000 })
-      await centerInViewport(block)
-      await page.waitForTimeout(300)
-      await installCursor(page)
-      await captureFor(page, frames, 7000)
-    },
-  },
-  {
-    name: 'pattern-to-experiment',
-    durationMs: 7500,
-    flow: async (page, frames) => {
-      await enableDemo(page)
-      await openDemoView(page, 'insights', 'Insights and trends')
-      const correlations = page.getByText('Patterns in your data')
-      await centerInViewport(correlations)
-      await installCursor(page)
-      await captureFor(page, frames, 3300)
-      await clickWithCursor(page, page.getByRole('button', { name: 'Experiments' }))
-      const experiment = page.locator('.expc')
-        .filter({ hasText: 'Отказ от кофе после 16:00' })
-      await experiment.waitFor({ timeout: 15_000 })
-      await centerInViewport(experiment)
-      await pointAt(page, experiment.locator('.expc-stats'))
-      await captureFor(page, frames, 4200)
-    },
-  },
-  {
-    name: 'health-timeline',
-    durationMs: 6500,
-    flow: async (page, frames) => {
-      await page.goto(BASE)
-      const block = page.locator('.tg-grid')
       await block.waitFor({ timeout: 15_000 })
       await centerInViewport(block)
       await page.waitForTimeout(300)
@@ -162,14 +151,57 @@ const scenarios = [
       await captureFor(page, frames, 6500)
     },
   },
+  {
+    name: 'pattern-to-experiment',
+    colors: 40,
+    flow: async (page, frames) => {
+      await enableDemo(page)
+      await page.getByRole('button', { name: 'Coach', exact: true }).click()
+      await page.getByText('Insights & trends', { exact: false }).first().waitFor({ timeout: 15_000 })
+      await page.waitForTimeout(350)
+      const correlations = page.getByText('Patterns in your data')
+      await centerInViewport(correlations)
+      await installCursor(page)
+      await captureFor(page, frames, 2750)
+      await clickWithCursor(page, page.getByRole('button', { name: 'Experiments' }))
+      await localizeDemoExperimentCards(page)
+      const experiment = page.locator('.expc')
+        .filter({ hasText: 'No coffee after 4 pm' })
+      await experiment.waitFor({ timeout: 15_000 })
+      await centerInViewport(experiment)
+      await pointAt(page, experiment.locator('.expc-stats'))
+      await captureFor(page, frames, 3500)
+    },
+  },
+  {
+    name: 'health-timeline',
+    flow: async (page, frames) => {
+      await page.goto(BASE)
+      await simplifyLandingBackdrop(page)
+      const block = page.locator('.tg-grid')
+      await block.waitFor({ timeout: 15_000 })
+      await centerInViewport(block)
+      await page.waitForTimeout(900)
+      await installCursor(page)
+      await captureFor(page, frames, 6500)
+    },
+  },
 ]
+
+const selectedScenarios = process.env.README_SCENARIO
+  ? scenarios.filter(scenario => scenario.name === process.env.README_SCENARIO)
+  : scenarios
+
+if (!selectedScenarios.length) {
+  throw new Error(`Unknown README_SCENARIO: ${process.env.README_SCENARIO}`)
+}
 
 async function encodeScenario(page, scenario) {
   const frames = []
   await scenario.flow(page, frames)
   const result = await encodeGif(frames, `${OUT}/${scenario.name}.gif`, {
-    delay: FRAME_MS,
-    colors: 160,
+    delay: GIF_DELAY_MS,
+    colors: scenario.colors ?? 64,
     maxPalettePixels: 750_000,
   })
   const meta = {
@@ -194,7 +226,7 @@ try {
   await hero.screenshot({ path: `${OUT}/landing-hero.png`, type: 'png' })
   await hero.close()
 
-  for (const scenario of scenarios) {
+  for (const scenario of selectedScenarios) {
     const page = await browser.newPage({ viewport: { width: WIDTH, height: HEIGHT }, deviceScaleFactor: 1 })
     await preparePage(page)
     await encodeScenario(page, scenario)
