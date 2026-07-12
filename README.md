@@ -30,32 +30,37 @@ no account or backend required.
 <img src="docs/media/landing-hero.png" alt="Tonus landing page with an interactive daily-readiness dashboard" width="880"/>
 </div>
 
-<table>
-  <tr>
-    <td width="50%" valign="top">
-      <img src="docs/media/daily-signal.gif" alt="Tonus dashboard showing readiness, a geomagnetic warning and the activity-streak panel" width="430"/>
-      <br/><strong>Daily signal</strong><br/>
-      See readiness, recovery context, streaks and warnings at a glance.
-    </td>
-    <td width="50%" valign="top">
-      <img src="docs/media/ask-your-data.gif" alt="Tonus AI answering health questions from the user's own sleep and lab history" width="430"/>
-      <br/><strong>Ask your data</strong><br/>
-      Ask in plain language; the answer is grounded in your own history.
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
-      <img src="docs/media/pattern-to-experiment.gif" alt="Tonus moving from personal correlations to measured before-and-after experiments" width="430"/>
-      <br/><strong>From pattern to experiment</strong><br/>
-      Turn an observed relationship into a measured n=1 change.
-    </td>
-    <td width="50%" valign="top">
-      <img src="docs/media/health-timeline.gif" alt="Tonus Telegram assistant logging medication and coffee into one health timeline" width="430"/>
-      <br/><strong>One health timeline</strong><br/>
-      Log coffee, meals, medication and workouts without opening the app.
-    </td>
-  </tr>
-</table>
+### Daily signal
+
+See readiness, recovery context, streaks and warnings at a glance.
+
+<div align="center">
+<img src="docs/media/daily-signal.gif" alt="Tonus dashboard showing readiness, a geomagnetic warning and the activity-streak panel" width="880"/>
+</div>
+
+### Ask your data
+
+Ask in plain language; the answer is grounded in your own history.
+
+<div align="center">
+<img src="docs/media/ask-your-data.gif" alt="Tonus AI answering health questions from the user's own sleep and lab history" width="880"/>
+</div>
+
+### From pattern to experiment
+
+Turn an observed relationship into a measured n=1 change.
+
+<div align="center">
+<img src="docs/media/pattern-to-experiment.gif" alt="Tonus moving from personal correlations to measured before-and-after experiments" width="880"/>
+</div>
+
+### One health timeline
+
+Log coffee, meals, medication and workouts without opening the app.
+
+<div align="center">
+<img src="docs/media/health-timeline.gif" alt="Tonus Telegram assistant logging medication and coffee into one health timeline" width="880"/>
+</div>
 
 ## What Tonus connects
 
