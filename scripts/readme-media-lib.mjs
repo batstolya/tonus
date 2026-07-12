@@ -74,6 +74,97 @@ export async function encodeGif(pngFrames, outputPath, {
   }
 }
 
+function readUint16(bytes, offset) {
+  if (offset + 1 >= bytes.length) throw new Error('Unexpected end of GIF data')
+  return bytes[offset] | (bytes[offset + 1] << 8)
+}
+
+function skipSubBlocks(bytes, offset) {
+  let cursor = offset
+  while (cursor < bytes.length) {
+    const size = bytes[cursor]
+    cursor += 1
+    if (size === 0) return cursor
+    cursor += size
+    if (cursor > bytes.length) throw new Error('Invalid GIF sub-block length')
+  }
+  throw new Error('GIF sub-block terminator is missing')
+}
+
+export function inspectGif(input) {
+  const bytes = input instanceof Uint8Array ? input : new Uint8Array(input)
+  const header = Buffer.from(bytes.subarray(0, 6)).toString('ascii')
+  if (header !== 'GIF87a' && header !== 'GIF89a') throw new Error('Not a GIF file')
+  if (bytes.length < 13) throw new Error('GIF logical screen descriptor is missing')
+
+  const width = readUint16(bytes, 6)
+  const height = readUint16(bytes, 8)
+  const packed = bytes[10]
+  const hasGlobalPalette = (packed & 0x80) !== 0
+  let cursor = 13
+  if (hasGlobalPalette) cursor += 3 * (2 ** ((packed & 0x07) + 1))
+  if (cursor > bytes.length) throw new Error('GIF global palette is truncated')
+
+  let frames = 0
+  let durationCs = 0
+  let pendingDelayCs = 0
+  let hasLocalPalettes = false
+
+  while (cursor < bytes.length) {
+    const introducer = bytes[cursor]
+    cursor += 1
+
+    if (introducer === 0x3b) break
+    if (introducer === 0x21) {
+      const label = bytes[cursor]
+      cursor += 1
+      const size = bytes[cursor]
+      cursor += 1
+      if (label === 0xf9) {
+        if (size !== 4 || cursor + 4 >= bytes.length) throw new Error('Invalid GIF graphic control extension')
+        cursor += 1 // packed flags
+        pendingDelayCs = readUint16(bytes, cursor)
+        cursor += 2
+        cursor += 1 // transparent colour index
+        if (bytes[cursor] !== 0) throw new Error('GIF graphic control terminator is missing')
+        cursor += 1
+      } else {
+        cursor += size
+        if (cursor > bytes.length) throw new Error('GIF extension is truncated')
+        cursor = skipSubBlocks(bytes, cursor)
+      }
+      continue
+    }
+
+    if (introducer !== 0x2c) throw new Error(`Unsupported GIF block 0x${introducer.toString(16)}`)
+    if (cursor + 9 > bytes.length) throw new Error('GIF image descriptor is truncated')
+    const imagePacked = bytes[cursor + 8]
+    cursor += 9
+    if ((imagePacked & 0x80) !== 0) {
+      hasLocalPalettes = true
+      cursor += 3 * (2 ** ((imagePacked & 0x07) + 1))
+    }
+    if (cursor >= bytes.length) throw new Error('GIF image data is truncated')
+    cursor += 1 // LZW minimum code size
+    cursor = skipSubBlocks(bytes, cursor)
+    frames += 1
+    durationCs += pendingDelayCs
+    pendingDelayCs = 0
+  }
+
+  if (!frames) throw new Error('GIF contains no frames')
+  const durationMs = durationCs * 10
+  return {
+    width,
+    height,
+    frames,
+    durationMs,
+    fps: durationMs ? frames / (durationMs / 1000) : 0,
+    hasGlobalPalette,
+    hasLocalPalettes,
+  }
+}
+
 export function validateScenarioMeta(meta) {
   const errors = []
   if (meta.width !== 960 || meta.height !== 600) {
