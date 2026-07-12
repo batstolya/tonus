@@ -5,6 +5,7 @@ import { isDemoActive } from '../../lib/demo'
 import { makeDemoWorkoutSchedule } from '../../lib/demoFixture'
 import { useT } from '../../lib/i18n'
 import type { DayTimes } from '../../lib/workoutPlan'
+import type { Json } from '../../lib/database.types'
 
 interface ScheduleState {
   day_times: DayTimes
@@ -27,8 +28,8 @@ export function WorkoutScheduleSettings({ user }: { user: User }) {
     if (demo) { setWs(makeDemoWorkoutSchedule()); setLoaded(true); return }
     supabase.from('workout_schedule').select('day_times, notify_hours_before, enabled')
       .maybeSingle()
-      .then(({ data }: { data: ScheduleState | null }) => {
-        if (data) setWs({ ...data, day_times: data.day_times ?? {} })
+      .then(({ data }) => {
+        if (data) setWs({ ...data, day_times: (data.day_times ?? {}) as unknown as DayTimes })
         setLoaded(true)
       })
   }, [demo])
@@ -39,7 +40,7 @@ export function WorkoutScheduleSettings({ user }: { user: User }) {
     if (demo) return
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Kyiv'
     supabase.from('workout_schedule')
-      .upsert({ user_id: user.id, ...next, timezone })
+      .upsert({ user_id: user.id, ...next, day_times: next.day_times as unknown as Json, timezone })
       .then(({ error }: { error: unknown }) => {
         if (!error) { setSaved(true); setTimeout(() => setSaved(false), 1500) }
       })

@@ -83,8 +83,8 @@ export function inferFocusCheck(text: string): FocusCheck | null {
 
 export async function loadFocus(userId: string): Promise<CoachFocus | null> {
   const { data } = await supabase.from('coach_profile').select('focus').eq('user_id', userId).maybeSingle()
-  const f = data?.focus
-  return f && f.text ? f as CoachFocus : null
+  const f = data?.focus as unknown as CoachFocus | undefined
+  return f && f.text ? f : null
 }
 
 // Чек-ины фокуса за текущую неделю (с момента установки фокуса)

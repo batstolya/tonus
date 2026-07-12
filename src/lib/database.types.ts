@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       ai_analyses: {
@@ -536,6 +511,7 @@ export type Database = {
           date: string
           daylight_minutes: number | null
           id: string
+          kp_index: number | null
           pollen: number | null
           precipitation_mm: number | null
           pressure_hpa: number | null
@@ -548,6 +524,7 @@ export type Database = {
           date: string
           daylight_minutes?: number | null
           id?: string
+          kp_index?: number | null
           pollen?: number | null
           precipitation_mm?: number | null
           pressure_hpa?: number | null
@@ -560,6 +537,7 @@ export type Database = {
           date?: string
           daylight_minutes?: number | null
           id?: string
+          kp_index?: number | null
           pollen?: number | null
           precipitation_mm?: number | null
           pressure_hpa?: number | null
@@ -998,6 +976,7 @@ export type Database = {
           category: string
           created_at: string | null
           id: string
+          is_private: boolean
           name: string
           notes: string | null
           started_at: string | null
@@ -1008,6 +987,7 @@ export type Database = {
           category?: string
           created_at?: string | null
           id?: string
+          is_private?: boolean
           name: string
           notes?: string | null
           started_at?: string | null
@@ -1018,6 +998,7 @@ export type Database = {
           category?: string
           created_at?: string | null
           id?: string
+          is_private?: boolean
           name?: string
           notes?: string | null
           started_at?: string | null
@@ -1355,6 +1336,7 @@ export type Database = {
           latitude: number | null
           location_label: string | null
           longitude: number | null
+          privacy_pin_hash: string | null
           sex: string | null
           timezone: string | null
         }
@@ -1366,6 +1348,7 @@ export type Database = {
           latitude?: number | null
           location_label?: string | null
           longitude?: number | null
+          privacy_pin_hash?: string | null
           sex?: string | null
           timezone?: string | null
         }
@@ -1377,6 +1360,7 @@ export type Database = {
           latitude?: number | null
           location_label?: string | null
           longitude?: number | null
+          privacy_pin_hash?: string | null
           sex?: string | null
           timezone?: string | null
         }
@@ -1423,10 +1407,15 @@ export type Database = {
       }
       reminder_events: {
         Row: {
+          attempt_count: number
+          claim_token: string | null
+          claimed_at: string | null
           created_at: string | null
           due_at: string
           id: string
+          last_error: string | null
           responded_at: string | null
+          sent_at: string | null
           snooze_until: string | null
           status: string
           supplement_id: string
@@ -1434,10 +1423,15 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          attempt_count?: number
+          claim_token?: string | null
+          claimed_at?: string | null
           created_at?: string | null
           due_at: string
           id?: string
+          last_error?: string | null
           responded_at?: string | null
+          sent_at?: string | null
           snooze_until?: string | null
           status?: string
           supplement_id: string
@@ -1445,10 +1439,15 @@ export type Database = {
           user_id: string
         }
         Update: {
+          attempt_count?: number
+          claim_token?: string | null
+          claimed_at?: string | null
           created_at?: string | null
           due_at?: string
           id?: string
+          last_error?: string | null
           responded_at?: string | null
+          sent_at?: string | null
           snooze_until?: string | null
           status?: string
           supplement_id?: string
@@ -1876,6 +1875,42 @@ export type Database = {
         }
         Relationships: []
       }
+      workout_schedule: {
+        Row: {
+          created_at: string | null
+          day_times: Json
+          enabled: boolean
+          last_notified_date: string | null
+          notify_hours_before: number
+          time: string
+          timezone: string
+          user_id: string
+          weekdays: number[]
+        }
+        Insert: {
+          created_at?: string | null
+          day_times?: Json
+          enabled?: boolean
+          last_notified_date?: string | null
+          notify_hours_before?: number
+          time?: string
+          timezone?: string
+          user_id: string
+          weekdays?: number[]
+        }
+        Update: {
+          created_at?: string | null
+          day_times?: Json
+          enabled?: boolean
+          last_notified_date?: string | null
+          notify_hours_before?: number
+          time?: string
+          timezone?: string
+          user_id?: string
+          weekdays?: number[]
+        }
+        Relationships: []
+      }
     }
     Views: {
       daily_metrics: {
@@ -1884,10 +1919,12 @@ export type Database = {
           date: string | null
           hrv: number | null
           oxygen_saturation: number | null
+          respiratory_rate: number | null
           resting_heart_rate: number | null
           sleep_hours: number | null
           steps: number | null
           user_id: string | null
+          wrist_temperature: number | null
         }
         Relationships: []
       }
@@ -1924,6 +1961,45 @@ export type Database = {
           venue_name: string
         }[]
       }
+      claim_due_reminder_events: {
+        Args: {
+          p_lease_minutes?: number
+          p_limit?: number
+          p_max_attempts?: number
+        }
+        Returns: {
+          attempt_count: number
+          claim_token: string
+          default_dose: string
+          due_at: string
+          id: string
+          supplement_id: string
+          supplement_name: string
+          telegram_chat_id: string
+          timezone: string
+          unit: string
+          user_id: string
+        }[]
+      }
+      complete_reminder_delivery: {
+        Args: {
+          p_claim_token: string
+          p_event_id: string
+          p_status?: string
+          p_telegram_message_id?: number
+        }
+        Returns: boolean
+      }
+      fail_reminder_delivery: {
+        Args: {
+          p_claim_token: string
+          p_error: string
+          p_event_id: string
+          p_max_attempts?: number
+          p_unknown?: boolean
+        }
+        Returns: boolean
+      }
       generate_football_reminders: { Args: never; Returns: number }
       mark_football_reminder_failed: {
         Args: { p_error_message: string; p_reminder_id: string }
@@ -1933,6 +2009,7 @@ export type Database = {
         Args: { p_reminder_id: string; p_telegram_message_id: number }
         Returns: undefined
       }
+      schedule_env_sync: { Args: { p_secret: string }; Returns: undefined }
     }
     Enums: {
       football_reminder_status:
@@ -2068,9 +2145,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       football_reminder_status: [
