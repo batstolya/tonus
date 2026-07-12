@@ -1,16 +1,34 @@
 import { defineConfig } from 'vitest/config'
+import react from '@vitejs/plugin-react'
+
+// dummy env: src/lib/supabase.ts calls createClient(url, key) at module load;
+// empty values make it throw "supabaseUrl is required".
+const env = {
+  VITE_SUPABASE_URL: 'http://localhost:54321',
+  VITE_SUPABASE_ANON_KEY: 'test-anon-key',
+}
+// scripts/*.test.mjs are node:test suites (run via `npm run test:scripts`), not Vitest.
+const exclude = ['**/node_modules/**', 'e2e/**', 'scripts/**']
 
 export default defineConfig({
+  plugins: [react()],
   test: {
-    environment: 'node',
-    // Node's built-in test runner owns the README media encoder test; Vitest
-    // discovers *.test.mjs by default but cannot treat node:test suites as its own.
-    exclude: ['**/node_modules/**', 'e2e/**', 'scripts/readme-media-lib.test.mjs'],
-    // dummy env: src/lib/supabase.ts вызывает createClient(url, key) на загрузке модуля;
-    // с пустыми значениями он бросает «supabaseUrl is required».
-    env: {
-      VITE_SUPABASE_URL: 'http://localhost:54321',
-      VITE_SUPABASE_ANON_KEY: 'test-anon-key',
-    },
+    projects: [
+      {
+        extends: true,
+        test: { name: 'node', environment: 'node', include: ['**/*.test.ts'], exclude, env },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'jsdom',
+          environment: 'jsdom',
+          include: ['**/*.test.tsx'],
+          exclude,
+          env,
+          setupFiles: ['./vitest.setup.ts'],
+        },
+      },
+    ],
   },
 })
