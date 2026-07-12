@@ -9,6 +9,7 @@ import { daysSinceFreshData, freshestDataTs } from '../_shared/staleness.ts'
 import { detectSaveIntent } from '../_shared/saveIntent.ts'
 import { parseFootballCallback, buildFootballResponseText, localizeRoundName } from '../_shared/football.ts'
 import { isValidTelegramSecret } from '../_shared/auth.ts'
+import { addDays as expAddDays, computeBaselineStart, metricLabel as expMetricLabel } from '../_shared/experiments.ts'
 
 const TG_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -62,6 +63,7 @@ const MAIN_MENU = {
     [{ text: '📊 Отчёт за 2 недели', callback_data: 'report' }, { text: '📈 Статус сегодня', callback_data: 'status' }],
     [{ text: '💊 Препараты', callback_data: 'supplements' }, { text: '🎯 Цели', callback_data: 'goals' }],
     [{ text: '⚽ Матчи ЧМ-2026', callback_data: 'fb_matches' }],
+    [{ text: '🧪 Предложи эксперимент', callback_data: 'exp_suggest' }],
     [{ text: '⚙️ Настройки', callback_data: 'settings' }],
   ],
 }
@@ -634,6 +636,47 @@ async function checkStaleness(chatId: number | string, userId: string, supabase:
   }
 }
 
+// ── Эксперименты из бота (SPEC-EXPERIMENT-LOOP §2.1) ─────────────────────────
+// Идеи генерирует suggest-experiments (service-вызов с x-user-id), каждая
+// сохраняется в coach_events (type exp_suggestion) и уходит отдельным
+// сообщением с кнопкой запуска expsug:<id>.
+async function handleExperimentSuggest(chatId: number | string, userId: string, supabase: SupabaseClient) {
+  await tgSend(chatId, '⏳ Смотрю твои данные и придумываю эксперименты…')
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/suggest-experiments`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+      'x-user-id': userId,
+    },
+    body: JSON.stringify({ mode: 'generate' }),
+  })
+  if (res.status === 402) {
+    const j = await res.json().catch(() => null)
+    await tgSend(chatId, j?.message ?? '💸 Лимит ИИ на сегодня исчерпан, попробуй завтра.')
+    return
+  }
+  if (!res.ok) {
+    await tgSend(chatId, '🤔 Не получилось сгенерировать идеи, попробуй позже.', { reply_markup: BACK_MENU })
+    return
+  }
+  const { suggestions } = await res.json().catch(() => ({ suggestions: null }))
+  if (!suggestions?.length) {
+    await tgSend(chatId, 'Пока недостаточно данных для идей — понадобится хотя бы неделя метрик.', { reply_markup: BACK_MENU })
+    return
+  }
+  type Suggestion = { hypothesis: string; change_rule: string; target_metric: string; rationale: string }
+  for (const s of (suggestions as Suggestion[]).slice(0, 2)) {
+    const { data: ev } = await supabase.from('coach_events')
+      .insert({ user_id: userId, type: 'exp_suggestion', status: 'open', payload: s })
+      .select('id').single()
+    if (!ev) continue
+    await tgSend(chatId,
+      `🧪 <b>${s.hypothesis}</b>\n\nЧто менять: ${s.change_rule}\nМетрика: ${expMetricLabel(s.target_metric)}\n${s.rationale}`,
+      { reply_markup: { inline_keyboard: [[{ text: '▶️ Запустить (14 дней)', callback_data: `expsug:${ev.id}` }]] } })
+  }
+}
+
 // ── Main handler ──────────────────────────────────────────────────────────────
 
 serve(async (req) => {
@@ -684,6 +727,36 @@ serve(async (req) => {
       await handleGoals(chatId, userId, supabase)
     } else if (data === 'settings') {
       await handleSettings(chatId, userId, supabase)
+    } else if (data === 'exp_suggest') {
+      await handleExperimentSuggest(chatId, userId, supabase)
+    } else if (data.startsWith('expsug:')) {
+      // Запуск эксперимента из предложения (SPEC-EXPERIMENT-LOOP §2.1)
+      const evId = data.slice('expsug:'.length)
+      const { data: ev } = await supabase.from('coach_events')
+        .select('id, payload, status').eq('id', evId).eq('user_id', userId).maybeSingle()
+      if (!ev || ev.status !== 'open') {
+        await tgSend(chatId, 'Этот эксперимент уже запущен или устарел.', { reply_markup: BACK_MENU })
+      } else {
+        const s = ev.payload as { hypothesis: string; change_rule: string; target_metric: string }
+        const { data: ns } = await supabase.from('daily_note_settings').select('timezone').eq('user_id', userId).maybeSingle()
+        const tz = (ns?.timezone as string) || 'Europe/Kyiv'
+        const start = expAddDays(localDate(tz), 1)
+        const end = expAddDays(start, 13)
+        const { error: insErr } = await supabase.from('experiments').insert({
+          user_id: userId,
+          hypothesis: s.hypothesis, change_rule: s.change_rule, target_metric: s.target_metric,
+          baseline_days: 14, baseline_start: computeBaselineStart(start, 14),
+          start_date: start, end_date: end, status: 'active',
+        })
+        if (insErr) {
+          await tgSend(chatId, '🤔 Не получилось запустить, попробуй из приложения.', { reply_markup: BACK_MENU })
+        } else {
+          await supabase.from('coach_events').update({ status: 'done' }).eq('id', ev.id)
+          // убрать кнопку с исходного сообщения — защита от повторного тапа (паттерн wb:)
+          await tgCall('editMessageReplyMarkup', { chat_id: chatId, message_id: cq.message.message_id })
+          await tgSend(chatId, `▶️ Запустил! Стартуем ${start}, вердикт пришлю утром после ${end}.\n\nПравило на 14 дней: ${s.change_rule}`, { reply_markup: BACK_MENU })
+        }
+      }
     } else if (data === 'pause') {
       await supabase.from('report_settings').upsert({ user_id: userId, paused: true }, { onConflict: 'user_id' })
       await tgSend(chatId, '⏸ Автоотчёты приостановлены.', { reply_markup: BACK_MENU })
