@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { executeChatTool, CHAT_TOOL_DECLARATIONS, toLocalDateTime, effectiveWakeIso, numericAverages, type SupabaseLike } from './chatTools'
+import { executeChatTool, CHAT_TOOL_DECLARATIONS, toLocalDateTime, effectiveWakeIso, numericAverages, formatHoursDuration, type SupabaseLike } from './chatTools'
 
 function stubSupabase(dataByTable: Record<string, unknown[]>): SupabaseLike {
   return {
@@ -60,9 +60,12 @@ describe('executeChatTool', () => {
       profiles: [{ timezone: 'Europe/Berlin' }],
     })
     const result: Record<string, unknown> = await executeChatTool(sb, 'user-1', 'get_sleep_range', { start_date: '2026-07-01', end_date: '2026-07-03' })
-    const summary = result.summary as { nights: number; averages: Record<string, { avg: number; n: number }> }
+    const rows = result.rows as Array<Record<string, unknown>>
+    const summary = result.summary as { nights: number; averages: Record<string, { avg: number; n: number; display?: string }> }
     expect(summary.nights).toBe(3)
-    expect(summary.averages.deep_hours.avg).toBe(1.567)
+    expect(rows[0].deep_hours).toBe(1.67)
+    expect(rows[0].deep_hours_display).toBe('1 год 40 хв')
+    expect(summary.averages.deep_hours).toEqual({ avg: 1.567, n: 3, display: '1 год 34 хв' })
     expect(summary.averages.duration_hours.avg).toBe(7.48)
   })
 
@@ -227,6 +230,25 @@ describe('numericAverages', () => {
   })
   it('нет числовых значений — ключа нет', () => {
     expect(numericAverages([{ a: null }], ['a'])).toEqual({})
+  })
+})
+
+describe('formatHoursDuration', () => {
+  it.each([
+    [1.67, '1 год 40 хв'],
+    [1.03, '1 год 2 хв'],
+    [0.8, '48 хв'],
+    [2, '2 год'],
+    [1.999, '2 год'],
+    [0, '0 хв'],
+  ])('formats %s hours as %s', (hours, expected) => {
+    expect(formatHoursDuration(hours)).toBe(expected)
+  })
+
+  it('returns null for missing or invalid values', () => {
+    expect(formatHoursDuration(null)).toBeNull()
+    expect(formatHoursDuration(undefined)).toBeNull()
+    expect(formatHoursDuration(Number.NaN)).toBeNull()
   })
 })
 

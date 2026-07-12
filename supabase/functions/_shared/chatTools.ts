@@ -20,7 +20,7 @@ export const CHAT_TOOL_DECLARATIONS = [
   },
   {
     name: 'get_sleep_range',
-    description: 'Вернуть данные сна (время засыпания/пробуждения и фазы) за произвольный диапазон дат, максимум 60 дней. Результат содержит rows (по ночам) и summary.averages — уже посчитанные на сервере средние (duration_hours, deep_hours, rem_hours, core_hours). Для любого «средний сон / средний глубокий …» бери число из summary.averages, НЕ считай сам.',
+    description: 'Вернуть данные сна (время засыпания/пробуждения и фазы) за произвольный диапазон дат, максимум 60 дней. Результат содержит rows (по ночам) и summary.averages — уже посчитанные на сервере средние (duration_hours, deep_hours, rem_hours, core_hours). В ответе пользователю длительности ОБЯЗАТЕЛЬНО показывай из *_display и summary.averages.*.display в формате «N год M хв»; сырые числовые часы используй только для анализа. Для любого «средний сон / средний глубокий …» бери значение из summary.averages, НЕ считай сам.',
     parameters: {
       type: 'OBJECT',
       properties: {
@@ -133,6 +133,16 @@ export function numericAverages(
   return out
 }
 
+export function formatHoursDuration(hours: number | null | undefined): string | null {
+  if (typeof hours !== 'number' || !Number.isFinite(hours) || hours < 0) return null
+  const totalMinutes = Math.round(hours * 60)
+  const wholeHours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  if (!wholeHours) return `${minutes} хв`
+  if (!minutes) return `${wholeHours} год`
+  return `${wholeHours} год ${minutes} хв`
+}
+
 // UTC ISO → локальное «YYYY-MM-DD HH:MM» в поясе tz. hourCycle h23 держит
 // полночь как 00:00 (а не 24:00). Битый/пустой вход → null.
 export function toLocalDateTime(iso: string | null | undefined, tz: string): string | null {
@@ -177,17 +187,28 @@ export async function executeChatTool(
     if (name === 'get_sleep_range') {
       const { data: tzRows } = await supabase.from('profiles').select('timezone').eq('id', userId).limit(1)
       const tz = (tzRows?.[0] as { timezone?: string } | undefined)?.timezone || 'Europe/Kyiv'
+      const sleepDurationKeys = ['duration_hours', 'deep_hours', 'rem_hours', 'core_hours'] as const
       const rows = (data ?? []).map((r) => {
-        const row = r as { bedtime?: string; wake_time?: string; duration_hours?: number }
+        const row = r as Record<string, unknown> & { bedtime?: string; wake_time?: string; duration_hours?: number }
+        const displays = Object.fromEntries(sleepDurationKeys.flatMap((key) => {
+          const display = formatHoursDuration(row[key] as number | null | undefined)
+          return display === null ? [] : [[`${key}_display`, display]]
+        }))
         return {
-          ...(r as Record<string, unknown>),
+          ...row,
+          ...displays,
           bedtime: toLocalDateTime(row.bedtime, tz),
           wake_time: toLocalDateTime(effectiveWakeIso(row.bedtime, row.wake_time, row.duration_hours), tz),
         }
       })
+      const averages: Record<string, { avg: number; n: number; display?: string }> = numericAverages(data ?? [], [...sleepDurationKeys])
+      for (const value of Object.values(averages)) {
+        const display = formatHoursDuration(value.avg)
+        if (display !== null) value.display = display
+      }
       const summary = {
         nights: (data ?? []).length,
-        averages: numericAverages(data ?? [], ['duration_hours', 'deep_hours', 'rem_hours', 'core_hours']),
+        averages,
       }
       return { rows, summary }
     }
