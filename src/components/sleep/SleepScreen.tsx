@@ -5,7 +5,7 @@ import {
 } from 'recharts'
 import type { DailyMetrics } from '../../types'
 import { useT } from '../../lib/i18n'
-import { hoursToHM } from '../../lib/sleepFormat'
+import { hoursToHM, effectiveWake } from '../../lib/sleepFormat'
 
 interface Props {
   daily: DailyMetrics[]
@@ -48,6 +48,9 @@ export function SleepScreen({ daily }: Props) {
   const days = preset === '14d' ? 14 : preset === '30d' ? 30 : 90
   const slice = useMemo(() => daily.filter(d => d.sleepHours).slice(-days), [daily, days])
 
+  // Битый wake_time (Apple Health, напр. 13.06) чиним производным «отбой + сон»
+  const wakeOf = (d: DailyMetrics) => effectiveWake(d.sleepBedtime, d.sleepWakeTime, d.sleepHours)
+
   const data = useMemo(() => slice.map(d => ({
     date: d.date.slice(5),
     total: d.sleepHours ? Math.round(d.sleepHours * 10) / 10 : null,
@@ -55,7 +58,7 @@ export function SleepScreen({ daily }: Props) {
     rem: d.sleepREM ? Math.round(d.sleepREM * 10) / 10 : null,
     core: d.sleepCore ? Math.round(d.sleepCore * 10) / 10 : null,
     bedtime: bedtimeToChartVal(d.sleepBedtime),
-    wake: bedtimeToChartVal(d.sleepWakeTime),
+    wake: bedtimeToChartVal(wakeOf(d)),
   })), [slice])
 
   const hasPhases = slice.some(d => d.sleepDeep || d.sleepREM)
@@ -69,7 +72,7 @@ export function SleepScreen({ daily }: Props) {
     : null
 
   const avgWake = slice.filter(d => d.sleepWakeTime).length
-    ? slice.filter(d => d.sleepWakeTime).reduce((a, d) => a + (bedtimeToChartVal(d.sleepWakeTime) ?? 0), 0) / slice.filter(d => d.sleepWakeTime).length
+    ? slice.filter(d => d.sleepWakeTime).reduce((a, d) => a + (bedtimeToChartVal(wakeOf(d)) ?? 0), 0) / slice.filter(d => d.sleepWakeTime).length
     : null
 
   // Before-midnight compliance: bedtimeToChartVal < 12 means before midnight
@@ -195,7 +198,7 @@ export function SleepScreen({ daily }: Props) {
               <tr key={d.date}>
                 <td>{d.date}</td>
                 <td>{fmtTime(d.sleepBedtime)}</td>
-                <td>{fmtTime(d.sleepWakeTime)}</td>
+                <td>{fmtTime(wakeOf(d))}</td>
                 <td><strong>{fmtHours(d.sleepHours)}</strong></td>
                 {hasPhases && (
                   <>
