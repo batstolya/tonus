@@ -464,6 +464,7 @@ export default function App() {
               events={visibleEvents}
               onNavigate={setView}
               user={user}
+              intakeEvents={intakeEvents}
             />
             <aside className="dashboard-aside">
               <QuickLog user={user} events={intakeEvents} onEventsChange={setIntakeEvents} />
