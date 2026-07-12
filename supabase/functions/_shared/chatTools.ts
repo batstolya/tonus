@@ -52,6 +52,19 @@ export const CHAT_TOOL_DECLARATIONS = [
       required: [],
     },
   },
+  {
+    name: 'get_extreme_days',
+    description: 'Вернуть топ-N дней с наибольшим или наименьшим значением одной метрики за ВСЮ историю (не ограничено 60 днями). Использовать для вопросов про «лучшие/худшие дни», «рекорд», «когда был максимум/минимум». Для «лучших» дней выбери физиологически хорошее направление: highest для deep_hours/rem_hours/duration_hours/sleep_hours/hrv/steps, lowest для resting_heart_rate.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        metric: { type: 'STRING', enum: ['deep_hours', 'rem_hours', 'core_hours', 'duration_hours', 'sleep_hours', 'hrv', 'resting_heart_rate', 'steps', 'active_energy', 'oxygen_saturation'], description: 'Метрика' },
+        direction: { type: 'STRING', enum: ['highest', 'lowest'], description: 'highest — самые большие значения, lowest — самые маленькие' },
+        limit: { type: 'NUMBER', description: 'Сколько дней вернуть (по умолчанию 5, максимум 10)' },
+      },
+      required: ['metric', 'direction'],
+    },
+  },
 ]
 
 // Минимальная форма Supabase-клиента, которой пользуются эти инструменты:
@@ -69,6 +82,7 @@ interface QueryBuilder extends PromiseLike<QueryResult> {
   in: (col: string, vals: unknown[]) => QueryBuilder
   order: (col: string, opts: { ascending: boolean }) => QueryBuilder
   limit: (n: number) => QueryBuilder
+  not: (col: string, op: string, val: unknown) => QueryBuilder
 }
 export interface SupabaseLike {
   from: (table: string) => QueryBuilder
@@ -241,6 +255,34 @@ export async function executeChatTool(
     const outcome = args.outcome as string | undefined
     const correlations = outcome ? result.correlations.filter(c => c.outcome === outcome) : result.correlations
     return { correlations }
+  }
+
+  if (name === 'get_extreme_days') {
+    // Топ-N дней по метрике за ВСЮ историю (агрегат на сервере) — снимает
+    // 60-дневный потолок get_*_range и не полагается на то, что модель сама
+    // найдёт максимум в грубом контексте (был баг: «лучший сон» за 2 недели).
+    const metric = args.metric as string | undefined
+    const direction = args.direction as string | undefined
+    const SLEEP_COLS = ['deep_hours', 'rem_hours', 'core_hours', 'duration_hours']
+    const METRIC_COLS = ['sleep_hours', 'hrv', 'resting_heart_rate', 'steps', 'active_energy', 'oxygen_saturation']
+    if (!metric || (!SLEEP_COLS.includes(metric) && !METRIC_COLS.includes(metric))) {
+      return { error: 'metric обязателен и должен быть одной из известных метрик' }
+    }
+    if (direction !== 'highest' && direction !== 'lowest') {
+      return { error: "direction обязателен: 'highest' или 'lowest'" }
+    }
+    const limit = Math.min(Math.max(Number(args.limit) || 5, 1), 10)
+    const table = SLEEP_COLS.includes(metric) ? 'sleep_sessions' : 'daily_metrics'
+    const { data, error } = await supabase.from(table).select(`date, ${metric}`)
+      .eq('user_id', userId).not(metric, 'is', null)
+      .order(metric, { ascending: direction === 'lowest' })
+      .limit(limit)
+    if (error) return { error: error.message ?? 'Ошибка запроса данных' }
+    const days = (data ?? []).map((r) => {
+      const row = r as Record<string, unknown>
+      return { date: row.date as string, value: row[metric] as number }
+    })
+    return { metric, direction, days }
   }
 
   return { error: `Неизвестный инструмент: ${name}` }
