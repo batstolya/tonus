@@ -80,6 +80,26 @@ function daysBetween(start: string, end: string): number {
   return Math.round((Date.parse(`${end}T00:00:00Z`) - Date.parse(`${start}T00:00:00Z`)) / 86400000)
 }
 
+// Битый wake_time (Apple Health присылает кривой sleepEnd — напр. 13.06.2026,
+// пробуждение «на сутки позже»): если время в постели невозможно (≤0, >16 ч
+// или меньше самой длительности сна), выводим wake = отбой + длительность.
+// Зеркало src/lib/sleepFormat.ts::effectiveWake.
+export function effectiveWakeIso(
+  bedtimeIso: string | null | undefined,
+  wakeIso: string | null | undefined,
+  durationHours: number | null | undefined,
+): string | null | undefined {
+  const bed = bedtimeIso ? new Date(bedtimeIso) : null
+  if (!bed || isNaN(bed.getTime())) return wakeIso
+  const wake = wakeIso ? new Date(wakeIso) : null
+  const inBedH = wake && !isNaN(wake.getTime()) ? (wake.getTime() - bed.getTime()) / 3600000 : null
+  const plausible = inBedH != null && inBedH > 0 && inBedH <= 16
+    && (durationHours == null || inBedH >= durationHours - 0.05)
+  if (plausible) return wakeIso
+  if (durationHours != null) return new Date(bed.getTime() + durationHours * 3600000).toISOString()
+  return wakeIso
+}
+
 // UTC ISO → локальное «YYYY-MM-DD HH:MM» в поясе tz. hourCycle h23 держит
 // полночь как 00:00 (а не 24:00). Битый/пустой вход → null.
 export function toLocalDateTime(iso: string | null | undefined, tz: string): string | null {
@@ -124,11 +144,14 @@ export async function executeChatTool(
     if (name === 'get_sleep_range') {
       const { data: tzRows } = await supabase.from('profiles').select('timezone').eq('id', userId).limit(1)
       const tz = (tzRows?.[0] as { timezone?: string } | undefined)?.timezone || 'Europe/Kyiv'
-      const rows = (data ?? []).map((r) => ({
-        ...(r as Record<string, unknown>),
-        bedtime: toLocalDateTime((r as { bedtime?: string }).bedtime, tz),
-        wake_time: toLocalDateTime((r as { wake_time?: string }).wake_time, tz),
-      }))
+      const rows = (data ?? []).map((r) => {
+        const row = r as { bedtime?: string; wake_time?: string; duration_hours?: number }
+        return {
+          ...(r as Record<string, unknown>),
+          bedtime: toLocalDateTime(row.bedtime, tz),
+          wake_time: toLocalDateTime(effectiveWakeIso(row.bedtime, row.wake_time, row.duration_hours), tz),
+        }
+      })
       return { rows }
     }
     return { rows: data ?? [] }
