@@ -3,7 +3,7 @@ import type { DailyMetrics } from '../../types'
 import { supabase } from '../../lib/supabase'
 import { isDemoActive } from '../../lib/demo'
 import { makeDemoWorkoutSchedule } from '../../lib/demoFixture'
-import { plannedDaysInRange, attendance, nextPlannedWorkout, scheduleWeekdays, sportEmoji, type WorkoutScheduleRow } from '../../lib/workoutPlan'
+import { plannedDaysInRange, attendance, nextPlannedWorkout, scheduleWeekdays, sportEmoji, type WorkoutScheduleRow, type DayTimes } from '../../lib/workoutPlan'
 import { useT } from '../../lib/i18n'
 
 // Карточка расписания тренировок: ближайшая плановая + соблюдение за месяц.
@@ -17,7 +17,7 @@ export function WorkoutPlanCard({ daily }: { daily: DailyMetrics[] }) {
     if (isDemoActive()) { setWs(makeDemoWorkoutSchedule()); return }
     supabase.from('workout_schedule').select('day_times, notify_hours_before, enabled')
       .maybeSingle()
-      .then(({ data }: { data: WorkoutScheduleRow | null }) => setWs(data ?? null))
+      .then(({ data }) => setWs(data ? { ...data, day_times: (data.day_times ?? {}) as unknown as DayTimes } : null))
   }, [])
 
   const days = ws?.enabled ? scheduleWeekdays(ws.day_times) : []

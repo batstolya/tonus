@@ -1,4 +1,7 @@
 import { supabase } from './supabase'
+import type { Database } from './database.types'
+
+type HealthConcernInsert = Database['public']['Tables']['health_concerns']['Insert']
 
 export interface HealthConcern {
   id: string
@@ -66,7 +69,7 @@ export async function loadAllConcerns(userId: string): Promise<HealthConcern[]> 
 }
 
 export async function addConcern(userId: string, c: Partial<HealthConcern>): Promise<HealthConcern | null> {
-  const { data } = await supabase.from('health_concerns').insert({ user_id: userId, ...c }).select().single()
+  const { data } = await supabase.from('health_concerns').insert({ user_id: userId, ...c } as HealthConcernInsert).select().single()
   return data as HealthConcern | null
 }
 

@@ -1,5 +1,9 @@
 import { supabase } from './supabase'
 import type { DailyMetrics, HeartRateSample } from '../types'
+import type { Database, Json } from './database.types'
+
+type MetricsDailyRow = Database['public']['Tables']['metrics_daily']['Row']
+type SleepSessionRow = Database['public']['Tables']['sleep_sessions']['Row']
 
 export interface SyncResult {
   daysAdded: number
@@ -39,7 +43,7 @@ export async function syncMetricsToSupabase(
   const metricsRows: {
     user_id: string; date: string; metric: string;
     avg_val?: number | null; min_val?: number | null; max_val?: number | null;
-    sum_val?: number | null; count_val?: number | null; json_val?: unknown;
+    sum_val?: number | null; count_val?: number | null; json_val?: Json | null;
   }[] = []
 
   const sleepRows: {
@@ -111,7 +115,7 @@ export async function syncMetricsToSupabase(
 }
 
 async function fetchAllRows<T>(
-  table: string,
+  table: 'metrics_daily' | 'sleep_sessions',
   userId: string,
   orderCol: string,
 ): Promise<T[]> {
@@ -127,7 +131,7 @@ async function fetchAllRows<T>(
       .range(from, from + pageSize - 1)
     if (error) { console.warn(`${table} load error:`, error.message); break }
     if (!data || data.length === 0) break
-    rows.push(...(data as T[]))
+    rows.push(...(data as unknown as T[]))
     if (data.length < pageSize) break
     from += pageSize
   }
@@ -136,8 +140,8 @@ async function fetchAllRows<T>(
 
 export async function loadMetricsFromSupabase(userId: string): Promise<DailyMetrics[]> {
   const [metricsData, sleepData] = await Promise.all([
-    fetchAllRows<any>('metrics_daily', userId, 'date'),
-    fetchAllRows<any>('sleep_sessions', userId, 'date'),
+    fetchAllRows<MetricsDailyRow>('metrics_daily', userId, 'date'),
+    fetchAllRows<SleepSessionRow>('sleep_sessions', userId, 'date'),
   ])
   const metricsRes = { data: metricsData }
   const sleepRes = { data: sleepData }
