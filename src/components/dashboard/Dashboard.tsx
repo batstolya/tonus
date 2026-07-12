@@ -7,7 +7,9 @@ import { AiAnalysisBlock } from './AiAnalysisBlock'
 import { DataGaps } from '../ui/DataGaps'
 import { EmptyState } from '../ui/EmptyState'
 import { computeReadiness, computeEarlyWarning, readinessVerdict } from '../../lib/readiness'
-import { baselineDeviations } from '../../lib/scores'
+import { baselineDeviations, computeDailyScores } from '../../lib/scores'
+import { forecastReadiness, type FactorId } from '../../lib/forecast'
+import { localDate } from '../../lib/experiments'
 import { loadTodayNote, saveNote } from '../../lib/contextNotes'
 import { loadFocus, loadCheckins, checkInToday, removeCheckinToday, loadFocusInputs, inferFocusCheck, type CoachFocus } from '../../lib/coach'
 import { evaluateFocus, type FocusData } from '../../lib/focusAdherence'
@@ -29,6 +31,7 @@ interface Props {
   onNavigate: (view: AppView) => void
   user?: User
   quickLog?: React.ReactNode
+  intakeEvents?: { ts: string; type: string }[]
 }
 
 function recent<K extends keyof DailyMetrics>(daily: DailyMetrics[], key: K): DailyMetrics[K] | undefined {
@@ -147,6 +150,82 @@ function ReadinessCard({ daily }: { daily: DailyMetrics[] }) {
                 </span>
               )
             })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Прогноз readiness на завтра (SPEC-READINESS-FORECAST §3.3). Kp на клиенте
+// нет — фактор «буря» участвует только в вечернем сообщении бота.
+function ForecastCard({ daily, intakeEvents }: { daily: DailyMetrics[]; intakeEvents: { ts: string; type: string }[] }) {
+  const { t } = useT()
+  const [open, setOpen] = useState(false)
+
+  const scores = computeDailyScores(daily)
+  if (scores.length < 3) return null
+  const last3 = scores.slice(-3)
+  const todayStr = localDate()
+  const todays = intakeEvents.filter(e => localDate(new Date(e.ts)) === todayStr)
+  const todayDaily = daily.find(d => d.date === todayStr)
+
+  const forecast = forecastReadiness({
+    readinessLast3: last3.map(s => s.readiness),
+    sleepLast3: last3.map(s => daily.find(d => d.date === s.date)?.sleepHours ?? null),
+    sleepBaseline: last3[2].sleep_baseline,
+    alcoholToday: todays.some(e => e.type === 'alcohol'),
+    lateCoffeeToday: todays.some(e => e.type === 'coffee' && new Date(e.ts).getHours() >= 18),
+    exerciseMinutesToday: todayDaily?.exerciseMinutes ?? null,
+    kpToday: null,
+  })
+  if (!forecast) return null
+
+  const color = forecast.score >= 80 ? 'var(--green)' : forecast.score >= 60 ? 'var(--yellow)' : 'var(--red)'
+  const labels: Record<FactorId, string> = {
+    sleep_debt: t('Недосып несколько ночей'),
+    alcohol: t('Алкоголь сегодня'),
+    late_coffee: t('Кофе после 18:00'),
+    heavy_day: t('Большая нагрузка сегодня'),
+    storm: t('Магнитная буря'),
+    uptrend: t('Восходящий тренд'),
+  }
+  const advice: Record<FactorId, string> = {
+    sleep_debt: t('Ляг сегодня пораньше'),
+    alcohol: t('Больше воды и ранний отбой'),
+    late_coffee: t('Последний кофе — до обеда'),
+    heavy_day: t('Завтра лучше лёгкая нагрузка'),
+    storm: t('Не планируй завтра рекордов'),
+    uptrend: '',
+  }
+  const todayReadiness = last3[2].readiness
+  const diff = todayReadiness != null ? forecast.score - todayReadiness : null
+
+  return (
+    <div className="readiness-card" onClick={() => setOpen(o => !o)} style={{ cursor: forecast.factors.length ? 'pointer' : 'default' }}>
+      <div className="readiness-top">
+        <div className="readiness-left">
+          <div className="forecast-label">{t('Прогноз на завтра')}</div>
+          <div className="forecast-score" style={{ color }}>
+            <CountUp value={forecast.score} />
+            {diff != null && Math.abs(diff) > 3 && (
+              <span className="card-unit" style={{ marginLeft: 6 }}>{diff > 0 ? '↑' : '↓'}</span>
+            )}
+          </div>
+          <div className="forecast-sublabel" style={{ color }}>
+            {forecast.adviceId && advice[forecast.adviceId] ? advice[forecast.adviceId] : t('Ожидается обычный день')}
+          </div>
+        </div>
+      </div>
+      {open && forecast.factors.length > 0 && (
+        <div className="readiness-baseline">
+          <div className="readiness-baseline-title">{t('Из чего складывается прогноз')}</div>
+          <div className="readiness-baseline-row">
+            {forecast.factors.map(f => (
+              <span key={f.id} className="readiness-dev" style={{ color: f.delta < 0 ? 'var(--red)' : 'var(--green)' }}>
+                {labels[f.id]} {f.delta > 0 ? '+' : ''}{f.delta}
+              </span>
+            ))}
           </div>
         </div>
       )}
@@ -321,7 +400,7 @@ function ContextJournal({ user }: { user: User }) {
   )
 }
 
-export function Dashboard({ daily, events, onNavigate, user, quickLog }: Props) {
+export function Dashboard({ daily, events, onNavigate, user, quickLog, intakeEvents }: Props) {
   const { t, locale } = useT()
   const insights = generateInsights(daily)
   const totalDays = daily.length
@@ -423,6 +502,7 @@ export function Dashboard({ daily, events, onNavigate, user, quickLog }: Props) 
       <EarlyWarningBanner daily={daily} />
       {user && <CoachFocusCard user={user} daily={daily} />}
       <ReadinessCard daily={daily} />
+      <ForecastCard daily={daily} intakeEvents={intakeEvents ?? []} />
       <StressDaysCard daily={daily} />
 
       <motion.div className="cards-grid" variants={cardsGridV} initial="hidden" animate="show">
