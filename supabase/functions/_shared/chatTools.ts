@@ -82,6 +82,7 @@ interface QueryBuilder extends PromiseLike<QueryResult> {
   in: (col: string, vals: unknown[]) => QueryBuilder
   order: (col: string, opts: { ascending: boolean }) => QueryBuilder
   limit: (n: number) => QueryBuilder
+  not: (col: string, op: string, val: unknown) => QueryBuilder
 }
 export interface SupabaseLike {
   from: (table: string) => QueryBuilder
