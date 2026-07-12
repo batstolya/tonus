@@ -20,6 +20,9 @@ export default defineConfig({
       // dummy: демо-режим работает без Supabase
       VITE_SUPABASE_URL: 'http://localhost:54321',
       VITE_SUPABASE_ANON_KEY: 'test-anon-key',
+      // Must override a developer's local VITE_DEMO=1: landing smoke tests
+      // start unauthenticated and activate demo mode explicitly.
+      VITE_DEMO: '',
     },
   },
 })
