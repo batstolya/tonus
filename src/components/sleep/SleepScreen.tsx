@@ -5,6 +5,7 @@ import {
 } from 'recharts'
 import type { DailyMetrics } from '../../types'
 import { useT } from '../../lib/i18n'
+import { hoursToHM } from '../../lib/sleepFormat'
 
 interface Props {
   daily: DailyMetrics[]
@@ -24,8 +25,8 @@ function bedtimeToChartVal(iso: string | undefined): number | null {
 
 function chartValToTime(val: number): string {
   const h = (val + 12) % 24
-  const hrs = Math.floor(h)
-  const mins = Math.round((h - hrs) * 60)
+  const { hrs: rawH, mins } = hoursToHM(h)
+  const hrs = rawH % 24 // перенос 23:60 → 00:00
   return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}`
 }
 
@@ -40,8 +41,7 @@ export function SleepScreen({ daily }: Props) {
 
   const fmtHours = (h: number | undefined): string => {
     if (h === undefined) return '—'
-    const hrs = Math.floor(h)
-    const mins = Math.round((h - hrs) * 60)
+    const { hrs, mins } = hoursToHM(h)
     return t('{h}ч {m}м', { h: hrs, m: mins })
   }
 
