@@ -44,9 +44,50 @@ serve(async (req) => {
     if (!budget.ok) return new Response(JSON.stringify({ error: 'budget_exceeded', message: budgetExceededMessage(budget) }), { status: 402, headers: { ...CORS, 'Content-Type': 'application/json' } })
 
 
-    const { digest, periodStart, periodEnd } = await req.json()
+    const { digest, periodStart, periodEnd, mode, lang } = await req.json()
     if (!digest || !periodStart || !periodEnd) {
       return new Response('Missing fields', { status: 400, headers: CORS })
+    }
+
+    // Режим «вопросы врачу» для печатного отчёта (SPEC-DOCTOR-REPORT §2.3):
+    // только нейтральные вопросы, без диагнозов; ничего не сохраняем кроме ai_usage.
+    if (mode === 'doctor-questions') {
+      const qPrompt = `Ты помогаешь пациенту подготовиться к визиту к врачу. По сводке данных здоровья сформулируй 3–5 нейтральных вопросов, которые пациенту стоит задать врачу.
+
+Правила:
+- ТОЛЬКО вопросы. Никаких диагнозов, интерпретаций, оценок риска и названий препаратов.
+- Каждый вопрос опирается на конкретное значение или динамику из сводки.
+- Язык ответа: ${lang === 'en' ? 'английский' : 'русский'}.
+
+Верни строго JSON (без markdown): { "questions": ["...", "..."] }`
+      const qRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: qPrompt }] },
+            contents: [{ parts: [{ text: `Сводка данных за период ${periodStart} — ${periodEnd}:\n\n${digest}` }] }],
+            generationConfig: { temperature: 0.3, maxOutputTokens: 1024, responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } },
+          }),
+        }
+      )
+      if (!qRes.ok) return new Response(`Gemini error: ${await qRes.text()}`, { status: 502, headers: CORS })
+      const qData = await qRes.json()
+      const qText = qData.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+      const qTokens = qData.usageMetadata?.totalTokenCount ?? null
+      let qParsed: { questions: string[] }
+      try {
+        qParsed = JSON.parse(qText.replace(/```json|```/g, '').trim())
+      } catch {
+        return new Response(`Failed to parse Gemini response: ${qText}`, { status: 502, headers: CORS })
+      }
+      if (qTokens) {
+        await supabase.from('ai_usage').insert({ user_id: user.id, source: 'doctor-report', tokens_used: qTokens })
+      }
+      return new Response(JSON.stringify({ questions: (qParsed.questions ?? []).slice(0, 5) }), {
+        headers: { ...CORS, 'Content-Type': 'application/json' },
+      })
     }
 
     // Call Gemini
