@@ -155,7 +155,6 @@ import {
   addDays as addDaysServer,
   computeBaselineStart as cbsServer,
 } from '../../supabase/functions/_shared/experiments'
-import { computeBaselineStart } from './experiments'
 
 describe('parity клиент ↔ сервер', () => {
   it('computeResult идентичен на разных наборах', () => {
