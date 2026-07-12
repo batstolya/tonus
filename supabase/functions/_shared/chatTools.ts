@@ -8,7 +8,7 @@ import { computeLagCorrelations, type CorrDailyRow, type EnvDay } from './correl
 export const CHAT_TOOL_DECLARATIONS = [
   {
     name: 'get_metrics_range',
-    description: 'Вернуть сырые ежедневные метрики (пульс покоя, HRV, сон, шаги, ккал, SpO2) за произвольный диапазон дат, максимум 60 дней за раз. Использовать для сравнений за пределами последних 30 дней или диапазонов, не совпадающих с неделей.',
+    description: 'Вернуть ежедневные метрики (пульс покоя, HRV, сон, шаги, ккал, SpO2) за произвольный диапазон дат, максимум 60 дней. Результат содержит rows (по дням) и summary.averages — уже посчитанные на сервере средние. Для любого «среднее …» бери число из summary.averages, НЕ считай сам.',
     parameters: {
       type: 'OBJECT',
       properties: {
@@ -20,7 +20,7 @@ export const CHAT_TOOL_DECLARATIONS = [
   },
   {
     name: 'get_sleep_range',
-    description: 'Вернуть сырые данные сна (включая время засыпания/пробуждения и фазы) за произвольный диапазон дат, максимум 60 дней за раз.',
+    description: 'Вернуть данные сна (время засыпания/пробуждения и фазы) за произвольный диапазон дат, максимум 60 дней. Результат содержит rows (по ночам) и summary.averages — уже посчитанные на сервере средние (duration_hours, deep_hours, rem_hours, core_hours). Для любого «средний сон / средний глубокий …» бери число из summary.averages, НЕ считай сам.',
     parameters: {
       type: 'OBJECT',
       properties: {
@@ -114,6 +114,25 @@ export function effectiveWakeIso(
   return wakeIso
 }
 
+// Серверные средние по числовым колонкам (пропуская null). Модель считает
+// среднее «в уме» с ошибками (7.78 вместо 7.835), поэтому отдаём готовые
+// значения — их она и должна называть на вопросы «средний …».
+export function numericAverages(
+  rows: Record<string, unknown>[],
+  keys: string[],
+): Record<string, { avg: number; n: number }> {
+  const out: Record<string, { avg: number; n: number }> = {}
+  for (const k of keys) {
+    let sum = 0, n = 0
+    for (const r of rows) {
+      const v = r[k]
+      if (typeof v === 'number' && !isNaN(v)) { sum += v; n++ }
+    }
+    if (n) out[k] = { avg: Math.round((sum / n) * 1000) / 1000, n }
+  }
+  return out
+}
+
 // UTC ISO → локальное «YYYY-MM-DD HH:MM» в поясе tz. hourCycle h23 держит
 // полночь как 00:00 (а не 24:00). Битый/пустой вход → null.
 export function toLocalDateTime(iso: string | null | undefined, tz: string): string | null {
@@ -166,9 +185,17 @@ export async function executeChatTool(
           wake_time: toLocalDateTime(effectiveWakeIso(row.bedtime, row.wake_time, row.duration_hours), tz),
         }
       })
-      return { rows }
+      const summary = {
+        nights: (data ?? []).length,
+        averages: numericAverages(data ?? [], ['duration_hours', 'deep_hours', 'rem_hours', 'core_hours']),
+      }
+      return { rows, summary }
     }
-    return { rows: data ?? [] }
+    const summary = {
+      days: (data ?? []).length,
+      averages: numericAverages(data ?? [], ['sleep_hours', 'hrv', 'resting_heart_rate', 'steps', 'active_energy', 'oxygen_saturation']),
+    }
+    return { rows: data ?? [], summary }
   }
 
   if (name === 'get_lab_history') {
