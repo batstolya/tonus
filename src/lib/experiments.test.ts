@@ -147,3 +147,43 @@ describe('effect + status + misc', () => {
     expect(firstMetricDate(daily, 'hrv')).toBeNull()
   })
 })
+
+// ── Parity клиент ↔ сервер (_shared/experiments.ts — зеркало) ────────────────
+import {
+  computeResult as computeResultServer,
+  effectLabel as effectLabelServer,
+  addDays as addDaysServer,
+  computeBaselineStart as cbsServer,
+} from '../../supabase/functions/_shared/experiments'
+import { computeBaselineStart } from './experiments'
+
+describe('parity клиент ↔ сервер', () => {
+  it('computeResult идентичен на разных наборах', () => {
+    const fixtures: DailyMetrics[][] = [
+      [
+        ...nights('2026-05-30', 14, i => 0.8 + (i % 3) * 0.1),
+        ...nights('2026-06-13', 15, i => 1.0 + (i % 3) * 0.1),
+      ],
+      // недостаточно данных в exp-окне
+      [...nights('2026-05-30', 14, () => 1), ...nights('2026-06-13', 3, () => 2)],
+      // пусто
+      [],
+      // метрика-объект (heartRate.avg)
+      [
+        ...Array.from({ length: 14 }, (_, i) => ({ date: addDays('2026-05-30', i), heartRate: { avg: 60 + (i % 4), min: 50, max: 120 } })),
+        ...Array.from({ length: 15 }, (_, i) => ({ date: addDays('2026-06-13', i), heartRate: { avg: 57 + (i % 4), min: 50, max: 120 } })),
+      ],
+    ]
+    const exps = [mkExp(), mkExp({ target_metric: 'heartRate' }), mkExp({ baseline_start: null })]
+    for (const daily of fixtures)
+      for (const exp of exps)
+        expect(computeResultServer(daily, exp)).toEqual(computeResult(daily, exp))
+  })
+
+  it('effectLabel и датовые хелперы идентичны', () => {
+    for (const d of [null, -1.2, -0.6, -0.3, 0, 0.19, 0.2, 0.5, 0.79, 0.8, 2])
+      expect(effectLabelServer(d)).toBe(effectLabel(d))
+    expect(addDaysServer('2026-03-01', -1)).toBe(addDays('2026-03-01', -1))
+    expect(cbsServer('2026-06-13', 14)).toBe(computeBaselineStart('2026-06-13', 14))
+  })
+})
