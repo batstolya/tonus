@@ -38,8 +38,18 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization') ?? ''
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
-    const { data: { user }, error } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
-    if (error || !user) return new Response('Unauthorized', { status: 401, headers: CORS })
+    // Service-role вызов из telegram-bot с x-user-id (паттерн biweekly-report)
+    const serviceUserId = req.headers.get('x-user-id')
+    let user: { id: string } | null = null
+    if (serviceUserId && authHeader.includes(SUPABASE_SERVICE_KEY.slice(0, 20))) {
+      const { data } = await supabase.auth.admin.getUserById(serviceUserId)
+      user = data.user
+    } else {
+      const { data, error } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
+      if (error || !data.user) return new Response('Unauthorized', { status: 401, headers: CORS })
+      user = data.user
+    }
+    if (!user) return new Response('Unauthorized', { status: 401, headers: CORS })
 
     // AI Cost Guard
     const budget = await checkBudget(supabase, user.id)
