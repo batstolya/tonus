@@ -7,6 +7,7 @@ import {
   type ClaimedReminder, type TelegramTransport,
 } from '../_shared/reminderDelivery.ts'
 import { shiftTime, workoutNotificationText, type DayEntry, type DayTimes } from '../_shared/workoutPlan.ts'
+import { stormNotificationClause } from '../_shared/geoStorm.ts'
 import { forecastReadiness } from '../_shared/forecast.ts'
 import { forecastBlock } from '../_shared/forecastMessage.ts'
 import { computeBaselineStart, computeResult, type ExpDaily, type ExperimentRow } from '../_shared/experiments.ts'
@@ -570,9 +571,13 @@ serve(async (req) => {
         .from('daily_scores').select('readiness, hrv_baseline').eq('user_id', ws.user_id).eq('date', dateStr).maybeSingle()
       const { data: hrvRow } = await supabase
         .from('daily_metrics').select('hrv').eq('user_id', ws.user_id).eq('date', dateStr).maybeSingle()
+      // Уличный спорт — предупредить о магнитной буре (Kp ≥ 5), если есть.
+      const { data: envRow } = await supabase
+        .from('environment_daily').select('kp_index').eq('user_id', ws.user_id).eq('date', dateStr).maybeSingle()
+      const stormLine = stormNotificationClause(envRow?.kp_index)
       const text = workoutNotificationText(entry, score ? {
         readiness: score.readiness, hrv: hrvRow?.hrv ?? null, hrvBaseline: score.hrv_baseline,
-      } : null)
+      } : null) + (stormLine ? `\n${stormLine}` : '')
       await tgSend(link.telegram_chat_id, text)
       // send → mark (как в утренней сводке): редкий дубль при сбое между ними приемлем
       await supabase.from('workout_schedule').update({ last_notified_date: dateStr }).eq('user_id', ws.user_id)
