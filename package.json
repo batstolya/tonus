@@ -7,8 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "media:readme": "node scripts/record-readme-media.mjs",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:readme": "node --test scripts/readme-media-lib.test.mjs && node scripts/validate-readme.mjs",
     "test:e2e": "playwright test"
   },
   "dependencies": {
