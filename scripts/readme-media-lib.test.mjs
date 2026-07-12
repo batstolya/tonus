@@ -6,6 +6,7 @@ import { PNG } from 'pngjs'
 import {
   samplePalettePixels,
   encodeGif,
+  inspectGif,
   validateScenarioMeta,
 } from './readme-media-lib.mjs'
 
@@ -44,6 +45,24 @@ test('encodeGif writes one animated GIF with shared dimensions', async () => {
   assert.equal(result.frames, 2)
   assert.equal(result.durationMs, 200)
   assert.equal(Buffer.from(result.bytes).subarray(0, 6).toString(), 'GIF89a')
+})
+
+test('inspectGif reads dimensions, animation timing and shared palette usage', async () => {
+  await encodeGif(
+    [png(4, 3, [20, 30, 40]), png(4, 3, [80, 90, 100])],
+    testOutput,
+    { delay: 120, colors: 16, maxPalettePixels: 24 },
+  )
+  const meta = inspectGif(fs.readFileSync(fileURLToPath(testOutput)))
+  assert.deepEqual(meta, {
+    width: 4,
+    height: 3,
+    frames: 2,
+    durationMs: 240,
+    fps: 2 / 0.24,
+    hasGlobalPalette: true,
+    hasLocalPalettes: false,
+  })
 })
 
 test('validateScenarioMeta reports duration, dimensions, fps and size failures', () => {

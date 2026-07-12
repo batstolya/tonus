@@ -163,9 +163,6 @@ npm run build      # strict TypeScript + production Vite build
 To rebuild the README media after UI changes:
 
 ```bash
-npm run build
-npm run preview -- --port 4173 --strictPort
-# in a second terminal
 npm run media:readme
 ```
 

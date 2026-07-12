@@ -163,9 +163,6 @@ npm run build      # strict TypeScript + production-збірка Vite
 Щоб оновити медіа README після змін інтерфейсу:
 
 ```bash
-npm run build
-npm run preview -- --port 4173 --strictPort
-# у другому терміналі
 npm run media:readme
 ```
 

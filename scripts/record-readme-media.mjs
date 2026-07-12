@@ -1,6 +1,6 @@
-// Build a production preview first, then run:
-//   npm run preview -- --port 4173 --strictPort
-//   npm run media:readme
+// Normally run through `npm run media:readme`; the orchestration script builds
+// a preview, passes a free local port here, records the media and tears down the
+// preview. For an already-running preview, set README_MEDIA_PORT explicitly.
 //
 // The recorder uses only deterministic landing/demo data. GIFs are encoded with
 // one palette per scenario to avoid the flicker caused by per-frame palettes.
@@ -9,7 +9,8 @@ import { chromium } from '@playwright/test'
 import fs from 'node:fs'
 import { encodeGif, validateScenarioMeta } from './readme-media-lib.mjs'
 
-const BASE = 'http://localhost:4173'
+const PORT = Number(process.env.README_MEDIA_PORT ?? 4173)
+const BASE = `http://localhost:${PORT}`
 const OUT = 'docs/media'
 const WIDTH = 960
 const HEIGHT = 600

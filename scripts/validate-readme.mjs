@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { inspectGif } from './readme-media-lib.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const documents = [
@@ -48,7 +49,7 @@ const requiredMedia = [
 ]
 const retiredMedia = ['landing-tour.gif', 'app-demo.gif', 'dashboard.png']
 const errors = []
-const warnings = []
+const gifMeta = new Map()
 
 function isLocal(target) {
   return !/^(?:[a-z]+:|#|\/\/)/i.test(target)
@@ -106,11 +107,15 @@ for (const gif of requiredMedia.filter(name => name.endsWith('.gif'))) {
   const absolute = path.join(ROOT, 'docs/media', gif)
   if (!fs.existsSync(absolute)) continue
   const bytes = fs.statSync(absolute).size
-  if (bytes > 2_000_000) errors.push(`${gif}: exceeds hard 2.0 MB limit (${(bytes / 1_000_000).toFixed(2)} MB)`)
-  else if (bytes > 1_500_000) warnings.push(`${gif}: above 1.5 MB target (${(bytes / 1_000_000).toFixed(2)} MB)`)
+  const meta = inspectGif(fs.readFileSync(absolute))
+  gifMeta.set(gif, { ...meta, bytes })
+  if (meta.width !== 960 || meta.height !== 600) errors.push(`${gif}: expected 960x600, got ${meta.width}x${meta.height}`)
+  if (meta.durationMs < 6000 || meta.durationMs > 8000) errors.push(`${gif}: expected 6–8 seconds, got ${(meta.durationMs / 1000).toFixed(2)} seconds`)
+  if (meta.fps < 8 || meta.fps > 10) errors.push(`${gif}: expected 8–10 fps, got ${meta.fps.toFixed(2)} fps`)
+  if (!meta.hasGlobalPalette || meta.hasLocalPalettes) errors.push(`${gif}: expected one shared global palette`)
+  if (bytes > 1_500_000) errors.push(`${gif}: exceeds the 1.5 MB target (${(bytes / 1_000_000).toFixed(2)} MB)`)
 }
 
-for (const warning of warnings) console.warn(`WARN ${warning}`)
 if (errors.length) {
   for (const error of errors) console.error(`ERROR ${error}`)
   process.exit(1)
@@ -120,6 +125,6 @@ for (const { document, result } of summaries) {
   console.log(`✓ ${document.name}: ${result.headingCount} sections · ${result.localTargetCount} local targets`)
 }
 for (const gif of requiredMedia.filter(name => name.endsWith('.gif'))) {
-  const bytes = fs.statSync(path.join(ROOT, 'docs/media', gif)).size
-  console.log(`✓ ${gif}: ${(bytes / 1_000_000).toFixed(2)} MB`)
+  const meta = gifMeta.get(gif)
+  console.log(`✓ ${gif}: ${meta.width}x${meta.height} · ${(meta.durationMs / 1000).toFixed(2)}s · ${meta.fps.toFixed(2)} fps · ${(meta.bytes / 1_000_000).toFixed(2)} MB`)
 }
