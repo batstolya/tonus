@@ -1,76 +1,147 @@
 <div align="center">
 
-<img src="docs/media/banner.svg" alt="Tonus — личный health-хаб" width="880"/>
+<img src="docs/media/banner.svg" alt="Tonus — a personal health hub" width="880"/>
 
-<br/><br/>
+<br/>
+
+**English** · [Українська](README.uk.md)
+
+<br/>
 
 [![CI](https://github.com/batstolya/tonus/actions/workflows/ci.yml/badge.svg)](https://github.com/batstolya/tonus/actions/workflows/ci.yml)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-154%20unit%20%2B%203%20e2e-34d399)
 ![React](https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=black)
 ![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%2B%20Edge-3ecf8e?logo=supabase&logoColor=white)
 ![Gemini](https://img.shields.io/badge/AI-Gemini%202.5-8e75ff)
 
-**Подключаешь Apple Watch, логируешь привычки и анализы — AI находит закономерности,<br/>которые реально влияют на твоё самочувствие.**
+**Connect Apple Watch, log habits and labs, and let Tonus find the patterns<br/>
+that actually affect how you feel.**
 
 </div>
 
 ---
 
-## ✨ Продукт за 30 секунд
+## See Tonus in action
 
-Лендинг с живой демо-панелью — кликать можно прямо на первом экране:
-
-<div align="center">
-<img src="docs/media/landing-tour.gif" alt="Тур по лендингу" width="820"/>
-</div>
-
-Кнопка **«Посмотреть демо»** открывает всё приложение на сгенерированных данных — без регистрации и бэкенда:
+The landing page includes a live dashboard and opens a complete 90-day demo —
+no account or backend required.
 
 <div align="center">
-<img src="docs/media/app-demo.gif" alt="Демо приложения: дашборд, метрики, сон, пульс, инсайты" width="820"/>
+<img src="docs/media/landing-hero.png" alt="Tonus landing page with an interactive daily-readiness dashboard" width="880"/>
 </div>
 
-## 🧩 Что умеет
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/media/daily-signal.gif" alt="Tonus dashboard showing readiness, a geomagnetic warning and the activity-streak panel" width="430"/>
+      <br/><strong>Daily signal</strong><br/>
+      See readiness, recovery context, streaks and warnings at a glance.
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/media/ask-your-data.gif" alt="Tonus AI answering health questions from the user's own sleep and lab history" width="430"/>
+      <br/><strong>Ask your data</strong><br/>
+      Ask in plain language; the answer is grounded in your own history.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/media/pattern-to-experiment.gif" alt="Tonus moving from personal correlations to measured before-and-after experiments" width="430"/>
+      <br/><strong>From pattern to experiment</strong><br/>
+      Turn an observed relationship into a measured n=1 change.
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/media/health-timeline.gif" alt="Tonus Telegram assistant logging medication and coffee into one health timeline" width="430"/>
+      <br/><strong>One health timeline</strong><br/>
+      Log coffee, meals, medication and workouts without opening the app.
+    </td>
+  </tr>
+</table>
 
-| | | |
-|---|---|---|
-| ⌚ **Автосинк Apple Health** — часы сами шлют данные каждый час | 🧠 **AI-инсайты** — Gemini ищет связи: сон ↔ кофе ↔ стресс ↔ HRV | 💬 **Чат со своими данными** — отвечает по твоим метрикам, не по интернету |
-| ✈️ **Telegram-бот** — логирование одной строкой: «кофе», «магний», «пробежка» | 📈 **Скоры готовности** — readiness / recovery / sleep / stress против личной 30-дневной нормы | 🔬 **Эксперименты** — меняешь привычку, Tonus честно меряет «до/после» |
-| 🛡️ **Страж здоровья** — ранний сигнал болезни по RHR/температуре/HRV, за 24–48ч до симптомов | 🔗 **Связи в данных** — лаг-корреляции: «кофе сегодня → HRV завтра», честная статистика | 📱 **iPhone-виджет** — readiness на домашнем экране (Scriptable, `/widget` в боте) |
-| 💊 Препараты, напоминания и % соблюдения | 🧪 Анализы (авторазбор PDF) | 🍔 Питание по фото |
-| 🎯 Цели | 🩺 Жалобы и симптомы | 📤 Экспорт всех данных в один клик |
+## What Tonus connects
 
-Интерфейс: 🇺🇦 украинский · 🇬🇧 английский. Темы: светлая и тёмная.
+Tonus turns fragmented signals into one personal timeline. Health data arrives
+automatically, everyday context takes seconds to log, and external factors stay
+attached to the same dates as your outcomes.
 
-## ⚙️ Как устроено
+| Source | What reaches Tonus |
+|---|---|
+| **Apple Health** | Hourly sync through Health Auto Export: sleep, HRV, heart rate, activity, SpO₂, temperature and more |
+| **Guided device setup** | Step-by-step Apple Watch and Xiaomi/Mi Fitness setup on iPhone, with a live first-sync check |
+| **Manual import** | Apple Health ZIP/XML parsed locally in a Web Worker; raw exports do not need to leave the browser |
+| **Telegram** | Natural-language logs, meal photos, medication actions, questions, reminders and reports |
+| **Calendars** | Google Calendar and ICS context for stress and workload patterns |
+| **Environment** | Weather, air quality, pollen, daylight, pressure changes and geomagnetic Kp index |
 
-```mermaid
-flowchart LR
-    AW["⌚ Apple Watch<br/>Apple Health"] -->|"автосинк каждый час"| IH
-    TG["✈️ Telegram-бот"] <--> EF
-    subgraph SB["Supabase"]
-        IH["ingest-health"] --> DB[("Postgres<br/>+ RLS")]
-        EF["Edge Functions<br/>AI · коуч · напоминания"] <--> DB
-    end
-    WEB["⚛️ React SPA<br/>(Vercel)"] <--> DB
-    WEB <--> EF
-    EF <--> AI["🧠 Gemini 2.5"]
-```
+## What Tonus can do
 
-- **Frontend:** React 19 + Vite 8 + TypeScript (strict) + Recharts + Motion
-- **Backend:** Supabase — Postgres с RLS и 19 edge-функций на Deno
-- **AI:** Gemini 2.5 Flash с бюджет-гардом на токены
-- Формулы скоров зеркалированы клиент/сервер и защищены golden-тестами + тестом зеркальности
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <strong>Understand today</strong><br/><br/>
+      Readiness against a personal 30-day baseline; sleep, HRV, heart and activity dashboards; activity streaks; workout plan and adherence; notification centre; early health and geomagnetic warnings.
+    </td>
+    <td width="50%" valign="top">
+      <strong>Find patterns</strong><br/><br/>
+      Lag correlations, environmental factors, trends, records and anomalies; AI chat with server-side data tools; period analysis; a print-ready report and question list for a doctor.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <strong>Change behaviour</strong><br/><br/>
+      n=1 experiments with effect sizes, AI experiment suggestions, automatic verdicts, measurable goals, caffeine decay, treatment tracking, medication adherence and reminders.
+    </td>
+    <td width="50%" valign="top">
+      <strong>Keep a complete record</strong><br/><br/>
+      Lab PDF/photo OCR, meal-photo nutrition, supplements, daily notes, symptoms and concerns behind a PIN, hair tracking, calendar context, and full JSON/CSV export.
+    </td>
+  </tr>
+</table>
 
-## 🚀 Быстрый старт
+The interface is available in 🇺🇦 Ukrainian and 🇬🇧 English, with light and dark themes.
 
-> ⚠️ Нужен **Node 24** (`nvm use 24`) — Vite 8 на Node 18 падает.
+## How it works
+
+<div align="center">
+<img src="docs/media/architecture.svg" alt="Architecture diagram: health signals, React PWA, Supabase data core and Gemini intelligence" width="880"/>
+</div>
+
+- **Frontend:** React 19, Vite 8 and strict TypeScript; deployed as a PWA on Vercel.
+- **Backend:** Supabase Postgres with RLS and 20+ Deno Edge Functions.
+- **AI:** Gemini 2.5 Flash for grounded chat, explanations, OCR and vision.
+- **Automation:** `pg_cron` drives reminders, reports, environment sync and coaching workflows.
+- **Statistics:** personal baselines, Pearson lag correlations and Cohen's d experiment effects are computed before AI explains them.
+
+The browser handles the UI and local import work. Supabase owns identity, data,
+policies and server workflows. Gemini receives purpose-built health context — not
+unrestricted access to the database.
+
+## Privacy and safety
+
+- User-owned rows are protected by Postgres Row Level Security (`auth.uid() = user_id`).
+- Gemini credentials and privileged database keys stay inside server functions.
+- Webhooks, cron workers and admin actions have explicit secret boundaries.
+- Sensitive concerns can be hidden behind a local PIN gate.
+- All personal data can be exported as JSON and CSV.
+- Tonus reports observations and uncertainty; it is not a medical device and does not provide diagnoses.
+
+## Engineering
+
+- Strict TypeScript across the React client and shared server logic.
+- Score formulas are mirrored client/server and protected by golden and parity tests.
+- Deterministic demo fixtures generate visible correlations without touching production data.
+- AI chat uses bounded server-side function calling instead of asking the model to guess missing facts.
+- Reminder delivery uses claim/complete/fail states, retries and timezone-correct local dates.
+- Feature screens are lazy-loaded; the landing page and authentication avoid chart-heavy bundles.
+- Production deploys only after CI passes tests, build, e2e smoke checks and the lint ceiling.
+
+## Run locally
+
+> **Node 24 is required.** Vite 8 does not run on the old Node 18 default.
 
 ```bash
+nvm use 24
 npm install
 
-# dev-серверу хватает dummy-ключей (лендинг статичный):
 cat > .env.local <<'EOF'
 VITE_SUPABASE_URL=http://localhost:54321
 VITE_SUPABASE_ANON_KEY=test-anon-key
@@ -79,40 +150,50 @@ EOF
 npm run dev        # http://localhost:5173
 ```
 
-Весь UI без бэкенда: кнопка **«Посмотреть демо»** на лендинге (или `VITE_DEMO=1` в `.env.local`) — 90 дней сгенерированных метрик.
+The landing page is static, and **View demo** opens the full UI with generated
+data. You can also set `VITE_DEMO=1`; no local Supabase instance is required for
+the showcase.
 
 ```bash
-npm test           # vitest: 154 теста (формулы, переводы, боты)
-npm run test:e2e   # playwright: смоук лендинга и демо
-npm run build      # tsc (strict) + vite build
+npm test           # Vitest: client + shared Edge Function logic
+npm run test:e2e   # Playwright: landing, demo and connection-guide smoke tests
+npm run build      # strict TypeScript + production Vite build
 ```
 
-## 🛡️ Качество
+To rebuild the README media after UI changes:
 
-Прод обновляется **только через зелёный CI**: push в `main` → тесты + сборка + e2e + lint-потолок → deploy hook Vercel. Красный CI — прод не тронут.
+```bash
+npm run build
+npm run preview -- --port 4173 --strictPort
+# in a second terminal
+npm run media:readme
+```
 
-- golden-тесты формул скоров с обеих сторон (клиент и edge-функция)
-- переводы под тестами — русский не протекает в uk/en интерфейс
-- e2e-смоук критического пути: лендинг → демо → дашборд
+## Repository map
 
-## 📁 Структура
+- [`src/`](src/) — feature-grouped React screens, hooks, parsers, state and client-side statistics.
+- [`supabase/`](supabase/) — baseline migrations, RLS policies, Deno Edge Functions and shared server logic.
+- [`scripts/`](scripts/) — operational SQL, data helpers and reproducible README-media tooling.
+- [`e2e/`](e2e/) — critical Playwright user journeys.
+- [`claude-monitor/`](claude-monitor/) — optional local Claude-usage monitor.
 
-- `src/` — фронтенд: компоненты по фичам, `lib/`, `hooks/`, `parsers/`, `store/`
-- `supabase/` — миграции и 19 edge-функций (общий код — в `_shared/`)
-- `scripts/` — вспомогательные скрипты (в т.ч. перезапись медиа для README)
-- `claude-monitor/` — сервис мониторинга лимитов Claude (launchd/Docker)
+## Documentation
 
-## 📚 Документация
-
-| Где | Что |
+| Location | Contents |
 |---|---|
-| [`docs/specs/`](docs/specs/) | продуктовые спеки (фазы 3–10, фичи) |
-| [`docs/guides/`](docs/guides/) | гайды: экспорт календаря, монитор Claude |
-| [`.claude/skills/`](.claude/skills/) | скиллы для AI-агентов: запуск, деплой, скоры, i18n, отладка прода |
-| [`CLAUDE.md`](CLAUDE.md) | вводная для агентов и людей |
+| [`docs/specs/`](docs/specs/) | Product and feature specifications |
+| [`docs/guides/`](docs/guides/) | Operations, calendar export, reminders and security guides |
+| [`.claude/skills/`](.claude/skills/) | Repository workflows for AI coding agents |
+| [`CLAUDE.md`](CLAUDE.md) | Codebase orientation and working conventions |
+
+## Personal extensions
+
+Football reminders and the local Claude limit monitor are personal automations
+built on the same notification infrastructure; they are not core Tonus health
+features.
 
 ---
 
 <div align="center">
-<sub>Tonus © 2026 · сделано для одного пользователя, спроектировано как продукт</sub>
+<sub>Tonus © 2026 · built for one person, engineered like a product</sub>
 </div>
