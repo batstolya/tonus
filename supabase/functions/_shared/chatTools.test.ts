@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { executeChatTool, CHAT_TOOL_DECLARATIONS, type SupabaseLike } from './chatTools'
+import { executeChatTool, CHAT_TOOL_DECLARATIONS, toLocalDateTime, type SupabaseLike } from './chatTools'
 
 function stubSupabase(dataByTable: Record<string, unknown[]>): SupabaseLike {
   return {
@@ -47,6 +47,17 @@ describe('executeChatTool', () => {
     const sb = stubSupabase({ sleep_sessions: [{ date: '2026-06-01', bedtime: '2026-05-31T21:40:00Z' }] })
     const result: Record<string, unknown> = await executeChatTool(sb, 'user-1', 'get_sleep_range', { start_date: '2026-06-01', end_date: '2026-06-10' })
     expect(result.rows).toHaveLength(1)
+  })
+
+  it('converts sleep bedtime/wake_time to the user timezone (UTC → local)', async () => {
+    const sb = stubSupabase({
+      sleep_sessions: [{ date: '2026-07-01', bedtime: '2026-06-30T23:35:00Z', wake_time: '2026-07-01T06:48:00Z' }],
+      profiles: [{ timezone: 'Europe/Berlin' }],
+    })
+    const result: Record<string, unknown> = await executeChatTool(sb, 'user-1', 'get_sleep_range', { start_date: '2026-07-01', end_date: '2026-07-01' })
+    const row = (result.rows as Array<{ bedtime: string; wake_time: string }>)[0]
+    expect(row.bedtime).toBe('2026-07-01 01:35') // 23:35 UTC + 2 (CEST) — как в таблице приложения
+    expect(row.wake_time).toBe('2026-07-01 08:48')
   })
 
   it('returns lab history for a marker', async () => {
@@ -162,5 +173,17 @@ describe('executeChatTool: get_correlations', () => {
     const result: Record<string, unknown> = await executeChatTool(sb, 'user-1', 'get_correlations', {})
     expect(result.correlations).toBeUndefined()
     expect(result.error).toContain('Ошибка запроса данных')
+  })
+})
+
+describe('toLocalDateTime', () => {
+  it('переводит UTC в пояс пользователя', () => {
+    expect(toLocalDateTime('2026-06-30T23:35:00Z', 'Europe/Berlin')).toBe('2026-07-01 01:35')
+    expect(toLocalDateTime('2026-07-02T22:25:00Z', 'Europe/Berlin')).toBe('2026-07-03 00:25')
+  })
+  it('битый и пустой вход → null', () => {
+    expect(toLocalDateTime(null, 'Europe/Berlin')).toBeNull()
+    expect(toLocalDateTime(undefined, 'Europe/Berlin')).toBeNull()
+    expect(toLocalDateTime('не-дата', 'Europe/Berlin')).toBeNull()
   })
 })
