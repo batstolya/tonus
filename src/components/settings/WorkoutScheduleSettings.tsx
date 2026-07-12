@@ -4,31 +4,31 @@ import { supabase } from '../../lib/supabase'
 import { isDemoActive } from '../../lib/demo'
 import { makeDemoWorkoutSchedule } from '../../lib/demoFixture'
 import { useT } from '../../lib/i18n'
+import type { DayTimes } from '../../lib/workoutPlan'
 
 interface ScheduleState {
-  weekdays: number[]
-  time: string
+  day_times: DayTimes
   notify_hours_before: number
   enabled: boolean
 }
 
 const DAY_KEYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'] // индекс+1 = weekday (1=Пн…7=Вс)
 
-// Карточка «Расписание тренировок»: дни недели + время + «напомнить за N часов».
-// Пишет в workout_schedule (upsert); уведомление шлёт send-reminders.
+// Карточка «Расписание тренировок»: у каждого дня своё время и вид спорта.
+// Пишет в workout_schedule.day_times (upsert); уведомление шлёт send-reminders.
 export function WorkoutScheduleSettings({ user }: { user: User }) {
   const { t } = useT()
   const demo = isDemoActive()
-  const [ws, setWs] = useState<ScheduleState>({ weekdays: [], time: '19:00', notify_hours_before: 4, enabled: true })
+  const [ws, setWs] = useState<ScheduleState>({ day_times: {}, notify_hours_before: 4, enabled: true })
   const [loaded, setLoaded] = useState(false)
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
     if (demo) { setWs(makeDemoWorkoutSchedule()); setLoaded(true); return }
-    supabase.from('workout_schedule').select('weekdays, time, notify_hours_before, enabled')
+    supabase.from('workout_schedule').select('day_times, notify_hours_before, enabled')
       .maybeSingle()
       .then(({ data }: { data: ScheduleState | null }) => {
-        if (data) setWs(data)
+        if (data) setWs({ ...data, day_times: data.day_times ?? {} })
         setLoaded(true)
       })
   }, [demo])
@@ -43,6 +43,21 @@ export function WorkoutScheduleSettings({ user }: { user: User }) {
       .then(({ error }: { error: unknown }) => {
         if (!error) { setSaved(true); setTimeout(() => setSaved(false), 1500) }
       })
+  }
+
+  const toggleDay = (day: number) => {
+    const key = String(day)
+    const next = { ...ws.day_times }
+    if (next[key]) delete next[key]
+    else next[key] = { time: '19:00' }
+    patch({ day_times: next })
+  }
+
+  const patchDay = (day: number, p: Partial<{ time: string; label: string }>) => {
+    const key = String(day)
+    const cur = ws.day_times[key]
+    if (!cur) return
+    patch({ day_times: { ...ws.day_times, [key]: { ...cur, ...p } } })
   }
 
   if (!loaded) return null
@@ -60,27 +75,40 @@ export function WorkoutScheduleSettings({ user }: { user: User }) {
         <div className="rep-seg">
           {DAY_KEYS.map((label, i) => {
             const day = i + 1
-            const on = ws.weekdays.includes(day)
+            const on = Boolean(ws.day_times[String(day)])
             return (
               <button
                 key={label}
                 className={`rep-seg-btn${on ? ' on' : ''}`}
                 disabled={demo}
-                onClick={() => patch({ weekdays: on ? ws.weekdays.filter(d => d !== day) : [...ws.weekdays, day].sort() })}
+                onClick={() => toggleDay(day)}
               >{t(label)}</button>
             )
           })}
         </div>
       </div>
 
-      <div className="rep-setting">
-        <span className="settings-label">{t('Время тренировки')}</span>
-        <input
-          type="time" value={ws.time} disabled={demo}
-          onChange={e => patch({ time: e.target.value })}
-          className="log-input" style={{ width: 100 }}
-        />
-      </div>
+      {DAY_KEYS.map((label, i) => {
+        const day = i + 1
+        const entry = ws.day_times[String(day)]
+        if (!entry) return null
+        return (
+          <div className="rep-setting" key={label}>
+            <span className="settings-label">{t(label)}</span>
+            <input
+              type="time" value={entry.time} disabled={demo}
+              onChange={e => patchDay(day, { time: e.target.value })}
+              className="log-input" style={{ width: 100 }}
+            />
+            <input
+              type="text" value={entry.label ?? ''} disabled={demo}
+              placeholder={t('вид спорта (необязательно)')}
+              onChange={e => patchDay(day, { label: e.target.value })}
+              className="log-input" style={{ width: 180, marginLeft: 8 }}
+            />
+          </div>
+        )
+      })}
 
       <div className="rep-setting">
         <span className="settings-label">{t('Напомнить за')}</span>

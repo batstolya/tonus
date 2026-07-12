@@ -1000,6 +1000,7 @@ export const translations: Record<string, { uk: string; en: string }> = {
   'Расписание тренировок': { uk: 'Розклад тренувань', en: 'Workout schedule' },
   'Дни недели': { uk: 'Дні тижня', en: 'Days of week' },
   'Время тренировки': { uk: 'Час тренування', en: 'Workout time' },
+  'вид спорта (необязательно)': { uk: 'вид спорту (необов\u2019язково)', en: 'sport (optional)' },
   'Напомнить за': { uk: 'Нагадати за', en: 'Remind' },
   '{n} ч. до': { uk: '{n} год до', en: '{n}h before' },
   'Уведомления включены': { uk: 'Сповіщення увімкнені', en: 'Notifications enabled' },

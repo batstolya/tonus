@@ -1,12 +1,33 @@
 // Расписание тренировок: чистая логика без Deno-глобалов (vitest).
 // Спека: docs/superpowers/specs/2026-07-11-workout-schedule-design.md.
-// ЗЕРКАЛО для фронта — src/lib/workoutPlan.ts (plannedDaysInRange, attendance);
-// менять синхронно (Deno не импортит из src, паттерн scores).
+// Модель: day_times — своё время (и вид спорта) на каждый день недели:
+//   { "1": { "time": "18:45", "label": "волейбол" }, "3": { "time": "19:00", "label": "футбол" } }
+// ЗЕРКАЛО для фронта — src/lib/workoutPlan.ts (plannedDaysInRange, attendance,
+// scheduleWeekdays, sportEmoji); менять синхронно (Deno не импортит из src).
+
+export interface DayEntry { time: string; label?: string | null }
+export type DayTimes = Record<string, DayEntry>
 
 export interface WorkoutScores {
   readiness: number | null
   hrv: number | null
   hrvBaseline: number | null
+}
+
+// Дни недели расписания из ключей day_times (1=Пн…7=Вс), отсортированы.
+export function scheduleWeekdays(dayTimes: DayTimes): number[] {
+  return Object.keys(dayTimes ?? {})
+    .map(Number)
+    .filter(n => Number.isInteger(n) && n >= 1 && n <= 7)
+    .sort((a, b) => a - b)
+}
+
+// Эмодзи по виду спорта (best effort, дефолт — общий).
+export function sportEmoji(label?: string | null): string {
+  const l = (label ?? '').toLowerCase()
+  if (l.includes('волейб') || l.includes('volley')) return '🏐'
+  if (l.includes('футбол') || l.includes('футзал') || l.includes('soccer') || l.includes('football')) return '⚽'
+  return '🏋️'
 }
 
 // 'HH:MM' минус N часов; уход на вчера клампится к '00:00' (спека §2 п.3:
@@ -17,8 +38,7 @@ export function shiftTime(hhmm: string, hoursBefore: number): string {
   return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
 }
 
-// Плановые дни (YYYY-MM-DD, обе границы включительно). weekday: 1=Пн…7=Вс
-// (конвенция reminder_settings). Даты трактуются как календарные, без tz-сдвигов.
+// Плановые дни (YYYY-MM-DD, обе границы включительно). weekday: 1=Пн…7=Вс.
 export function plannedDaysInRange(weekdays: number[], fromDate: string, toDate: string): string[] {
   if (!weekdays.length) return []
   const out: string[] = []
@@ -37,13 +57,15 @@ export function attendance(planned: string[], doneDays: Set<string>): { done: nu
 }
 
 // Текст уведомления за N часов до тренировки (спека §2 п.4).
-export function workoutNotificationText(time: string, s: WorkoutScores | null): string {
-  const base = `🏋️ Сегодня тренировка в ${time}.`
-  if (!s || s.readiness == null) return `🏋️ Сегодня тренировка в ${time}`
+// «🏐 Сегодня волейбол в 18:45. Готовность 82/100 — можно выкладываться 💪»
+export function workoutNotificationText(entry: DayEntry, s: WorkoutScores | null): string {
+  const what = entry.label?.trim() || 'тренировка'
+  const base = `${sportEmoji(entry.label)} Сегодня ${what} в ${entry.time}`
+  if (!s || s.readiness == null) return base
   const hrvLow = s.hrv != null && s.hrvBaseline != null && s.hrv < s.hrvBaseline * 0.9
   if (s.readiness < 60 || hrvLow) {
-    return `${base} Готовность ${s.readiness}/100${hrvLow ? ', восстановление ниже твоей нормы' : ''} — сегодня лучше полегче.`
+    return `${base}. Готовность ${s.readiness}/100${hrvLow ? ', восстановление ниже твоей нормы' : ''} — сегодня лучше полегче.`
   }
-  if (s.readiness >= 75) return `${base} Готовность ${s.readiness}/100 — можно выкладываться 💪`
-  return `${base} Готовность ${s.readiness}/100.`
+  if (s.readiness >= 75) return `${base}. Готовность ${s.readiness}/100 — можно выкладываться 💪`
+  return `${base}. Готовность ${s.readiness}/100.`
 }
