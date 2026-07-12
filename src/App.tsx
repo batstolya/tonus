@@ -522,6 +522,7 @@ export default function App() {
             })), 'cal')}
             deviceType={state.deviceType}
             onDeviceTypeChange={setDeviceType}
+            daily={state.daily}
           />
         ) : null}
         </Suspense>
