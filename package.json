@@ -9,6 +9,8 @@
     "lint": "eslint .",
     "lint:ceiling": "node scripts/lint-ceiling.mjs",
     "lint:diff": "node scripts/lint-diff.mjs",
+    "gen:types": "npx --yes supabase gen types typescript --linked --schema public > src/lib/database.types.ts",
+    "gen:types:check": "node scripts/check-db-types.mjs",
     "test:scripts": "node --test scripts/*.test.mjs",
     "media:readme": "node scripts/rebuild-readme-media.mjs",
     "media:readme:record": "node scripts/record-readme-media.mjs",
