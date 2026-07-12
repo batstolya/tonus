@@ -46,10 +46,15 @@ async function callGemini(contents: ChatLoopMessage[], withTools: boolean): Prom
     generationConfig: {
       // thinking-токены входят в maxOutputTokens (Gemini 2.5), поэтому лимит
       // должен вмещать бюджет мышления + видимый ответ; краткость ответа
-      // обеспечивает системный промпт, не токен-лимит
-      maxOutputTokens: 2048,
+      // обеспечивает системный промпт, не токен-лимит.
+      // Финальный ход (withTools=false) — форматирование ответа из уже
+      // полученных данных: мышление почти не нужно, зато перечисление всех
+      // значений может быть длинным. Урезаем thinkingBudget и поднимаем лимит,
+      // иначе мышление съедает бюджет и видимый текст выходит пустым →
+      // «Не удалось получить ответ.» (Gemini 2.5 thinking-token gotcha).
+      maxOutputTokens: 3072,
       temperature: 0.5,
-      thinkingConfig: { thinkingBudget: 1024 },
+      thinkingConfig: { thinkingBudget: withTools ? 1024 : 256 },
     },
   }
   if (withTools) body.tools = [{ functionDeclarations: CHAT_TOOL_DECLARATIONS }]
