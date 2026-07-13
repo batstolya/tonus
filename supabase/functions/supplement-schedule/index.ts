@@ -71,11 +71,13 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .order('date', { ascending: false })
       .limit(14)
-    const wake = avgTime((sleep ?? []).map((s: any) => s.wake_time).filter(Boolean))
-    const bed = avgTime((sleep ?? []).map((s: any) => s.bedtime).filter(Boolean), true)
+    const sleepRows: { bedtime: string | null; wake_time: string | null; date: string }[] = sleep ?? []
+    const wake = avgTime(sleepRows.map(s => s.wake_time).filter((v): v is string => !!v))
+    const bed = avgTime(sleepRows.map(s => s.bedtime).filter((v): v is string => !!v), true)
 
-    const stackList = sups
-      .map((s: any) => `- ${s.name}${s.default_dose ? ` (${s.default_dose}${s.unit ? ` ${s.unit}` : ''})` : ''}`)
+    const supRows: { name: string; default_dose: string | number | null; unit: string | null }[] = sups
+    const stackList = supRows
+      .map(s => `- ${s.name}${s.default_dose ? ` (${s.default_dose}${s.unit ? ` ${s.unit}` : ''})` : ''}`)
       .join('\n')
 
     const profileLines = [
@@ -140,11 +142,11 @@ ${profileLines}
     const tokensUsed = geminiData.usageMetadata?.totalTokenCount ?? null
 
     const jsonStr = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-    let parsed: any
+    let parsed: unknown
     try {
       parsed = JSON.parse(jsonStr)
-    } catch (_e) {
-      throw new Error('ИИ вернул некорректный ответ. Попробуй ещё раз.')
+    } catch (parseErr) {
+      throw new Error('ИИ вернул некорректный ответ. Попробуй ещё раз.', { cause: parseErr })
     }
 
     if (tokensUsed) {

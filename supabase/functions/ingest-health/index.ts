@@ -31,22 +31,34 @@ const METRIC_MAP: Record<string, string> = {
 // Метрики-суммы: дедуп = сумма внутри источника, максимум по источникам
 const SUM_METRICS = new Set(['steps', 'distance', 'activeEnergy', 'exerciseMinutes', 'flightsClimbed'])
 // HAE дистанцию даёт в км или метрах в зависимости от настроек — приведём к км если похоже на метры
-const dayOf = (s: string) => (s ?? '').slice(0, 10) // "2024-01-15 00:00:00 +0000" → "2024-01-15"
+// "2024-01-15 00:00:00 +0000" → "2024-01-15"; не-строки (мусор в payload) → ''
+const dayOf = (s: unknown) => typeof s === 'string' ? s.slice(0, 10) : ''
 
 interface MetricRow { user_id: string; date: string; metric: string; avg_val?: number | null; min_val?: number | null; max_val?: number | null; sum_val?: number | null }
 interface SleepRow { user_id: string; date: string; duration_hours: number; deep_hours: number | null; rem_hours: number | null; core_hours: number | null; bedtime: string | null; wake_time: string | null }
 
-function num(v: any): number | null { const n = Number(v); return isFinite(n) ? n : null }
+// Структура HAE JSON — внешний формат, поля произвольны, значения проверяем в рантайме.
+interface HaePoint {
+  date?: unknown; source?: string
+  qty?: unknown; value?: unknown
+  Avg?: unknown; avg?: unknown; Min?: unknown; min?: unknown; Max?: unknown; max?: unknown
+  totalSleep?: unknown; asleep?: unknown; total?: unknown; deep?: unknown; rem?: unknown; core?: unknown
+  sleepStart?: unknown; sleepEnd?: unknown; startDate?: unknown
+}
+interface HaeMetric { name?: string; units?: unknown; data?: HaePoint[] }
+interface HaePayload { data?: { metrics?: HaeMetric[] }; metrics?: HaeMetric[] }
+
+function num(v: unknown): number | null { const n = Number(v); return isFinite(n) ? n : null }
 
 // Разбор HAE JSON → строки для staging. Возвращает { metrics, sleep }.
-function parseHAE(userId: string, payload: any): { metrics: MetricRow[]; sleep: SleepRow[] } {
-  const metricsArr: any[] = payload?.data?.metrics ?? payload?.metrics ?? []
+function parseHAE(userId: string, payload: HaePayload): { metrics: MetricRow[]; sleep: SleepRow[] } {
+  const metricsArr: HaeMetric[] = payload?.data?.metrics ?? payload?.metrics ?? []
   const metrics: MetricRow[] = []
   const sleep: SleepRow[] = []
 
   for (const m of metricsArr) {
     const name: string = m?.name ?? ''
-    const points: any[] = m?.data ?? []
+    const points: HaePoint[] = m?.data ?? []
     if (!points.length) continue
 
     if (name === 'sleep_analysis') {
@@ -127,8 +139,8 @@ function parseHAE(userId: string, payload: any): { metrics: MetricRow[]; sleep: 
 
 // Сырые посекундные замеры пульса для карты стресса (heart_rate_samples).
 // Дедуп по ts (Apple пишет несколько в секунду). Только если пришли сэмплы.
-function parseHRSamples(userId: string, payload: any): { user_id: string; ts: string; bpm: number; source: string }[] {
-  const metricsArr: any[] = payload?.data?.metrics ?? payload?.metrics ?? []
+function parseHRSamples(userId: string, payload: HaePayload): { user_id: string; ts: string; bpm: number; source: string }[] {
+  const metricsArr: HaeMetric[] = payload?.data?.metrics ?? payload?.metrics ?? []
   const hr = metricsArr.find(m => m?.name === 'heart_rate')
   if (!hr || !Array.isArray(hr.data)) return []
   const byTs = new Map<string, { user_id: string; ts: string; bpm: number; source: string }>()
@@ -153,7 +165,7 @@ serve(async (req) => {
     if (!tok) return new Response('Invalid token', { status: 401, headers: CORS })
     const userId = tok.user_id
 
-    const payload = await req.json().catch(() => null)
+    const payload: HaePayload | null = await req.json().catch(() => null)
     if (!payload) return new Response('Bad JSON', { status: 400, headers: CORS })
 
     // 1) всегда сохраняем сырой JSON
@@ -202,7 +214,8 @@ serve(async (req) => {
           .select('date, hrv, resting_heart_rate, sleep_hours, steps')
           .eq('user_id', userId).gte('date', since).order('date')
         if (dm?.length) {
-          const scores = computeDailyScores(dm.map((r: any) => ({
+          const dmRows: { date: string; hrv: number | null; resting_heart_rate: number | null; sleep_hours: number | null; steps: number | null }[] = dm
+          const scores = computeDailyScores(dmRows.map(r => ({
             date: r.date, hrv: r.hrv, restingHeartRate: r.resting_heart_rate,
             sleepHours: r.sleep_hours, steps: r.steps,
           }))).slice(-90).map(s => ({ ...s, user_id: userId, updated_at: new Date().toISOString() }))

@@ -57,7 +57,8 @@ serve(async (req) => {
     // Gemini отдаёт МАССИВ объектов, если в описании несколько блюд ("суп и арбуз").
     // Раньше код читал parsed.calories у массива → undefined → ложно-«пустая» карточка.
     // Сводим к одному приёму пищи: суммируем ккал/БЖУ, объединяем названия.
-    const items: any[] = Array.isArray(parsed) ? parsed : [parsed]
+    type MealItem = { is_food?: unknown; dish?: unknown; calories?: unknown; protein_g?: unknown; carbs_g?: unknown; fat_g?: unknown }
+    const items: MealItem[] = Array.isArray(parsed) ? parsed : [parsed]
 
     if (items[0]?.is_food === false) {
       return new Response(JSON.stringify({ error: 'not_food' }), { headers: { ...CORS, 'Content-Type': 'application/json' } })

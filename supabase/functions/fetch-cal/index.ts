@@ -16,8 +16,15 @@ serve(async (req) => {
     const { sessionToken } = await req.json()
     if (!sessionToken) return new Response('Missing sessionToken', { status: 400, headers: CORS })
 
+    // Букинг из tRPC cal.com — внешняя форма, перечислены только используемые поля.
+    interface CalBooking {
+      uid?: string; startTime?: string; endTime?: string
+      title?: string | null; description?: string | null; location?: string | null
+      eventType?: { title?: string | null } | null
+    }
+
     // Fetch all bookings via tRPC
-    const all: any[] = []
+    const all: CalBooking[] = []
     let offset = 0
     const limit = 100
 
@@ -56,7 +63,7 @@ serve(async (req) => {
     }
 
     // Normalize to CalendarEvent format
-    const events = all.map((b: any) => ({
+    const events = all.map(b => ({
       uid: b.uid,
       title: b.title ?? b.eventType?.title ?? '(без названия)',
       start: b.startTime,
