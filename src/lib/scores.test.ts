@@ -3,9 +3,9 @@ import { computeDailyScores } from './scores'
 import { computeDailyScores as computeDailyScoresServer } from '../../supabase/functions/_shared/scores'
 import type { DailyMetrics } from '../types'
 
-// Клиентская копия формул. Golden-значения — те же, что в серверном зеркале
-// (supabase/functions/_shared/scores.test.ts), плюс тест зеркальности:
-// обе реализации на одинаковом входе обязаны давать идентичный выход.
+// Формулы живут в одном месте (_shared/scores.ts), клиент их re-export'ит.
+// Golden-тесты пиновят значения формул от случайной правки; identity-тест
+// фиксирует, что фасад отдаёт ту же функцию (единый источник, зеркала нет).
 const day = (date: string, hrv: number, rhr: number, sleep: number, steps: number): DailyMetrics =>
   ({ date, hrv, restingHeartRate: rhr, sleepHours: sleep, steps })
 
@@ -37,8 +37,13 @@ describe('computeDailyScores (client)', () => {
   })
 })
 
-describe('client/server mirror', () => {
-  it('produces identical output to the server copy on the same 40-day series with gaps', () => {
+describe('client/server single source', () => {
+  it('client facade re-exports the very same function as the server module', () => {
+    // Раньше здесь был mirror-тест двух копий; копий больше нет — источник один.
+    expect(computeDailyScores).toBe(computeDailyScoresServer)
+  })
+
+  it('undefined-поля клиента и null-поля сервера дают идентичный результат', () => {
     // детерминированный псевдорандом — серия с пропусками отдельных метрик
     const rnd = (seed: number) => {
       const x = Math.sin(seed * 12.9898) * 43758.5453

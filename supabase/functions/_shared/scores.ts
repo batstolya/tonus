@@ -1,14 +1,19 @@
-// Серверный порт расчёта дневных оценок. ЗЕРКАЛО src/lib/scores.ts (computeDailyScores):
-// формулы должны совпадать 1-в-1, golden-тест в scores.test.ts ловит расхождения.
-// Нужен, чтобы readiness/recovery/stress/baseline обновлялись из автосинка (ingest-health),
-// а не только при открытии веб-приложения. Чистый модуль (без Deno/браузерных зависимостей).
+// ЕДИНСТВЕННЫЙ источник формул дневных оценок (readiness/recovery/stress/sleep + baseline).
+// Чистый модуль без Deno/браузерных зависимостей — его импортируют ОБА рантайма:
+// - сервер: ingest-health (автосинк пересчитывает оценки без открытия веб-приложения);
+// - клиент: src/lib/scores.ts — фасад, re-export отсюда (Vite/tsc умеют .ts-импорт:
+//   allowImportingTsExtensions + moduleResolution bundler в tsconfig.app.json).
+// Зеркальной копии больше НЕТ — правишь формулы здесь, и это единственное место.
+// После правки задеплой ingest-health (--no-verify-jwt!), иначе сервер считает по-старому.
 
+// Поля optional-nullable: клиент передаёт DailyMetrics (поля `hrv?: number`),
+// сервер — строки с явными null; оба совместимы структурно.
 export interface ScoreInput {
   date: string
-  hrv: number | null
-  restingHeartRate: number | null
-  sleepHours: number | null
-  steps: number | null
+  hrv?: number | null
+  restingHeartRate?: number | null
+  sleepHours?: number | null
+  steps?: number | null
 }
 
 export interface DailyScore {
@@ -23,7 +28,7 @@ export interface DailyScore {
   steps_baseline: number | null
 }
 
-function avg(vals: (number | null | undefined)[]): number | null {
+export function avg(vals: (number | null | undefined)[]): number | null {
   const v = vals.filter((x): x is number => x != null && !isNaN(x))
   return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null
 }
