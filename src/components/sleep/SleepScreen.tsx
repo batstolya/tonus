@@ -91,12 +91,16 @@ export function SleepScreen({ daily }: Props) {
     : 'var(--red)'
 
 
-  const CustomBedtimeTooltip = ({ active, payload, label }: any) => {
+  const CustomBedtimeTooltip = ({ active, payload, label }: {
+    active?: boolean
+    label?: string | number
+    payload?: { name: string; value: number; color?: string }[]
+  }) => {
     if (!active || !payload?.length) return null
     return (
       <div className="custom-tooltip">
         <p className="tooltip-date">{label}</p>
-        {payload.map((p: any) => (
+        {payload.map((p) => (
           <p key={p.name} style={{ color: p.color }}>
             {p.name}: {chartValToTime(p.value)}
           </p>

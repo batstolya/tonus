@@ -62,13 +62,17 @@ export function ActivityScreen({ daily }: Props) {
     insights.push(t('{n} дней с {great}+ шагами — высокая активность, хорошая нагрузка на сердце.', { n: greatDays, great: GREAT.toLocaleString(locale) }))
   }
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: {
+    active?: boolean
+    label?: string | number
+    payload?: { value: number }[]
+  }) => {
     if (!active || !payload?.length) return null
-    const steps = payload[0]?.value
+    const steps = payload[0]?.value ?? 0
     return (
       <div className="custom-tooltip">
         <p className="tooltip-date">{label}</p>
-        <p style={{ color: getColor(steps) }}><strong>{steps?.toLocaleString(locale)}</strong> {t('шагов')}</p>
+        <p style={{ color: getColor(steps) }}><strong>{steps.toLocaleString(locale)}</strong> {t('шагов')}</p>
         {payload[0] && <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>
           {steps >= GREAT ? `🟢 ${t('Отлично')}` : steps >= GOAL ? `🔵 ${t('Цель достигнута')}` : steps >= 5000 ? `🟡 ${t('Умеренно')}` : `🔴 ${t('Мало')}`}
         </p>}
@@ -154,7 +158,7 @@ export function ActivityScreen({ daily }: Props) {
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
               <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
               <YAxis tick={{ fontSize: 11 }} unit="км" />
-              <Tooltip formatter={(v: any) => [`${v} ${t('км')}`, t('Дистанция')]} />
+              <Tooltip formatter={(v) => [`${v} ${t('км')}`, t('Дистанция')]} />
               <Bar dataKey="distance" fill="#6c8fff" radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
