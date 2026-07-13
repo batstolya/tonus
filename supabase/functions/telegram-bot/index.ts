@@ -117,7 +117,7 @@ async function setupCommands() {
 
 // ── Action handlers ───────────────────────────────────────────────────────────
 
-async function handleReport(chatId: number | string, userId: string, supabase: any, msgId?: number) {
+async function handleReport(chatId: number | string, userId: string, _supabase: any, _msgId?: number) {
   await tgTyping(chatId)
   const reportRes = await fetch(`${SUPABASE_URL}/functions/v1/biweekly-report`, {
     method: 'POST',
@@ -597,21 +597,6 @@ async function handleFootballMatches(chatId: number | string, supabase: Supabase
   await tgSend(chatId, lines.join('\n'), { reply_markup: BACK_MENU })
 }
 
-function parseBracketTeamReference(name: string): number | null {
-  const match = name.match(/^(?:Winner|Loser) Match\s*(\d+)$/i)
-  return match ? Number(match[1]) : null
-}
-
-function formatBracketTeamName(name: string, refs: Record<number, { home_team_name: string; away_team_name: string }>) {
-  const refNumber = parseBracketTeamReference(name)
-  if (!refNumber) return name
-
-  const refMatch = refs[refNumber]
-  if (!refMatch) return name
-
-  return `${name} (${refMatch.home_team_name} — ${refMatch.away_team_name})`
-}
-
 async function setFootballReminders(chatId: number | string, userId: string, enabled: boolean, supabase: SupabaseClient) {
   await supabase.from('football_user_settings').upsert(
     { user_id: userId, telegram_chat_id: Number(chatId), reminders_enabled: enabled },
@@ -796,7 +781,7 @@ serve(async (req) => {
       const resolve = (text: string) => tgEdit(chatId, msgId, text, { parse_mode: 'HTML' })
 
       let action: 'take' | 'snz' | 'skip' = 'take'
-      let evId = ''
+      let evId: string
       let mins = 60
       if (data.startsWith('rem_skip_')) { action = 'skip'; evId = data.replace('rem_skip_', '') }
       else if (data.startsWith('rem_snz_')) {
