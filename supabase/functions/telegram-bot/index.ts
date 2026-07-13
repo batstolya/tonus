@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { buildHealthContext, healthContextToText } from '../_shared/healthContext.ts'
 import { checkBudget, budgetExceededMessage } from '../_shared/costGuard.ts'
 import { getPrompt } from '../_shared/prompts.ts'
@@ -16,11 +16,9 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const WEBHOOK_SECRET = Deno.env.get('TELEGRAM_WEBHOOK_SECRET') ?? ''
 
-type SupabaseClient = ReturnType<typeof createClient>
-
 // ── Telegram API helpers ──────────────────────────────────────────────────────
 
-async function tgCall(method: string, body: Record<string, any>) {
+async function tgCall(method: string, body: Record<string, unknown>) {
   const res = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/${method}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -29,7 +27,7 @@ async function tgCall(method: string, body: Record<string, any>) {
   return res.json()
 }
 
-async function tgSend(chatId: number | string, text: string, extra: Record<string, any> = {}) {
+async function tgSend(chatId: number | string, text: string, extra: Record<string, unknown> = {}) {
   return tgCall('sendMessage', { chat_id: chatId, text, ...extra })
 }
 
@@ -44,7 +42,7 @@ function mdToTgHtml(s: string): string {
   return t
 }
 
-async function tgEdit(chatId: number | string, messageId: number, text: string, extra: Record<string, any> = {}) {
+async function tgEdit(chatId: number | string, messageId: number, text: string, extra: Record<string, unknown> = {}) {
   return tgCall('editMessageText', { chat_id: chatId, message_id: messageId, text, ...extra })
 }
 
@@ -137,7 +135,7 @@ async function handleReport(chatId: number | string, userId: string, _supabase: 
   }
 }
 
-async function handleStatus(chatId: number | string, userId: string, supabase: any) {
+async function handleStatus(chatId: number | string, userId: string, supabase: SupabaseClient) {
   await tgTyping(chatId)
   const week = new Date(); week.setDate(week.getDate() - 7)
   const { data: rows } = await supabase
@@ -153,10 +151,12 @@ async function handleStatus(chatId: number | string, userId: string, supabase: a
   }
 
   const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
-  const rhr = rows.map((r: any) => r.resting_heart_rate).filter(Boolean)
-  const hrv = rows.map((r: any) => r.hrv).filter(Boolean)
-  const sleep = rows.map((r: any) => r.sleep_hours).filter(Boolean)
-  const steps = rows.map((r: any) => r.steps).filter(Boolean)
+  const mRows: { date: string; resting_heart_rate: number | null; hrv: number | null; sleep_hours: number | null; steps: number | null }[] = rows
+  const nums = (vals: (number | null)[]) => vals.filter((v): v is number => v != null)
+  const rhr = nums(mRows.map(r => r.resting_heart_rate))
+  const hrv = nums(mRows.map(r => r.hrv))
+  const sleep = nums(mRows.map(r => r.sleep_hours))
+  const steps = nums(mRows.map(r => r.steps))
 
   const lines = ['📈 Статус за 7 дней', '']
   if (rhr.length) lines.push(`❤️ ЧСС покоя: ${avg(rhr)!.toFixed(0)} уд/мин`)
@@ -189,7 +189,12 @@ const CHAT_SYSTEM_PROMPT = `Ты — персональный ассистент
 // Классифицирует свободный текст: это действие-лог или вопрос?
 // Возвращает действие, либо null если это обычный вопрос (→ чат).
 // Фото еды → оценка блюда, калорий и БЖУ через Gemini vision
-async function classifyMealPhoto(base64: string, mime: string, caption: string): Promise<any | null> {
+interface MealEstimate {
+  dish?: string | null; calories?: number | null
+  protein_g?: number | null; carbs_g?: number | null; fat_g?: number | null
+  is_food?: boolean
+}
+async function classifyMealPhoto(base64: string, mime: string, caption: string): Promise<{ parsed: MealEstimate; tokens: number | null } | null> {
   if (!GEMINI_KEY) return null
   const prompt = `На фото — еда. Оцени блюдо и его пищевую ценность по виду и типичным порциям.${caption ? ` Подпись пользователя: "${caption}".` : ''}
 Верни ТОЛЬКО JSON:
@@ -244,7 +249,7 @@ async function transcribeVoice(base64: string, mime: string): Promise<{ text: st
   } catch { return null }
 }
 
-async function handleMealPhoto(chatId: number | string, userId: string, fileId: string, caption: string, tz: string, supabase: any): Promise<void> {
+async function handleMealPhoto(chatId: number | string, userId: string, fileId: string, caption: string, tz: string, supabase: SupabaseClient): Promise<void> {
   await tgTyping(chatId)
   // получить ссылку на файл и скачать
   const fileRes = await tgCall('getFile', { file_id: fileId })
@@ -271,7 +276,16 @@ async function handleMealPhoto(chatId: number | string, userId: string, fileId: 
   await tgSend(chatId, `📸🍽 <b>${r.dish ?? 'Еда'}</b>\n≈ ${r.calories ?? '?'} ккал${macros ? ` (${macros} г)` : ''}\nЗаписал в дневник.`, { parse_mode: 'HTML', reply_markup: BACK_MENU })
 }
 
-async function classifyLog(text: string, supplementNames: string[], now: Date, tz: string): Promise<any | null> {
+// Разобранное действие-лог из свободного текста (форму диктует buildClassifyPrompt).
+interface ClassifiedAction {
+  action: string
+  supplement?: string | null; dose?: string | null
+  date?: string | null; time?: string | null; minutes_ago?: number | null
+  intake_type?: string | null; amount?: number | null; unit?: string | null; note?: string | null
+  calories?: number | null; protein_g?: number | null; carbs_g?: number | null; fat_g?: number | null
+  coffee_in_meal?: boolean | null
+}
+async function classifyLog(text: string, supplementNames: string[], now: Date, tz: string): Promise<ClassifiedAction | null> {
   if (!GEMINI_KEY) return null
   const prompt = buildClassifyPrompt(text, supplementNames, now, tz)
 
@@ -296,11 +310,11 @@ async function classifyLog(text: string, supplementNames: string[], now: Date, t
 }
 
 // Выполняет распознанное действие. Возвращает текст подтверждения или null.
-async function execLog(chatId: number | string, userId: string, act: any, tz: string, supabase: any, now: Date = new Date()): Promise<string | null> {
+async function execLog(chatId: number | string, userId: string, act: ClassifiedAction, tz: string, supabase: SupabaseClient, now: Date = new Date()): Promise<string | null> {
   if (act.action === 'supplement') {
     // нестрогий матч: точное ilike, иначе по началу слова
     // select без stock_count — колонка может отсутствовать в БД (иначе запрос падает)
-    let sup: any = null
+    let sup: { id: string; name: string } | null = null
     if (act.supplement) {
       const { data: exact } = await supabase
         .from('supplements').select('id, name')
@@ -346,7 +360,7 @@ async function execLog(chatId: number | string, userId: string, act: any, tz: st
 
   if (act.action === 'intake' && act.intake_type) {
     const labels: Record<string, string> = { coffee: '☕ Кофе', alcohol: '🍷 Алкоголь', meal: '🍽 Еда', water: '💧 Вода', meds: '💊 Лекарства', custom: '📝 Заметка' }
-    const ts = localToIso(tz, act.time, act.date, { now, minutesAgo: act.minutes_ago })
+    const ts = localToIso(tz, act.time ?? null, act.date ?? null, { now, minutesAgo: act.minutes_ago })
     const isMeal = act.intake_type === 'meal'
     const base = { user_id: userId, ts, type: act.intake_type, amount: act.amount ?? null, unit: act.unit ?? null, note: act.note ?? null }
     const withNutr = { ...base, calories: isMeal ? act.calories ?? null : null, protein_g: isMeal ? act.protein_g ?? null : null, carbs_g: isMeal ? act.carbs_g ?? null : null, fat_g: isMeal ? act.fat_g ?? null : null }
@@ -371,12 +385,12 @@ async function execLog(chatId: number | string, userId: string, act: any, tz: st
   return null
 }
 
-async function buildBotContext(userId: string, supabase: any): Promise<string> {
+async function buildBotContext(userId: string, supabase: SupabaseClient): Promise<string> {
   const ctx = await buildHealthContext(supabase, userId, { periodDays: 14, includeCoachProfile: true })
   return healthContextToText(ctx)
 }
 
-async function handleAiChat(chatId: number | string, userId: string, text: string, sessionId: string | null, supabase: any): Promise<string | null> {
+async function handleAiChat(chatId: number | string, userId: string, text: string, sessionId: string | null, supabase: SupabaseClient): Promise<string | null> {
   if (!GEMINI_KEY) {
     await tgSend(chatId, 'Выбери действие:', { reply_markup: MAIN_MENU })
     return sessionId
@@ -411,7 +425,7 @@ async function handleAiChat(chatId: number | string, userId: string, text: strin
     .eq('session_id', sid)
     .order('created_at', { ascending: false })
     .limit(6) : { data: [] }
-  const recent = (hist ?? []).reverse()
+  const recent = ((hist ?? []) as { role: string; content: string }[]).reverse()
 
   const context = await buildBotContext(userId, supabase)
   const sys = await getPrompt(supabase, 'telegram-chat-system', CHAT_SYSTEM_PROMPT)
@@ -419,7 +433,7 @@ async function handleAiChat(chatId: number | string, userId: string, text: strin
   const contents = [
     { role: 'user', parts: [{ text: `${sys.text}\n\n${context}` }] },
     { role: 'model', parts: [{ text: 'Понял, готов отвечать по данным.' }] },
-    ...recent.slice(0, -1).map((m: any) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })),
+    ...recent.slice(0, -1).map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })),
     { role: 'user', parts: [{ text }] },
   ]
 
@@ -457,7 +471,7 @@ async function handleAiChat(chatId: number | string, userId: string, text: strin
   return sid
 }
 
-async function handleSupplements(chatId: number | string, userId: string, supabase: any) {
+async function handleSupplements(chatId: number | string, userId: string, supabase: SupabaseClient) {
   await tgTyping(chatId)
   const today = new Date().toISOString().slice(0, 10)
   const { data: sups } = await supabase
@@ -477,19 +491,21 @@ async function handleSupplements(chatId: number | string, userId: string, supaba
     .eq('user_id', userId)
     .eq('date', today)
 
-  const takenSet = new Set((logs ?? []).filter((l: any) => l.taken).map((l: any) => l.supplement_id))
+  const logRows: { supplement_id: string; taken: boolean }[] = logs ?? []
+  const takenSet = new Set(logRows.filter(l => l.taken).map(l => l.supplement_id))
 
+  const supRows: { id: string; name: string; default_dose: string | number | null; unit: string | null }[] = sups
   const lines = [`💊 Препараты на сегодня (${today})`, '']
-  for (const s of sups) {
+  for (const s of supRows) {
     const taken = takenSet.has(s.id)
     const dose = s.default_dose ? ` ${s.default_dose}${s.unit ? ' ' + s.unit : ''}` : ''
     lines.push(`${taken ? '✅' : '⬜'} ${s.name}${dose}`)
   }
 
-  const notTaken = sups.filter((s: any) => !takenSet.has(s.id))
+  const notTaken = supRows.filter(s => !takenSet.has(s.id))
   const keyboard = {
     inline_keyboard: [
-      ...notTaken.map((s: any) => [{
+      ...notTaken.map(s => [{
         text: `✓ Принял ${s.name}`,
         callback_data: `take_${s.id}`,
       }]),
@@ -500,7 +516,7 @@ async function handleSupplements(chatId: number | string, userId: string, supaba
   await tgSend(chatId, lines.join('\n'), { reply_markup: keyboard })
 }
 
-async function handleGoals(chatId: number | string, userId: string, supabase: any) {
+async function handleGoals(chatId: number | string, userId: string, supabase: SupabaseClient) {
   await tgTyping(chatId)
   const { data: goals } = await supabase
     .from('goals')
@@ -521,7 +537,7 @@ async function handleGoals(chatId: number | string, userId: string, supabase: an
   await tgSend(chatId, lines.join('\n'), { reply_markup: BACK_MENU })
 }
 
-async function handleSettings(chatId: number | string, userId: string, supabase: any) {
+async function handleSettings(chatId: number | string, userId: string, supabase: SupabaseClient) {
   const { data: settings } = await supabase
     .from('report_settings')
     .select('paused, frequency_days')
@@ -605,7 +621,7 @@ async function setFootballReminders(chatId: number | string, userId: string, ena
   await tgSend(chatId, enabled ? '🔔 Напоминания о матчах включены.' : '🔕 Напоминания о матчах выключены.', { reply_markup: BACK_MENU })
 }
 
-async function checkStaleness(chatId: number | string, userId: string, supabase: any) {
+async function checkStaleness(chatId: number | string, userId: string, supabase: SupabaseClient) {
   // Свежесть считаем по самому недавнему из путей обновления: ручной экспорт
   // (imports) ИЛИ автосинк Apple Health (ingest_tokens.last_ingest_at). Иначе
   // баннер вечно нагирает «загрузи экспорт», хотя автосинк держит данные свежими.
@@ -796,7 +812,9 @@ serve(async (req) => {
         .from('reminder_events')
         .select('status, supplement_id, due_at, supplements(name)')
         .eq('id', evId).eq('user_id', userId).maybeSingle()
-      const name = (ev?.supplements as any)?.name ?? 'Препарат'
+      // join для to-one в рантайме — объект, но untyped-клиент выводит массив
+      const supJoin = ev?.supplements as { name: string } | { name: string }[] | null | undefined
+      const name = (Array.isArray(supJoin) ? supJoin[0]?.name : supJoin?.name) ?? 'Препарат'
       const now = new Date().toISOString()
 
       if (!ev) {
@@ -1235,7 +1253,7 @@ serve(async (req) => {
       return new Response('ok')
     }
     const fmt = (iso: string) => new Date(iso).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })
-    const lines = ideas.map((it: any, i: number) => `${i + 1}. ${it.text}  (${fmt(it.created_at)})`)
+    const lines = (ideas as { text: string; created_at: string }[]).map((it, i) => `${i + 1}. ${it.text}  (${fmt(it.created_at)})`)
     await tgSend(chatId, `💡 Твои идеи (${ideas.length}):\n\n${lines.join('\n')}`, { reply_markup: BACK_MENU })
     return new Response('ok')
   }
@@ -1335,11 +1353,11 @@ serve(async (req) => {
   }
 
   const budget = await checkBudget(supabase, userId)
-  let act: any = null
+  let act: ClassifiedAction | null = null
   if (budget.ok) {
     const { data: supList } = await supabase
       .from('supplements').select('name').eq('user_id', userId).eq('active', true)
-    const supNames = (supList ?? []).map((s: any) => s.name)
+    const supNames = ((supList ?? []) as { name: string }[]).map(s => s.name)
     act = await classifyLog(text, supNames, now, tz)
   }
 
