@@ -29,9 +29,9 @@ npx supabase functions deploy <name> --project-ref <ref>
 
 - **`ingest-health` деплоить только с `--no-verify-jwt`** — иначе Apple Health
   авто-синк (HAE) получает 401 и молча ломается (уже случалось).
-- Формулы скорингов существуют в двух зеркальных копиях:
-  `src/lib/scores.ts` (фронт) и `supabase/functions/_shared/scores.ts`
-  (ingest-health). Меняешь одну — поменяй вторую и задеплой ingest-health.
+- Формулы скорингов живут в ОДНОМ месте: `supabase/functions/_shared/scores.ts`
+  (клиент импортирует его через фасад `src/lib/scores.ts`). Правишь формулы —
+  задеплой ingest-health, иначе автосинк пишет скоры в daily_scores по-старому.
 - Общий код функций лежит в `supabase/functions/_shared/` — при его изменении
   передеплой все функции, которые его импортируют (таблица ниже).
 
