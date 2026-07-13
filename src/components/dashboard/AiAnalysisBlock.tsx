@@ -86,8 +86,8 @@ export function AiAnalysisBlock({ daily, userId }: Props) {
     try {
       const result = await runAnalysis(userId, daily, period)
       setAnalyses(prev => [result, ...prev])
-    } catch (e: any) {
-      setError(e.message ?? t('Ошибка анализа'))
+    } catch (e) {
+      setError((e as Error)?.message ?? t('Ошибка анализа'))
     }
     setLoading(false)
   }

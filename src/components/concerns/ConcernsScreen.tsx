@@ -119,7 +119,7 @@ function ConcernDetail({ concern, userId, onBack, onUpdate }: {
           <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('Выраженность:')}</span>
           {[1, 2, 3, 4, 5].map(v => (
             <button key={v} className={`severity-btn${severity === v ? ' active' : ''}`}
-              style={{ '--sev-color': SEVERITY_COLOR[v] } as any}
+              style={{ '--sev-color': SEVERITY_COLOR[v] } as React.CSSProperties}
               onClick={() => setSeverity(v)}
             >
               {v}

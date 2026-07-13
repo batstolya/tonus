@@ -23,7 +23,7 @@ function RatingInput({ value, onChange }: { value: number; onChange: (v: number)
       {[1, 2, 3, 4, 5].map(v => (
         <button key={v}
           className={`severity-btn${value === v ? ' active' : ''}`}
-          style={{ '--sev-color': value === v ? 'var(--accent)' : 'var(--text-muted)' } as any}
+          style={{ '--sev-color': value === v ? 'var(--accent)' : 'var(--text-muted)' } as React.CSSProperties}
           onClick={() => onChange(v)}
         >{v}</button>
       ))}

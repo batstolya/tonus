@@ -78,8 +78,8 @@ export function LabsScreen({ user }: Props) {
         const updated = await loadLabResults(user.id)
         setResults(updated)
       }
-    } catch (e: any) {
-      setError(e.message ?? t('Ошибка загрузки'))
+    } catch (e) {
+      setError((e as Error)?.message ?? t('Ошибка загрузки'))
     }
     setUploading(false)
   }
