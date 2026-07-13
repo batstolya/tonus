@@ -9,7 +9,9 @@ description: Use when adding user-facing text, new UI strings, or fixing missing
 
 - Ключ перевода — **русский исходный текст**. Компонент: `const { t } = useT()`
   (из `src/lib/i18n.tsx`) → `t('Русский текст')`.
-- Словарь — `src/lib/translations.ts`:
+- Словарь разбит по доменам в `src/lib/translations/` (common, dashboard,
+  settings, health, metrics, ai-insights, onboarding, landing); `index.ts`
+  сливает части в один `translations`. Запись — в подходящий доменный файл:
   ```ts
   'Русский текст': { uk: 'Український', en: 'English' },
   ```
@@ -21,8 +23,8 @@ description: Use when adding user-facing text, new UI strings, or fixing missing
 ## Порядок добавления строки
 
 1. В компоненте оберни строку: `t('Русский текст')`.
-2. Добавь запись в `src/lib/translations.ts` (файл сгруппирован комментариями
-   по разделам — клади в подходящий).
+2. Добавь запись в подходящий доменный файл `src/lib/translations/<домен>.ts`
+   (common/dashboard/settings/health/metrics/ai-insights/onboarding/landing).
 3. Если строка на видном экране — добавь ключ в coverage-тест экрана (см. ниже).
 4. `npm test` (Node 24).
 
