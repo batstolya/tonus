@@ -41,3 +41,6 @@ claude-monitor/data/
 
 # supabase CLI local artifacts
 supabase/.temp/
+
+# understand-anything (/understand) knowledge-graph cache — локальный артефакт анализа
+.ua/
