@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { localToIso, localDate } from '../_shared/time.ts'
 import { isValidCronSecret } from '../_shared/auth.ts'
 import {
@@ -46,8 +46,10 @@ function localNow(tz: string) {
 
 // Прогноз readiness на завтра для вечернего сообщения (SPEC-READINESS-FORECAST §3.2).
 // Любая ошибка данных → null: вечерний вопрос важнее прогноза.
+// НЕ ReturnType<typeof createClient>: тот инстанцирует дефолтные генерики
+// (schema=never) и не совместим с реальным клиентом.
 async function buildForecastText(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient,
   userId: string,
   tz: string,
 ): Promise<string | null> {
@@ -199,10 +201,14 @@ serve(async (req) => {
       }
     } catch (e) {
       // Неожиданная ошибка строки — фиксируем и продолжаем batch (§4.1).
-      await supabase.rpc('fail_reminder_delivery', {
-        p_event_id: ev.id, p_claim_token: ev.claim_token,
-        p_error: String(e).slice(0, 500), p_unknown: false,
-      }).catch(() => {})
+      // try/catch, а не .catch(): у PostgrestBuilder нет метода catch —
+      // вызов в этом error-path падал бы TypeError.
+      try {
+        await supabase.rpc('fail_reminder_delivery', {
+          p_event_id: ev.id, p_claim_token: ev.claim_token,
+          p_error: String(e).slice(0, 500), p_unknown: false,
+        })
+      } catch { /* фиксация не удалась — batch продолжаем */ }
       failed++
     }
   }
@@ -327,9 +333,11 @@ serve(async (req) => {
         .select('resting_heart_rate, hrv, sleep_hours')
         .eq('user_id', m.user_id).gte('date', since)
       const avgF = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
-      const rhr = (rows ?? []).map((r: any) => r.resting_heart_rate).filter(Boolean)
-      const hrv = (rows ?? []).map((r: any) => r.hrv).filter(Boolean)
-      const sl = (rows ?? []).map((r: any) => r.sleep_hours).filter(Boolean)
+      const mRows: { resting_heart_rate: number | null; hrv: number | null; sleep_hours: number | null }[] = rows ?? []
+      const numsOf = (vals: (number | null)[]) => vals.filter((v): v is number => v != null)
+      const rhr = numsOf(mRows.map(r => r.resting_heart_rate))
+      const hrv = numsOf(mRows.map(r => r.hrv))
+      const sl = numsOf(mRows.map(r => r.sleep_hours))
       const parts = ['☀️ <b>Доброе утро!</b> Сводка за неделю:']
       if (sl.length) parts.push(`😴 Сон: ${avgF(sl)!.toFixed(1)} ч/ночь`)
       if (rhr.length) parts.push(`❤️ ЧСС покоя: ${avgF(rhr)!.toFixed(0)} уд/мин`)
@@ -356,15 +364,16 @@ serve(async (req) => {
           .select('date, resting_heart_rate, hrv, sleep_hours')
           .eq('user_id', l.user_id).gte('date', since).order('date', { ascending: true })
         if (!rows || rows.length < 10) continue
-        const recent = rows.slice(-3)
-        const col = (rs: any[], k: string) => rs.map(r => r[k]).filter((v: any) => v != null)
+        const recent = (rows as { date: string; resting_heart_rate: number | null; hrv: number | null; sleep_hours: number | null }[]).slice(-3)
+        const col = (rs: Record<string, unknown>[], k: string): number[] =>
+          rs.map(r => r[k]).filter((v): v is number => typeof v === 'number')
 
         // hrv_drop и rhr_rise удалены: их покрывает страж здоровья
         // (_shared/anomaly.ts в ingest-health, z-score против личной нормы) —
         // иначе пользователь получал бы двойные алерты об одном и том же.
         const checks: { type: string; cond: boolean; msg: string }[] = []
         const lastSleep = col(recent, 'sleep_hours')
-        if (lastSleep.length >= 3 && lastSleep.every((v: number) => v < 6))
+        if (lastSleep.length >= 3 && lastSleep.every(v => v < 6))
           checks.push({ type: 'sleep_short', cond: true, msg: `😴 <b>Мало сна</b>\n3 ночи подряд меньше 6 часов. Накопленный недосып бьёт по восстановлению — постарайся лечь раньше.` })
 
         for (const c of checks) {
@@ -409,20 +418,22 @@ serve(async (req) => {
           supabase.from('daily_scores').select('hrv_baseline, sleep_baseline').eq('user_id', l.user_id).order('date', { ascending: false }).limit(1).maybeSingle(),
         ])
         if (!rows || rows.length < 10) continue
-        const col = (rs2: any[], k: string) => rs2.map((r: any) => r[k]).filter((v: any) => v != null)
-        const recent = rows.slice(-3)
-        const hrvBase = score?.hrv_baseline ?? avgF(col(rows.slice(-17, -3), 'hrv'))
-        const sleepBase = score?.sleep_baseline ?? avgF(col(rows.slice(-17, -3), 'sleep_hours'))
+        const mRows2 = rows as { date: string; hrv: number | null; sleep_hours: number | null }[]
+        const col = (rs2: Record<string, unknown>[], k: string): number[] =>
+          rs2.map(r => r[k]).filter((v): v is number => typeof v === 'number')
+        const recent = mRows2.slice(-3)
+        const hrvBase = score?.hrv_baseline ?? avgF(col(mRows2.slice(-17, -3), 'hrv'))
+        const sleepBase = score?.sleep_baseline ?? avgF(col(mRows2.slice(-17, -3), 'sleep_hours'))
         const rHrv = avgF(col(recent, 'hrv'))
         const rSleep = avgF(col(recent, 'sleep_hours'))
-        const events = ev ?? []
+        const events: { ts: string; type: string }[] = ev ?? []
 
         // дни (YYYY-MM-DD) с поздним кофе (после 18:00 по Киеву)
-        const lateCoffeeDays = new Set(events.filter((e: any) => e.type === 'coffee' && kyivHour(e.ts) >= 18).map((e: any) => e.ts.slice(0, 10)))
+        const lateCoffeeDays = new Set(events.filter(e => e.type === 'coffee' && kyivHour(e.ts) >= 18).map(e => e.ts.slice(0, 10)))
         const last3 = [0, 1, 2].map(d => new Date(nowMs - d * 86400000).toISOString().slice(0, 10))
-        const alcoholRecent = events.find((e: any) => e.type === 'alcohol' && (nowMs - new Date(e.ts).getTime()) < 2 * 86400000)
-        const workoutCount = new Set(events.filter((e: any) => e.type === 'workout').map((e: any) => e.ts.slice(0, 10))).size
-        const stressRecent = events.find((e: any) => e.type === 'stress' && (nowMs - new Date(e.ts).getTime()) < 2 * 86400000)
+        const alcoholRecent = events.find(e => e.type === 'alcohol' && (nowMs - new Date(e.ts).getTime()) < 2 * 86400000)
+        const workoutCount = new Set(events.filter(e => e.type === 'workout').map(e => e.ts.slice(0, 10))).size
+        const stressRecent = events.find(e => e.type === 'stress' && (nowMs - new Date(e.ts).getTime()) < 2 * 86400000)
 
         // выбираем ОДИН наиболее уместный nudge
         let nudge: { type: string; msg: string } | null = null
@@ -465,10 +476,11 @@ serve(async (req) => {
     const { data: openFollowups } = await supabase
       .from('coach_events').select('id, user_id, payload')
       .eq('type', 'followup').eq('status', 'open')
-    const due = (openFollowups ?? []).filter((f: any) => f.payload?.due && f.payload.due <= new Date(nowMs).toISOString())
+    type FollowupRow = { id: string; user_id: string; payload: { due?: string; metric?: string; baseline?: number | null } | null }
+    const due = ((openFollowups ?? []) as FollowupRow[]).filter(f => f.payload?.due && f.payload.due <= new Date(nowMs).toISOString())
     const avgF = (a: number[]) => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null
 
-    for (const f of due ?? []) {
+    for (const f of due) {
       const metric = f.payload?.metric === 'sleep_hours' ? 'sleep_hours' : 'hrv'
       const baseline = f.payload?.baseline as number | null
       const { data: link } = await supabase
@@ -476,7 +488,8 @@ serve(async (req) => {
       const since = new Date(nowMs - 4 * 86400000).toISOString().slice(0, 10)
       const { data: rows } = await supabase
         .from('daily_metrics').select(`date, ${metric}`).eq('user_id', f.user_id).gte('date', since).order('date', { ascending: false }).limit(3)
-      const cur = avgF((rows ?? []).map((r: any) => r[metric]).filter((v: any) => v != null))
+      const cur = avgF(((rows ?? []) as Record<string, unknown>[])
+        .map(r => r[metric]).filter((v): v is number => typeof v === 'number'))
 
       let msg: string
       const name = metric === 'sleep_hours' ? 'сон' : 'HRV'
