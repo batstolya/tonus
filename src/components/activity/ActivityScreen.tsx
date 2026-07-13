@@ -22,6 +22,29 @@ function getColor(steps: number): string {
   return '#ff6b6b'
 }
 
+// На уровне модуля (не внутри рендера): recharts вливает active/payload/label,
+// t/locale прокидываем явно. Определение внутри компонента ремаунтило бы тултип
+// каждый рендер (react-hooks/static-components).
+function CustomTooltip({ active, payload, label, t, locale }: {
+  active?: boolean
+  label?: string | number
+  payload?: { value: number }[]
+  t: (ru: string, vars?: Record<string, string | number>) => string
+  locale: string
+}) {
+  if (!active || !payload?.length) return null
+  const steps = payload[0]?.value ?? 0
+  return (
+    <div className="custom-tooltip">
+      <p className="tooltip-date">{label}</p>
+      <p style={{ color: getColor(steps) }}><strong>{steps.toLocaleString(locale)}</strong> {t('шагов')}</p>
+      {payload[0] && <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>
+        {steps >= GREAT ? `🟢 ${t('Отлично')}` : steps >= GOAL ? `🔵 ${t('Цель достигнута')}` : steps >= 5000 ? `🟡 ${t('Умеренно')}` : `🔴 ${t('Мало')}`}
+      </p>}
+    </div>
+  )
+}
+
 export function ActivityScreen({ daily }: Props) {
   const { t, locale } = useT()
   const [preset, setPreset] = useState<Preset>('30d')
@@ -60,24 +83,6 @@ export function ActivityScreen({ daily }: Props) {
   }
   if (greatDays > slice.length * 0.4) {
     insights.push(t('{n} дней с {great}+ шагами — высокая активность, хорошая нагрузка на сердце.', { n: greatDays, great: GREAT.toLocaleString(locale) }))
-  }
-
-  const CustomTooltip = ({ active, payload, label }: {
-    active?: boolean
-    label?: string | number
-    payload?: { value: number }[]
-  }) => {
-    if (!active || !payload?.length) return null
-    const steps = payload[0]?.value ?? 0
-    return (
-      <div className="custom-tooltip">
-        <p className="tooltip-date">{label}</p>
-        <p style={{ color: getColor(steps) }}><strong>{steps.toLocaleString(locale)}</strong> {t('шагов')}</p>
-        {payload[0] && <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>
-          {steps >= GREAT ? `🟢 ${t('Отлично')}` : steps >= GOAL ? `🔵 ${t('Цель достигнута')}` : steps >= 5000 ? `🟡 ${t('Умеренно')}` : `🔴 ${t('Мало')}`}
-        </p>}
-      </div>
-    )
   }
 
   return (
@@ -128,7 +133,7 @@ export function ActivityScreen({ daily }: Props) {
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
           <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
           <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v/1000).toFixed(0)}к`} />
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={<CustomTooltip t={t} locale={locale} />} />
           <ReferenceLine y={GOAL} stroke="#6c8fff" strokeDasharray="4 3" label={{ value: '8к', position: 'right', fontSize: 11, fill: '#6c8fff' }} />
           <ReferenceLine y={GREAT} stroke="#5bc896" strokeDasharray="4 3" label={{ value: '10к', position: 'right', fontSize: 11, fill: '#5bc896' }} />
           <Bar dataKey="steps" name={t('Шаги')} radius={[3, 3, 0, 0]}>

@@ -11,10 +11,12 @@ import { useT } from '../../lib/i18n'
 // Факт = день с exerciseMinutes ≥ 30 (тот же порог, что в стрике).
 export function WorkoutPlanCard({ daily }: { daily: DailyMetrics[] }) {
   const { t, locale } = useT()
-  const [ws, setWs] = useState<WorkoutScheduleRow | null>(null)
+  // Демо-значение ставим ленивым инициализатором, а не синхронным setState в
+  // эффекте (react-hooks/set-state-in-effect) — то же состояние, на рендер меньше.
+  const [ws, setWs] = useState<WorkoutScheduleRow | null>(() => isDemoActive() ? makeDemoWorkoutSchedule() : null)
 
   useEffect(() => {
-    if (isDemoActive()) { setWs(makeDemoWorkoutSchedule()); return }
+    if (isDemoActive()) return
     supabase.from('workout_schedule').select('day_times, notify_hours_before, enabled')
       .maybeSingle()
       .then(({ data }) => setWs(data ? { ...data, day_times: (data.day_times ?? {}) as unknown as DayTimes } : null))
