@@ -121,7 +121,7 @@ export async function loadResearchData(userId: string, daily: DailyMetrics[], pe
   }
 
   // препараты: бинарно «принял в этот день»
-  const supTaken = new Set((logRes.data ?? []).map((l: any) => `${l.supplement_id}:${l.date}`))
+  const supTaken = new Set((logRes.data ?? []).map((l) => `${l.supplement_id}:${l.date}`))
   for (const s of sups) {
     for (const row of byDate.values()) {
       row[`sup_${s.id}`] = supTaken.has(`${s.id}:${row.date}`) ? 1 : 0
@@ -145,7 +145,7 @@ export async function loadResearchData(userId: string, daily: DailyMetrics[], pe
     const d = er.date as string
     if (d < sinceStr) continue
     const row = ensure(d)
-    for (const f of ENV_FACTORS) { const v = (er as any)[f.col]; if (typeof v === 'number') row[f.key] = v }
+    for (const f of ENV_FACTORS) { const v = (er as Record<string, unknown>)[f.col]; if (typeof v === 'number') row[f.key] = v }
   }
   const envPresent = new Set<string>()
   for (const row of byDate.values()) for (const f of ENV_FACTORS) if (row[f.key] != null) envPresent.add(f.key)
@@ -153,7 +153,7 @@ export async function loadResearchData(userId: string, daily: DailyMetrics[], pe
 
   // самочувствие 1–5 (субъективный исход) из context_notes
   for (const n of noteRes.data ?? []) {
-    if (typeof (n as any).wellbeing === 'number') ensure(n.date as string)['wellbeing'] = (n as any).wellbeing
+    if (typeof n.wellbeing === 'number') ensure(n.date)['wellbeing'] = n.wellbeing
   }
   // готовность (композит) per-day — переиспользуем канонический расчёт
   for (const s of computeDailyScores(daily)) {
@@ -171,13 +171,13 @@ export async function loadResearchData(userId: string, daily: DailyMetrics[], pe
     { key: 'ev_workout', label: 'Тренировка (день)' },
     { key: 'ev_travel', label: 'Поездка (день)' },
     { key: 'ev_late_meal', label: 'Поздняя еда (после 21:00)' },
-    ...sups.map((s: any) => ({ key: `sup_${s.id}`, label: `Приём: ${s.name}` })),
+    ...sups.map((s) => ({ key: `sup_${s.id}`, label: `Приём: ${s.name}` })),
   ]
   // Приватные проблемы участвуют в анализе, но имя маскируется, пока заперто
   const pinSet = !!(await loadPinHash(userId))
   const concernKeys = concerns
-    .filter((c: any) => sevByConcern[c.id])
-    .map((c: any) => ({ key: `cn_${c.id}`, label: `Проблема: ${maskConcernLabel(c.name, !!c.is_private, pinSet)}` }))
+    .filter((c) => sevByConcern[c.id])
+    .map((c) => ({ key: `cn_${c.id}`, label: `Проблема: ${maskConcernLabel(c.name, !!c.is_private, pinSet)}` }))
 
   const rows = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date))
   return { rows, eventKeys, metricKeys: [...METRICS.map(m => ({ key: m.key as string, label: m.label, betterHigh: m.betterHigh })), ...extraOutcomes], concernKeys, envKeys }

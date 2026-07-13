@@ -19,7 +19,7 @@ const BASE = import.meta.env.VITE_SUPABASE_URL as string
 
 // Вызывает edge-функцию POST'ом, возвращает распарсенный JSON.
 // Бросает EdgeFunctionError при не-2xx или { error } в теле ответа.
-export async function callFunction<T = any>(name: string, body?: unknown): Promise<T> {
+export async function callFunction<T = unknown>(name: string, body?: unknown): Promise<T> {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) throw new EdgeFunctionError('Не авторизован', 401)
 
@@ -32,7 +32,7 @@ export async function callFunction<T = any>(name: string, body?: unknown): Promi
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
 
-  let json: any = null
+  let json: { error?: string; message?: string } | null = null
   try { json = await res.json() } catch { /* пустое тело — ок для некоторых функций */ }
 
   if (!res.ok) {
@@ -42,5 +42,5 @@ export async function callFunction<T = any>(name: string, body?: unknown): Promi
   // некоторые функции возвращают { error } даже со статусом 200
   if (json?.error) throw new EdgeFunctionError(json.error, res.status)
 
-  return json as T
+  return json as unknown as T
 }
