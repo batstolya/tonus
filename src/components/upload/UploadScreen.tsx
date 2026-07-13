@@ -72,8 +72,8 @@ export function UploadScreen({ onProgress, onDone, onEvents, onError, progress, 
       setXiaomiWarnings(warnings)
       onProgress({ phase: 'done', percent: 100, message: t('Готово') })
       onDone(daily, [], file.name)
-    } catch (e: any) {
-      onError(`${t('Ошибка разбора файла Xiaomi')}: ${e?.message ?? e}`)
+    } catch (e) {
+      onError(`${t('Ошибка разбора файла Xiaomi')}: ${(e as Error)?.message ?? String(e)}`)
     }
   }
 

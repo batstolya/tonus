@@ -240,8 +240,8 @@ export default function App() {
         setSyncMsg(t('Данные актуальны'))
       }
       persistDailyScores(user.id, daily).catch(() => {})
-    } catch (e: any) {
-      setSyncMsg(t('Ошибка синхронизации: {msg}', { msg: e?.message ?? 'unknown' }))
+    } catch (e) {
+      setSyncMsg(t('Ошибка синхронизации: {msg}', { msg: (e as Error)?.message ?? 'unknown' }))
     }
     setTimeout(() => setSyncMsg(null), 4000)
   }

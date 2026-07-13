@@ -131,8 +131,8 @@ export function ResearchScreen({ user, daily, onNavigate }: Props) {
         setRuns(prev => [local, ...prev.filter(r => r.id !== 'local')])
         setActiveId('local')
       }
-    } catch (e: any) {
-      setError(e.message ?? t('Ошибка'))
+    } catch (e) {
+      setError((e as Error)?.message ?? t('Ошибка'))
     }
     setLoading(false)
   }

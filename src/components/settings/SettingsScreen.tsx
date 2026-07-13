@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { User } from '@supabase/supabase-js'
 import type { CalendarEvent, DailyMetrics } from '../../types'
+import type { AppView } from '../../store/appStore'
 import { DoctorReport } from './DoctorReport'
 import { loadMonthUsage, loadBudget, saveBudget } from '../../lib/aiUsage'
 import { loadDailyNoteSettings, saveDailyNoteSettings } from '../../lib/dailyNote'
@@ -25,7 +26,7 @@ interface Props {
   lastSync?: string | null
   calLastSync?: string | null
   onCalEvents?: (events: CalendarEvent[]) => void
-  onNavigate?: (view: any) => void
+  onNavigate?: (view: AppView) => void
   deviceType?: DeviceType | null
   onDeviceTypeChange?: (d: DeviceType) => void
   daily?: DailyMetrics[]
@@ -120,8 +121,8 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
     try {
       const json = await callFunction<{ synced?: number }>('fetch-environment', {})
       setEnvMsg(json.synced ? `✅ ${t('Синхронизировано')} ${json.synced} ${t('дн')}` : t('Ошибка'))
-    } catch (e: any) {
-      setEnvMsg(`${t('Ошибка')}: ${e.message}`)
+    } catch (e) {
+      setEnvMsg(`${t('Ошибка')}: ${(e as Error).message}`)
     }
     setEnvSyncing(false)
   }
@@ -252,8 +253,8 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
         if (data) { setTgLinked(true); setTgUsername(data.telegram_username); setTgMsg(null); clearInterval(interval) }
       }, 3000)
       setTimeout(() => clearInterval(interval), 60000)
-    } catch (e: any) {
-      setTgMsg(`Ошибка: ${e.message}`)
+    } catch (e) {
+      setTgMsg(`Ошибка: ${(e as Error).message}`)
     }
     setTgLinking(false)
   }
@@ -271,13 +272,13 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
     setCalLoading(true)
     setCalMsg(null)
     try {
-      const { events, count } = await callFunction<{ events: any[]; count: number }>('fetch-cal', { sessionToken: token })
+      const { events, count } = await callFunction<{ events: CalendarEvent[]; count: number }>('fetch-cal', { sessionToken: token })
       onCalEvents?.(events)
       setCalMsg(`✓ ${t('Загружено')} ${count} ${t('событий')}`)
       setCalToken('')
       setTimeout(() => onNavigate?.('stress-map'), 1500)
-    } catch (e: any) {
-      setCalMsg(`${t('Ошибка')}: ${e.message}`)
+    } catch (e) {
+      setCalMsg(`${t('Ошибка')}: ${(e as Error).message}`)
     }
     setCalLoading(false)
   }
@@ -293,15 +294,15 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
     if (!calEmail.trim() || !calPassword) return
     setCalLoading(true); setCalMsg(null)
     try {
-      const { count, events } = await callFunction<{ count: number; events: any[] }>('sync-cal', { email: calEmail.trim(), password: calPassword })
+      const { count, events } = await callFunction<{ count: number; events: CalendarEvent[] }>('sync-cal', { email: calEmail.trim(), password: calPassword })
       onCalEvents?.(events)
       setCalMsg(`✓ ${t('Сохранено и загружено')} ${count} ${t('событий')}`)
       setCalPassword('')
       setEditingCal(false)
       await refreshCalStatus()
       setTimeout(() => onNavigate?.('stress-map'), 1500)
-    } catch (e: any) {
-      setCalMsg(`${t('Ошибка')}: ${e.message}`)
+    } catch (e) {
+      setCalMsg(`${t('Ошибка')}: ${(e as Error).message}`)
     }
     setCalLoading(false)
   }
@@ -309,12 +310,12 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
   async function handleCalSyncNow() {
     setCalLoading(true); setCalMsg(null)
     try {
-      const { count, events } = await callFunction<{ count: number; events: any[] }>('sync-cal', {})
+      const { count, events } = await callFunction<{ count: number; events: CalendarEvent[] }>('sync-cal', {})
       onCalEvents?.(events)
       setCalMsg(`✓ ${t('Загружено')} ${count} ${t('событий')}`)
       setTimeout(() => onNavigate?.('stress-map'), 1500)
-    } catch (e: any) {
-      setCalMsg(`${t('Ошибка')}: ${e.message}`)
+    } catch (e) {
+      setCalMsg(`${t('Ошибка')}: ${(e as Error).message}`)
     }
     setCalLoading(false)
   }

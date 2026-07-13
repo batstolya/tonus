@@ -75,9 +75,10 @@ export function MealLogger({ user, onSaved }: Props) {
         : { text }
       const json = await callFunction<MealResult>('classify-meal', body)
       setEditResult(json)
-    } catch (e: any) {
+    } catch (e) {
       // classify-meal возвращает { error: 'not_food' } при не-еде на фото
-      setError(e.message === 'not_food' ? t('На фото не видно еды. Попробуй другое фото.') : e.message)
+      const m = (e as Error)?.message
+      setError(m === 'not_food' ? t('На фото не видно еды. Попробуй другое фото.') : m)
     }
     finally { setLoading(false) }
   }
@@ -129,8 +130,8 @@ export function MealLogger({ user, onSaved }: Props) {
         }).slice(0, 8)
         setSearchResults(products)
         setSearched(true)
-      } catch (e: any) {
-        setSearchError(e.message)
+      } catch (e) {
+        setSearchError((e as Error)?.message)
       } finally {
         setSearchLoading(false)
       }
