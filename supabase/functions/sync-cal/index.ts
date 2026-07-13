@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { isValidCronSecret } from '../_shared/auth.ts'
 
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' }
@@ -47,9 +47,22 @@ async function calLogin(email: string, password: string): Promise<string> {
   return token
 }
 
+// Букинг из tRPC cal.com — внешняя форма, перечислены только используемые поля.
+interface CalBooking {
+  uid?: string; startTime?: string; endTime?: string
+  title?: string | null; description?: string | null; location?: string | null
+  eventType?: { title?: string | null } | null
+}
+// Нормализованная строка calendar_events.
+interface CalEventRow {
+  user_id: string; uid: string; title: string
+  start_ts: string; end_ts: string
+  description: string | null; location: string | null; source: string
+}
+
 // ---- fetch all past bookings via tRPC (same shape as fetch-cal) ----
-async function fetchBookings(sessionToken: string): Promise<any[]> {
-  const all: any[] = []
+async function fetchBookings(sessionToken: string): Promise<CalBooking[]> {
+  const all: CalBooking[] = []
   let offset = 0
   const limit = 100
   while (true) {
@@ -79,8 +92,8 @@ async function fetchBookings(sessionToken: string): Promise<any[]> {
 }
 
 // ---- normalize (keep in sync with scripts/test-cal-normalize.mjs) ----
-function normalizeBookings(bookings: any[], userId: string) {
-  const byUid = new Map<string, any>()
+function normalizeBookings(bookings: CalBooking[], userId: string): CalEventRow[] {
+  const byUid = new Map<string, CalEventRow>()
   for (const b of bookings) {
     if (!b?.uid || !b?.startTime || !b?.endTime) continue
     byUid.set(b.uid, {
@@ -94,8 +107,8 @@ function normalizeBookings(bookings: any[], userId: string) {
   return [...byUid.values()]
 }
 
-async function syncOne(admin: any, row: { user_id: string; cal_email: string; cal_password_enc: string }) {
-  let status = 'ok'; let count = 0; let outRows: any[] = []
+async function syncOne(admin: SupabaseClient, row: { user_id: string; cal_email: string; cal_password_enc: string }) {
+  let status = 'ok'; let count = 0; let outRows: CalEventRow[] = []
   try {
     const password = await decrypt(row.cal_password_enc)
     const token = await calLogin(row.cal_email, password)
@@ -158,7 +171,7 @@ serve(async (req) => {
     const result = await syncOne(admin, row)
     if (result.status !== 'ok') return new Response(JSON.stringify({ error: result.status }), { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } })
     // Return events so the client can refresh the stress map without a page reload.
-    const events = result.rows.map((r: any) => ({
+    const events = result.rows.map(r => ({
       uid: r.uid, title: r.title, start: r.start_ts, end: r.end_ts,
       description: r.description, location: r.location, source: r.source,
     }))
