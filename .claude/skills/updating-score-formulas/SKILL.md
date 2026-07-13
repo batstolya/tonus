@@ -5,31 +5,25 @@ description: Use when changing readiness/sleep/recovery/stress score formulas, b
 
 # Изменение формул скоров (readiness/sleep/recovery/stress)
 
-## Два зеркала — править оба
+## Один источник — `supabase/functions/_shared/scores.ts`
 
-`computeDailyScores` существует в **двух копиях с идентичными формулами**:
+`computeDailyScores` существует в **одном экземпляре** (зеркал больше нет):
 
-| Копия | Кто использует | Тип входа |
-|---|---|---|
-| `src/lib/scores.ts` | дашборд, коуч, ИИ-контекст (веб) | `DailyMetrics` |
-| `supabase/functions/_shared/scores.ts` | `ingest-health` (автосинк Apple Health) | `ScoreInput` |
+| Файл | Роль |
+|---|---|
+| `supabase/functions/_shared/scores.ts` | **канонический модуль** (чистый, без Deno/браузерных зависимостей) — формулы правятся ТОЛЬКО здесь |
+| `src/lib/scores.ts` | клиентский фасад: re-export `computeDailyScores`/`DailyScore`/`ScoreInput` + браузерные `persistDailyScores`, `baselineDeviations` |
 
-Меняешь формулу в одной — внеси **ту же правку** во вторую. Типы входа разные,
-тело функции — 1-в-1.
+Кто использует: дашборд/коуч/ИИ-контекст (веб, через фасад) и `ingest-health`
+(автосинк Apple Health, напрямую). Тип входа общий — `ScoreInput`
+(optional-nullable поля, совместим с клиентским `DailyMetrics` структурно).
 
 ## Порядок
 
-1. Правь `src/lib/scores.ts` и `supabase/functions/_shared/scores.ts` синхронно.
-2. Golden-тест **один**, серверный: `supabase/functions/_shared/scores.test.ts`
-   (ожидаемые значения посчитаны вручную по формулам). Поменял формулу —
-   пересчитай и обнови golden-значения. Клиентская копия тестами не покрыта,
-   поэтому зеркальность проверяй глазами/диффом тел функций:
-   ```bash
-   diff <(sed -n '/^export function computeDailyScores/,/^}/p' src/lib/scores.ts) \
-        <(sed -n '/^export function computeDailyScores/,/^}/p' supabase/functions/_shared/scores.ts)
-   ```
-   Эталонный вывод — одна строка сигнатуры (`DailyMetrics[]` vs `ScoreInput[]`);
-   любое другое расхождение — рассинхрон формул.
+1. Правь формулы в `supabase/functions/_shared/scores.ts` — единственное место.
+2. Golden-тесты: `supabase/functions/_shared/scores.test.ts` (серверные значения)
+   и `src/lib/scores.test.ts` (клиентские + identity-тест единого источника).
+   Поменял формулу — пересчитай и обнови golden-значения в обоих тест-файлах.
 3. `npm test` (Node 24!).
 4. Редеплой серверной части: `ingest-health` **обязательно с `--no-verify-jwt`**
    (без флага автосинк молча ломается 401) — см. скилл `deploying-tonus`.
@@ -44,7 +38,7 @@ description: Use when changing readiness/sleep/recovery/stress score formulas, b
 
 ## Частые ошибки
 
-- Поправить только клиентскую копию → веб и автосинк показывают разные скоры,
-  **и ни один тест этого не поймает** (клиентская копия не покрыта).
 - Задеплоить `ingest-health` без `--no-verify-jwt` → HAE-синк получает 401.
-- Забыть пересчитать golden-значения → `npm test` падает, хотя формулы зеркальны.
+- Поправить формулу, но НЕ задеплоить `ingest-health` → веб уже считает по-новому,
+  автосинк пишет в `daily_scores` по-старому.
+- Забыть пересчитать golden-значения → `npm test` падает, хотя формула верная.

@@ -1,81 +1,14 @@
 import type { DailyMetrics } from '../types'
 import { supabase } from './supabase'
+import { computeDailyScores, avg } from '../../supabase/functions/_shared/scores'
 
-// Канонический расчёт дневных оценок и персональной базовой линии.
-// Один источник правды для дашборда, коуча и ИИ-контекста (#4).
-// СЕРВЕРНОЕ ЗЕРКАЛО (автосинк через ingest-health): supabase/functions/_shared/scores.ts.
-// При правке формул computeDailyScores менять оба места — golden-тесты ловят расхождения.
+// Формулы дневных оценок живут в ОДНОМ месте — supabase/functions/_shared/scores.ts
+// (чистый модуль, его же импортирует ingest-health). Этот файл — клиентский фасад:
+// re-export расчёта + браузерные надстройки (persist в supabase, отклонения от нормы).
+// После правки формул задеплой ingest-health (--no-verify-jwt!).
 
-export interface DailyScore {
-  date: string
-  readiness: number | null
-  sleep_score: number | null
-  recovery_score: number | null
-  stress_score: number | null
-  hrv_baseline: number | null
-  rhr_baseline: number | null
-  sleep_baseline: number | null
-  steps_baseline: number | null
-}
-
-function avg(vals: (number | null | undefined)[]): number | null {
-  const v = vals.filter((x): x is number => x != null && !isNaN(x))
-  return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null
-}
-const clamp = (n: number, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, n))
-
-// Считает оценки для каждого дня по скользящей базовой линии (до 30 дней ДО этого дня).
-export function computeDailyScores(daily: DailyMetrics[]): DailyScore[] {
-  const sorted = [...daily].sort((a, b) => a.date.localeCompare(b.date))
-  const out: DailyScore[] = []
-
-  for (let i = 0; i < sorted.length; i++) {
-    const d = sorted[i]
-    const prior = sorted.slice(Math.max(0, i - 30), i) // строго до текущего дня
-    if (prior.length < 5) continue // мало истории для базовой линии
-
-    const hrvBase = avg(prior.map(x => x.hrv))
-    const rhrBase = avg(prior.map(x => x.restingHeartRate))
-    const sleepBase = avg(prior.map(x => x.sleepHours))
-    const stepsBase = avg(prior.map(x => x.steps))
-
-    const hrv = d.hrv ?? null
-    const rhr = d.restingHeartRate ?? null
-    const sleep = d.sleepHours ?? null
-
-    // recovery: HRV относительно нормы (выше = лучше) + пульс покоя (ниже = лучше)
-    let recovery: number | null = null
-    const recParts: number[] = []
-    if (hrv != null && hrvBase) recParts.push(clamp((hrv / hrvBase) * 100) * 0.6)
-    if (rhr != null && rhrBase) recParts.push(clamp((rhrBase / rhr) * 100) * 0.4)
-    if (recParts.length) {
-      const w = (hrv != null && hrvBase ? 0.6 : 0) + (rhr != null && rhrBase ? 0.4 : 0)
-      recovery = Math.round(recParts.reduce((a, b) => a + b, 0) / w)
-    }
-
-    // sleep: 8ч = 100
-    const sleepScore = sleep != null ? Math.round(clamp((sleep / 8) * 100)) : null
-
-    // readiness: взвешенно HRV(40)+RHR(30)+сон(30) относительно нормы
-    let hrvS: number | null = null, rhrS: number | null = null, slS: number | null = null
-    if (hrv != null) hrvS = hrvBase ? clamp(40 * (hrv / hrvBase), 0, 40) : clamp(40 * (hrv / 50), 0, 40)
-    if (rhr != null) rhrS = rhrBase ? clamp(30 * (rhrBase / rhr), 0, 30) : clamp(30 * (55 / rhr), 0, 30)
-    if (sleep != null) slS = clamp(30 * (sleep / 8), 0, 30)
-    const rParts = [hrvS, rhrS, slS].filter((v): v is number => v != null)
-    const maxP = (hrvS != null ? 40 : 0) + (rhrS != null ? 30 : 0) + (slS != null ? 30 : 0)
-    const readiness = rParts.length && maxP ? Math.round((rParts.reduce((a, b) => a + b, 0) / maxP) * 100) : null
-
-    // stress: обратно к восстановлению
-    const stress = recovery != null ? clamp(100 - recovery) : null
-
-    out.push({
-      date: d.date,
-      readiness, sleep_score: sleepScore, recovery_score: recovery, stress_score: stress,
-      hrv_baseline: hrvBase, rhr_baseline: rhrBase, sleep_baseline: sleepBase, steps_baseline: stepsBase,
-    })
-  }
-  return out
-}
+export { computeDailyScores }
+export type { DailyScore, ScoreInput } from '../../supabase/functions/_shared/scores'
 
 export interface BaselineDeviation {
   metric: 'hrv' | 'rhr' | 'sleep' | 'steps'
