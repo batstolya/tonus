@@ -10,9 +10,20 @@ import { readFileSync } from 'node:fs'
 
 const COMMITTED = 'src/lib/database.types.ts'
 
+// Локально проект залинкован (Keychain) → --linked. В CI линка нет
+// (supabase/.temp в gitignore), но есть SUPABASE_ACCESS_TOKEN → адресуем проект
+// по ref из config.toml (ref не секрет). Без токена остаёмся на --linked и
+// gracefully пропускаем ниже.
+function targetFlag() {
+  if (!process.env.SUPABASE_ACCESS_TOKEN) return '--linked'
+  const cfg = readFileSync('supabase/config.toml', 'utf8')
+  const ref = cfg.match(/project_id\s*=\s*"([^"]+)"/)?.[1]
+  return ref ? `--project-id ${ref}` : '--linked'
+}
+
 let fresh
 try {
-  fresh = execSync('npx --yes supabase gen types typescript --linked --schema public', {
+  fresh = execSync(`npx --yes supabase gen types typescript ${targetFlag()} --schema public`, {
     encoding: 'utf8',
     maxBuffer: 64 * 1024 * 1024,
     stdio: ['ignore', 'pipe', 'pipe'],
