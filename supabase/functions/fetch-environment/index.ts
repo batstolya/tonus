@@ -27,8 +27,8 @@ serve(async (req) => {
             typeof p.latitude === 'number' ? p.latitude : DEFAULT_LAT,
             typeof p.longitude === 'number' ? p.longitude : DEFAULT_LON)
           results.push({ user: p.id, synced })
-        } catch (e: any) {
-          results.push({ user: p.id, error: e.message })
+        } catch (e) {
+          results.push({ user: p.id, error: (e as Error).message })
         }
       }
       return new Response(JSON.stringify({ ran: results.length, results }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
@@ -54,8 +54,8 @@ serve(async (req) => {
 
     const synced = await syncUser(supabase, user.id, lat, lon)
     return new Response(JSON.stringify({ synced }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
-  } catch (e: any) {
-    return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } })
+  } catch (e) {
+    return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } })
   }
 })
 

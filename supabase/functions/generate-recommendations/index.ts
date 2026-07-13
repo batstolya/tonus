@@ -148,7 +148,7 @@ ${digest}
     return new Response(JSON.stringify({ count: inserted?.length ?? 0, recommendations: inserted }), {
       headers: { ...CORS, 'Content-Type': 'application/json' },
     })
-  } catch (e: any) {
-    return new Response(e.message ?? 'Error', { status: 500, headers: CORS })
+  } catch (e) {
+    return new Response((e as Error).message ?? 'Error', { status: 500, headers: CORS })
   }
 })
