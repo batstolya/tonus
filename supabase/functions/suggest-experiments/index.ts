@@ -25,6 +25,22 @@ function avg(vals: number[]): number | null {
   return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null
 }
 
+// Локальные типы строк с реально используемыми колонками.
+interface MetricsRow {
+  date: string
+  resting_heart_rate: number | null
+  hrv: number | null
+  sleep_hours: number | null
+  steps: number | null
+}
+interface SleepRow { date: string; bedtime: string | null; wake_time: string | null; deep_hours: number | null; rem_hours: number | null }
+interface EventRow { ts: string; type: string }
+interface EnvRow { date: string; temp_c: number | null; daylight_minutes: number | null; air_quality: number | null; pollen: number | null }
+
+// .filter(Boolean) не сужает (number | null)[] → number[]; нужен type guard.
+const nums = (vals: (number | null | undefined)[]): number[] =>
+  vals.filter((v): v is number => v != null)
+
 interface Suggestion {
   hypothesis: string
   change_rule: string
@@ -55,9 +71,9 @@ serve(async (req) => {
     const budget = await checkBudget(supabase, user.id)
     if (!budget.ok) return new Response(JSON.stringify({ error: 'budget_exceeded', message: budgetExceededMessage(budget) }), { status: 402, headers: { ...CORS, 'Content-Type': 'application/json' } })
 
-    const body = await req.json().catch(() => ({}))
+    const body: { mode?: unknown; idea?: unknown } = await req.json().catch(() => ({}))
     const mode: 'generate' | 'refine' = body.mode === 'refine' ? 'refine' : 'generate'
-    const idea = (body.idea ?? '').toString().slice(0, 300)
+    const idea = String(body.idea ?? '').slice(0, 300)
 
     const metricList = Object.entries(ALLOWED).map(([k, v]) => `- "${k}" — ${v}`).join('\n')
 
@@ -94,34 +110,34 @@ ${metricList}
         supabase.from('environment_daily').select('date, temp_c, daylight_minutes, air_quality, pollen').eq('user_id', user.id).gte('date', since),
         supabase.from('daily_note_settings').select('timezone').eq('user_id', user.id).maybeSingle(),
       ])
-      const metrics = metricsRes.data
-      if (!metrics?.length || metrics.length < 5) {
+      const metrics: MetricsRow[] = metricsRes.data ?? []
+      if (metrics.length < 5) {
         return new Response(JSON.stringify({ suggestions: [], message: 'Пока недостаточно данных. Нужно хотя бы несколько дней метрик.' }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
       }
-      const sleeps = sleepsRes.data ?? []
-      const events = eventsRes.data ?? []
-      const env = envRes.data ?? []
+      const sleeps: SleepRow[] = sleepsRes.data ?? []
+      const events: EventRow[] = eventsRes.data ?? []
+      const env: EnvRow[] = envRes.data ?? []
       const tz = noteRes.data?.timezone || 'Europe/Kyiv'
       const localHour = (iso: string) => {
         const p = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', hour12: false }).formatToParts(new Date(iso)).find(x => x.type === 'hour')?.value
         return p != null ? parseInt(p, 10) : new Date(iso).getUTCHours()
       }
 
-      const rhr = metrics.map((r: any) => r.resting_heart_rate).filter(Boolean)
-      const hrv = metrics.map((r: any) => r.hrv).filter(Boolean)
-      const sleep = metrics.map((r: any) => r.sleep_hours).filter(Boolean)
-      const steps = metrics.map((r: any) => r.steps).filter(Boolean)
-      const deep = sleeps.map((s: any) => s.deep_hours).filter(Boolean)
+      const rhr = nums(metrics.map(r => r.resting_heart_rate))
+      const hrv = nums(metrics.map(r => r.hrv))
+      const sleep = nums(metrics.map(r => r.sleep_hours))
+      const steps = nums(metrics.map(r => r.steps))
+      const deep = nums(sleeps.map(s => s.deep_hours))
 
       const mid = Math.floor(metrics.length / 2)
       const first = metrics.slice(0, mid)
       const last = metrics.slice(mid)
-      const trend = (col: string, digits = 0) =>
-        `${avg(first.map((r: any) => r[col]).filter(Boolean))?.toFixed(digits) ?? '—'} → ${avg(last.map((r: any) => r[col]).filter(Boolean))?.toFixed(digits) ?? '—'}`
+      const trend = (col: 'resting_heart_rate' | 'hrv' | 'sleep_hours' | 'steps', digits = 0) =>
+        `${avg(nums(first.map(r => r[col])))?.toFixed(digits) ?? '—'} → ${avg(nums(last.map(r => r[col])))?.toFixed(digits) ?? '—'}`
 
       // тайминг сна: средний локальный час засыпания/пробуждения (с круговым сдвигом)
-      const bedH = sleeps.filter((s: any) => s.bedtime).map((s: any) => localHour(s.bedtime))
-      const wakeH = sleeps.filter((s: any) => s.wake_time).map((s: any) => localHour(s.wake_time))
+      const bedH = sleeps.flatMap(s => s.bedtime ? [localHour(s.bedtime)] : [])
+      const wakeH = sleeps.flatMap(s => s.wake_time ? [localHour(s.wake_time)] : [])
       const avgClock = (hrs: number[], shift: number) => {
         if (!hrs.length) return '—'
         const adj = hrs.map(h => (h < shift ? h + 24 : h))
@@ -131,17 +147,17 @@ ${metricList}
       }
 
       // поведение (управляемые рычаги)
-      const evOf = (t: string) => events.filter((e: any) => e.type === t)
-      const coffee = evOf('coffee'), lateCoffee = coffee.filter((e: any) => localHour(e.ts) >= 16)
-      const meals = evOf('meal'), lateMeals = meals.filter((e: any) => localHour(e.ts) >= 21)
-      const alcoholDays = new Set(evOf('alcohol').map((e: any) => e.ts.slice(0, 10))).size
-      const workoutDays = new Set(evOf('workout').map((e: any) => e.ts.slice(0, 10))).size
+      const evOf = (t: string) => events.filter(e => e.type === t)
+      const coffee = evOf('coffee'), lateCoffee = coffee.filter(e => localHour(e.ts) >= 16)
+      const meals = evOf('meal'), lateMeals = meals.filter(e => localHour(e.ts) >= 21)
+      const alcoholDays = new Set(evOf('alcohol').map(e => e.ts.slice(0, 10))).size
+      const workoutDays = new Set(evOf('workout').map(e => e.ts.slice(0, 10))).size
 
       // среда (контекст, не цель)
-      const temps = env.map((e: any) => e.temp_c).filter((v: any) => v != null)
-      const pollens = env.map((e: any) => e.pollen).filter((v: any) => v != null)
-      const aqis = env.map((e: any) => e.air_quality).filter((v: any) => v != null)
-      const hotDays = temps.filter((t: number) => t >= 25).length
+      const temps = nums(env.map(e => e.temp_c))
+      const pollens = nums(env.map(e => e.pollen))
+      const aqis = nums(env.map(e => e.air_quality))
+      const hotDays = temps.filter(t => t >= 25).length
 
       const behaviorLines: string[] = []
       if (coffee.length) behaviorLines.push(`Кофе: ${coffee.length} за период, из них ${lateCoffee.length} после 16:00`)
@@ -158,7 +174,7 @@ ${metricList}
       const digest = `ДАННЫЕ ЗА ${metrics.length} ДНЕЙ (${metrics[0].date} — ${metrics[metrics.length - 1].date}):
 Пульс покоя: ${avg(rhr)?.toFixed(0) ?? '—'} уд/мин
 HRV: ${avg(hrv)?.toFixed(0) ?? '—'} мс
-Сон: ${avg(sleep)?.toFixed(1) ?? '—'} ч (ночей ≥7ч: ${sleep.filter((v: number) => v >= 7).length}/${sleep.length})
+Сон: ${avg(sleep)?.toFixed(1) ?? '—'} ч (ночей ≥7ч: ${sleep.filter(v => v >= 7).length}/${sleep.length})
 Глубокий сон: ${avg(deep)?.toFixed(1) ?? '—'} ч
 Шаги: ${avg(steps) ? Math.round(avg(steps)!) : '—'}/день
 
@@ -217,27 +233,35 @@ ${metricList}
     const tokensUsed = geminiData.usageMetadata?.totalTokenCount ?? null
 
     const jsonStr = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-    let parsed: any
+    let parsed: unknown
     try {
       parsed = JSON.parse(jsonStr)
-    } catch (_e) {
+    } catch (parseErr) {
       // ответ обрезан — вытащим целые объекты до обрыва
       const objs = jsonStr.match(/\{[^{}]*\}/g) ?? []
-      parsed = objs.map((o: string) => { try { return JSON.parse(o) } catch { return null } }).filter(Boolean)
-      if (!parsed.length) throw new Error('ИИ вернул некорректный ответ. Попробуй ещё раз.')
+      const rescued = objs
+        .map((o: string): unknown => { try { return JSON.parse(o) } catch { return null } })
+        .filter(Boolean)
+      if (!rescued.length) throw new Error('ИИ вернул некорректный ответ. Попробуй ещё раз.', { cause: parseErr })
+      parsed = rescued
     }
 
     if (!Array.isArray(parsed)) throw new Error('Invalid response format')
 
     // Оставляем только валидные предложения с метрикой из белого списка
-    const suggestions: Suggestion[] = parsed
-      .filter((s: any) => s && typeof s.hypothesis === 'string' && typeof s.change_rule === 'string' && ALLOWED[s.target_metric])
-      .map((s: any) => ({
-        hypothesis: String(s.hypothesis).slice(0, 200),
-        change_rule: String(s.change_rule).slice(0, 200),
-        target_metric: s.target_metric,
-        rationale: String(s.rationale ?? '').slice(0, 300),
-      }))
+    const suggestions: Suggestion[] = (parsed as unknown[])
+      .flatMap((u): Suggestion[] => {
+        if (!u || typeof u !== 'object') return []
+        const s = u as Record<string, unknown>
+        if (typeof s.hypothesis !== 'string' || typeof s.change_rule !== 'string') return []
+        if (typeof s.target_metric !== 'string' || !ALLOWED[s.target_metric]) return []
+        return [{
+          hypothesis: s.hypothesis.slice(0, 200),
+          change_rule: s.change_rule.slice(0, 200),
+          target_metric: s.target_metric,
+          rationale: String(s.rationale ?? '').slice(0, 300),
+        }]
+      })
       .slice(0, mode === 'refine' ? 1 : 3)
 
     if (tokensUsed) {

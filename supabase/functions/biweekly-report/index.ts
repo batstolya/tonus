@@ -1,8 +1,8 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient, type User } from 'https://esm.sh/@supabase/supabase-js@2'
 import { checkBudget } from '../_shared/costGuard.ts'
 import { daysSinceFreshData } from '../_shared/staleness.ts'
-import { plannedDaysInRange, attendance, scheduleWeekdays } from '../_shared/workoutPlan.ts'
+import { plannedDaysInRange, attendance, scheduleWeekdays, type DayTimes } from '../_shared/workoutPlan.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -13,41 +13,67 @@ const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers
 
 function avg(vals: number[]) { return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null }
 
+// Строки из daily_summary / sleep_sessions / intake_events — локальные типы
+// с реально используемыми колонками (клиентский database.types.ts в Deno не тянем).
+interface DailyRow {
+  date: string
+  resting_heart_rate: number | null
+  hrv: number | null
+  sleep_hours: number | null
+  steps: number | null
+  oxygen_saturation: number | null
+}
+interface SleepSessionRow {
+  date: string
+  bedtime: string | null
+  wake_time: string | null
+  duration_hours: number | null
+  deep_hours: number | null
+  rem_hours: number | null
+  core_hours: number | null
+}
+interface IntakeRow { ts: string; type: string; amount: number | null; unit: string | null; note: string | null }
+interface LabRow { marker: string; value: number; unit: string | null; date: string }
+
+// .filter(Boolean) не сужает (number | null)[] → number[]; нужен type guard.
+const nums = (vals: (number | null | undefined)[]): number[] =>
+  vals.filter((v): v is number => v != null)
+
 function fmtBedtime(iso: string): string {
   const d = new Date(iso)
   return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' })
 }
 
-function buildDigest(rows: any[], label: string, sleep: any[]): string {
+function buildDigest(rows: DailyRow[], label: string, sleep: SleepSessionRow[]): string {
   if (!rows.length) return `${label}: нет данных`
   const lines = [`=== ${label} (${rows[0].date} — ${rows[rows.length-1].date}) ===`]
-  const rhr = rows.map((r: any) => r.resting_heart_rate).filter(Boolean)
-  const hrv = rows.map((r: any) => r.hrv).filter(Boolean)
-  const sleepHours = rows.map((r: any) => r.sleep_hours).filter(Boolean)
-  const steps = rows.map((r: any) => r.steps).filter(Boolean)
+  const rhr = nums(rows.map(r => r.resting_heart_rate))
+  const hrv = nums(rows.map(r => r.hrv))
+  const sleepHours = nums(rows.map(r => r.sleep_hours))
+  const steps = nums(rows.map(r => r.steps))
   if (rhr.length) lines.push(`ЧСС покоя: ${avg(rhr)!.toFixed(0)} уд/мин`)
   if (hrv.length) {
     lines.push(`HRV: среднее ${avg(hrv)!.toFixed(0)} мс`)
     // Days with low HRV (stress) = below 75% of average
     const avgHrv = avg(hrv)!
-    const lowHrvDays = rows.filter((r: any) => r.hrv && r.hrv < avgHrv * 0.8)
+    const lowHrvDays = rows.flatMap(r => r.hrv != null && r.hrv < avgHrv * 0.8 ? [{ date: r.date, hrv: r.hrv }] : [])
     if (lowHrvDays.length) {
-      lines.push(`Высокий стресс (низкий HRV): ${lowHrvDays.map((r: any) => `${r.date} (${r.hrv.toFixed(0)}мс)`).join(', ')}`)
+      lines.push(`Высокий стресс (низкий HRV): ${lowHrvDays.map(r => `${r.date} (${r.hrv.toFixed(0)}мс)`).join(', ')}`)
     }
   }
-  if (sleepHours.length) lines.push(`Сон: ${avg(sleepHours)!.toFixed(1)} ч, ночей ≥7ч: ${sleepHours.filter((v: number) => v >= 7).length}/${sleepHours.length}`)
+  if (sleepHours.length) lines.push(`Сон: ${avg(sleepHours)!.toFixed(1)} ч, ночей ≥7ч: ${sleepHours.filter(v => v >= 7).length}/${sleepHours.length}`)
   if (steps.length) lines.push(`Шаги: ${Math.round(avg(steps)!).toLocaleString()}/день`)
 
   // Bedtime analysis
-  const lateBeds = sleep.filter((s: any) => {
-    if (!s.bedtime) return false
+  const lateBeds = sleep.flatMap(s => {
+    if (!s.bedtime) return []
     const d = new Date(s.bedtime)
     const h = d.getUTCHours()
     // Late = after 01:00 local (rough: UTC+3 → after 22:00 UTC)
-    return h >= 22 || h < 6
+    return h >= 22 || h < 6 ? [{ date: s.date, bedtime: s.bedtime }] : []
   })
   if (lateBeds.length) {
-    lines.push(`Позднее засыпание: ${lateBeds.map((s: any) => `${s.date} (${fmtBedtime(s.bedtime)})`).join(', ')}`)
+    lines.push(`Позднее засыпание: ${lateBeds.map(s => `${s.date} (${fmtBedtime(s.bedtime)})`).join(', ')}`)
   }
 
   return lines.join('\n')
@@ -88,7 +114,7 @@ serve(async (req) => {
 
     // Allow service-role calls (from telegram-bot) with x-user-id header
     const serviceUserId = req.headers.get('x-user-id')
-    let user: any = null
+    let user: User | null = null
     if (serviceUserId && authHeader.includes(SUPABASE_SERVICE_KEY.slice(0, 20))) {
       const { data } = await supabase.auth.admin.getUserById(serviceUserId)
       user = data.user
@@ -152,23 +178,31 @@ serve(async (req) => {
       supabase.from('metrics_daily').select('date, sum_val').eq('user_id', user.id).eq('metric', 'exerciseMinutes').gte('date', fmt(p1Start)).lte('date', fmt(p1End)),
     ])
 
-    const digest1 = buildDigest(r1.data ?? [], 'Последние 2 недели', s1.data ?? [])
-    const digest2 = buildDigest(r2.data ?? [], 'Предыдущие 2 недели', s2.data ?? [])
+    const rows1: DailyRow[] = r1.data ?? []
+    const rows2: DailyRow[] = r2.data ?? []
+    const sleep1: SleepSessionRow[] = s1.data ?? []
+    const sleep2: SleepSessionRow[] = s2.data ?? []
+    const intakeRows: IntakeRow[] = intake.data ?? []
+
+    const digest1 = buildDigest(rows1, 'Последние 2 недели', sleep1)
+    const digest2 = buildDigest(rows2, 'Предыдущие 2 недели', sleep2)
 
     // SpO2 — хранится как доля (0.96 = 96%), переводим в проценты
     const spo2Block = (() => {
-      const vals = (r1.data ?? []).map((r: any) => r.oxygen_saturation).filter(Boolean).map((v: number) => v * 100)
+      const vals = nums(rows1.map(r => r.oxygen_saturation)).map(v => v * 100)
       if (!vals.length) return ''
-      const lows = (r1.data ?? []).filter((r: any) => r.oxygen_saturation && r.oxygen_saturation * 100 < 94)
+      const lows = rows1.flatMap(r =>
+        r.oxygen_saturation != null && r.oxygen_saturation * 100 < 94
+          ? [{ date: r.date, oxygen_saturation: r.oxygen_saturation }] : [])
       return `\nКислород (SpO2): средн ${avg(vals)!.toFixed(0)}%, мин ${Math.min(...vals).toFixed(0)}%` +
-        (lows.length ? `, дни <94%: ${lows.map((r: any) => `${r.date} (${(r.oxygen_saturation * 100).toFixed(0)}%)`).join(', ')}` : '')
+        (lows.length ? `, дни <94%: ${lows.map(r => `${r.date} (${(r.oxygen_saturation * 100).toFixed(0)}%)`).join(', ')}` : '')
     })()
 
     // Фазы сна
     const sleepStagesBlock = (() => {
-      const d = (s1.data ?? []).map((s: any) => s.deep_hours).filter(Boolean)
-      const r = (s1.data ?? []).map((s: any) => s.rem_hours).filter(Boolean)
-      const c = (s1.data ?? []).map((s: any) => s.core_hours).filter(Boolean)
+      const d = nums(sleep1.map(s => s.deep_hours))
+      const r = nums(sleep1.map(s => s.rem_hours))
+      const c = nums(sleep1.map(s => s.core_hours))
       if (!d.length && !r.length) return ''
       const lines = ['\nФазы сна (средн/ночь):']
       if (d.length) lines.push(`глубокий ${avg(d)!.toFixed(1)}ч`)
@@ -179,30 +213,34 @@ serve(async (req) => {
 
     // Питание / события
     const nutritionBlock = (() => {
-      const ev = intake.data ?? []
+      const ev = intakeRows
       if (!ev.length) return ''
-      const cnt = (t: string) => ev.filter((e: any) => e.type === t).length
+      const cnt = (t: string) => ev.filter(e => e.type === t).length
       const coffee = cnt('coffee'), alcohol = cnt('alcohol'), meals = cnt('meal'), water = cnt('water')
-      const alcoholDays = [...new Set(ev.filter((e: any) => e.type === 'alcohol').map((e: any) => e.ts.slice(0, 10)))]
+      const alcoholDays = [...new Set(ev.filter(e => e.type === 'alcohol').map(e => e.ts.slice(0, 10)))]
       const lines = ['\nПитание/события за 2 недели:']
       if (coffee) lines.push(`☕ кофе: ${coffee} раз`)
       if (alcohol) lines.push(`🍷 алкоголь: ${alcohol} раз (дни: ${alcoholDays.join(', ')})`)
       if (meals) lines.push(`🍽 приёмов еды записано: ${meals}`)
       if (water) lines.push(`💧 вода: ${water} записей`)
-      const notes = ev.filter((e: any) => e.note).map((e: any) => `${e.ts.slice(5, 10)} ${e.note}`)
+      const notes = ev.filter(e => e.note).map(e => `${e.ts.slice(5, 10)} ${e.note}`)
       if (notes.length) lines.push(`заметки еды: ${notes.join('; ')}`)
       return lines.join('\n')
     })()
 
     // Приём препаратов (соблюдение)
     const adherenceBlock = (() => {
-      const sups = supList.data ?? []
+      const sups: { id: string; name: string }[] = supList.data ?? []
       if (!sups.length) return ''
-      const taken = supLogs.data ?? []
+      // join supplements(name): рантайм для to-one отдаёт объект, но untyped-клиент
+      // выводит массив — принимаем обе формы
+      type SupJoin = { name: string } | { name: string }[] | null
+      const supName = (s: SupJoin) => Array.isArray(s) ? s[0]?.name : s?.name
+      const taken: { date: string; taken: boolean; supplements: SupJoin }[] = supLogs.data ?? []
       const days = 14
       const lines = ['\nПриём препаратов (за 14 дней):']
       for (const sup of sups) {
-        const n = taken.filter((t: any) => (t.supplements as any)?.name === sup.name).length
+        const n = taken.filter(t => supName(t.supplements) === sup.name).length
         lines.push(`${sup.name}: ${n}/${days} дней (${Math.round(n / days * 100)}%)`)
       }
       return lines.join('\n')
@@ -210,9 +248,9 @@ serve(async (req) => {
 
     // Анализы
     const labsBlock = (() => {
-      const rows = labs.data ?? []
+      const rows: LabRow[] = labs.data ?? []
       if (!rows.length) return ''
-      const byMarker: Record<string, any[]> = {}
+      const byMarker: Record<string, LabRow[]> = {}
       for (const r of rows) (byMarker[r.marker] ??= []).push(r)
       const lines = ['\nАнализы (последнее значение, тренд):']
       for (const [marker, entries] of Object.entries(byMarker)) {
@@ -228,22 +266,23 @@ serve(async (req) => {
 
     // Тренировки: соблюдение плана (спека workout-schedule §4)
     const workoutBlock = (() => {
-      const ws = wsRes.data
+      const ws: { day_times: DayTimes | null; enabled: boolean } | null = wsRes.data
       if (!ws?.enabled) return ''
       const days = scheduleWeekdays(ws.day_times ?? {})
       if (!days.length) return ''
       const planned = plannedDaysInRange(days, fmt(p1Start), fmt(p1End))
       if (!planned.length) return ''
       const done = new Set<string>()
-      for (const r of exminRes.data ?? []) if ((r.sum_val ?? 0) >= 30) done.add(r.date)
-      for (const e of intake.data ?? []) if (e.type === 'workout') done.add(String(e.ts).slice(0, 10))
+      const exmin: { date: string; sum_val: number | null }[] = exminRes.data ?? []
+      for (const r of exmin) if ((r.sum_val ?? 0) >= 30) done.add(r.date)
+      for (const e of intakeRows) if (e.type === 'workout') done.add(e.ts.slice(0, 10))
       const a = attendance(planned, done)
       return `\n🏋️ Тренировки: ${a.done} из ${a.total} по плану (${days.length}×/нед)`
     })()
 
-    const noteRows = noteRowsRes.data
-    const notesBlock = noteRows?.length
-      ? `\nЗаметки дня (со слов пользователя — объясняют всплески и просадки):\n${noteRows.map((n: any) => `${n.date}: ${n.note}`).join('\n')}`
+    const noteRows: { date: string; note: string }[] = noteRowsRes.data ?? []
+    const notesBlock = noteRows.length
+      ? `\nЗаметки дня (со слов пользователя — объясняют всплески и просадки):\n${noteRows.map(n => `${n.date}: ${n.note}`).join('\n')}`
       : ''
 
     // Настройки отчёта: подробность + приватность (B4)
