@@ -1,6 +1,8 @@
 // Версионирование промптов (#3). Активная версия берётся из ai_prompts;
 // если таблицы/строки нет — используется fallback из кода (ничего не ломается).
 
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
 export interface ResolvedPrompt {
   text: string
   version: number | null
@@ -8,7 +10,7 @@ export interface ResolvedPrompt {
 
 // Возвращает активный промпт по имени с наибольшей версией. fallback —
 // «зашитый» в код вариант на случай отсутствия записи.
-export async function getPrompt(supabase: any, name: string, fallback: string): Promise<ResolvedPrompt> {
+export async function getPrompt(supabase: SupabaseClient, name: string, fallback: string): Promise<ResolvedPrompt> {
   try {
     const { data } = await supabase
       .from('ai_prompts')
