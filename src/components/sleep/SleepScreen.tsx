@@ -30,6 +30,26 @@ function chartValToTime(val: number): string {
   return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}`
 }
 
+// На уровне модуля (recharts вливает active/payload/label): определение внутри
+// компонента ремаунтило бы тултип каждый рендер (react-hooks/static-components).
+function CustomBedtimeTooltip({ active, payload, label }: {
+  active?: boolean
+  label?: string | number
+  payload?: { name: string; value: number; color?: string }[]
+}) {
+  if (!active || !payload?.length) return null
+  return (
+    <div className="custom-tooltip">
+      <p className="tooltip-date">{label}</p>
+      {payload.map((p) => (
+        <p key={p.name} style={{ color: p.color }}>
+          {p.name}: {chartValToTime(p.value)}
+        </p>
+      ))}
+    </div>
+  )
+}
+
 export function SleepScreen({ daily }: Props) {
   const { t, locale } = useT()
   const [preset, setPreset] = useState<Preset>('30d')
@@ -89,25 +109,6 @@ export function SleepScreen({ daily }: Props) {
     v >= 18 && v <= 20 ? 'var(--green)'
     : (v >= 17 && v < 18) || (v > 20 && v <= 21.5) ? 'var(--yellow)'
     : 'var(--red)'
-
-
-  const CustomBedtimeTooltip = ({ active, payload, label }: {
-    active?: boolean
-    label?: string | number
-    payload?: { name: string; value: number; color?: string }[]
-  }) => {
-    if (!active || !payload?.length) return null
-    return (
-      <div className="custom-tooltip">
-        <p className="tooltip-date">{label}</p>
-        {payload.map((p) => (
-          <p key={p.name} style={{ color: p.color }}>
-            {p.name}: {chartValToTime(p.value)}
-          </p>
-        ))}
-      </div>
-    )
-  }
 
   return (
     <div className="screen">

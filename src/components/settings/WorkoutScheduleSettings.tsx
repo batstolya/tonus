@@ -20,12 +20,14 @@ const DAY_KEYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'] // и�
 export function WorkoutScheduleSettings({ user }: { user: User }) {
   const { t } = useT()
   const demo = isDemoActive()
-  const [ws, setWs] = useState<ScheduleState>({ day_times: {}, notify_hours_before: 4, enabled: true })
-  const [loaded, setLoaded] = useState(false)
+  // Демо-значения ставим ленивыми инициализаторами, а не синхронным setState в
+  // эффекте (react-hooks/set-state-in-effect) — то же состояние, на рендер меньше.
+  const [ws, setWs] = useState<ScheduleState>(() => demo ? makeDemoWorkoutSchedule() : { day_times: {}, notify_hours_before: 4, enabled: true })
+  const [loaded, setLoaded] = useState(() => demo)
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    if (demo) { setWs(makeDemoWorkoutSchedule()); setLoaded(true); return }
+    if (demo) return
     supabase.from('workout_schedule').select('day_times, notify_hours_before, enabled')
       .maybeSingle()
       .then(({ data }) => {
