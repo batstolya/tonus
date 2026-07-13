@@ -30,7 +30,7 @@ export function validateFocusCheck(obj: unknown): FocusCheck | null {
   const numOk = (v: unknown): v is number => typeof v === 'number' && isFinite(v)
   const timeOk = (v: unknown): v is string => typeof v === 'string' && /^\d{1,2}:\d{2}$/.test(v)
   const evOk = (v: unknown): v is string => typeof v === 'string' && FOCUS_EVENT_TYPES.includes(v)
-  let ok = false
+  let ok: boolean
   switch (p.kind) {
     case 'steps_gte': case 'sleep_hours_gte': case 'meals_gte': case 'wellbeing_gte': ok = numOk(p.value); break
     case 'bedtime_before': ok = timeOk(p.time); break

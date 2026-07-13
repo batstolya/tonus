@@ -21,7 +21,7 @@ function validateFocusCheck(obj: any): any | null {
   const numOk = (v: any) => typeof v === 'number' && isFinite(v)
   const timeOk = (v: any) => typeof v === 'string' && /^\d{1,2}:\d{2}$/.test(v)
   const evOk = (v: any) => typeof v === 'string' && FOCUS_EVENT_TYPES.includes(v)
-  let ok = false
+  let ok: boolean
   switch (p.kind) {
     case 'steps_gte': case 'sleep_hours_gte': case 'meals_gte': case 'wellbeing_gte': ok = numOk(p.value); break
     case 'bedtime_before': ok = timeOk(p.time); break
@@ -52,7 +52,7 @@ async function runForUser(supabase: any, userId: string): Promise<string | null>
   const now = Date.now()
   const since = new Date(now - 14 * 86400000).toISOString().slice(0, 10)
 
-  const [mRes, sRes, notesRes, intakeRes, supLogRes, profRes] = await Promise.all([
+  const [mRes, sRes, notesRes, intakeRes, _supLogRes, profRes] = await Promise.all([
     supabase.from('daily_metrics').select('date, resting_heart_rate, hrv, sleep_hours, steps, active_energy').eq('user_id', userId).gte('date', since).order('date'),
     supabase.from('sleep_sessions').select('date, duration_hours, deep_hours, rem_hours, bedtime').eq('user_id', userId).gte('date', since),
     supabase.from('context_notes').select('date, note').eq('user_id', userId).gte('date', since).order('date'),
