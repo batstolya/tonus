@@ -46,10 +46,11 @@ export async function loadComparison(userId: string, days = 14): Promise<Compare
     supabase.from('metrics_daily').select(sel).eq('user_id', userId).gte('date', since),
     supabase.from('metrics_daily_staging').select(sel).eq('user_id', userId).gte('date', since),
   ])
-  const val = (r: any) => r.sum_val ?? r.avg_val ?? null
-  const key = (r: any) => `${r.date}|${r.metric}`
-  const prodMap = new Map((prodRes.data ?? []).map((r: any) => [key(r), val(r)]))
-  const stgMap = new Map((stgRes.data ?? []).map((r: any) => [key(r), val(r)]))
+  type CmpRow = { date: string; metric: string; avg_val: number | null; sum_val: number | null }
+  const val = (r: CmpRow) => r.sum_val ?? r.avg_val ?? null
+  const key = (r: CmpRow) => `${r.date}|${r.metric}`
+  const prodMap = new Map((prodRes.data ?? []).map((r) => [key(r), val(r)]))
+  const stgMap = new Map((stgRes.data ?? []).map((r) => [key(r), val(r)]))
   const allKeys = new Set([...prodMap.keys(), ...stgMap.keys()])
   const rows: CompareRow[] = []
   for (const k of allKeys) {

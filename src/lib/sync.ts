@@ -235,7 +235,7 @@ export async function loadHRSamples(userId: string): Promise<HeartRateSample[]> 
   cutoff.setDate(cutoff.getDate() - 90)
 
   const pageSize = 1000
-  const allData: any[] = []
+  const allData: { ts: string; bpm: number; source: string | null }[] = []
   let from = 0
   while (true) {
     const { data, error } = await supabase

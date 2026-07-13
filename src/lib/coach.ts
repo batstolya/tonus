@@ -22,13 +22,14 @@ export type DayPredicate =
 
 export const FOCUS_EVENT_TYPES = ['coffee', 'alcohol', 'meal', 'water', 'meds', 'workout', 'illness', 'stress', 'travel', 'custom']
 
-export function validateFocusCheck(obj: any): FocusCheck | null {
+export function validateFocusCheck(obj: unknown): FocusCheck | null {
   if (!obj || typeof obj !== 'object') return null
-  const p = obj.predicate
+  const o = obj as Record<string, unknown>
+  const p = o.predicate as Record<string, unknown> | null
   if (!p || typeof p !== 'object') return null
-  const numOk = (v: any) => typeof v === 'number' && isFinite(v)
-  const timeOk = (v: any) => typeof v === 'string' && /^\d{1,2}:\d{2}$/.test(v)
-  const evOk = (v: any) => typeof v === 'string' && FOCUS_EVENT_TYPES.includes(v)
+  const numOk = (v: unknown): v is number => typeof v === 'number' && isFinite(v)
+  const timeOk = (v: unknown): v is string => typeof v === 'string' && /^\d{1,2}:\d{2}$/.test(v)
+  const evOk = (v: unknown): v is string => typeof v === 'string' && FOCUS_EVENT_TYPES.includes(v)
   let ok = false
   switch (p.kind) {
     case 'steps_gte': case 'sleep_hours_gte': case 'meals_gte': case 'wellbeing_gte': ok = numOk(p.value); break
@@ -39,12 +40,12 @@ export function validateFocusCheck(obj: any): FocusCheck | null {
     default: ok = false
   }
   if (!ok) return null
-  const out: FocusCheck = { predicate: p as DayPredicate }
-  if (obj.target != null) {
-    if (!numOk(obj.target) || obj.target < 1 || obj.target > 7) return null
-    out.target = Math.round(obj.target)
+  const out: FocusCheck = { predicate: p as unknown as DayPredicate }
+  if (o.target != null) {
+    if (!numOk(o.target) || o.target < 1 || o.target > 7) return null
+    out.target = Math.round(o.target)
   }
-  if (typeof obj.label === 'string') out.label = obj.label
+  if (typeof o.label === 'string') out.label = o.label
   return out
 }
 
@@ -95,7 +96,7 @@ export async function loadCheckins(userId: string, sinceISO: string): Promise<st
     .eq('user_id', userId).eq('type', 'focus_checkin')
     .gte('created_at', sinceISO)
     .order('created_at', { ascending: false })
-  return (data ?? []).map((e: any) => e.created_at.slice(0, 10))
+  return (data ?? []).map((e) => e.created_at!.slice(0, 10))
 }
 
 export async function checkInToday(userId: string): Promise<void> {
@@ -125,6 +126,6 @@ export async function loadFocusInputs(userId: string, sinceDate: string): Promis
     supabase.from('context_notes').select('date, wellbeing').eq('user_id', userId).gte('date', sinceDate),
   ])
   const wellbeingByDate: Record<string, number> = {}
-  for (const r of noteRes.data ?? []) if (typeof (r as any).wellbeing === 'number') wellbeingByDate[(r as any).date] = (r as any).wellbeing
+  for (const r of noteRes.data ?? []) if (typeof r.wellbeing === 'number') wellbeingByDate[r.date] = r.wellbeing
   return { intake: (intakeRes.data ?? []) as { ts: string; type: string }[], wellbeingByDate }
 }
