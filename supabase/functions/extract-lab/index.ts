@@ -143,7 +143,7 @@ serve(async (req) => {
     return new Response(JSON.stringify(labFile), {
       headers: { ...CORS, 'Content-Type': 'application/json' },
     })
-  } catch (e: any) {
-    return new Response(e.message ?? 'Error', { status: 500, headers: CORS })
+  } catch (e) {
+    return new Response((e as Error).message ?? 'Error', { status: 500, headers: CORS })
   }
 })

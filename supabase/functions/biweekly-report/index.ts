@@ -338,7 +338,7 @@ ${detailSpec}
     return new Response(JSON.stringify({ report, saved }), {
       headers: { ...CORS, 'Content-Type': 'application/json' },
     })
-  } catch (e: any) {
-    return new Response(e.message ?? 'Error', { status: 500, headers: CORS })
+  } catch (e) {
+    return new Response((e as Error).message ?? 'Error', { status: 500, headers: CORS })
   }
 })
