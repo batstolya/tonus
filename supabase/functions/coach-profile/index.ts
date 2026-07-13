@@ -110,7 +110,7 @@ ${notes || 'нет'}
     ).select('*').single()
 
     return new Response(JSON.stringify(saved ?? { summary, facts }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
-  } catch (e: any) {
-    return new Response(JSON.stringify({ error: e.message ?? 'Error' }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } })
+  } catch (e) {
+    return new Response(JSON.stringify({ error: (e as Error).message ?? 'Error' }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } })
   }
 })

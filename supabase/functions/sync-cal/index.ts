@@ -107,8 +107,8 @@ async function syncOne(admin: any, row: { user_id: string; cal_email: string; ca
       const { error } = await admin.from('calendar_events').upsert(rows.slice(i, i + 200), { onConflict: 'user_id,uid' })
       if (error) throw new Error(`calendar_events upsert: ${error.message}`)
     }
-  } catch (e: any) {
-    status = e.message ?? 'Ошибка'
+  } catch (e) {
+    status = (e as Error).message ?? 'Ошибка'
   }
   await admin.from('cal_sync').update({
     last_sync_at: new Date().toISOString(), last_status: status, event_count: count,
@@ -163,7 +163,7 @@ serve(async (req) => {
       description: r.description, location: r.location, source: r.source,
     }))
     return new Response(JSON.stringify({ count: result.count, events }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
-  } catch (e: any) {
-    return new Response(JSON.stringify({ error: e.message ?? 'Error' }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } })
+  } catch (e) {
+    return new Response(JSON.stringify({ error: (e as Error).message ?? 'Error' }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } })
   }
 })

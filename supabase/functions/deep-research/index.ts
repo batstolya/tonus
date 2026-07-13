@@ -67,7 +67,7 @@ ${notes ? `\nЗАМЕТКИ ДНЯ (контекст со слов пользо�
     if (tokens) await supabase.from('ai_usage').insert({ user_id: user.id, source: 'deep-research', tokens_used: tokens })
 
     return new Response(JSON.stringify({ reply }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
-  } catch (e: any) {
-    return new Response(JSON.stringify({ error: e.message ?? 'Error' }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } })
+  } catch (e) {
+    return new Response(JSON.stringify({ error: (e as Error).message ?? 'Error' }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } })
   }
 })

@@ -270,7 +270,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ ok: true, metrics: metrics.length, sleep: sleep.length, mode: tok.mode, promoted }), {
       headers: { ...CORS, 'Content-Type': 'application/json' },
     })
-  } catch (e: any) {
-    return new Response(JSON.stringify({ error: e.message ?? 'Error' }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } })
+  } catch (e) {
+    return new Response(JSON.stringify({ error: (e as Error).message ?? 'Error' }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } })
   }
 })
