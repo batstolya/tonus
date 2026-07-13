@@ -102,7 +102,7 @@ serve(async (req) => {
     }
 
     // Load or create session
-    let session: any = null
+    let session: { id: string } | null = null
     if (sessionId) {
       const { data } = await supabase.from('chat_sessions').select('*').eq('id', sessionId).single()
       session = data

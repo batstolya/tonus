@@ -50,8 +50,10 @@ serve(async (req) => {
       supabase.from('health_concerns').select('name, status').eq('user_id', userId),
     ])
 
-    const m = metricsRes.data ?? []
-    const num = (k: string) => m.map((r: any) => r[k]).filter((v: any) => v != null)
+    type MetricRow = { date: string; resting_heart_rate: number | null; hrv: number | null; sleep_hours: number | null; steps: number | null }
+    const m: MetricRow[] = metricsRes.data ?? []
+    const num = (k: keyof MetricRow): number[] =>
+      m.map(r => r[k]).filter((v): v is number => typeof v === 'number')
     const metricsLine = [
       num('hrv').length ? `HRV ~${avg(num('hrv'))!.toFixed(0)}мс` : '',
       num('resting_heart_rate').length ? `пульс покоя ~${avg(num('resting_heart_rate'))!.toFixed(0)}` : '',
@@ -59,10 +61,10 @@ serve(async (req) => {
       num('steps').length ? `шаги ~${Math.round(avg(num('steps'))!)}` : '',
     ].filter(Boolean).join(', ')
 
-    const notes = (notesRes.data ?? []).map((n: any) => `${n.date}: ${n.note}`).join('\n')
-    const goals = (goalsRes.data ?? []).map((g: any) => `${g.title} [${g.status}]`).join('; ')
-    const sups = (supsRes.data ?? []).map((s: any) => s.name).join(', ')
-    const concerns = (concernsRes.data ?? []).map((c: any) => `${c.name} [${c.status}]`).join('; ')
+    const notes = ((notesRes.data ?? []) as { date: string; note: string }[]).map(n => `${n.date}: ${n.note}`).join('\n')
+    const goals = ((goalsRes.data ?? []) as { title: string; metric: string; status: string }[]).map(g => `${g.title} [${g.status}]`).join('; ')
+    const sups = ((supsRes.data ?? []) as { name: string }[]).map(s => s.name).join(', ')
+    const concerns = ((concernsRes.data ?? []) as { name: string; status: string }[]).map(c => `${c.name} [${c.status}]`).join('; ')
 
     const prevSummary = existing?.summary ? `\nПРЕДЫДУЩИЙ ПРОФИЛЬ (обнови, не теряя важного):\n${existing.summary}\n` : ''
 
@@ -99,7 +101,7 @@ ${notes || 'нет'}
     const tokens = data.usageMetadata?.totalTokenCount ?? null
     if (tokens) await supabase.from('ai_usage').insert({ user_id: userId, source: 'coach-profile', tokens_used: tokens })
 
-    let parsed: any = {}
+    let parsed: { summary?: unknown; facts?: unknown } = {}
     try { parsed = JSON.parse(raw) } catch { /* ignore */ }
     const summary = typeof parsed.summary === 'string' ? parsed.summary : (existing?.summary ?? '')
     const facts = Array.isArray(parsed.facts) ? parsed.facts.slice(0, 8) : (existing?.facts ?? [])
