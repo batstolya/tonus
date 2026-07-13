@@ -11,6 +11,20 @@ function avg(vals: number[]): number | null {
   return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null
 }
 
+// Локальный тип строки daily_metrics с реально используемыми колонками.
+interface MetricsRow {
+  date: string
+  resting_heart_rate: number | null
+  hrv: number | null
+  sleep_hours: number | null
+  sleep_deep: number | null
+  steps: number | null
+}
+
+// .filter(Boolean) не сужает (number | null)[] → number[]; нужен type guard.
+const nums = (vals: (number | null | undefined)[]): number[] =>
+  vals.filter((v): v is number => v != null)
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
@@ -26,23 +40,24 @@ serve(async (req) => {
 
     // Load last 30 days of metrics
     const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 30)
-    const { data: metrics } = await supabase.from('daily_metrics').select('*')
+    const { data: metricsData } = await supabase.from('daily_metrics').select('*')
       .eq('user_id', user.id).gte('date', cutoff.toISOString().slice(0, 10)).order('date')
+    const metrics: MetricsRow[] = metricsData ?? []
 
-    if (!metrics?.length) {
+    if (!metrics.length) {
       return new Response(JSON.stringify({ count: 0, message: 'Нет данных' }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
     }
 
     // Load existing active goals to avoid duplicates
     const { data: activeGoals } = await supabase.from('goals').select('metric').eq('user_id', user.id).eq('status', 'active')
-    const activeMetrics = new Set((activeGoals ?? []).map((g: any) => g.metric))
+    const activeMetrics = new Set(((activeGoals ?? []) as { metric: string }[]).map(g => g.metric))
 
     // Build stats digest
-    const rhr = metrics.map((r: any) => r.resting_heart_rate).filter(Boolean)
-    const hrv = metrics.map((r: any) => r.hrv).filter(Boolean)
-    const sleep = metrics.map((r: any) => r.sleep_hours).filter(Boolean)
-    const steps = metrics.map((r: any) => r.steps).filter(Boolean)
-    const deep = metrics.map((r: any) => r.sleep_deep).filter(Boolean)
+    const rhr = nums(metrics.map(r => r.resting_heart_rate))
+    const hrv = nums(metrics.map(r => r.hrv))
+    const sleep = nums(metrics.map(r => r.sleep_hours))
+    const steps = nums(metrics.map(r => r.steps))
+    const deep = nums(metrics.map(r => r.sleep_deep))
 
     // Compare first 2 weeks vs last 2 weeks
     const mid = Math.floor(metrics.length / 2)
@@ -53,15 +68,15 @@ serve(async (req) => {
 ДАННЫЕ ЗА 30 ДНЕЙ (${metrics[0].date} — ${metrics[metrics.length-1].date}):
 ЧСС покоя: среднее ${avg(rhr)?.toFixed(0) ?? '—'} уд/мин
 HRV: среднее ${avg(hrv)?.toFixed(0) ?? '—'} мс
-Сон: среднее ${avg(sleep)?.toFixed(1) ?? '—'} ч, ночей ≥7ч: ${sleep.filter((v: number) => v >= 7).length}/${sleep.length}
+Сон: среднее ${avg(sleep)?.toFixed(1) ?? '—'} ч, ночей ≥7ч: ${sleep.filter(v => v >= 7).length}/${sleep.length}
 Глубокий сон: ${avg(deep)?.toFixed(1) ?? '—'} ч
 Шаги: ${avg(steps) ? Math.round(avg(steps)!) : '—'}/день
 
 ТРЕНД (первые 2 недели → последние 2 недели):
-ЧСС: ${avg(first.map((r: any) => r.resting_heart_rate).filter(Boolean))?.toFixed(0) ?? '—'} → ${avg(last.map((r: any) => r.resting_heart_rate).filter(Boolean))?.toFixed(0) ?? '—'}
-HRV: ${avg(first.map((r: any) => r.hrv).filter(Boolean))?.toFixed(0) ?? '—'} → ${avg(last.map((r: any) => r.hrv).filter(Boolean))?.toFixed(0) ?? '—'}
-Сон: ${avg(first.map((r: any) => r.sleep_hours).filter(Boolean))?.toFixed(1) ?? '—'} → ${avg(last.map((r: any) => r.sleep_hours).filter(Boolean))?.toFixed(1) ?? '—'}
-Шаги: ${avg(first.map((r: any) => r.steps).filter(Boolean)) ? Math.round(avg(first.map((r: any) => r.steps).filter(Boolean))!) : '—'} → ${avg(last.map((r: any) => r.steps).filter(Boolean)) ? Math.round(avg(last.map((r: any) => r.steps).filter(Boolean))!) : '—'}
+ЧСС: ${avg(nums(first.map(r => r.resting_heart_rate)))?.toFixed(0) ?? '—'} → ${avg(nums(last.map(r => r.resting_heart_rate)))?.toFixed(0) ?? '—'}
+HRV: ${avg(nums(first.map(r => r.hrv)))?.toFixed(0) ?? '—'} → ${avg(nums(last.map(r => r.hrv)))?.toFixed(0) ?? '—'}
+Сон: ${avg(nums(first.map(r => r.sleep_hours)))?.toFixed(1) ?? '—'} → ${avg(nums(last.map(r => r.sleep_hours)))?.toFixed(1) ?? '—'}
+Шаги: ${avg(nums(first.map(r => r.steps))) ? Math.round(avg(nums(first.map(r => r.steps)))!) : '—'} → ${avg(nums(last.map(r => r.steps))) ? Math.round(avg(nums(last.map(r => r.steps)))!) : '—'}
 
 УЖЕ ЕСТЬ АКТИВНЫЕ ЦЕЛИ ПО: ${activeMetrics.size ? [...activeMetrics].join(', ') : 'нет'}
 `
@@ -113,31 +128,37 @@ ${digest}
 
     // Parse JSON from response (strip markdown fences if present)
     const jsonStr = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-    let recs: any
+    let recs: unknown
     try {
       recs = JSON.parse(jsonStr)
-    } catch (_e) {
+    } catch (parseErr) {
       // Ответ обрезан/повреждён — попробуем вытащить целые объекты до обрыва
       const objs = jsonStr.match(/\{[^{}]*\}/g) ?? []
-      recs = objs.map((o: string) => { try { return JSON.parse(o) } catch { return null } }).filter(Boolean)
-      if (!recs.length) {
-        throw new Error('ИИ вернул некорректный ответ. Попробуй ещё раз.')
+      const rescued = objs
+        .map((o: string): unknown => { try { return JSON.parse(o) } catch { return null } })
+        .filter(Boolean)
+      if (!rescued.length) {
+        throw new Error('ИИ вернул некорректный ответ. Попробуй ещё раз.', { cause: parseErr })
       }
+      recs = rescued
     }
 
     if (!Array.isArray(recs)) throw new Error('Invalid response format')
 
     // Save to DB
-    const toInsert = recs.map((r: any) => ({
-      user_id: user.id,
-      metric: r.metric,
-      text: r.text,
-      rationale: r.rationale ?? null,
-      suggested_target: r.suggested_target ?? null,
-      suggested_target_label: r.suggested_target_label ?? null,
-      status: 'new',
-      source: 'ai',
-    }))
+    const toInsert = (recs as unknown[]).map((u) => {
+      const r = (u ?? {}) as Record<string, unknown>
+      return {
+        user_id: user.id,
+        metric: r.metric,
+        text: r.text,
+        rationale: r.rationale ?? null,
+        suggested_target: r.suggested_target ?? null,
+        suggested_target_label: r.suggested_target_label ?? null,
+        status: 'new',
+        source: 'ai',
+      }
+    })
 
     const { data: inserted } = await supabase.from('recommendations').insert(toInsert).select()
 
