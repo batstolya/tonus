@@ -107,8 +107,8 @@ function parseHAE(userId: string, payload: any): { metrics: MetricRow[]; sleep: 
         const date = dayOf(p.date)
         const avg = num(p.Avg ?? p.avg ?? p.qty ?? p.value)
         if (!date || avg == null) continue
-        let mn = num(p.Min ?? p.min) ?? avg
-        let mx = num(p.Max ?? p.max) ?? avg
+        const mn = num(p.Min ?? p.min) ?? avg
+        const mx = num(p.Max ?? p.max) ?? avg
         const cur = perDay[date] ??= { sum: 0, n: 0, min: mn, max: mx }
         cur.sum += avg; cur.n += 1; cur.min = Math.min(cur.min, mn); cur.max = Math.max(cur.max, mx)
       }
