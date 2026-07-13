@@ -117,7 +117,7 @@ async function setupCommands() {
 
 // ── Action handlers ───────────────────────────────────────────────────────────
 
-async function handleReport(chatId: number | string, userId: string, _supabase: any, _msgId?: number) {
+async function handleReport(chatId: number | string, userId: string, _supabase: unknown, _msgId?: number) {
   await tgTyping(chatId)
   const reportRes = await fetch(`${SUPABASE_URL}/functions/v1/biweekly-report`, {
     method: 'POST',
