@@ -152,8 +152,8 @@ export function GoalsScreen({ user, daily }: Props) {
       const { count } = await callFunction<{ count: number }>('generate-recommendations')
       setGenMsg(t('Получено {n} рекомендаций', { n: count }))
       await reload()
-    } catch (e: any) {
-      setGenMsg(`${t('Ошибка')}: ${e.message}`)
+    } catch (e) {
+      setGenMsg(`${t('Ошибка')}: ${(e as Error).message}`)
     }
     setGenLoading(false)
   }

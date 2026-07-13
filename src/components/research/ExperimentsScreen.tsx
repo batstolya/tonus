@@ -132,8 +132,8 @@ export function ExperimentsScreen({ user, daily }: Props) {
       const valid = (json.suggestions ?? []).filter(s => isValidMetric(s.target_metric))
       setSuggestions(valid)
       if (!valid.length) setSuggestError(json.message ?? t('Пока недостаточно данных для предложений.'))
-    } catch (e: any) {
-      setSuggestError(e.message)
+    } catch (e) {
+      setSuggestError((e as Error)?.message)
     }
     setSuggestLoading(false)
   }
@@ -147,8 +147,8 @@ export function ExperimentsScreen({ user, daily }: Props) {
       const s = json.suggestions?.[0]
       if (!s) throw new Error(t('Не удалось уточнить. Попробуй переформулировать.'))
       applyToForm(s)
-    } catch (e: any) {
-      setRefineError(e.message)
+    } catch (e) {
+      setRefineError((e as Error)?.message)
     }
     setRefineLoading(false)
   }
