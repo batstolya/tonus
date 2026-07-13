@@ -2,7 +2,35 @@
 
 - **Дата:** 2026-07-13
 - **Design-спека:** [2026-07-13-tech-debt-reduction-design.md](./2026-07-13-tech-debt-reduction-design.md)
-- **Статус:** в работе, воркстрим A частично, B готов; C/D не начаты
+- **Статус:** воркстрим A ЗАВЕРШЁН (сессия 2, PR #50–#55), B готов; C/D не начаты
+
+## Сессия 2 (2026-07-13, вторая половина дня) — воркстрим A добит
+
+| PR | Суть |
+|---|---|
+| [#50](https://github.com/batstolya/tonus/pull/50) | 10 механических lint-фиксов, потолок 214 → 203 |
+| [#51](https://github.com/batstolya/tonus/pull/51) | deno-check храповик в CI (`.deno-check-ceiling`, baseline 44) |
+| [#52](https://github.com/batstolya/tonus/pull/52) | 0 any: biweekly-report, suggest-experiments, generate-recommendations (потолок → 132) |
+| [#53](https://github.com/batstolya/tonus/pull/53) | 0 any ещё в 8 функциях (потолок → 88) |
+| [#54](https://github.com/batstolya/tonus/pull/54) | 0 any: _shared (healthContext и др.) + send-reminders; deno 44 → 32 (потолок → 50) |
+| [#55](https://github.com/batstolya/tonus/pull/55) | 0 any: telegram-bot; deno 32 → 16 (потолок → 21) |
+
+**Итог: все 197 `any` в edge-функциях убраны (0 вне `*.test.ts`). Lint-потолок
+292 → 21, deno-долг 44 → 16 — оба под храповиками.**
+
+Ключевые находки сессии 2:
+- `type SupabaseClient = ReturnType<typeof createClient>` инстанцирует дефолтные
+  генерики (schema=never) — это был корень ВСЕХ 18 «предзаданных» ошибок
+  telegram-bot и 5 send-reminders. Правильно: `import type { SupabaseClient }`.
+- `as typeof data` в позиции типа берёт СУЖЕННЫЙ тип (null) → never-каскад
+  (reminderDelivery).
+- `.catch()` на PostgrestBuilder не существует — латентный TypeError в error-path
+  send-reminders, починен на try/catch.
+- Строчные типы для generic-хелперов — type-алиасы, не interface (алиасам TS
+  даёт implicit index signature).
+- Осталось в lint (21): 19 react-hooks (поведенческие, рискованные) + no-namespace
+  + react-refresh. В deno (16): 14 в `_shared/*.test.ts` + SupabaseLike
+  (chat-health) + sync-football-fixtures.
 
 ## Отправная точка (аудит 2026-07-13)
 
