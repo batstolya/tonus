@@ -68,9 +68,12 @@ export async function deliverReminder(
     // Запрос мог быть принят Telegram до обрыва — исход неизвестен.
     return { kind: 'unknown', error: String(e).slice(0, 500) }
   }
-  let data: { ok?: boolean; result?: { message_id?: number }; description?: string } | null = null
+  type TgResponse = { ok?: boolean; result?: { message_id?: number }; description?: string }
+  let data: TgResponse | null
   try {
-    data = (await res.json()) as typeof data
+    // не `as typeof data`: typeof берёт СУЖЕННЫЙ тип (null на этой строке),
+    // и дальше data?.ok разваливается в never
+    data = (await res.json()) as TgResponse | null
   } catch {
     data = null
   }

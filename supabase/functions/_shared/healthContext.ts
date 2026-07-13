@@ -2,6 +2,7 @@
 // Один источник правды: бот, коуч, отчёты используют его, чтобы логика
 // контекста не разъезжалась между функциями (см. new-speca-refactoring #1).
 
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { plannedDaysInRange, attendance, scheduleWeekdays, type DayTimes } from './workoutPlan.ts'
 
 export interface HealthContextOptions {
@@ -10,21 +11,61 @@ export interface HealthContextOptions {
   timezone?: string            // IANA tz для рендера локального времени (bedtime и т.п.)
 }
 
+// Строки контекста — реально используемые колонки соответствующих таблиц.
+export interface CtxScores {
+  date: string
+  readiness: number | null; recovery_score: number | null
+  sleep_score: number | null; stress_score: number | null
+  hrv_baseline: number | null; rhr_baseline: number | null; sleep_baseline: number | null
+}
+// type-алиасы (не interface): им TS даёт implicit index signature,
+// и строки проходят в num(rows: Record<string, unknown>[], k).
+export type CtxMetricsRow = {
+  date: string
+  resting_heart_rate: number | null; hrv: number | null; sleep_hours: number | null
+  steps: number | null; active_energy: number | null; oxygen_saturation: number | null
+}
+export type CtxSleepRow = {
+  date: string; bedtime: string | null; wake_time: string | null
+  duration_hours: number | null; deep_hours: number | null; rem_hours: number | null; core_hours: number | null
+}
+export interface CtxLabRow { marker: string; value: number; unit: string | null; ref_range: string | null; flag: string | null; date: string }
+export interface CtxIntakeRow {
+  ts: string; type: string; amount: number | null; unit: string | null; note: string | null
+  calories: number | null; protein_g: number | null; carbs_g: number | null; fat_g: number | null
+}
+// join supplements(name): рантайм для to-one отдаёт объект, untyped-клиент выводит массив
+export type CtxSupJoin = { name: string } | { name: string }[] | null
+export interface CtxSupplementLog { date: string; taken: boolean; supplements: CtxSupJoin }
+export interface CtxNoteRow { date: string; note: string | null; wellbeing: number | null }
+export interface CtxGoalProgress { goal_id: string; date: string; value: number | null; on_target: boolean | null }
+export interface CtxGoalRow {
+  id: string; title: string; metric: string
+  baseline_value: number | null; target_value: number | null
+  direction: string; end_date: string; status: string
+  recentProgress: CtxGoalProgress[]
+}
+export interface CtxExperimentRow {
+  hypothesis: string; change_rule: string; target_metric: string
+  start_date: string; end_date: string; status: string
+  result: { deltaPct?: number | null } | null
+}
+
 export interface HealthContext {
   periodDays: number
   timezone: string
   coachProfile: { summary: string; facts: string[] } | null
-  scores: Record<string, any> | null
-  metrics: Record<string, any>[]
-  sleep: Record<string, any>[]
-  labs: Record<string, any>[]
+  scores: CtxScores | null
+  metrics: CtxMetricsRow[]
+  sleep: CtxSleepRow[]
+  labs: CtxLabRow[]
   supplements: string[]
-  intake: Record<string, any>[]
-  supplementLogs: Record<string, any>[]
-  notes: Record<string, any>[]
-  calendar: Record<string, any>[]
-  goals: Record<string, any>[]
-  experiments: Record<string, any>[]
+  intake: CtxIntakeRow[]
+  supplementLogs: CtxSupplementLog[]
+  notes: CtxNoteRow[]
+  calendar: { start_ts: string }[]
+  goals: CtxGoalRow[]
+  experiments: CtxExperimentRow[]
   // последние дни environment_daily (свежий первым)
   environment: { date: string; temp_c: number | null; pressure_hpa: number | null; daylight_minutes: number | null; precipitation_mm: number | null; kp_index: number | null }[]
   concerns: { name: string; category: string; status: string; lastLog: { date: string; severity: number | null; note: string | null } | null }[]
@@ -37,7 +78,8 @@ export interface HealthContext {
 }
 
 const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
-const num = (r: any[], k: string) => r.map(x => x[k]).filter((v: any) => v != null && !isNaN(v))
+const num = (r: Record<string, unknown>[], k: string): number[] =>
+  r.map(x => x[k]).filter((v): v is number => typeof v === 'number' && !isNaN(v))
 
 function localMinutes(iso: string, tz: string): number {
   const parts = Object.fromEntries(
@@ -79,7 +121,7 @@ function isValidTimezone(tz: string): boolean {
 
 // Собирает структурированный контекст из БД (service-role или RLS-клиент).
 export async function buildHealthContext(
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string,
   opts: HealthContextOptions = {},
 ): Promise<HealthContext> {
@@ -156,9 +198,9 @@ export async function buildHealthContext(
 
   // Последовательный follow-up: тренд goal_progress зависит от только что
   // полученных id целей, поэтому не входит в параллельный батч выше.
-  const goalsRaw = goalRes.data ?? []
+  const goalsRaw: Omit<CtxGoalRow, 'recentProgress'>[] = goalRes.data ?? []
   const goalIds = goalsRaw.map((g) => g.id).filter(Boolean)
-  let goalProgressData: Record<string, unknown>[] = []
+  let goalProgressData: CtxGoalProgress[] = []
   if (goalIds.length) {
     const since7 = new Date(); since7.setDate(since7.getDate() - 7)
     const { data } = await supabase.from('goal_progress')
@@ -167,15 +209,17 @@ export async function buildHealthContext(
       .order('date', { ascending: true })
     goalProgressData = data ?? []
   }
-  const progressByGoal: Record<string, any[]> = {}
-  for (const p of goalProgressData) (progressByGoal[p.goal_id] ??= []).push({ date: p.date, value: p.value, on_target: p.on_target })
-  const goals = goalsRaw.map((g) => ({ ...g, recentProgress: progressByGoal[g.id] ?? [] }))
+  const progressByGoal: Record<string, CtxGoalProgress[]> = {}
+  for (const p of goalProgressData) (progressByGoal[p.goal_id] ??= []).push({ goal_id: p.goal_id, date: p.date, value: p.value, on_target: p.on_target })
+  const goals: CtxGoalRow[] = goalsRaw.map((g) => ({ ...g, recentProgress: progressByGoal[g.id] ?? [] }))
 
-  const concernLogsByConcern: Record<string, any> = {}
-  for (const l of (concernLogRes.data ?? [])) {
+  type ConcernLog = { concern_id: string; date: string; severity: number | null; note: string | null }
+  const concernLogsByConcern: Record<string, ConcernLog> = {}
+  for (const l of (concernLogRes.data ?? []) as ConcernLog[]) {
     if (!concernLogsByConcern[l.concern_id]) concernLogsByConcern[l.concern_id] = l // первое вхождение = самое свежее (data ordered desc)
   }
-  const concerns = (concernRes.data ?? []).map((c) => ({
+  const concernRows: { id: string; name: string; category: string; status: string }[] = concernRes.data ?? []
+  const concerns = concernRows.map((c) => ({
     name: c.name, category: c.category, status: c.status,
     lastLog: concernLogsByConcern[c.id]
       ? { date: concernLogsByConcern[c.id].date, severity: concernLogsByConcern[c.id].severity, note: concernLogsByConcern[c.id].note }
@@ -183,14 +227,18 @@ export async function buildHealthContext(
   }))
 
   // Легаси-строки health_alerts (dedup напоминаний) не несут level/message — фильтруем.
-  const alerts = (alertRes.data ?? []).filter((a) => a.level != null)
+  type AlertRow = { date: string | null; level: 'yellow' | 'red' | null; message: string }
+  const alerts = ((alertRes.data ?? []) as AlertRow[])
+    .filter((a): a is AlertRow & { level: 'yellow' | 'red' } => a.level != null)
 
   // Факт тренировки за 7 дней: exerciseMinutes ≥ 30 (порог стрика) ∪ workout из intake
   const workoutDone = new Set<string>()
-  for (const r of exminRes.data ?? []) if ((r.sum_val ?? 0) >= 30) workoutDone.add(r.date)
-  for (const e of intakeRes.data ?? []) if (e.type === 'workout' && e.ts >= `${since7Str}T00:00:00Z`) workoutDone.add(String(e.ts).slice(0, 10))
+  const exminRows: { date: string; sum_val: number | null }[] = exminRes.data ?? []
+  for (const r of exminRows) if ((r.sum_val ?? 0) >= 30) workoutDone.add(r.date)
+  const intakeRows: CtxIntakeRow[] = intakeRes.data ?? []
+  for (const e of intakeRows) if (e.type === 'workout' && e.ts >= `${since7Str}T00:00:00Z`) workoutDone.add(e.ts.slice(0, 10))
 
-  const prof = profRes.data
+  const prof: { summary: string | null; facts: unknown } | null = profRes.data
   return {
     periodDays,
     timezone: opts.timezone && isValidTimezone(opts.timezone) ? opts.timezone : 'Europe/Berlin',
@@ -199,8 +247,8 @@ export async function buildHealthContext(
     metrics: mRes.data ?? [],
     sleep: sRes.data ?? [],
     labs: labRes.data ?? [],
-    supplements: (supRes.data ?? []).map((s: any) => s.name),
-    intake: intakeRes.data ?? [],
+    supplements: ((supRes.data ?? []) as { name: string }[]).map(s => s.name),
+    intake: intakeRows,
     supplementLogs: logRes.data ?? [],
     notes: notesRes.data ?? [],
     calendar: calRes.data ?? [],
@@ -303,7 +351,7 @@ export function healthContextToText(ctx: HealthContext): string {
     if (dh.length) parts.push(`Глубокий: средн ${avg(dh)!.toFixed(1)} ч/ночь`)
     if (rh.length) parts.push(`REM: средн ${avg(rh)!.toFixed(1)} ч/ночь`)
     if (ch.length) parts.push(`Лёгкий/ядро: средн ${avg(ch)!.toFixed(1)} ч/ночь`)
-    const avgBed = avgLocalTime(ctx.sleep.map((s) => s.bedtime).filter(Boolean), ctx.timezone)
+    const avgBed = avgLocalTime(ctx.sleep.map((s) => s.bedtime).filter((v): v is string => !!v), ctx.timezone)
     if (avgBed) parts.push(`Среднее время засыпания: ${avgBed}`)
     const recent = ctx.sleep.slice(0, 7).map((s) => {
       const times = s.bedtime && s.wake_time
@@ -318,7 +366,7 @@ export function healthContextToText(ctx: HealthContext): string {
       if (dur.length) bits.push(`сон ${avg(dur)!.toFixed(1)}ч`)
       if (d.length) bits.push(`глубокий ${avg(d)!.toFixed(1)}ч`)
       if (r.length) bits.push(`REM ${avg(r)!.toFixed(1)}ч`)
-      const bed = avgLocalTime(arr.map((s) => s.bedtime).filter(Boolean), ctx.timezone)
+      const bed = avgLocalTime(arr.map((s) => s.bedtime).filter((v): v is string => !!v), ctx.timezone)
       if (bed) bits.push(`засыпание в среднем ${bed}`)
       return bits.join(', ')
     }
@@ -327,7 +375,7 @@ export function healthContextToText(ctx: HealthContext): string {
   }
 
   if (ctx.labs.length) {
-    const byMarker: Record<string, any[]> = {}
+    const byMarker: Record<string, CtxLabRow[]> = {}
     for (const r of ctx.labs) (byMarker[r.marker] ??= []).push(r)
     parts.push('\nАнализы (последние значения; ⚠️ = вне нормы):')
     const flagTxt = (f: string | null) => f === 'high' ? ' ⚠️ВЫШЕ' : f === 'low' ? ' ⚠️НИЖЕ' : ''
@@ -370,7 +418,7 @@ export function healthContextToText(ctx: HealthContext): string {
     // Сжимаем: считаем сколько дней принял каждый препарат, не перечисляем каждый день
     const countByName: Record<string, number> = {}
     for (const l of ctx.supplementLogs) {
-      const name = (l.supplements as any)?.name
+      const name = Array.isArray(l.supplements) ? l.supplements[0]?.name : l.supplements?.name
       if (name) countByName[name] = (countByName[name] ?? 0) + 1
     }
     const total = ctx.periodDays
@@ -463,7 +511,7 @@ export function healthContextToText(ctx: HealthContext): string {
 
   if (ctx.calendar.length) {
     const byDay: Record<string, number> = {}
-    for (const e of ctx.calendar) { const d = (e.start_ts as string).slice(0, 10); byDay[d] = (byDay[d] ?? 0) + 1 }
+    for (const e of ctx.calendar) { const d = e.start_ts.slice(0, 10); byDay[d] = (byDay[d] ?? 0) + 1 }
     const perDay = Object.entries(byDay).sort((a, b) => b[0].localeCompare(a[0])).map(([d, c]) => `${d.slice(5)}—${c}`).join(', ')
     parts.push(`\nКалендарь (встречи — нагрузка дня): всего ${ctx.calendar.length}. По дням: ${perDay}`)
   }
