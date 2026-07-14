@@ -1,28 +1,8 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
-import { translations } from './translations'
+import { translate, detectLang, LOCALES, type Lang } from './translate'
 
-export type Lang = 'ru' | 'uk' | 'en'
-
-// Русский язык скрыт из выбора: остаётся только внутренним fallback'ом для
-// непереведённых строк (translate('ru') отдаёт исходный ключ). Пользователю
-// доступны украинский и английский.
-const LANGS: { code: Lang; label: string; flag: string }[] = [
-  { code: 'uk', label: 'Українська', flag: '🇺🇦' },
-  { code: 'en', label: 'English', flag: '🇬🇧' },
-]
-export { LANGS }
-
-function detectLang(): Lang {
-  const saved = localStorage.getItem('lang') as Lang | null
-  // 'ru' больше не выбирается — старое сохранённое значение трактуем как English.
-  if (saved === 'uk' || saved === 'en') return saved
-  const nav = navigator.language.slice(0, 2)
-  if (nav === 'uk') return 'uk'
-  return 'en'
-}
-
-// BCP-47 локаль для форматирования дат/чисел, соответствующая языку интерфейса.
-const LOCALES: Record<Lang, string> = { ru: 'ru-RU', uk: 'uk-UA', en: 'en-GB' }
+export type { Lang }
+export { LANGS } from './translate'
 
 interface I18nCtx {
   lang: Lang
@@ -32,12 +12,6 @@ interface I18nCtx {
 }
 
 const Ctx = createContext<I18nCtx | null>(null)
-
-// Перевод по русскому ключу. Если перевода нет — возвращает русский исходник.
-function translate(ru: string, lang: Lang): string {
-  if (lang === 'ru') return ru
-  return translations[ru]?.[lang] ?? ru
-}
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(detectLang)

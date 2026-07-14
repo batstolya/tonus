@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { isDemoActive } from '../../lib/demo'
+import { demoInsert, demoRemove, demoId } from '../../lib/demoDb'
 import type { User } from '@supabase/supabase-js'
 import { useT } from '../../lib/i18n'
 
@@ -62,6 +64,18 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
 
   async function handleAdd() {
     setSaving(true)
+    if (isDemoActive()) {
+      const row = demoInsert('intake_events', {
+        id: demoId('demo-intake'), user_id: user.id, ts: buildTs(), type: selectedType,
+        amount: amount ? Number(amount) : preset.defaultAmount,
+        unit: preset.unit, note: note || null,
+        calories: null, protein_g: null, carbs_g: null, fat_g: null, source: null,
+      })
+      onEventsChange([row as IntakeEvent, ...events])
+      setNote(''); setAmount(''); setTime(nowTimeStr()); setCustomDt(''); setOpen(false)
+      setSaving(false)
+      return
+    }
     const { data, error } = await supabase.from('intake_events').insert({
       user_id: user.id,
       ts: buildTs(),
@@ -83,7 +97,8 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
   }
 
   async function handleDelete(id: string) {
-    await supabase.from('intake_events').delete().eq('id', id)
+    if (isDemoActive()) demoRemove('intake_events', id)
+    else await supabase.from('intake_events').delete().eq('id', id)
     onEventsChange(events.filter(e => e.id !== id))
   }
 
@@ -143,8 +158,8 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
         <div className="caffeine-bar" title={t('Упрощённая модель: 80мг на 200мл, период полувыведения 5.5ч')}>
           <span className="caffeine-icon">☕</span>
           <span className="caffeine-text">
-            {t('Кофеин сейчас')}: <b style={{ color: cafNow > 50 ? 'var(--red)' : cafNow > 25 ? '#f59e0b' : 'var(--green)' }}>{cafNow}мг</b>
-            {' · '}{t('к 23:00')}: <b style={{ color: cafBed > 30 ? 'var(--red)' : cafBed > 15 ? '#f59e0b' : 'var(--text-muted)' }}>{cafBed}мг</b>
+            {t('Кофеин сейчас')}: <b style={{ color: cafNow > 50 ? 'var(--red)' : cafNow > 25 ? '#f59e0b' : 'var(--green)' }}>{cafNow}{t('мг')}</b>
+            {' · '}{t('к 23:00')}: <b style={{ color: cafBed > 30 ? 'var(--red)' : cafBed > 15 ? '#f59e0b' : 'var(--text-muted)' }}>{cafBed}{t('мг')}</b>
             {cafBed > 30 && <span className="caffeine-warn"> {t('— может мешать сну')}</span>}
           </span>
         </div>

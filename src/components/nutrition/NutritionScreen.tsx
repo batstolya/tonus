@@ -4,6 +4,8 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, ReferenceLine,
 } from 'recharts'
 import { supabase } from '../../lib/supabase'
+import { isDemoActive } from '../../lib/demo'
+import { demoList } from '../../lib/demoDb'
 import { useT } from '../../lib/i18n'
 import { MealLogger } from './MealLogger'
 import { LoadError } from '../ui/LoadError'
@@ -21,13 +23,33 @@ interface DayAgg { date: string; calories: number; protein: number; carbs: numbe
 
 const GOAL_KEY = 'tonus_calorie_goal'
 
+const demoMeals = (): Meal[] => {
+  const since = new Date(Date.now() - 30 * 86400000).toISOString()
+  return demoList('intake_events')
+    .filter(e => e.type === 'meal' && e.ts >= since)
+    .sort((a, b) => b.ts.localeCompare(a.ts)) as Meal[]
+}
+
 export function NutritionScreen({ user }: { user: User }) {
   const { t, locale } = useT()
-  const [meals, setMeals] = useState<Meal[]>([])
-  const [loading, setLoading] = useState(true)
+  // Демо-приёмы пищи — ленивым инициализатором (эффект их уже не ставит).
+  const [meals, setMeals] = useState<Meal[]>(() => isDemoActive() ? demoMeals() : [])
+  const [loading, setLoading] = useState(() => !isDemoActive())
   const [loadError, setLoadError] = useState(false)
   const [goal, setGoal] = useState<number>(() => Number(localStorage.getItem(GOAL_KEY)) || 2000)
   const [editGoal, setEditGoal] = useState(false)
+
+  // Перечитать приёмы пищи после добавления/ретрая. В демо это синхронный
+  // setState, поэтому эффект её не зовёт — там стейт уже засеян инициализатором.
+  function reloadMeals() {
+    if (isDemoActive()) {
+      setMeals(demoMeals())
+      setLoadError(false)
+      setLoading(false)
+      return
+    }
+    loadMeals()
+  }
 
   function loadMeals() {
     const since = new Date(Date.now() - 30 * 86400000).toISOString()
@@ -42,7 +64,7 @@ export function NutritionScreen({ user }: { user: User }) {
       })
   }
 
-  useEffect(() => { loadMeals() }, [user.id])
+  useEffect(() => { if (!isDemoActive()) loadMeals() }, [user.id])
 
   const days = useMemo<DayAgg[]>(() => {
     const map = new Map<string, DayAgg>()
@@ -84,8 +106,8 @@ export function NutritionScreen({ user }: { user: User }) {
   if (!meals.length) return (
     <div className="screen">
       <h2>{t('Питание')}</h2>
-      {loadError && <LoadError onRetry={loadMeals} />}
-      <MealLogger user={user} onSaved={loadMeals} />
+      {loadError && <LoadError onRetry={reloadMeals} />}
+      <MealLogger user={user} onSaved={reloadMeals} />
     </div>
   )
 
@@ -97,7 +119,7 @@ export function NutritionScreen({ user }: { user: User }) {
     <div className="screen">
       <h2>{t('Питание')}</h2>
 
-      <MealLogger user={user} onSaved={loadMeals} />
+      <MealLogger user={user} onSaved={reloadMeals} />
 
       {/* Сегодня */}
       <div className="nutr-today">
@@ -115,9 +137,9 @@ export function NutritionScreen({ user }: { user: User }) {
         <div className="nutr-bar-track"><div className="nutr-bar-fill" style={{ width: `${pct}%`, background: barColor }} /></div>
         {today && (
           <div className="nutr-macros">
-            <span>{t('Белки')}: <b>{Math.round(today.protein)} г</b></span>
-            <span>{t('Углеводы')}: <b>{Math.round(today.carbs)} г</b></span>
-            <span>{t('Жиры')}: <b>{Math.round(today.fat)} г</b></span>
+            <span>{t('Белки')}: <b>{Math.round(today.protein)} {t('г')}</b></span>
+            <span>{t('Углеводы')}: <b>{Math.round(today.carbs)} {t('г')}</b></span>
+            <span>{t('Жиры')}: <b>{Math.round(today.fat)} {t('г')}</b></span>
           </div>
         )}
         <div className="nutr-avg settings-muted">{t('Среднее за период')}: {avg} {t('ккал/день')}</div>

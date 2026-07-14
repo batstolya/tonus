@@ -1,4 +1,7 @@
 import { supabase } from './supabase'
+import { isDemoActive } from './demo'
+import { demoList } from './demoDb'
+import { demoChatReply } from './demoAi'
 
 // Чат с ИИ. Контекст здоровья собирается НА СЕРВЕРЕ (chat-health →
 // _shared/healthContext.ts, F2 smart-tonus): 30 дней данных + цели,
@@ -35,6 +38,13 @@ export interface IntakeEvent {
 // Заметки дня за период (текст + оценка самочувствия) — нужно ResearchScreen.
 export async function loadNotesSummary(userId: string, periodDays: number): Promise<string> {
   const since = new Date(); since.setDate(since.getDate() - periodDays)
+  if (isDemoActive()) {
+    return demoList('context_notes')
+      .filter(n => n.date >= since.toISOString().slice(0, 10))
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .map(n => `${n.date}: ${n.note}${n.wellbeing ? ` [самочувствие ${n.wellbeing}/5]` : ''}`)
+      .join('\n')
+  }
   const { data } = await supabase
     .from('context_notes')
     .select('date, note, wellbeing')
@@ -53,6 +63,8 @@ export async function sendChatMessage(
   sessionId: string | null,
   lang = 'ru',
 ): Promise<{ reply: string; sessionId: string; debug?: ChatDebug }> {
+  // В демо нет сессии, а значит и edge-функции: отвечаем фикстурой (см. demoAi.ts).
+  if (isDemoActive()) return demoChatReply(message, sessionId)
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) throw new Error('Не авторизован')
 

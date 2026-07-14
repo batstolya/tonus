@@ -1,4 +1,6 @@
 import { supabase } from './supabase'
+import { isDemoActive } from './demo'
+import { demoFunctionResponse } from './demoAi'
 
 // Единый вызов Supabase Edge Functions с авторизацией и обработкой ошибок.
 // Заменяет повторяющийся бойлерплейт (getSession + fetch + headers) в 12 местах.
@@ -20,6 +22,13 @@ const BASE = import.meta.env.VITE_SUPABASE_URL as string
 // Вызывает edge-функцию POST'ом, возвращает распарсенный JSON.
 // Бросает EdgeFunctionError при не-2xx или { error } в теле ответа.
 export async function callFunction<T = unknown>(name: string, body?: unknown): Promise<T> {
+  // Демо: сессии нет, edge-функции ответили бы 401 — отдаём фикстуру той же формы.
+  if (isDemoActive()) {
+    const demo = demoFunctionResponse(name, body)
+    if (demo === null) throw new EdgeFunctionError('Функция недоступна в демо-режиме', 501)
+    await new Promise(r => setTimeout(r, 600)) // без задержки спиннеры мигают
+    return demo as T
+  }
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) throw new EdgeFunctionError('Не авторизован', 401)
 

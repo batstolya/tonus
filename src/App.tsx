@@ -169,11 +169,15 @@ export default function App() {
     setDbLoading(true)
 
     async function init() {
-      // Демо-режим: фикстурные данные вместо Supabase.
+      // Демо-режим: фикстурные данные вместо Supabase (метрики + события лога).
       if (isDemoActive()) {
-        const { makeDemoDaily, makeDemoHRSamples } = await import('./lib/demoFixture')
+        const [{ makeDemoDaily, makeDemoHRSamples }, { demoList }] = await Promise.all([
+          import('./lib/demoFixture'),
+          import('./lib/demoDb'),
+        ])
         if (cancelled) return
         setDaily(makeDemoDaily(), makeDemoHRSamples(), true)
+        setIntakeEvents(demoList('intake_events') as typeof intakeEvents)
         setDbLoading(false)
         return
       }
@@ -458,19 +462,23 @@ export default function App() {
             />
           )
         ) : state.view === 'dashboard' ? (
-          <div className="dashboard-layout">
+          // Баннер — над строкой: .dashboard-layout это flex-row, и его
+          // `> :first-child { flex: 1 }` растягивал бы баннер вместо дашборда.
+          <>
             <HealthAlertBanner userId={user?.id ?? null} demo={demo} />
-            <Dashboard
-              daily={state.daily}
-              heartRateSamples={state.heartRateSamples}
-              events={visibleEvents}
-              onNavigate={setView}
-              user={user}
-            />
-            <aside className="dashboard-aside">
-              <QuickLog user={user} events={intakeEvents} onEventsChange={setIntakeEvents} />
-            </aside>
-          </div>
+            <div className="dashboard-layout">
+              <Dashboard
+                daily={state.daily}
+                heartRateSamples={state.heartRateSamples}
+                events={visibleEvents}
+                onNavigate={setView}
+                user={user}
+              />
+              <aside className="dashboard-aside">
+                <QuickLog user={user} events={intakeEvents} onEventsChange={setIntakeEvents} />
+              </aside>
+            </div>
+          </>
         ) : state.view === 'heart-rate' ? (
           <HeartRateScreen daily={state.daily} intakeEvents={intakeEvents} />
         ) : state.view === 'metrics' ? (

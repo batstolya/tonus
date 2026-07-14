@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { translations } from './translations'
 import { makeDemoExperiments, makeDemoSuggestions, makeDemoWorkoutSchedule } from './demoFixture'
+import { demoSeedStrings } from './demoSeed'
 import { METRIC_OPTIONS } from './experiments'
 import { METRIC_CONFIG } from './goals'
 
@@ -35,6 +36,12 @@ describe('demo fixtures are translatable', () => {
     for (const day of Object.values(makeDemoWorkoutSchedule().day_times)) {
       if (day.label) expectTranslated(day.label)
     }
+  })
+
+  // Обходит фикстуры таблиц Supabase целиком: новая строка в demoSeed без
+  // перевода валит этот тест, а не всплывает у uk/en-юзера на экране.
+  it('translates every seeded row shown as data', () => {
+    for (const s of demoSeedStrings()) expectTranslated(s)
   })
 
   it('translates the demo AI-explanation stub', () => {

@@ -265,4 +265,23 @@ export const ai_insights: Record<string, Translation> = {
     en: 'Could not get the explanation. Try again.',
   },
 
+  // ── Исследования: факторы и метки экрана ───────────────────
+  'Что важнее всего': { uk: 'Що найважливіше', en: 'What matters most' },
+  'Проверить экспериментом': { uk: 'Перевірити експериментом', en: 'Test with an experiment' },
+  'Самочувствие': { uk: 'Самопочуття', en: 'Wellbeing' },
+  'Алкоголь (день)': { uk: 'Алкоголь (день)', en: 'Alcohol (day)' },
+  'Кофе (кол-во)': { uk: 'Кава (кількість)', en: 'Coffee (count)' },
+  'Болезнь (день)': { uk: 'Хвороба (день)', en: 'Illness (day)' },
+  'Стресс (день)': { uk: 'Стрес (день)', en: 'Stress (day)' },
+  'Тренировка (день)': { uk: 'Тренування (день)', en: 'Workout (day)' },
+  'Поездка (день)': { uk: 'Подорож (день)', en: 'Travel (day)' },
+  'Поздняя еда (после 21:00)': { uk: 'Пізня їжа (після 21:00)', en: 'Late meal (after 9pm)' },
+  'Приём: {name}': { uk: 'Прийом: {name}', en: 'Taking: {name}' },
+  'Проблема: {name}': { uk: 'Проблема: {name}', en: 'Concern: {name}' },
+  'Погода: температура': { uk: 'Погода: температура', en: 'Weather: temperature' },
+  'Погода: давление': { uk: 'Погода: тиск', en: 'Weather: pressure' },
+  'Среда: световой день': { uk: 'Середовище: світловий день', en: 'Environment: daylight' },
+  'Среда: AQI': { uk: 'Середовище: AQI', en: 'Environment: AQI' },
+  'Среда: пыльца': { uk: 'Середовище: пилок', en: 'Environment: pollen' },
+  'Среда: магнитные бури (Kp)': { uk: 'Середовище: магнітні бурі (Kp)', en: 'Environment: geomagnetic storms (Kp)' },
 }
