@@ -32,11 +32,3 @@ export function isValidTelegramSecret(req: Request, expected: string | undefined
 export function isValidAdminSecret(req: Request, expected: string | undefined): boolean {
   return secretMatches(req.headers.get('x-admin-secret'), expected)
 }
-
-// Trusted infrastructure calls (cron and telegram-bot) authenticate with the
-// service-role credential in Authorization plus the target user's x-user-id.
-// Accept the caller-controlled user ID only after a complete credential match.
-export function isServiceRoleCall(req: Request, expected: string | undefined): boolean {
-  const match = /^Bearer ([^\s]+)$/i.exec(req.headers.get('Authorization') ?? '')
-  return secretMatches(match?.[1], expected)
-}
