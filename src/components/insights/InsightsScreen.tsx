@@ -35,7 +35,7 @@ function Heatmap({ daily }: { daily: DailyMetrics[] }) {
   const cellVal = (v: number | null): string => {
     if (v == null) return ''
     if (mk.key === 'steps' || mk.key === 'activeEnergy')
-      return v >= 1000 ? `${(v / 1000).toFixed(v >= 10000 ? 0 : 1)}к` : String(Math.round(v))
+      return v >= 1000 ? `${(v / 1000).toFixed(v >= 10000 ? 0 : 1)}${t('к')}` : String(Math.round(v))
     return v.toFixed(mk.decimals)
   }
   const fmtD = (d: string) =>

@@ -364,7 +364,7 @@ export default function App() {
               <button className="nav-btn signout-btn" onClick={handleSignOut}>
                 {t('Выйти')}
               </button>
-              <button className="burger-btn" onClick={() => setMobileMenuOpen(o => !o)} aria-label="Меню">
+              <button className="burger-btn" onClick={() => setMobileMenuOpen(o => !o)} aria-label={t('Меню')}>
                 <div className={`burger-icon${mobileMenuOpen ? ' open' : ''}`}>
                   <span /><span /><span />
                 </div>

@@ -20,6 +20,10 @@ export const dashboard: Record<string, Translation> = {
   '🍽 Еда': { uk: '🍽 Їжа', en: '🍽 Meal' },
   '💧 Вода': { uk: '💧 Вода', en: '💧 Water' },
   '💊 Лекарства': { uk: '💊 Ліки', en: '💊 Meds' },
+  '🏋️ Тренировка': { uk: '🏋️ Тренування', en: '🏋️ Workout' },
+  '🤒 Болезнь': { uk: '🤒 Хвороба', en: '🤒 Illness' },
+  '😰 Стресс': { uk: '😰 Стрес', en: '😰 Stress' },
+  '🧳 Поездка': { uk: '🧳 Подорож', en: '🧳 Travel' },
   '📝 Другое': { uk: '📝 Інше', en: '📝 Other' },
 
 

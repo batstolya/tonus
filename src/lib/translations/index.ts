@@ -9,6 +9,7 @@ import { health } from './health'
 import { ai_insights } from './ai-insights'
 import { metrics } from './metrics'
 import { landing } from './landing'
+import { demo } from './demo'
 
 export interface Translation { uk: string; en: string }
 
@@ -21,4 +22,5 @@ export const translations: Record<string, Translation> = {
   ...ai_insights,
   ...metrics,
   ...landing,
+  ...demo,
 }

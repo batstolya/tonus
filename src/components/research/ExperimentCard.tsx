@@ -109,7 +109,7 @@ export function ExperimentCard({ exp, daily, aiLoading, aiError, onExplain, onDe
       </div>
 
       <div className="expc-meta">
-        {metricLabel(exp.target_metric)} · {fmtD(exp.start_date)} – {fmtD(exp.end_date)} · {t('Базовый')}: {exp.baseline_days} {t('дн')}
+        {t(metricLabel(exp.target_metric))} · {fmtD(exp.start_date)} – {fmtD(exp.end_date)} · {t('Базовый')}: {exp.baseline_days} {t('дн')}
       </div>
 
       {st.kind === 'active' && (

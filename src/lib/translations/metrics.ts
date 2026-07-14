@@ -120,4 +120,12 @@ export const metrics: Record<string, Translation> = {
   'Не удалось определить местоположение': { uk: 'Не вдалося визначити місцезнаходження', en: 'Could not determine location' },
   'Сменить аккаунт': { uk: 'Змінити акаунт', en: 'Change account' },
 
+  // ── Названия метрик (METRIC_OPTIONS / METRIC_CONFIG) ────────
+  'REM сон': { uk: 'REM сон', en: 'REM sleep' },
+  'ЧСС средняя': { uk: 'ЧСС середня', en: 'Avg HR' },
+
+  // ── Единицы на графиках и в целях ──────────────────────────
+  'к': { uk: 'к', en: 'k' },
+  'мл': { uk: 'мл', en: 'ml' },
+  'шаг/д': { uk: 'крок/д', en: 'steps/d' },
 }
