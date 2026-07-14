@@ -2,6 +2,14 @@
 import type { DailyMetrics, HeartRateSample } from '../types'
 import { localDate, addDays, computeBaselineStart, type ExperimentRow } from './experiments'
 
+// Форма предложения от ИИ (та же, что у edge-функции suggest-experiments).
+export interface DemoSuggestion {
+  hypothesis: string
+  change_rule: string
+  target_metric: string
+  rationale?: string
+}
+
 function rnd(seed: number) {
   // детерминированный псевдорандом, чтобы картинка была стабильной
   const x = Math.sin(seed * 12.9898) * 43758.5453
@@ -55,6 +63,10 @@ export function makeDemoDaily(days = 90): DailyMetrics[] {
   }
   return out
 }
+
+// Тексты фикстур — русские, потому что русский текст и есть ключ словаря
+// (см. i18n.tsx). Экраны демо прогоняют их через t(), поэтому при uk/en юзер
+// видит перевод; переводы обязательны (src/lib/demoI18n.test.ts).
 
 // Эксперименты для демо: все состояния карточки — идёт, запланирован,
 // завершён с результатом (числа считаются вживую из makeDemoDaily),
@@ -116,6 +128,24 @@ export function makeDemoExperiments(): ExperimentRow[] {
       end_date: addDays(td, -96),
       status: 'completed',
     }),
+  ]
+}
+
+// Предложения «Подобрать (ИИ)» в демо: настоящая edge-функция без Supabase недоступна.
+export function makeDemoSuggestions(): DemoSuggestion[] {
+  return [
+    {
+      hypothesis: 'Отказ от экрана за час до сна ускорит засыпание',
+      change_rule: 'Телефон в другой комнате после 22:30',
+      target_metric: 'sleepHours',
+      rationale: 'В демо-данных поздний отбой связан с недосыпом.',
+    },
+    {
+      hypothesis: '8000+ шагов в день поднимут HRV',
+      change_rule: 'Прогулка в обед минимум 30 минут',
+      target_metric: 'hrv',
+      rationale: 'Активные дни в демо-данных предшествуют более высокому HRV.',
+    },
   ]
 }
 

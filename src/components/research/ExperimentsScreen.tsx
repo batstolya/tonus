@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import type { User } from '@supabase/supabase-js'
 import type { DailyMetrics } from '../../types'
 import type { Json } from '../../lib/database.types'
@@ -14,20 +14,16 @@ import {
 import { ExperimentCard } from './ExperimentCard'
 import { LoadError } from '../ui/LoadError'
 import { isDemoActive } from '../../lib/demo'
-import { makeDemoExperiments } from '../../lib/demoFixture'
+import { makeDemoExperiments, makeDemoSuggestions, type DemoSuggestion } from '../../lib/demoFixture'
 
 interface Props { user: User; daily: DailyMetrics[] }
 
 // Предложение от ИИ (edge-функция suggest-experiments). target_metric валидируем по METRIC_OPTIONS.
-interface Suggestion {
-  hypothesis: string
-  change_rule: string
-  target_metric: string
-  rationale?: string
-}
+type Suggestion = DemoSuggestion
 
 export function ExperimentsScreen({ user, daily }: Props) {
   const { t } = useT()
+  const demo = isDemoActive()
   const [exps, setExps] = useState<ExperimentRow[]>(() => isDemoActive() ? makeDemoExperiments() : [])
   const [loadError, setLoadError] = useState(false)
   const [showForm, setShowForm] = useState(false)
@@ -119,10 +115,7 @@ export function ExperimentsScreen({ user, daily }: Props) {
     setSuggestLoading(true); setSuggestError(null)
     if (isDemoActive()) {
       setTimeout(() => {
-        setSuggestions([
-          { hypothesis: 'Отказ от экрана за час до сна ускорит засыпание', change_rule: 'Телефон в другой комнате после 22:30', target_metric: 'sleepHours', rationale: 'В демо-данных поздний отбой связан с недосыпом.' },
-          { hypothesis: '8000+ шагов в день поднимут HRV', change_rule: 'Прогулка в обед минимум 30 минут', target_metric: 'hrv', rationale: 'Активные дни в демо-данных предшествуют более высокому HRV.' },
-        ])
+        setSuggestions(makeDemoSuggestions())
         setSuggestLoading(false)
       }, 500)
       return
@@ -175,7 +168,15 @@ export function ExperimentsScreen({ user, daily }: Props) {
   async function handleAI(exp: ExperimentRow, result: ExperimentResult) {
     setAiLoading(exp.id); setAiError(null)
     if (isDemoActive()) {
-      const explanation = `Средние за периоды: ${result.baselineMean} → ${result.expMean} (${result.deltaPct}%). Размер эффекта ${effectLabel(result.cohenD)}. В демо-режиме это заглушка — в приложении разбор пишет ИИ на основе твоих данных.`
+      const explanation = t(
+        'Средние за периоды: {before} → {during} ({pct}%). Размер эффекта: {effect}. В демо-режиме это заглушка — в приложении разбор пишет ИИ на основе твоих данных.',
+        {
+          before: result.baselineMean ?? '—',
+          during: result.expMean ?? '—',
+          pct: result.deltaPct ?? '—',
+          effect: t(effectLabel(result.cohenD)),
+        },
+      )
       setTimeout(() => {
         setExps(prev => prev.map(e => e.id === exp.id ? { ...e, result, ai_explanation: explanation } : e))
         setAiLoading(null)
@@ -200,9 +201,24 @@ export function ExperimentsScreen({ user, daily }: Props) {
     setExps(prev => prev.filter(e => e.id !== id))
   }
 
-  const active = exps.filter(e => expStatusInfo(e).kind === 'active')
-  const planned = exps.filter(e => expStatusInfo(e).kind === 'planned')
-  const finished = exps.filter(e => ['done', 'cancelled'].includes(expStatusInfo(e).kind))
+  // Тексты фикстур демо — ключи словаря, поэтому переводим их на рендере: смена
+  // языка тут же меняет карточки. Настоящие записи юзера через t() не гоняем.
+  const shownExps = useMemo(() => demo ? exps.map(e => ({
+    ...e,
+    hypothesis: t(e.hypothesis),
+    change_rule: t(e.change_rule),
+    ai_explanation: e.ai_explanation ? t(e.ai_explanation) : null,
+  })) : exps, [demo, exps, t])
+  const shownSuggestions = useMemo(() => demo ? suggestions.map(s => ({
+    ...s,
+    hypothesis: t(s.hypothesis),
+    change_rule: t(s.change_rule),
+    rationale: s.rationale ? t(s.rationale) : undefined,
+  })) : suggestions, [demo, suggestions, t])
+
+  const active = shownExps.filter(e => expStatusInfo(e).kind === 'active')
+  const planned = shownExps.filter(e => expStatusInfo(e).kind === 'planned')
+  const finished = shownExps.filter(e => ['done', 'cancelled'].includes(expStatusInfo(e).kind))
 
   const renderCards = (list: ExperimentRow[]) => list.map(exp => (
     <ExperimentCard key={exp.id} exp={exp} daily={daily}
@@ -243,10 +259,10 @@ export function ExperimentsScreen({ user, daily }: Props) {
             <button className="exp-suggest-hide" onClick={() => setSuggestions([])}>{t('Скрыть')}</button>
           </div>
           <div className="exp-suggest-grid">
-            {suggestions.map((s, i) => (
+            {shownSuggestions.map((s, i) => (
               <div key={i} className="exp-suggest-card">
                 <div className="exp-suggest-body">
-                  <span className="exp-suggest-metric">{metricLabel(s.target_metric)}</span>
+                  <span className="exp-suggest-metric">{t(metricLabel(s.target_metric))}</span>
                   <div className="exp-suggest-hyp">{s.hypothesis}</div>
                   <div className="exp-suggest-change">{t('Меняем')}: {s.change_rule}</div>
                   {s.rationale && <div className="exp-suggest-why">{s.rationale}</div>}
@@ -288,7 +304,7 @@ export function ExperimentsScreen({ user, daily }: Props) {
             <label className="settings-label">{t('За какой метрикой следим')}
               <select className="settings-input" value={form.target_metric}
                 onChange={e => setForm(f => ({ ...f, target_metric: e.target.value }))}>
-                {METRIC_OPTIONS.map(m => <option key={m.key} value={m.key}>{m.label}</option>)}
+                {METRIC_OPTIONS.map(m => <option key={m.key} value={m.key}>{t(m.label)}</option>)}
               </select>
             </label>
             <label className="settings-label">{t('Начало')}

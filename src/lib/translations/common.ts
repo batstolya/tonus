@@ -5,6 +5,7 @@ import type { Translation } from './index'
 
 export const common: Record<string, Translation> = {
   // ── Навигация ──────────────────────────────────────────────
+  'Меню': { uk: 'Меню', en: 'Menu' },
   'Дашборд': { uk: 'Дашборд', en: 'Dashboard' },
   'Тело': { uk: 'Тіло', en: 'Body' },
   'Обзор': { uk: 'Огляд', en: 'Overview' },

@@ -53,10 +53,13 @@ const DURATION_OPTIONS = [
   { label: '4 недели', days: 28 },
 ]
 
-function fmtVal(val: number, metric: string): string {
+type T = (ru: string, vars?: Record<string, string | number>) => string
+
+// Единица метрики хранится по-русски (это ключ словаря) — переводим на месте.
+function fmtVal(val: number, metric: string, t: T): string {
   const cfg = METRIC_CONFIG[metric]
   if (!cfg) return String(val)
-  return `${val.toFixed(cfg.decimals ?? 0)} ${cfg.unit}`
+  return `${val.toFixed(cfg.decimals ?? 0)} ${t(cfg.unit)}`
 }
 
 function endDate(days: number): string {
@@ -77,7 +80,7 @@ export function GoalsScreen({ user, daily }: Props) {
   const [fMetric, setFMetric] = useState('sleep_hours')
   const [fTarget, setFTarget] = useState('')
   const [fDays, setFDays] = useState(14)
-  const [fTitle, setFTitle] = useState('')
+  const [fTitle, setFTitle] = useState<string | null>(null) // null — заголовок по метрике
   const [fSaving, setFSaving] = useState(false)
 
   const baseline = computeBaseline(daily, fMetric)
@@ -97,20 +100,17 @@ export function GoalsScreen({ user, daily }: Props) {
 
   useEffect(() => { reload() }, [reload])
 
-  useEffect(() => {
-    if (fMetric && METRIC_CONFIG[fMetric]) {
-      setFTitle(METRIC_CONFIG[fMetric].label)
-    }
-  }, [fMetric])
+  // Пока юзер не тронул поле, заголовок = название метрики (на языке интерфейса).
+  const title = fTitle ?? (cfg ? t(cfg.label) : '')
 
   async function handleCreate() {
     const tv = parseFloat(fTarget)
-    if (isNaN(tv) || !fTitle.trim()) return
+    if (isNaN(tv) || !title.trim()) return
     setFSaving(true)
     const cfg = METRIC_CONFIG[fMetric]
     await createGoal(user.id, {
       metric: fMetric,
-      title: fTitle.trim(),
+      title: title.trim(),
       baseline_value: baseline,
       target_value: tv,
       direction: cfg?.direction ?? 'up',
@@ -120,7 +120,7 @@ export function GoalsScreen({ user, daily }: Props) {
       recommendation_id: null,
       step_size: null,
     })
-    setFTarget(''); setFTitle(''); setShowForm(false)
+    setFTarget(''); setFTitle(null); setShowForm(false)
     await reload()
     setFSaving(false)
   }
@@ -131,7 +131,7 @@ export function GoalsScreen({ user, daily }: Props) {
     if (!cfg) return
     await createGoal(user.id, {
       metric: rec.metric,
-      title: cfg.label,
+      title: t(cfg.label),
       baseline_value: computeBaseline(daily, rec.metric),
       target_value: rec.suggested_target,
       direction: cfg.direction,
@@ -184,7 +184,8 @@ export function GoalsScreen({ user, daily }: Props) {
           <div className="goals-form-row">
             <div className="goals-form-field">
               <label className="settings-label">{t('Показатель')}</label>
-              <select className="log-input" value={fMetric} onChange={e => setFMetric(e.target.value)}>
+              <select className="log-input" value={fMetric}
+                onChange={e => { setFMetric(e.target.value); setFTitle(null) }}>
                 {Object.entries(METRIC_CONFIG).map(([k, v]) => (
                   <option key={k} value={k}>{t(v.label)}</option>
                 ))}
@@ -192,14 +193,14 @@ export function GoalsScreen({ user, daily }: Props) {
             </div>
             <div className="goals-form-field">
               <label className="settings-label">{t('Название цели')}</label>
-              <input className="log-input" value={fTitle} onChange={e => setFTitle(e.target.value)} placeholder={t('Например: Улучшить сон')} />
+              <input className="log-input" value={title} onChange={e => setFTitle(e.target.value)} placeholder={t('Например: Улучшить сон')} />
             </div>
           </div>
           <div className="goals-form-row">
             <div className="goals-form-field">
               <label className="settings-label">
-                {t('Целевое значение')} {cfg ? `(${cfg.unit})` : ''}
-                {baseline !== null && <span className="goals-baseline-hint"> — {t('текущая база:')} {fmtVal(baseline, fMetric)}</span>}
+                {t('Целевое значение')} {cfg ? `(${t(cfg.unit)})` : ''}
+                {baseline !== null && <span className="goals-baseline-hint"> — {t('текущая база:')} {fmtVal(baseline, fMetric, t)}</span>}
               </label>
               <input className="log-input" type="number" step="0.1" value={fTarget}
                 onChange={e => setFTarget(e.target.value)} placeholder={baseline !== null ? String(Math.round(baseline * 10) / 10) : '0'} />
@@ -214,7 +215,7 @@ export function GoalsScreen({ user, daily }: Props) {
               </div>
             </div>
           </div>
-          <button className="btn-primary" onClick={handleCreate} disabled={fSaving || !fTarget || !fTitle.trim()}>
+          <button className="btn-primary" onClick={handleCreate} disabled={fSaving || !fTarget || !title.trim()}>
             {fSaving ? t('Сохраняем…') : t('Создать цель')}
           </button>
         </div>
@@ -281,10 +282,10 @@ export function GoalsScreen({ user, daily }: Props) {
                     </div>
                     <div className="goal-card-meta">
                       {cfg && goal.baseline_value !== null &&
-                        <span>{t('База:')} {fmtVal(goal.baseline_value, goal.metric)}</span>}
-                      {cfg && <span>{t('Цель:')} {fmtVal(goal.target_value, goal.metric)}</span>}
+                        <span>{t('База:')} {fmtVal(goal.baseline_value, goal.metric, t)}</span>}
+                      {cfg && <span>{t('Цель:')} {fmtVal(goal.target_value, goal.metric, t)}</span>}
                       {prog.currentAvg !== null && cfg &&
-                        <span>{t('Сейчас:')} <b>{fmtVal(prog.currentAvg, goal.metric)}</b></span>}
+                        <span>{t('Сейчас:')} <b>{fmtVal(prog.currentAvg, goal.metric, t)}</b></span>}
                     </div>
                     <div className="goal-card-stat">
                       <span style={{ color }}>
@@ -325,9 +326,9 @@ export function GoalsScreen({ user, daily }: Props) {
                   <div className="goal-card-body">
                     <div className="goal-card-title">{goal.title}</div>
                     <div className="goal-card-meta">
-                      <span>{t('Цель:')} {fmtVal(goal.target_value, goal.metric)}</span>
+                      <span>{t('Цель:')} {fmtVal(goal.target_value, goal.metric, t)}</span>
                       {prog.currentAvg !== null &&
-                        <span>{t('Итог:')} <b>{fmtVal(prog.currentAvg, goal.metric)}</b></span>}
+                        <span>{t('Итог:')} <b>{fmtVal(prog.currentAvg, goal.metric, t)}</b></span>}
                       <span>{goal.start_date} — {goal.end_date}</span>
                     </div>
                     <div className="goal-card-stat">

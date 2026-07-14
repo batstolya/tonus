@@ -34,9 +34,11 @@ export function WorkoutPlanCard({ daily }: { daily: DailyMetrics[] }) {
   const done = new Set(daily.filter(d => (d.exerciseMinutes ?? 0) >= 30).map(d => d.date))
   const a = attendance(planned, done)
 
+  const demo = isDemoActive()
   let nextLabel = '—'
   if (next) {
-    const what = next.label ? `${next.label} ` : ''
+    // Вид спорта — данные юзера; в демо это строка фикстуры, т.е. ключ словаря.
+    const what = next.label ? `${demo ? t(next.label) : next.label} ` : ''
     if (next.inDays === 0) {
       nextLabel = `${what}${t('Сегодня в {time}', { time: next.time })}`
     } else {

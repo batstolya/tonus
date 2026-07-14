@@ -104,7 +104,8 @@ export function WorkoutScheduleSettings({ user }: { user: User }) {
               className="log-input" style={{ width: 100 }}
             />
             <input
-              type="text" value={entry.label ?? ''} disabled={demo}
+              // Демо-расписание read-only, а его вид спорта — ключ словаря: переводим.
+              type="text" value={demo ? t(entry.label ?? '') : (entry.label ?? '')} disabled={demo}
               placeholder={t('вид спорта (необязательно)')}
               onChange={e => patchDay(day, { label: e.target.value })}
               className="log-input" style={{ width: 180, marginLeft: 8 }}

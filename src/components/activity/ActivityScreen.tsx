@@ -47,6 +47,7 @@ function CustomTooltip({ active, payload, label, t, locale }: {
 
 export function ActivityScreen({ daily }: Props) {
   const { t, locale } = useT()
+  const k = t('к') // сокращение «тысяч» на осях и в легенде: к / k
   const [preset, setPreset] = useState<Preset>('30d')
   const days = preset === '14d' ? 14 : preset === '30d' ? 30 : 90
 
@@ -122,20 +123,20 @@ export function ActivityScreen({ daily }: Props) {
 
       {/* Steps goal legend */}
       <div className="activity-legend">
-        <span className="legend-dot" style={{ background: '#ff6b6b' }} /> &lt;5к
-        <span className="legend-dot" style={{ background: '#f59e0b' }} /> 5–8к
-        <span className="legend-dot" style={{ background: '#6c8fff' }} /> 8–10к
-        <span className="legend-dot" style={{ background: '#5bc896' }} /> 10к+
+        <span className="legend-dot" style={{ background: '#ff6b6b' }} /> &lt;5{k}
+        <span className="legend-dot" style={{ background: '#f59e0b' }} /> 5–8{k}
+        <span className="legend-dot" style={{ background: '#6c8fff' }} /> 8–10{k}
+        <span className="legend-dot" style={{ background: '#5bc896' }} /> 10{k}+
       </div>
 
       <ResponsiveContainer width="100%" height={260}>
         <BarChart data={data} margin={{ top: 8, right: 40, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
           <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
-          <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v/1000).toFixed(0)}к`} />
+          <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v/1000).toFixed(0)}${k}`} />
           <Tooltip content={<CustomTooltip t={t} locale={locale} />} />
-          <ReferenceLine y={GOAL} stroke="#6c8fff" strokeDasharray="4 3" label={{ value: '8к', position: 'right', fontSize: 11, fill: '#6c8fff' }} />
-          <ReferenceLine y={GREAT} stroke="#5bc896" strokeDasharray="4 3" label={{ value: '10к', position: 'right', fontSize: 11, fill: '#5bc896' }} />
+          <ReferenceLine y={GOAL} stroke="#6c8fff" strokeDasharray="4 3" label={{ value: `8${k}`, position: 'right', fontSize: 11, fill: '#6c8fff' }} />
+          <ReferenceLine y={GREAT} stroke="#5bc896" strokeDasharray="4 3" label={{ value: `10${k}`, position: 'right', fontSize: 11, fill: '#5bc896' }} />
           <Bar dataKey="steps" name={t('Шаги')} radius={[3, 3, 0, 0]}>
             {data.map((entry, i) => (
               <Cell key={i} fill={getColor(entry.steps)} />
@@ -162,7 +163,7 @@ export function ActivityScreen({ daily }: Props) {
             <BarChart data={data} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
               <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
-              <YAxis tick={{ fontSize: 11 }} unit="км" />
+              <YAxis tick={{ fontSize: 11 }} unit={t('км')} />
               <Tooltip formatter={(v) => [`${v} ${t('км')}`, t('Дистанция')]} />
               <Bar dataKey="distance" fill="#6c8fff" radius={[3, 3, 0, 0]} />
             </BarChart>

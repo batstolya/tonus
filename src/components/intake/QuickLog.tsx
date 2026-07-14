@@ -168,7 +168,7 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
             {preset.unit && (
               <input
                 type="number"
-                placeholder={`${preset.defaultAmount ?? ''} ${preset.unit}`}
+                placeholder={`${preset.defaultAmount ?? ''} ${t(preset.unit)}`}
                 value={amount}
                 onChange={e => setAmount(e.target.value)}
                 className="log-input"
