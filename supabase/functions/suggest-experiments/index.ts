@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { checkBudget, budgetExceededMessage } from '../_shared/costGuard.ts'
+import { isServiceRoleCall } from '../_shared/auth.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -57,7 +58,7 @@ serve(async (req) => {
     // Service-role вызов из telegram-bot с x-user-id (паттерн biweekly-report)
     const serviceUserId = req.headers.get('x-user-id')
     let user: { id: string } | null = null
-    if (serviceUserId && authHeader.includes(SUPABASE_SERVICE_KEY.slice(0, 20))) {
+    if (serviceUserId && isServiceRoleCall(req, SUPABASE_SERVICE_KEY)) {
       const { data } = await supabase.auth.admin.getUserById(serviceUserId)
       user = data.user
     } else {

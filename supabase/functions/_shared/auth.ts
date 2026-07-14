@@ -32,3 +32,18 @@ export function isValidTelegramSecret(req: Request, expected: string | undefined
 export function isValidAdminSecret(req: Request, expected: string | undefined): boolean {
   return secretMatches(req.headers.get('x-admin-secret'), expected)
 }
+
+// Вызов от нашей же инфраструктуры (cron, telegram-bot) с service-role ключом в
+// Authorization и x-user-id — доверять этой паре можно ТОЛЬКО при полном
+// совпадении ключа.
+//
+// Раньше здесь было `authHeader.includes(SERVICE_KEY.slice(0, 20))`. Первые 20
+// символов service-ключа — это base64 заголовка HS256-JWT ('eyJhbGciOiJIUzI1NiIs'),
+// то есть константа, общая с публичным anon-ключом и с access-токеном любого
+// юзера. Любой запрос с любым Supabase-JWT проходил проверку и получал
+// service-role доступ к данным юзера из подставленного x-user-id.
+export function isServiceRoleCall(req: Request, expected: string | undefined): boolean {
+  const header = req.headers.get('Authorization') ?? ''
+  const token = header.startsWith('Bearer ') ? header.slice(7) : header
+  return secretMatches(token, expected)
+}
