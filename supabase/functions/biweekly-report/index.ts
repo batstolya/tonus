@@ -3,6 +3,7 @@ import { createClient, type User } from 'https://esm.sh/@supabase/supabase-js@2'
 import { checkBudget } from '../_shared/costGuard.ts'
 import { daysSinceFreshData } from '../_shared/staleness.ts'
 import { plannedDaysInRange, attendance, scheduleWeekdays, type DayTimes } from '../_shared/workoutPlan.ts'
+import { isServiceRoleCall } from '../_shared/auth.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -115,7 +116,7 @@ serve(async (req) => {
     // Allow service-role calls (from telegram-bot) with x-user-id header
     const serviceUserId = req.headers.get('x-user-id')
     let user: User | null = null
-    if (serviceUserId && authHeader.includes(SUPABASE_SERVICE_KEY.slice(0, 20))) {
+    if (serviceUserId && isServiceRoleCall(req, SUPABASE_SERVICE_KEY)) {
       const { data } = await supabase.auth.admin.getUserById(serviceUserId)
       user = data.user
     } else {
