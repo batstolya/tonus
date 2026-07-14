@@ -1,5 +1,7 @@
 import { supabase } from './supabase'
 import { callFunction } from './edgeFunctions'
+import { isDemoActive } from './demo'
+import { demoList, demoRemove } from './demoDb'
 
 export interface LabFile {
   id: string
@@ -24,6 +26,10 @@ export interface LabResult {
 }
 
 export async function loadLabFiles(userId: string): Promise<LabFile[]> {
+  if (isDemoActive()) {
+    return (demoList('lab_files') as LabFile[])
+      .sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
+  }
   const { data, error } = await supabase
     .from('lab_files')
     .select('*')
@@ -34,6 +40,9 @@ export async function loadLabFiles(userId: string): Promise<LabFile[]> {
 }
 
 export async function loadLabResults(userId: string): Promise<LabResult[]> {
+  if (isDemoActive()) {
+    return (demoList('lab_results') as LabResult[]).sort((a, b) => a.date.localeCompare(b.date))
+  }
   const { data, error } = await supabase
     .from('lab_results')
     .select('*')
@@ -44,6 +53,10 @@ export async function loadLabResults(userId: string): Promise<LabResult[]> {
 }
 
 export async function deleteLabFile(id: string): Promise<void> {
+  if (isDemoActive()) {
+    for (const r of demoList('lab_results').filter(r => r.lab_file_id === id)) demoRemove('lab_results', r.id)
+    return demoRemove('lab_files', id)
+  }
   await supabase.from('lab_files').delete().eq('id', id)
 }
 

@@ -38,7 +38,7 @@ function FindingRow({ f }: { f: Finding }) {
     <div className="research-finding">
       <div className="research-finding-main">
         <span className="research-finding-pair">
-          {f.a} {f.kind === 'corr' ? '↔' : '→'} {f.b}
+          {factorLabel(f.a, t)} {f.kind === 'corr' ? '↔' : '→'} {factorLabel(f.b, t)}
           {f.modifiable === false && <span title={t('внешний фактор')} style={{ marginLeft: 4 }}>🌍</span>}
         </span>
         <span className="research-finding-metric" style={{ color }}>{metric}</span>
@@ -49,6 +49,16 @@ function FindingRow({ f }: { f: Finding }) {
       </span>
     </div>
   )
+}
+
+// Метки факторов приходят из lib по-русски (это ключи словаря). Составные
+// «Приём: X» / «Проблема: X» переводим по шаблону, имя внутри — данные юзера.
+function factorLabel(label: string, t: (ru: string, vars?: Record<string, string | number>) => string): string {
+  const sup = /^Приём: (.+)$/.exec(label)
+  if (sup) return t('Приём: {name}', { name: sup[1] })
+  const concern = /^Проблема: (.+)$/.exec(label)
+  if (concern) return t('Проблема: {name}', { name: concern[1] })
+  return t(label)
 }
 
 function LeversBlock({ levers, onTry }: { levers: Lever[]; onTry: (l: Lever) => void }) {
@@ -62,7 +72,7 @@ function LeversBlock({ levers, onTry }: { levers: Lever[]; onTry: (l: Lever) => 
         return (
           <div key={i} className="research-finding">
             <div className="research-finding-main">
-              <span className="research-finding-pair">{l.factorLabel} → {l.outcomeLabel}</span>
+              <span className="research-finding-pair">{factorLabel(l.factorLabel, t)} → {factorLabel(l.outcomeLabel, t)}</span>
               <span className="research-finding-metric" style={{ color: l.direction === 'neg' ? 'var(--red)' : 'var(--green)' }}>{l.impactText}</span>
             </div>
             <span title={b.title} style={{ marginRight: 8 }}>{b.icon}</span>

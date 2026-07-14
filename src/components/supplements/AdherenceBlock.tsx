@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { computeAdherence, type AdherenceLog } from '../../lib/adherence'
 import { supabase } from '../../lib/supabase'
+import { isDemoActive } from '../../lib/demo'
+import { demoList } from '../../lib/demoDb'
 import { useT } from '../../lib/i18n'
 import type { Supplement } from '../../lib/supplements'
 
@@ -8,14 +10,21 @@ import type { Supplement } from '../../lib/supplements'
 // (в отличие от календарного месяца выше), серии подряд, общий процент.
 // Логи грузим сами — экрану доступен только текущий месяц.
 
+const demoLogs = (): AdherenceLog[] => {
+  const since = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
+  return demoList('supplement_logs').filter(l => l.date >= since) as AdherenceLog[]
+}
+
 export function AdherenceBlock({ supplements }: { supplements: Supplement[] }) {
   const { t } = useT()
-  const [logs, setLogs] = useState<AdherenceLog[]>([])
+  // Демо-логи ставим ленивым инициализатором, а не setState в эффекте
+  // (react-hooks/set-state-in-effect) — то же состояние, на рендер меньше.
+  const [logs, setLogs] = useState<AdherenceLog[]>(() => isDemoActive() ? demoLogs() : [])
   const [win, setWin] = useState<14 | 30>(14)
   const active = supplements.filter(s => s.active)
 
   useEffect(() => {
-    if (!active.length) return
+    if (!active.length || isDemoActive()) return
     let cancelled = false
     const since = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
     supabase

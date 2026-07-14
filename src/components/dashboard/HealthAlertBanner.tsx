@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { demoList, demoUpdate } from '../../lib/demoDb'
 import { useT } from '../../lib/i18n'
 
 // Баннер стража здоровья (F1, smart-tonus): последний незакрытый алерт
@@ -15,7 +16,9 @@ interface HealthAlert {
 
 export default function HealthAlertBanner({ userId, demo }: { userId: string | null; demo: boolean }) {
   const { t } = useT()
-  const [alert, setAlert] = useState<HealthAlert | null>(null)
+  // Демо: фикстура ленивым инициализатором, без setState в эффекте.
+  const [alert, setAlert] = useState<HealthAlert | null>(
+    () => demo ? (demoList('health_alerts').find(a => a.type === 'anomaly' && !a.acknowledged_at) as HealthAlert ?? null) : null)
 
   useEffect(() => {
     if (!userId || demo) return
@@ -40,6 +43,7 @@ export default function HealthAlertBanner({ userId, demo }: { userId: string | n
 
   const ack = async () => {
     setAlert(null)
+    if (demo) return demoUpdate('health_alerts', alert.id, { acknowledged_at: new Date().toISOString() })
     await supabase.from('health_alerts').update({ acknowledged_at: new Date().toISOString() }).eq('id', alert.id)
   }
 

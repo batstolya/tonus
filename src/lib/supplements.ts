@@ -1,4 +1,6 @@
 import { supabase } from './supabase'
+import { isDemoActive } from './demo'
+import { demoList, demoInsert, demoUpdate, demoRemove, demoId } from './demoDb'
 
 export interface Supplement {
   id: string
@@ -22,6 +24,11 @@ export interface SupplementLog {
 }
 
 export async function loadSupplements(userId: string): Promise<Supplement[]> {
+  if (isDemoActive()) {
+    return (demoList('supplements') as Supplement[])
+      .filter(s => s.active)
+      .sort((a, b) => a.sort_order - b.sort_order)
+  }
   const { data, error } = await supabase
     .from('supplements')
     .select('*')
@@ -33,6 +40,13 @@ export async function loadSupplements(userId: string): Promise<Supplement[]> {
 }
 
 export async function addSupplement(userId: string, name: string, defaultDose?: string, unit?: string): Promise<Supplement | null> {
+  if (isDemoActive()) {
+    return demoInsert('supplements', {
+      id: demoId('demo-sup'), user_id: userId, name,
+      default_dose: defaultDose ?? null, unit: unit ?? null,
+      active: true, sort_order: 99, created_at: new Date().toISOString(), stock_count: null,
+    }) as Supplement
+  }
   const { data } = await supabase
     .from('supplements')
     .insert({ user_id: userId, name, default_dose: defaultDose ?? null, unit: unit ?? null })
@@ -42,17 +56,23 @@ export async function addSupplement(userId: string, name: string, defaultDose?: 
 }
 
 export async function updateStock(id: string, next: number): Promise<boolean> {
+  if (isDemoActive()) { demoUpdate('supplements', id, { stock_count: next }); return true }
   const { error } = await supabase.from('supplements').update({ stock_count: next }).eq('id', id)
   return !error
 }
 
 export async function deleteSupplement(id: string): Promise<void> {
+  if (isDemoActive()) return demoUpdate('supplements', id, { active: false })
   await supabase.from('supplements').update({ active: false }).eq('id', id)
 }
 
 export async function loadLogsForMonth(userId: string, year: number, month: number): Promise<SupplementLog[]> {
   const start = `${year}-${String(month).padStart(2, '0')}-01`
   const end = new Date(year, month, 0).toISOString().slice(0, 10)
+  if (isDemoActive()) {
+    return (demoList('supplement_logs') as SupplementLog[])
+      .filter(l => l.date >= start && l.date <= end)
+  }
   const { data, error } = await supabase
     .from('supplement_logs')
     .select('*')
@@ -133,6 +153,19 @@ export async function saveProfileBasics(userId: string, patch: Partial<ProfileBa
 }
 
 export async function toggleLog(userId: string, supplementId: string, date: string, taken: boolean): Promise<void> {
+  if (isDemoActive()) {
+    const existing = (demoList('supplement_logs') as SupplementLog[])
+      .find(l => l.supplement_id === supplementId && l.date === date)
+    if (taken && !existing) {
+      demoInsert('supplement_logs', {
+        id: demoId('demo-suplog'), user_id: userId, supplement_id: supplementId,
+        date, taken: true, dose: null, note: null,
+      })
+    } else if (!taken && existing) {
+      demoRemove('supplement_logs', existing.id)
+    }
+    return
+  }
   if (taken) {
     await supabase.from('supplement_logs').upsert(
       { user_id: userId, supplement_id: supplementId, date, taken: true },

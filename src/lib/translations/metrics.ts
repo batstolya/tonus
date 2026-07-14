@@ -128,4 +128,7 @@ export const metrics: Record<string, Translation> = {
   'к': { uk: 'к', en: 'k' },
   'мл': { uk: 'мл', en: 'ml' },
   'шаг/д': { uk: 'крок/д', en: 'steps/d' },
+  'мг': { uk: 'мг', en: 'mg' },
+  'г': { uk: 'г', en: 'g' },
+  'осталось {n} дн.': { uk: 'залишилось {n} дн.', en: '{n} days to go' },
 }

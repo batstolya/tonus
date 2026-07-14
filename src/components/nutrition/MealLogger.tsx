@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '../../lib/supabase'
 import { callFunction } from '../../lib/edgeFunctions'
+import { isDemoActive } from '../../lib/demo'
+import { demoInsert, demoId } from '../../lib/demoDb'
 import { useT } from '../../lib/i18n'
 
 interface MealResult {
@@ -86,6 +88,19 @@ export function MealLogger({ user, onSaved }: Props) {
   async function handleSave() {
     if (!editResult) return
     setSaving(true)
+    if (isDemoActive()) {
+      demoInsert('intake_events', {
+        id: demoId('demo-intake'), user_id: user.id, ts: new Date().toISOString(), type: 'meal',
+        amount: null, unit: null, note: editResult.dish || text || t('Еда'),
+        calories: editResult.calories, protein_g: editResult.protein_g,
+        carbs_g: editResult.carbs_g, fat_g: editResult.fat_g, source: null,
+      })
+      setSaving(false)
+      setEditResult(null); setPreview(null); setImageData(null); setText(''); setError(null)
+      setSearchQuery(''); setSearchResults([]); setSearched(false); setSearchError(null)
+      onSaved?.()
+      return
+    }
     await supabase.from('intake_events').insert({
       user_id: user.id,
       ts: new Date().toISOString(),

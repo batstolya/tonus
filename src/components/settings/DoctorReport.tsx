@@ -9,6 +9,8 @@ import { computeAdherence } from '../../lib/adherence'
 import { isUnlocked } from '../../lib/privacy'
 import { supabase } from '../../lib/supabase'
 import { callFunction } from '../../lib/edgeFunctions'
+import { isDemoActive } from '../../lib/demo'
+import { demoList } from '../../lib/demoDb'
 import { localDate, addDays } from '../../lib/experiments'
 import { translations } from '../../lib/translations'
 import { useT } from '../../lib/i18n'
@@ -44,7 +46,11 @@ export function DoctorReport({ user, daily, onClose }: Props) {
   })
   const [labs, setLabs] = useState<LabLine[]>([])
   const [supplements, setSupplements] = useState<Supplement[]>([])
-  const [adhLogs, setAdhLogs] = useState<AdhLog[]>([])
+  // Демо: логи приёма ленивым инициализатором (эффект в демо в БД не ходит).
+  const [adhLogs, setAdhLogs] = useState<AdhLog[]>(
+    () => isDemoActive()
+      ? demoList('supplement_logs').filter(l => l.date >= addDays(localDate(), -365)) as AdhLog[]
+      : [])
   const [concerns, setConcerns] = useState<HealthConcern[]>([])
   const [pickedConcerns, setPickedConcerns] = useState<Set<string>>(new Set())
   const [aiQuestions, setAiQuestions] = useState<string[] | null>(null)
@@ -59,11 +65,13 @@ export function DoctorReport({ user, daily, onClose }: Props) {
     // Каждый источник — независимо и терпимо к сбоям (в демо запросы падают → секции пустые).
     loadLabResults(user.id).then(rs => setLabs(latestLabs(rs))).catch(() => {})
     loadSupplements(user.id).then(setSupplements).catch(() => {})
-    supabase.from('supplement_logs')
-      .select('supplement_id, date, taken')
-      .eq('user_id', user.id)
-      .gte('date', addDays(localDate(), -365))
-      .then(({ data }) => { if (data) setAdhLogs(data as AdhLog[]) })
+    if (!isDemoActive()) {
+      supabase.from('supplement_logs')
+        .select('supplement_id, date, taken')
+        .eq('user_id', user.id)
+        .gte('date', addDays(localDate(), -365))
+        .then(({ data }) => { if (data) setAdhLogs(data as AdhLog[]) })
+    }
     loadConcerns(user.id).then(cs => {
       setConcerns(cs)
       // приватные — вне отчёта по умолчанию (и вне списка выбора без PIN)

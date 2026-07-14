@@ -1,4 +1,6 @@
 import { supabase } from './supabase'
+import { isDemoActive } from './demo'
+import { demoList, demoInsert, demoUpdate, demoRemove, demoId } from './demoDb'
 import type { DailyMetrics } from '../types'
 
 export interface Goal {
@@ -114,6 +116,7 @@ export function computeProgress(goal: Goal, daily: DailyMetrics[]): GoalProgress
 }
 
 export async function loadGoals(userId: string): Promise<Goal[]> {
+  if (isDemoActive()) return demoList('goals') as Goal[]
   const { data, error } = await supabase.from('goals').select('*').eq('user_id', userId)
     .order('created_at', { ascending: false })
   if (error) throw error
@@ -140,19 +143,27 @@ export async function finalizeExpiredGoals(goals: Goal[], daily: DailyMetrics[])
 }
 
 export async function createGoal(userId: string, goal: Omit<Goal, 'id' | 'user_id' | 'created_at'>): Promise<Goal | null> {
+  if (isDemoActive()) {
+    return demoInsert('goals', {
+      id: demoId('demo-goal'), user_id: userId, created_at: new Date().toISOString(), ...goal,
+    }) as Goal
+  }
   const { data } = await supabase.from('goals').insert({ user_id: userId, ...goal }).select().single()
   return data as Goal | null
 }
 
 export async function updateGoalStatus(id: string, status: Goal['status']): Promise<void> {
+  if (isDemoActive()) return demoUpdate('goals', id, { status })
   await supabase.from('goals').update({ status }).eq('id', id)
 }
 
 export async function deleteGoal(id: string): Promise<void> {
+  if (isDemoActive()) return demoRemove('goals', id)
   await supabase.from('goals').delete().eq('id', id)
 }
 
 export async function loadRecommendations(userId: string): Promise<Recommendation[]> {
+  if (isDemoActive()) return (demoList('recommendations') as Recommendation[]).filter(r => r.status === 'new')
   const { data, error } = await supabase.from('recommendations').select('*')
     .eq('user_id', userId).eq('status', 'new').order('created_at', { ascending: false }).limit(5)
   if (error) throw error
@@ -160,5 +171,6 @@ export async function loadRecommendations(userId: string): Promise<Recommendatio
 }
 
 export async function updateRecommendationStatus(id: string, status: Recommendation['status']): Promise<void> {
+  if (isDemoActive()) return demoUpdate('recommendations', id, { status })
   await supabase.from('recommendations').update({ status }).eq('id', id)
 }

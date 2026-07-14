@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { DailyMetrics } from '../../types'
 import { supabase } from '../../lib/supabase'
+import { demoList, demoUpdate } from '../../lib/demoDb'
 import { buildBellItems, type BellItem } from '../../lib/notifications'
 import { ACTIVE_STEPS_MIN, ACTIVE_EXERCISE_MIN } from '../../lib/streak'
 import { useT } from '../../lib/i18n'
@@ -41,7 +42,10 @@ function persistDismissed(ids: Set<string>) {
 export function NotificationBell({ daily, userId, demo }: Props) {
   const { t, locale } = useT()
   const [open, setOpen] = useState(false)
-  const [alerts, setAlerts] = useState<HealthAlert[]>([])
+  // Демо: фикстуры ленивым инициализатором (setState в эффекте — лишний рендер
+  // и ошибка react-hooks/set-state-in-effect).
+  const [alerts, setAlerts] = useState<HealthAlert[]>(
+    () => demo ? demoList('health_alerts').filter(a => !a.acknowledged_at) as HealthAlert[] : [])
   const [dismissed, setDismissed] = useState<Set<string>>(loadDismissed)
   const rootRef = useRef<HTMLDivElement>(null)
 
@@ -89,6 +93,7 @@ export function NotificationBell({ daily, userId, demo }: Props) {
 
   const ackAlert = async (id: string) => {
     setAlerts(list => list.filter(a => a.id !== id))
+    if (demo) return demoUpdate('health_alerts', id, { acknowledged_at: new Date().toISOString() })
     await supabase.from('health_alerts').update({ acknowledged_at: new Date().toISOString() }).eq('id', id)
   }
 

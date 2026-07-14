@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '../../lib/supabase'
+import { isDemoActive } from '../../lib/demo'
+import { demoList, demoInsert, demoRemove, demoId } from '../../lib/demoDb'
 import { useT } from '../../lib/i18n'
 
 interface SupplementItem {
@@ -86,7 +88,12 @@ export function TreatmentTracker({ user }: Props) {
   useEffect(() => {
     async function load() {
       setLoading(true)
-      const [{ data: treatData }, { data: supData }] = await Promise.all([
+      const [{ data: treatData }, { data: supData }] = isDemoActive()
+        ? [
+          { data: demoList('treatments').sort((a, b) => b.started_at.localeCompare(a.started_at)) },
+          { data: demoList('supplements').map(s => ({ id: s.id, name: s.name })) },
+        ]
+        : await Promise.all([
         supabase
           .from('treatments')
           .select('*')
@@ -160,6 +167,17 @@ export function TreatmentTracker({ user }: Props) {
       : formCustomName.trim()
     if (!name || !formDate) return
     setSaving(true)
+    if (isDemoActive()) {
+      const row = demoInsert('treatments', {
+        id: demoId('demo-treat'), user_id: user.id, supplement_id: formSupId || null,
+        name, started_at: formDate, outcome_metrics: [], notes: null,
+        created_at: new Date().toISOString(),
+      })
+      setTreatments(prev => [row as Treatment, ...prev])
+      setShowForm(false); setFormSupId(''); setFormCustomName('')
+      setFormDate(toDateStr(new Date())); setSaving(false)
+      return
+    }
     const { data, error } = await supabase
       .from('treatments')
       .insert({
@@ -181,7 +199,8 @@ export function TreatmentTracker({ user }: Props) {
   }
 
   async function handleDelete(id: string) {
-    await supabase.from('treatments').delete().eq('id', id)
+    if (isDemoActive()) demoRemove('treatments', id)
+    else await supabase.from('treatments').delete().eq('id', id)
     setTreatments(prev => prev.filter(tr => tr.id !== id))
     setComparisons(prev => {
       const next = { ...prev }
@@ -313,7 +332,7 @@ export function TreatmentTracker({ user }: Props) {
 
               {daysIn < 30 && (
                 <div style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                  {t('Недостаточно данных (нужно 30+ дней)')} — {30 - daysIn} дн. осталось
+                  {t('Недостаточно данных (нужно 30+ дней)')} — {t('осталось {n} дн.', { n: 30 - daysIn })}
                 </div>
               )}
 

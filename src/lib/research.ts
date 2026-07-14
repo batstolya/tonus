@@ -1,4 +1,7 @@
 import { supabase } from './supabase'
+import { isDemoActive } from './demo'
+import { demoList, demoInsert, demoRemove, demoId } from './demoDb'
+import { makeDemoEnvironment } from './demoFixture'
 import type { DailyMetrics } from '../types'
 import type { Json } from './database.types'
 import { computeDailyScores } from './scores'
@@ -72,19 +75,39 @@ export interface ResearchData {
   envKeys: { key: string; label: string }[]      // непрерывные немодифицируемые факторы среды
 }
 
+// Демо: те же семь наборов строк, что вернул бы Supabase, но из фикстур.
+function demoResearchRows(sinceStr: string) {
+  const since = `${sinceStr}T00:00:00Z`
+  return [
+    { data: demoList('intake_events').filter(e => e.ts >= since).map(e => ({ ts: e.ts, type: e.type })) },
+    { data: demoList('supplements').filter(s => s.active).map(s => ({ id: s.id, name: s.name })) },
+    { data: demoList('supplement_logs').filter(l => l.date >= sinceStr && l.taken)
+      .map(l => ({ supplement_id: l.supplement_id, date: l.date, taken: l.taken })) },
+    { data: demoList('health_concerns').map(c => ({ id: c.id, name: c.name, is_private: c.is_private })) },
+    { data: demoList('concern_logs').filter(l => l.date >= sinceStr)
+      .map(l => ({ concern_id: l.concern_id, date: l.date, severity: l.severity })) },
+    { data: makeDemoEnvironment(90).filter(e => e.date >= sinceStr)
+      .map(e => ({ ...e, air_quality: null, pollen: null })) },
+    { data: demoList('context_notes').filter(n => n.date >= sinceStr)
+      .map(n => ({ date: n.date, wellbeing: n.wellbeing })) },
+  ] as const
+}
+
 export async function loadResearchData(userId: string, daily: DailyMetrics[], periodDays: number): Promise<ResearchData> {
   const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - periodDays)
   const sinceStr = cutoff.toISOString().slice(0, 10)
 
-  const [intakeRes, supRes, logRes, concernRes, concernLogRes, envRes, noteRes] = await Promise.all([
-    supabase.from('intake_events').select('ts, type').eq('user_id', userId).gte('ts', `${sinceStr}T00:00:00Z`),
-    supabase.from('supplements').select('id, name').eq('user_id', userId).eq('active', true),
-    supabase.from('supplement_logs').select('supplement_id, date, taken').eq('user_id', userId).gte('date', sinceStr).eq('taken', true),
-    supabase.from('health_concerns').select('id, name, is_private').eq('user_id', userId),
-    supabase.from('concern_logs').select('concern_id, date, severity').eq('user_id', userId).gte('date', sinceStr),
-    supabase.from('environment_daily').select('date, temp_c, pressure_hpa, daylight_minutes, air_quality, pollen, kp_index').eq('user_id', userId).gte('date', sinceStr),
-    supabase.from('context_notes').select('date, wellbeing').eq('user_id', userId).gte('date', sinceStr),
-  ])
+  const [intakeRes, supRes, logRes, concernRes, concernLogRes, envRes, noteRes] = isDemoActive()
+    ? demoResearchRows(sinceStr)
+    : await Promise.all([
+      supabase.from('intake_events').select('ts, type').eq('user_id', userId).gte('ts', `${sinceStr}T00:00:00Z`),
+      supabase.from('supplements').select('id, name').eq('user_id', userId).eq('active', true),
+      supabase.from('supplement_logs').select('supplement_id, date, taken').eq('user_id', userId).gte('date', sinceStr).eq('taken', true),
+      supabase.from('health_concerns').select('id, name, is_private').eq('user_id', userId),
+      supabase.from('concern_logs').select('concern_id, date, severity').eq('user_id', userId).gte('date', sinceStr),
+      supabase.from('environment_daily').select('date, temp_c, pressure_hpa, daylight_minutes, air_quality, pollen, kp_index').eq('user_id', userId).gte('date', sinceStr),
+      supabase.from('context_notes').select('date, wellbeing').eq('user_id', userId).gte('date', sinceStr),
+    ])
 
   const sups = supRes.data ?? []
   const concerns = concernRes.data ?? []
@@ -263,6 +286,12 @@ export interface ResearchRun {
 }
 
 export async function saveResearchRun(userId: string, periodDays: number, findings: Finding[], reply: string): Promise<ResearchRun | null> {
+  if (isDemoActive()) {
+    return demoInsert('research_runs', {
+      id: demoId('demo-run'), user_id: userId, period_days: periodDays,
+      findings: findings as unknown as Json, reply, created_at: new Date().toISOString(),
+    }) as unknown as ResearchRun
+  }
   const { data } = await supabase
     .from('research_runs')
     .insert({ user_id: userId, period_days: periodDays, findings: findings as unknown as Json, reply })
@@ -272,6 +301,7 @@ export async function saveResearchRun(userId: string, periodDays: number, findin
 }
 
 export async function loadResearchRuns(userId: string): Promise<ResearchRun[]> {
+  if (isDemoActive()) return demoList('research_runs') as unknown as ResearchRun[]
   const { data } = await supabase
     .from('research_runs')
     .select('id, period_days, findings, reply, created_at')
@@ -282,6 +312,7 @@ export async function loadResearchRuns(userId: string): Promise<ResearchRun[]> {
 }
 
 export async function deleteResearchRun(id: string): Promise<void> {
+  if (isDemoActive()) return demoRemove('research_runs', id)
   await supabase.from('research_runs').delete().eq('id', id)
 }
 
