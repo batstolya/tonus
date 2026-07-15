@@ -7,15 +7,24 @@ import { localNow } from '../_shared/time.ts'
 import { runChatLoop, type ChatLoopMessage, type GeminiPart } from '../_shared/chatToolLoop.ts'
 import { CHAT_TOOL_DECLARATIONS, executeChatTool } from '../_shared/chatTools.ts'
 import { parseDebugReply, formatToolTrace } from '../_shared/chatDebug.ts'
+import {
+  findOwnedChatSession,
+  isValidChatSessionId,
+  loadOwnedChatHistory,
+  type ChatHistoryClient,
+  type SessionLookupClient,
+} from '../_shared/chatSessionOwnership.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 const MAX_HISTORY = 12 // last N messages to include verbatim
+const MAX_MESSAGE_LENGTH = 4096
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, content-type',
+  'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 const SYSTEM_PROMPT = `Ты — персональный ассистент по здоровью.
@@ -88,10 +97,36 @@ serve(async (req) => {
     // сервере из БД (единый билдер _shared/healthContext, F2 smart-tonus) —
     // клиент и сервер не дрейфуют, цели/эксперименты внутри.
     const { sessionId, message, lang } = await req.json()
-    if (!message) return new Response('Missing message', { status: 400, headers: CORS })
+    if (typeof message !== 'string' || !message.trim()) {
+      return new Response('Missing message', { status: 400, headers: CORS })
+    }
+    if (sessionId !== null && sessionId !== undefined && !isValidChatSessionId(sessionId)) {
+      return new Response('Invalid session', { status: 400, headers: CORS })
+    }
     // Язык ответа = язык интерфейса пользователя (данные в контексте всегда на русском)
     const LANG_NAMES: Record<string, string> = { ru: 'русском', uk: 'украинском', en: 'английском' }
     const replyLang = LANG_NAMES[lang as string] ?? 'русском'
+
+    // Resolve caller-supplied sessions before budget or health-data access. The
+    // service-role client bypasses RLS, so both IDs are mandatory here.
+    let session: { id: string } | null = null
+    if (sessionId) {
+      const { data, error } = await findOwnedChatSession(
+        supabase as unknown as SessionLookupClient,
+        sessionId,
+        user.id,
+      )
+      if (error) throw new Error('Session lookup failed')
+      if (!data) return new Response('Session not found', { status: 404, headers: CORS })
+      session = data
+    }
+
+    // Legitimate abuse boundary and a deterministic no-egress positive control:
+    // ownership is proven first, then oversized input stops before budget,
+    // health-data reads, message writes, tools, or Gemini.
+    if (message.length > MAX_MESSAGE_LENGTH) {
+      return new Response('Message too long', { status: 413, headers: CORS })
+    }
 
     // AI Cost Guard — не вызываем Gemini при превышении месячного бюджета
     const budget = await checkBudget(supabase, user.id)
@@ -101,12 +136,8 @@ serve(async (req) => {
       })
     }
 
-    // Load or create session
-    let session: { id: string } | null = null
-    if (sessionId) {
-      const { data } = await supabase.from('chat_sessions').select('*').eq('id', sessionId).single()
-      session = data
-    }
+    // Create a new session only when the caller did not supply one. A foreign
+    // or missing supplied ID must never silently fall back to a fresh session.
     if (!session) {
       const { data, error: insertErr } = await supabase
         .from('chat_sessions')
@@ -118,22 +149,24 @@ serve(async (req) => {
     if (!session) throw new Error('Failed to create session')
 
     // Load recent messages for rolling context
-    const { data: history } = await supabase
-      .from('chat_messages')
-      .select('role, content')
-      .eq('session_id', session.id)
-      .order('created_at', { ascending: false })
-      .limit(MAX_HISTORY)
+    const { data: history, error: historyErr } = await loadOwnedChatHistory(
+      supabase as unknown as ChatHistoryClient,
+      session.id,
+      user.id,
+      MAX_HISTORY,
+    )
+    if (historyErr) throw new Error('Chat history lookup failed')
 
     const recentMessages = (history ?? []).reverse()
 
     // Save user message
-    await supabase.from('chat_messages').insert({
+    const { error: messageInsertErr } = await supabase.from('chat_messages').insert({
       user_id: user.id,
       session_id: session.id,
       role: 'user',
       content: message,
     })
+    if (messageInsertErr) throw new Error('Chat message insert failed')
 
     const { data: profile } = await supabase.from('profiles')
       .select('timezone, birth_year, sex').eq('id', user.id).maybeSingle()
@@ -189,12 +222,17 @@ serve(async (req) => {
     }
 
     // Update session updated_at
-    await supabase.from('chat_sessions').update({ updated_at: new Date().toISOString() }).eq('id', session.id)
+    const { error: updateErr } = await supabase
+      .from('chat_sessions')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', session.id)
+      .eq('user_id', user.id)
+    if (updateErr) throw new Error('Session update failed')
 
     return new Response(JSON.stringify({ reply: answer, sessionId: session.id, ...(debug ? { debug } : {}) }), {
       headers: { ...CORS, 'Content-Type': 'application/json' },
     })
-  } catch (e) {
-    return new Response((e as Error).message ?? 'Error', { status: 500, headers: CORS })
+  } catch {
+    return new Response('Internal error', { status: 500, headers: CORS })
   }
 })

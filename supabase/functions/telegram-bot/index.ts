@@ -10,11 +10,18 @@ import { detectSaveIntent } from '../_shared/saveIntent.ts'
 import { parseFootballCallback, buildFootballResponseText, localizeRoundName } from '../_shared/football.ts'
 import { isValidTelegramSecret } from '../_shared/auth.ts'
 import { addDays as expAddDays, computeBaselineStart, metricLabel as expMetricLabel } from '../_shared/experiments.ts'
+import {
+  loadOwnedChatHistory,
+  resolveOrCreateOwnedChatSession,
+  type ChatHistoryClient,
+  type SessionOwnershipClient,
+} from '../_shared/chatSessionOwnership.ts'
 
 const TG_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const WEBHOOK_SECRET = Deno.env.get('TELEGRAM_WEBHOOK_SECRET') ?? ''
+const MAX_CHAT_MESSAGE_LENGTH = 4096
 
 // ── Telegram API helpers ──────────────────────────────────────────────────────
 
@@ -391,40 +398,36 @@ async function buildBotContext(userId: string, supabase: SupabaseClient): Promis
 }
 
 async function handleAiChat(chatId: number | string, userId: string, text: string, sessionId: string | null, supabase: SupabaseClient): Promise<string | null> {
+  // Resolve the untrusted link state before any early return. This lets a
+  // budget-exceeded request repair a foreign/stale session without touching
+  // health context or Gemini, and gives the production smoke a no-egress path.
+  const { id: sid } = await resolveOrCreateOwnedChatSession(
+    supabase as unknown as SessionOwnershipClient,
+    sessionId,
+    userId,
+  )
   if (!GEMINI_KEY) {
     await tgSend(chatId, 'Выбери действие:', { reply_markup: MAIN_MENU })
-    return sessionId
+    return sid
   }
   const budget = await checkBudget(supabase, userId)
   if (!budget.ok) {
     await tgSend(chatId, budgetExceededMessage(budget))
-    return sessionId
+    return sid
   }
   await tgTyping(chatId)
 
-  // Ensure a session exists
-  let sid = sessionId
-  if (!sid) {
-    const { data: sess } = await supabase
-      .from('chat_sessions')
-      .insert({ user_id: userId })
-      .select('id')
-      .single()
-    sid = sess?.id ?? null
-  }
-
   // Save user message
-  if (sid) {
-    await supabase.from('chat_messages').insert({ user_id: userId, session_id: sid, role: 'user', content: text })
-  }
+  await supabase.from('chat_messages').insert({ user_id: userId, session_id: sid, role: 'user', content: text })
 
   // Recent history (last 6)
-  const { data: hist } = sid ? await supabase
-    .from('chat_messages')
-    .select('role, content')
-    .eq('session_id', sid)
-    .order('created_at', { ascending: false })
-    .limit(6) : { data: [] }
+  const { data: hist, error: historyErr } = await loadOwnedChatHistory(
+    supabase as unknown as ChatHistoryClient,
+    sid,
+    userId,
+    6,
+  )
+  if (historyErr) throw new Error('Chat history lookup failed')
   const recent = ((hist ?? []) as { role: string; content: string }[]).reverse()
 
   const context = await buildBotContext(userId, supabase)
@@ -457,9 +460,7 @@ async function handleAiChat(chatId: number | string, userId: string, text: strin
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text ?? 'Не удалось сформулировать ответ.'
     const tokens = data.usageMetadata?.totalTokenCount ?? null
 
-    if (sid) {
-      await supabase.from('chat_messages').insert({ user_id: userId, session_id: sid, role: 'assistant', content: reply, tokens_used: tokens })
-    }
+    await supabase.from('chat_messages').insert({ user_id: userId, session_id: sid, role: 'assistant', content: reply, tokens_used: tokens })
     if (tokens) {
       await supabase.from('ai_usage').insert({ user_id: userId, source: 'chat', tokens_used: tokens, prompt_version: sys.version })
     }
@@ -1352,6 +1353,25 @@ serve(async (req) => {
     return new Response('ok')
   }
 
+  // telegram_links is writable by its owner, while this function uses a
+  // service-role client. Repair foreign/stale session state before the first
+  // classifier, health-data, or Gemini path and persist only an owned ID.
+  const { id: ownedChatSessionId } = await resolveOrCreateOwnedChatSession(
+    supabase as unknown as SessionOwnershipClient,
+    link.tg_session_id ?? null,
+    userId,
+  )
+  if (ownedChatSessionId !== link.tg_session_id) {
+    await supabase.from('telegram_links')
+      .update({ tg_session_id: ownedChatSessionId })
+      .eq('telegram_chat_id', String(chatId))
+      .eq('user_id', userId)
+  }
+  if (text.length > MAX_CHAT_MESSAGE_LENGTH) {
+    await tgSend(chatId, 'Сообщение слишком длинное. Сократи его и попробуй снова.')
+    return new Response('ok')
+  }
+
   const budget = await checkBudget(supabase, userId)
   let act: ClassifiedAction | null = null
   if (budget.ok) {
@@ -1403,9 +1423,12 @@ serve(async (req) => {
   }
 
   // Any other text → AI chat (B3)
-  const newSid = await handleAiChat(chatId, userId, text, link.tg_session_id ?? null, supabase)
-  if (newSid && newSid !== link.tg_session_id) {
-    await supabase.from('telegram_links').update({ tg_session_id: newSid }).eq('telegram_chat_id', String(chatId))
+  const newSid = await handleAiChat(chatId, userId, text, ownedChatSessionId, supabase)
+  if (newSid && newSid !== ownedChatSessionId) {
+    await supabase.from('telegram_links')
+      .update({ tg_session_id: newSid })
+      .eq('telegram_chat_id', String(chatId))
+      .eq('user_id', userId)
   }
   return new Response('ok')
 })

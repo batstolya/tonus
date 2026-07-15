@@ -215,10 +215,25 @@ requires its reviewed harness and tests before its receipt can become
 The `chat-health-jwt-boundary` harness requires `SUPABASE_URL`,
 `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` in the operator's private
 environment. It creates and signs in a synthetic user, proves missing and
-malformed credentials are denied, proves the signed user reaches the handler
-with an empty body (so Gemini and health-data paths are not invoked), and
-deletes and verifies deletion of the synthetic account. Credential values,
-response bodies, user IDs, and fixture values are never written to the receipt.
+malformed credentials are denied, and proves the signed production caller
+header shape reaches the handler with an empty body. It also creates a second
+synthetic owner and a chat session, then proves the signed attacker receives a
+404 before budget, Gemini, or health-data access. An attacker-owned session with
+oversized synthetic input must reach the handler's `413` safe stop, proving the
+positive path without entering budget, health-data, message-write, tool, or
+Gemini code. Both users and their cascading rows are deleted and verified
+afterward. Credential values, response bodies, user IDs, session IDs, emails,
+and fixture values are never written to the receipt.
+
+The `telegram-chat-ownership` harness additionally requires the private
+`TELEGRAM_WEBHOOK_SECRET`. It creates a victim session, stores that foreign ID
+on an attacker-owned Telegram link, and sends a normal webhook update with an
+impossible synthetic chat ID and oversized input. The function must replace the
+foreign session with an attacker-owned session before reaching the same safe
+stop, leave the victim session and message unchanged, and create no attacker
+chat messages or AI usage. Cleanup verifies that both Auth users and all
+related synthetic rows are absent. The harness never contacts a real Telegram
+recipient and never retains the webhook secret or fixture identifiers.
 
 ## 7. Complete and attach the receipt
 

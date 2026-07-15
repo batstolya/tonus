@@ -21,13 +21,11 @@ function decodeClaims(token) {
   }
 }
 
-function validateCredential(token, { role, projectRef, issuer }) {
+function validateServiceCredential(token, projectRef) {
   const claims = decodeClaims(token)
-  check(claims.role === role, 'unexpected-jwt-role')
-  if (projectRef !== undefined) check(claims.ref === projectRef, 'unexpected-jwt-project')
-  if (issuer !== undefined) check(claims.iss === issuer, 'unexpected-jwt-issuer')
+  check(claims.role === 'service_role', 'unexpected-jwt-role')
+  check(claims.ref === projectRef && claims.iss === 'supabase', 'unexpected-jwt-project')
   check(Number.isFinite(claims.exp) && claims.exp > Math.floor(Date.now() / 1000), 'expired-jwt')
-  return claims
 }
 
 function adminHeaders(service, json = false) {
@@ -53,15 +51,10 @@ async function jsonRequest(fetchImpl, url, options, acceptedStatuses) {
   }
 }
 
-async function invokeStatus(fetchImpl, url, anon, {
-  authorization = null,
-  body = {},
-  includeApiKey = true,
-} = {}) {
+async function invokeWebhook(fetchImpl, url, body, secret) {
   const headers = { 'content-type': 'application/json' }
-  if (includeApiKey) headers.apikey = anon
-  if (authorization !== null) headers.authorization = authorization
-  const response = await fetchImpl(`${url}/functions/v1/chat-health`, {
+  if (secret !== null) headers['x-telegram-bot-api-secret-token'] = secret
+  const response = await fetchImpl(`${url}/functions/v1/telegram-bot`, {
     method: 'POST',
     headers,
     body: JSON.stringify(body),
@@ -71,42 +64,16 @@ async function invokeStatus(fetchImpl, url, anon, {
   return response.status
 }
 
-async function corsAssertion(fetchImpl, url) {
-  const origin = 'https://smoke.example.invalid'
-  const response = await fetchImpl(`${url}/functions/v1/chat-health`, {
-    method: 'OPTIONS',
-    headers: {
-      origin,
-      'access-control-request-method': 'POST',
-      'access-control-request-headers': 'authorization, apikey, content-type',
-    },
-    signal: AbortSignal.timeout(30_000),
-  })
-  await response.arrayBuffer()
-  const allowed = new Set(
-    (response.headers.get('access-control-allow-headers') ?? '')
-      .toLowerCase()
-      .split(',')
-      .map((header) => header.trim())
-      .filter(Boolean),
-  )
-  const passed = response.status === 200
-    && ['authorization', 'apikey', 'content-type'].every((header) => allowed.has(header))
-    && ['*', origin].includes(response.headers.get('access-control-allow-origin'))
-    && (response.headers.get('access-control-allow-methods') ?? '')
-      .toUpperCase()
-      .split(',')
-      .map((method) => method.trim())
-      .includes('POST')
-  return {
-    id: 'cors-preflight-allowed',
-    status: passed ? 'passed' : 'failed',
-    httpStatus: response.status,
-  }
-}
-
 function statusAssertion(id, actual, expected) {
   return { id, status: actual === expected ? 'passed' : 'failed', httpStatus: actual }
+}
+
+async function restRows(fetchImpl, url, service, table, query = {}) {
+  const endpoint = new URL(`${url}/rest/v1/${table}`)
+  for (const [key, value] of Object.entries(query)) endpoint.searchParams.set(key, value)
+  const result = await jsonRequest(fetchImpl, endpoint, { headers: adminHeaders(service) }, [200])
+  check(Array.isArray(result.json), 'invalid-rest-response')
+  return result.json
 }
 
 async function findExactUserIds(fetchImpl, url, service, email) {
@@ -116,12 +83,7 @@ async function findExactUserIds(fetchImpl, url, service, email) {
     const endpoint = new URL(`${url}/auth/v1/admin/users`)
     endpoint.searchParams.set('page', String(page))
     endpoint.searchParams.set('per_page', String(perPage))
-    const result = await jsonRequest(
-      fetchImpl,
-      endpoint,
-      { headers: adminHeaders(service) },
-      [200],
-    )
+    const result = await jsonRequest(fetchImpl, endpoint, { headers: adminHeaders(service) }, [200])
     check(Array.isArray(result.json?.users), 'invalid-admin-user-list')
     for (const user of result.json.users) {
       if (user?.email === email && typeof user.id === 'string') ids.add(user.id)
@@ -154,25 +116,25 @@ async function verifyNoSyntheticRows(fetchImpl, url, service, userIds) {
     { table: 'ai_usage', ownerColumn: 'user_id' },
     { table: 'chat_sessions', ownerColumn: 'user_id' },
     { table: 'chat_messages', ownerColumn: 'user_id' },
+    { table: 'telegram_links', ownerColumn: 'user_id' },
   ]
   for (const { table, ownerColumn } of surfaces) {
     for (const userId of userIds) {
-      const endpoint = new URL(`${url}/rest/v1/${table}`)
-      endpoint.searchParams.set('select', 'id')
-      endpoint.searchParams.set(ownerColumn, `eq.${userId}`)
-      endpoint.searchParams.set('limit', '1')
-      const result = await jsonRequest(
-        fetchImpl,
-        endpoint,
-        { headers: adminHeaders(service) },
-        [200],
-      )
-      check(Array.isArray(result.json) && result.json.length === 0, 'synthetic-data-still-present')
+      const rows = await restRows(fetchImpl, url, service, table, {
+        select: 'id',
+        [ownerColumn]: `eq.${userId}`,
+        limit: '1',
+      })
+      check(rows.length === 0, 'synthetic-data-still-present')
     }
   }
 }
 
-export async function runChatHealthJwtSmoke({
+function booleanAssertion(id, passed) {
+  return { id, status: passed ? 'passed' : 'failed', httpStatus: 200 }
+}
+
+export async function runTelegramChatOwnershipSmoke({
   projectRef,
   reviewedSha,
   env = process.env,
@@ -191,20 +153,19 @@ export async function runChatHealthJwtSmoke({
     check(PROJECT_REF_PATTERN.test(projectRef), 'invalid-project-ref')
     check(SHA_PATTERN.test(reviewedSha), 'invalid-reviewed-sha')
     const url = env.SUPABASE_URL
-    const anon = env.SUPABASE_ANON_KEY
     const service = env.SUPABASE_SERVICE_ROLE_KEY
+    const webhookSecret = env.TELEGRAM_WEBHOOK_SECRET
     check(url === `https://${projectRef}.supabase.co`, 'unexpected-supabase-url')
-    check(Boolean(anon && service) && anon !== service, 'missing-api-credentials')
-    validateCredential(anon, { role: 'anon', projectRef, issuer: 'supabase' })
-    validateCredential(service, { role: 'service_role', projectRef, issuer: 'supabase' })
+    check(typeof webhookSecret === 'string' && webhookSecret.length >= 24, 'missing-webhook-secret')
+    validateServiceCredential(service, projectRef)
     baseUrl = url
     serviceKey = service
 
     const fixtureId = randomUUID()
+    const syntheticChatId = `codex-smoke-${fixtureId}`
     for (const role of ['victim', 'attacker']) {
-      const email = `codex-chat-health-smoke-${role}-${fixtureId}@example.invalid`
+      const email = `codex-telegram-smoke-${role}-${fixtureId}@example.invalid`
       fixtureEmails.push(email)
-      const password = `Tn!${randomUUID()}aA9`
       const created = await jsonRequest(
         fetchImpl,
         `${url}/auth/v1/admin/users`,
@@ -213,9 +174,9 @@ export async function runChatHealthJwtSmoke({
           headers: adminHeaders(service, true),
           body: JSON.stringify({
             email,
-            password,
+            password: `Tn!${randomUUID()}aA9`,
             email_confirm: true,
-            user_metadata: { purpose: `chat-health-ownership-smoke-${role}` },
+            user_metadata: { purpose: `telegram-chat-ownership-smoke-${role}` },
           }),
         },
         [200],
@@ -223,32 +184,14 @@ export async function runChatHealthJwtSmoke({
       const id = created.json?.id ?? created.json?.user?.id
       check(typeof id === 'string' && id.length > 0, 'synthetic-user-id-missing')
       knownFixtureIds.add(id)
-      fixtures.push({ role, email, password, id })
+      fixtures.push({ role, id })
     }
 
     const victim = fixtures.find((fixture) => fixture.role === 'victim')
     const attacker = fixtures.find((fixture) => fixture.role === 'attacker')
     check(Boolean(victim && attacker), 'synthetic-user-role-missing')
 
-    const signedIn = await jsonRequest(
-      fetchImpl,
-      `${url}/auth/v1/token?grant_type=password`,
-      {
-        method: 'POST',
-        headers: { apikey: anon, 'content-type': 'application/json' },
-        body: JSON.stringify({ email: attacker.email, password: attacker.password }),
-      },
-      [200],
-    )
-    const userToken = signedIn.json?.access_token
-    check(Boolean(userToken), 'synthetic-user-token-missing')
-    const userClaims = validateCredential(userToken, {
-      role: 'authenticated',
-      issuer: `${url}/auth/v1`,
-    })
-    check(userClaims.sub === attacker.id, 'synthetic-user-subject-mismatch')
-
-    const victimSessionCreated = await jsonRequest(
+    const sessionCreated = await jsonRequest(
       fetchImpl,
       `${url}/rest/v1/chat_sessions`,
       {
@@ -258,53 +201,107 @@ export async function runChatHealthJwtSmoke({
       },
       [201],
     )
-    const victimSessionId = victimSessionCreated.json?.[0]?.id
+    const victimSessionId = sessionCreated.json?.[0]?.id
     check(typeof victimSessionId === 'string' && victimSessionId.length > 0, 'synthetic-session-id-missing')
-    const attackerSessionCreated = await jsonRequest(
+    const markerCreated = await jsonRequest(
       fetchImpl,
-      `${url}/rest/v1/chat_sessions`,
+      `${url}/rest/v1/chat_messages`,
       {
         method: 'POST',
         headers: { ...adminHeaders(service, true), prefer: 'return=representation' },
-        body: JSON.stringify({ user_id: attacker.id }),
+        body: JSON.stringify({
+          user_id: victim.id,
+          session_id: victimSessionId,
+          role: 'user',
+          content: 'synthetic ownership marker',
+        }),
       },
       [201],
     )
-    const attackerSessionId = attackerSessionCreated.json?.[0]?.id
-    check(typeof attackerSessionId === 'string' && attackerSessionId.length > 0, 'synthetic-session-id-missing')
-    check(attackerSessionId !== victimSessionId, 'synthetic-session-id-collision')
+    check(Array.isArray(markerCreated.json) && markerCreated.json.length === 1, 'synthetic-marker-missing')
+    const linkCreated = await jsonRequest(
+      fetchImpl,
+      `${url}/rest/v1/telegram_links`,
+      {
+        method: 'POST',
+        headers: { ...adminHeaders(service, true), prefer: 'return=representation' },
+        body: JSON.stringify({
+          user_id: attacker.id,
+          telegram_chat_id: syntheticChatId,
+          status: 'active',
+          tg_session_id: victimSessionId,
+        }),
+      },
+      [201],
+    )
+    check(Array.isArray(linkCreated.json) && linkCreated.json.length === 1, 'synthetic-link-missing')
 
+    const update = {
+      update_id: 1,
+      message: {
+        message_id: 1,
+        date: 1_700_000_000,
+        chat: { id: syntheticChatId, type: 'private' },
+        text: 'x'.repeat(4097),
+      },
+    }
     assertions.push(statusAssertion(
-      'missing-auth-denied',
-      await invokeStatus(fetchImpl, url, anon),
+      'missing-webhook-secret-denied',
+      await invokeWebhook(fetchImpl, url, update, null),
       401,
     ))
     assertions.push(statusAssertion(
-      'malformed-auth-denied',
-      await invokeStatus(fetchImpl, url, anon, { authorization: 'Bearer malformed' }),
+      'wrong-webhook-secret-denied',
+      await invokeWebhook(fetchImpl, url, update, `${webhookSecret}-wrong`),
       401,
     ))
     assertions.push(statusAssertion(
-      'production-caller-reaches-handler',
-      await invokeStatus(fetchImpl, url, anon, { authorization: `Bearer ${userToken}` }),
-      400,
+      'authenticated-smoke-reaches-handler',
+      await invokeWebhook(fetchImpl, url, update, webhookSecret),
+      200,
     ))
-    assertions.push(await corsAssertion(fetchImpl, url))
-    assertions.push(statusAssertion(
-      'foreign-session-denied',
-      await invokeStatus(fetchImpl, url, anon, {
-        authorization: `Bearer ${userToken}`,
-        body: { sessionId: victimSessionId, message: 'ownership boundary check', lang: 'en' },
-      }),
-      404,
+
+    const links = await restRows(fetchImpl, url, service, 'telegram_links', {
+      select: 'user_id,tg_session_id',
+      telegram_chat_id: `eq.${syntheticChatId}`,
+      user_id: `eq.${attacker.id}`,
+    })
+    const replacementId = links.length === 1 ? links[0]?.tg_session_id : null
+    assertions.push(booleanAssertion(
+      'foreign-session-replaced',
+      typeof replacementId === 'string' && replacementId !== victimSessionId,
     ))
-    assertions.push(statusAssertion(
-      'owned-session-reaches-safe-stop',
-      await invokeStatus(fetchImpl, url, anon, {
-        authorization: `Bearer ${userToken}`,
-        body: { sessionId: attackerSessionId, message: 'x'.repeat(4097), lang: 'en' },
-      }),
-      413,
+
+    const replacementRows = typeof replacementId === 'string'
+      ? await restRows(fetchImpl, url, service, 'chat_sessions', {
+          select: 'id,user_id', id: `eq.${replacementId}`, user_id: `eq.${attacker.id}`,
+        })
+      : []
+    assertions.push(booleanAssertion('replacement-owned-by-attacker', replacementRows.length === 1))
+
+    const victimRows = await restRows(fetchImpl, url, service, 'chat_sessions', {
+      select: 'id,user_id', id: `eq.${victimSessionId}`, user_id: `eq.${victim.id}`,
+    })
+    const victimMessages = await restRows(fetchImpl, url, service, 'chat_messages', {
+      select: 'id,user_id,session_id', session_id: `eq.${victimSessionId}`,
+    })
+    assertions.push(booleanAssertion(
+      'victim-session-untouched',
+      victimRows.length === 1
+      && victimMessages.length === 1
+      && victimMessages[0]?.user_id === victim.id,
+    ))
+
+    const attackerMessages = await restRows(fetchImpl, url, service, 'chat_messages', {
+      select: 'id', user_id: `eq.${attacker.id}`,
+    })
+    const attackerUsage = await restRows(fetchImpl, url, service, 'ai_usage', {
+      select: 'id,tokens_used', user_id: `eq.${attacker.id}`,
+    })
+    assertions.push(booleanAssertion(
+      'no-chat-or-ai-egress-side-effects',
+      attackerMessages.length === 0
+      && attackerUsage.length === 0,
     ))
   } catch {
     assertions.push({ id: 'smoke-harness-execution', status: 'failed' })
@@ -314,7 +311,6 @@ export async function runChatHealthJwtSmoke({
       let cleanupPassed = true
       const deletedIds = new Set()
       for (const fixture of fixtures) {
-        if (deletedIds.has(fixture.id)) continue
         try {
           await deleteAndVerifyUser(fetchImpl, baseUrl, serviceKey, fixture.id)
           deletedIds.add(fixture.id)
@@ -358,7 +354,7 @@ export async function runChatHealthJwtSmoke({
     assertions.push({ id: 'synthetic-data-deleted', status: 'failed' })
   }
   return {
-    status: assertions.length === 8 && assertions.every((assertion) => assertion.status === 'passed')
+    status: assertions.length === 9 && assertions.every((assertion) => assertion.status === 'passed')
       ? 'passed'
       : 'failed',
     assertions,
@@ -366,11 +362,9 @@ export async function runChatHealthJwtSmoke({
 }
 
 function parseDirectArguments(argv) {
-  if (
-    argv.length !== 4
-    || argv[0] !== '--project-ref'
-    || argv[2] !== '--reviewed-sha'
-  ) throw new Error('invalid-arguments')
+  if (argv.length !== 4 || argv[0] !== '--project-ref' || argv[2] !== '--reviewed-sha') {
+    throw new Error('invalid-arguments')
+  }
   return { projectRef: argv[1], reviewedSha: argv[3] }
 }
 
@@ -386,7 +380,7 @@ function isDirectExecution() {
 if (isDirectExecution()) {
   let result
   try {
-    result = await runChatHealthJwtSmoke(parseDirectArguments(process.argv.slice(2)))
+    result = await runTelegramChatOwnershipSmoke(parseDirectArguments(process.argv.slice(2)))
   } catch {
     result = {
       status: 'failed',

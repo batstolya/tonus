@@ -6,6 +6,7 @@ import {
   parseArguments,
   runCli,
   validateReleaseTreeEntries,
+  validateSmokeCheck,
 } from './deploy-edge-functions.mjs'
 
 const SHA = 'a'.repeat(40)
@@ -159,6 +160,21 @@ test('parses only explicit deploy and allowlisted smoke inputs', () => {
   assert.throws(() => parseArguments(tokenArgs), /operator/i)
   assert.throws(() => parseArguments(['complete']), /action/i)
   assert.throws(() => parseArguments([...smokeArgs(), '--smoke-result', 'passed']), /unknown/i)
+})
+
+test('binds each production smoke to one exact function target list', () => {
+  assert.deepEqual(validateSmokeCheck('chat-health-jwt-boundary', ['chat-health']), {
+    functions: ['chat-health'],
+    script: 'scripts/edge-function-smoke/chat-health-jwt-boundary.mjs',
+  })
+  assert.deepEqual(validateSmokeCheck('telegram-chat-ownership', ['telegram-bot']), {
+    functions: ['telegram-bot'],
+    script: 'scripts/edge-function-smoke/telegram-chat-ownership.mjs',
+  })
+  assert.throws(
+    () => validateSmokeCheck('telegram-chat-ownership', ['chat-health', 'telegram-bot']),
+    /allowlisted/i,
+  )
 })
 
 test('accepts only ordinary tracked blobs in the immutable release tree', () => {

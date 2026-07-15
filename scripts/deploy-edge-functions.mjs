@@ -720,9 +720,13 @@ const SMOKE_CHECKS = new Map([
     functions: ['chat-health'],
     script: 'scripts/edge-function-smoke/chat-health-jwt-boundary.mjs',
   }],
+  ['telegram-chat-ownership', {
+    functions: ['telegram-bot'],
+    script: 'scripts/edge-function-smoke/telegram-chat-ownership.mjs',
+  }],
 ])
 
-function validateSmokeCheck(checkId, functions) {
+export function validateSmokeCheck(checkId, functions) {
   const check = SMOKE_CHECKS.get(checkId)
   if (!check || JSON.stringify(check.functions) !== JSON.stringify(functions)) {
     fail('smoke', 'smoke_check_not_allowlisted')
