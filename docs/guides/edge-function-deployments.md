@@ -71,6 +71,14 @@ list:
 rg -l "_shared/<module>" supabase/functions --glob 'index.ts'
 ```
 
+The only emergency exception is a dependency-specifier or type-only import
+change with no executable shared-module behavior change. A partial security
+release may then name only the vulnerable functions when the selected graphs
+pass the frozen-lock preflight, the exact shared diff and excluded importers
+are recorded in the release review, and a separate full importer rollout is
+already tracked. This exception never applies to constants, queries, branches,
+error handling, or any other runtime logic.
+
 A normal product deployment should follow merge. A reviewed security fix may
 be deployed before merge only when its private release record, rollback or
 forward-fix decision, and production verification are explicit.
