@@ -43,5 +43,13 @@ verify_jwt = false   # pg_cron (coach-cron), без Authorization
 [functions.coach-profile]
 verify_jwt = false   # вызывается из coach-weekly/cron без user-JWT
 
+# Keep these security-sensitive modes explicit. A remote function can retain
+# its previous JWT setting when an omitted value is redeployed.
+[functions.biweekly-report]
+verify_jwt = true
+
+[functions.suggest-experiments]
+verify_jwt = true
+
 [functions.register-webhook]
 verify_jwt = false   # установка вебхука, без user-JWT
