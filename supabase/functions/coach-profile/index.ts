@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { checkBudget } from '../_shared/costGuard.ts'
+import { isServiceRoleCall } from '../_shared/serviceRoleAuth.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
@@ -18,7 +19,7 @@ serve(async (req) => {
     // поддержка service-role вызова (из cron) с x-user-id, иначе по токену пользователя
     const serviceUserId = req.headers.get('x-user-id')
     let userId: string | null = null
-    if (serviceUserId && authHeader.includes(SUPABASE_SERVICE_KEY.slice(0, 20))) {
+    if (serviceUserId && isServiceRoleCall(req, SUPABASE_SERVICE_KEY)) {
       userId = serviceUserId
     } else {
       const { data, error } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
