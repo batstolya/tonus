@@ -65,3 +65,39 @@ npx supabase functions deploy <name> --project-ref <ref>
 - Фронт: Vercel dashboard или прод-URL.
 - Функции: `npx supabase functions list --project-ref <ref>`, логи — в
   Supabase dashboard → Edge Functions → Logs.
+
+## Deploy discipline (a deploy is the whole change)
+
+A change is not "deployed" until **every component in its diff** is live in prod.
+Code shipping while a migration sits unapplied is a half-patched prod — and for a
+security fix that leaves the hole open. Before claiming "deployed", walk the diff
+and confirm each component present in it is actually out:
+
+- [ ] **Edge functions** — `npx supabase functions deploy <name> --project-ref <ref>`
+      (mind the flags above; e.g. `ingest-health` needs `--no-verify-jwt`).
+- [ ] **DB migrations** — a `.sql` in `supabase/migrations/` does **not** apply
+      itself. Run it (SQL Editor / MCP `apply_migration`), record the row in
+      `supabase_migrations.schema_migrations`, then read the live schema back to
+      confirm (RLS on, policies, grants).
+- [ ] **Secrets / env** — `npx supabase secrets set ...`.
+- [ ] **Config** — `supabase/config.toml` (e.g. `verify_jwt`); an omitted value can
+      preserve the old remote mode, so verify the live value after deploy.
+- [ ] **Frontend** — merge to `main` → green CI → Vercel hook.
+
+If a component is in the diff but not shipped yet, say so explicitly. Never let
+"code is written" read as "done".
+
+## Prod must equal `main`
+
+Do not deploy from an unmerged branch and stop there: that leaves `main` behind
+prod, so the next deploy from `main` silently **regresses** the change. Order is
+review → merge to `main` → deploy from the reviewed/merged commit. If a live
+function version is higher than what `main` contains, prod is ahead of `main` —
+merge before anything else.
+
+## Verify on prod, then report
+
+After deploying, prove it: `functions list` for versions/JWT modes, a black-box
+smoke for behavior, or a direct catalog read for schema/RLS. Report what is live,
+what is still pending, and where the risk is — at each checkpoint, not only at the
+end.
