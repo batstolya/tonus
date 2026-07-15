@@ -3,6 +3,8 @@
 # (secret VERCEL_DEPLOY_HOOK, создаётся в Vercel → Settings → Git → Deploy Hooks).
 name: CI
 
+permissions: {}
+
 on:
   push:
     branches: [main]
@@ -10,6 +12,8 @@ on:
 
 jobs:
   ci:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -30,6 +34,9 @@ jobs:
 
       - name: Script unit tests
         run: npm run test:scripts
+
+      - name: README validation
+        run: npm run test:readme
 
       - name: Build (tsc + vite)
         run: npm run build
