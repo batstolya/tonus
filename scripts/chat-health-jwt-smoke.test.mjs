@@ -135,6 +135,11 @@ test('checks the production header shape, cross-user ownership, and synthetic cl
   assert.equal(calls.filter((call) => call.url.includes('/functions/v1/chat-health')).length, 6)
   const signedCalls = calls.filter((call) => call.headers?.authorization === `Bearer ${userToken}`)
   assert.equal(signedCalls.every((call) => call.headers.apikey === env.SUPABASE_ANON_KEY), true)
+  const sessionProbes = signedCalls
+    .map((call) => JSON.parse(call.body))
+    .filter((body) => body.sessionId === SESSION_ID || body.sessionId === ATTACKER_SESSION_ID)
+  assert.equal(sessionProbes.length, 2)
+  assert.equal(sessionProbes.every((body) => body.message.length === 4097), true)
   assert.equal(JSON.stringify(result).includes('access_token'), false)
   assert.doesNotMatch(
     JSON.stringify(result),
@@ -170,7 +175,7 @@ test('fails when a foreign session reaches the oversized-input stop instead of o
       const authorization = options.headers.authorization
       if (!authorization || authorization === 'Bearer malformed') return response(401)
       const body = JSON.parse(options.body)
-      return response(body.sessionId === SESSION_ID || body.sessionId === ATTACKER_SESSION_ID ? 413 : 400)
+      return response(body.message?.length > 4096 ? 413 : 400)
     }
     if (
       [VICTIM_ID, ATTACKER_ID].some((id) => String(url).endsWith(`/auth/v1/admin/users/${id}`))

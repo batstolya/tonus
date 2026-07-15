@@ -294,7 +294,7 @@ export async function runChatHealthJwtSmoke({
       'foreign-session-denied',
       await invokeStatus(fetchImpl, url, anon, {
         authorization: `Bearer ${userToken}`,
-        body: { sessionId: victimSessionId, message: 'ownership boundary check', lang: 'en' },
+        body: { sessionId: victimSessionId, message: 'x'.repeat(4097), lang: 'en' },
       }),
       404,
     ))
