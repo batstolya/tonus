@@ -72,6 +72,15 @@ the fail-closed wrapper. `chat-health` and `telegram-bot` use separate receipts
 and exact-target smoke contracts. Telegram deployment additionally requires a
 private webhook secret available to the operator; its value is never retained.
 
+The stacked dependency change pins all 22 source entrypoints, but this emergency
+release mutates only `chat-health` and `telegram-bot`. In their reachable shared
+modules, the only cross-importer diff is a dependency/type-import specifier;
+there is no shared executable behavior change. Both selected graphs are frozen
+by `deno.lock` before deployment. The remaining functions stay on their current
+live bundles until the full dependency PR stack is reviewed and merged, which
+is the tracked importer rollout required by the deployment guide's narrow
+emergency exception.
+
 ## Rollback
 
 Never restore unscoped session access. If the change breaks a legitimate flow,
