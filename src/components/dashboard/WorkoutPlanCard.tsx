@@ -17,9 +17,14 @@ export function WorkoutPlanCard({ daily }: { daily: DailyMetrics[] }) {
 
   useEffect(() => {
     if (isDemoActive()) return
+    let active = true
     supabase.from('workout_schedule').select('day_times, notify_hours_before, enabled')
       .maybeSingle()
-      .then(({ data }) => setWs(data ? { ...data, day_times: (data.day_times ?? {}) as unknown as DayTimes } : null))
+      .then(({ data }) => {
+        if (!active) return
+        setWs(data ? { ...data, day_times: (data.day_times ?? {}) as unknown as DayTimes } : null)
+      })
+    return () => { active = false }
   }, [])
 
   const days = ws?.enabled ? scheduleWeekdays(ws.day_times) : []

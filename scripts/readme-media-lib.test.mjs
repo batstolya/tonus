@@ -1,7 +1,8 @@
 import test, { after } from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
-import { fileURLToPath } from 'node:url'
+import os from 'node:os'
+import path from 'node:path'
 import { PNG } from 'pngjs'
 import {
   samplePalettePixels,
@@ -10,10 +11,11 @@ import {
   validateScenarioMeta,
 } from './readme-media-lib.mjs'
 
-const testOutput = new URL('../work/readme-media-lib-test.gif', import.meta.url)
+const testDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'tonus-readme-media-test-'))
+const testOutput = path.join(testDirectory, 'readme-media-lib-test.gif')
 
 after(() => {
-  fs.rmSync(fileURLToPath(testOutput), { force: true })
+  fs.rmSync(testDirectory, { recursive: true, force: true })
 })
 
 function png(width, height, color) {
@@ -53,7 +55,7 @@ test('inspectGif reads dimensions, animation timing and shared palette usage', a
     testOutput,
     { delay: 120, colors: 16, maxPalettePixels: 24 },
   )
-  const meta = inspectGif(fs.readFileSync(fileURLToPath(testOutput)))
+  const meta = inspectGif(fs.readFileSync(testOutput))
   assert.deepEqual(meta, {
     width: 4,
     height: 3,

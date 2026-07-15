@@ -1,6 +1,11 @@
 import '@testing-library/jest-dom/vitest'
-import { vi } from 'vitest'
+import { cleanup } from '@testing-library/react'
+import { afterEach, vi } from 'vitest'
 import { createElement, type ReactNode, type FunctionComponent } from 'react'
+
+// Vitest globals are disabled, so Testing Library cannot auto-register its
+// usual cleanup hook. Unmount every rendered tree before jsdom is torn down.
+afterEach(() => cleanup())
 
 // motion/react schedules animation frames that can resolve after jsdom is torn
 // down ("ReferenceError: window is not defined"). In tests we render motion.*
