@@ -1,55 +1,72 @@
 project_id = "mxnmubakfzqoosgsqmhh"
 
-# ── Edge functions ───────────────────────────────────────────────────────────
-# verify_jwt = false для функций, которые НЕ получают Supabase-JWT и
-# аутентифицируются сами (webhook/cron). Без этого шлюз Supabase отбивает их
-# вызовы 401 (UNAUTHORIZED_NO_AUTH_HEADER) ещё до запуска кода.
-# Держим флаг здесь, чтобы он не слетал при `functions deploy`.
-#
-# Список ПОЛНЫЙ — отражает реальные verify_jwt=false на платформе (сверено
-# 2026-06-21 через Management API). Все НЕперечисленные функции получают
-# verify_jwt=true (дефолт) — это правильно для вызываемых из UI/сервера с JWT
-# (analyze-health, chat-health, classify-meal, deep-research,
-#  biweekly-report, extract-lab, generate-recommendations, suggest-experiments,
-#  fetch-cal, fetch-ics). Полнота списка делает безопасным даже deploy-all.
+# Edge Function authentication modes are a complete deployment manifest.
+# Every local function must have exactly one explicit mode. The deployment
+# wrapper refuses incomplete or stale entries and verifies the live value after
+# every named deployment; an omitted default can preserve remote drift.
 
-[functions.ingest-health]
-verify_jwt = false   # HAE webhook, авторизуется по ?token=
+[functions.analyze-health]
+verify_jwt = true
 
-[functions.widget-data]
-verify_jwt = false   # iPhone-виджет (Scriptable), авторизуется по ?token= (widget_tokens)
-
-[functions.send-reminders]
-verify_jwt = false   # pg_cron каждые 5 мин, без Authorization
-
-[functions.sync-football-fixtures]
-verify_jwt = false   # football cron, авторизуется через x-cron-secret если задан
-
-[functions.send-football-reminders]
-verify_jwt = false   # football reminder cron, авторизуется через x-cron-secret если задан
-
-[functions.sync-cal]
-verify_jwt = false   # cron (x-cron-secret) + UI (user JWT) — делает свою авторизацию
-
-[functions.fetch-environment]
-verify_jwt = false   # cron (x-cron-secret) + UI (user JWT) — делает свою авторизацию
-
-[functions.telegram-bot]
-verify_jwt = false   # Telegram webhook, не Supabase JWT
-
-[functions.coach-weekly]
-verify_jwt = false   # pg_cron (coach-cron), без Authorization
-
-[functions.coach-profile]
-verify_jwt = false   # вызывается из coach-weekly/cron без user-JWT
-
-# Keep these security-sensitive modes explicit. A remote function can retain
-# its previous JWT setting when an omitted value is redeployed.
 [functions.biweekly-report]
 verify_jwt = true
+
+[functions.chat-health]
+verify_jwt = true
+
+[functions.classify-meal]
+verify_jwt = true
+
+[functions.coach-profile]
+verify_jwt = false # Custom service/user authentication in the handler.
+
+[functions.coach-weekly]
+verify_jwt = false # Scheduled worker authenticated by its cron boundary.
+
+[functions.deep-research]
+verify_jwt = true
+
+[functions.extract-lab]
+verify_jwt = true
+
+[functions.fetch-cal]
+verify_jwt = true
+
+[functions.fetch-environment]
+verify_jwt = false # Cron secret or user JWT is validated in the handler.
+
+[functions.fetch-ics]
+verify_jwt = true
+
+[functions.generate-recommendations]
+verify_jwt = true
+
+[functions.ingest-health]
+verify_jwt = false # Health Auto Export authenticates with a scoped ingest token.
+
+[functions.register-webhook]
+verify_jwt = false # Admin secret is validated in the handler.
+
+[functions.send-football-reminders]
+verify_jwt = false # Scheduled worker authenticated by its cron boundary.
+
+[functions.send-reminders]
+verify_jwt = false # Scheduled worker authenticated by its cron boundary.
 
 [functions.suggest-experiments]
 verify_jwt = true
 
-[functions.register-webhook]
-verify_jwt = false   # установка вебхука, без user-JWT
+[functions.supplement-schedule]
+verify_jwt = true
+
+[functions.sync-cal]
+verify_jwt = false # Cron secret or user JWT is validated in the handler.
+
+[functions.sync-football-fixtures]
+verify_jwt = false # Scheduled worker authenticated by its cron boundary.
+
+[functions.telegram-bot]
+verify_jwt = false # Telegram authenticates the webhook with its secret header.
+
+[functions.widget-data]
+verify_jwt = false # Scriptable authenticates with a scoped widget token.

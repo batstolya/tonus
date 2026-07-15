@@ -25,8 +25,9 @@ description: Use when changing readiness/sleep/recovery/stress score formulas, b
    и `src/lib/scores.test.ts` (клиентские + identity-тест единого источника).
    Поменял формулу — пересчитай и обнови golden-значения в обоих тест-файлах.
 3. `npm test` (Node 24!).
-4. Редеплой серверной части: `ingest-health` **обязательно с `--no-verify-jwt`**
-   (без флага автосинк молча ломается 401) — см. скилл `deploying-tonus`.
+4. Release `ingest-health` through `npm run deploy:functions` and the canonical
+   receipt workflow. Its JWT mode is pinned in `supabase/config.toml` and must
+   match live metadata after deployment — see the `deploying-tonus` skill.
 
 ## Контекст данных
 
@@ -38,7 +39,8 @@ description: Use when changing readiness/sleep/recovery/stress score formulas, b
 
 ## Частые ошибки
 
-- Задеплоить `ingest-health` без `--no-verify-jwt` → HAE-синк получает 401.
+- Bypass the canonical wrapper or let the live JWT mode drift from the manifest
+  → HAE sync can fail with 401.
 - Поправить формулу, но НЕ задеплоить `ingest-health` → веб уже считает по-новому,
   автосинк пишет в `daily_scores` по-старому.
 - Забыть пересчитать golden-значения → `npm test` падает, хотя формула верная.

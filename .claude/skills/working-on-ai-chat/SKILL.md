@@ -46,9 +46,11 @@ description: Use when modifying the Tonus AI chat (chat-health edge function), a
    `stubSupabase(dataByTable)` там же.
 4. Нужна чистая логика из `src/lib/`? Deno не импортирует из `src/` —
    копируй в `_shared/` (зеркала, как scores.ts) + зеркальный тест.
-5. Деплой: `npx supabase functions deploy chat-health --project-ref <ref>`
-   (БЕЗ `--no-verify-jwt` — это только для ingest-health). При правке
-   `_shared/*` передеплой все функции-импортёры: `grep -rl "_shared/имя" supabase/functions`.
+5. Release `chat-health` only through `npm run deploy:functions` and the
+   reviewed receipt workflow in `docs/guides/edge-function-deployments.md`.
+   JWT mode comes only from `supabase/config.toml`; never add an operator mode
+   override. When `_shared/*` changes, include every importer found with
+   `rg -l "_shared/<module>" supabase/functions --glob 'index.ts'`.
 
 ## Отладка «чат врёт/молчит»
 

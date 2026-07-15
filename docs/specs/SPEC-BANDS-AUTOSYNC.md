@@ -103,7 +103,8 @@ account.xiaomi.com → Privacy → экспорт ZIP/CSV → `XiaomiCsvImporter
 - **B2 (разведка):** поставить 1-2 экспортёра Health Connect на реальный Android c Mi Band,
   снять payload'ы, выбрать рекомендуемый экспортёр, зафиксировать формат в этой спеке.
 - **B3:** детектор формата + маппинг HC → staging в `ingest-health` (mode=shadow), тесты
-  на реальных payload'ах. Деплой с `--no-verify-jwt` (критично, см. deploying-tonus).
+  на реальных payload'ах. Release only through the canonical wrapper; the
+  `ingest-health` JWT mode comes from `supabase/config.toml` (see deploying-tonus).
 - **B4:** сверка staging vs ожидания (экран сверки уже есть) → shadow→live.
 - **B5:** `source_platform` + правки UI настроек и DeviceSelectScreen.
 

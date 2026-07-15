@@ -1,5 +1,9 @@
 # Магнитные бури (Kp-индекс) как фактор среды
 
+> [!CAUTION]
+> Historical execution record. Do not run deployment commands from this file.
+> Use `docs/guides/edge-function-deployments.md` and `npm run deploy:functions`.
+
 **Дата:** 2026-07-11 · **Статус:** approved (вариант «фактор в Исследованиях»)
 
 ## Задача

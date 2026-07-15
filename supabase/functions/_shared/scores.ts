@@ -4,7 +4,8 @@
 // - клиент: src/lib/scores.ts — фасад, re-export отсюда (Vite/tsc умеют .ts-импорт:
 //   allowImportingTsExtensions + moduleResolution bundler в tsconfig.app.json).
 // Зеркальной копии больше НЕТ — правишь формулы здесь, и это единственное место.
-// После правки задеплой ingest-health (--no-verify-jwt!), иначе сервер считает по-старому.
+// After changing formulas, release ingest-health through the canonical reviewed
+// Edge Function wrapper so the server does not keep the previous calculation.
 
 // Поля optional-nullable: клиент передаёт DailyMetrics (поля `hrv?: number`),
 // сервер — строки с явными null; оба совместимы структурно.

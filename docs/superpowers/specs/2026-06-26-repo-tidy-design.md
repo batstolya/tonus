@@ -1,5 +1,9 @@
 # Tonus — ТЗ: Наведение порядка в репозитории (docs/корень)
 
+> [!CAUTION]
+> Historical execution record. Do not run deployment commands from this file.
+> Use `docs/guides/edge-function-deployments.md` and `npm run deploy:functions`.
+
 ## 0. Цель
 
 Корень репозитория замусорен: 25 `.md`-файлов (19 спек + 6 черновых заметок),

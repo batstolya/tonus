@@ -1,5 +1,9 @@
 # Workout Schedule Implementation Plan
 
+> [!CAUTION]
+> Historical execution record. Do not run deployment commands from this file.
+> Use `docs/guides/edge-function-deployments.md` and `npm run deploy:functions`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Фиксированное расписание тренировок с умным Telegram-уведомлением за N часов и автоматическим план-vs-факт в AI-контексте, отчёте и виджете.

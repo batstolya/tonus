@@ -1,5 +1,9 @@
 # AI Chat Context Completeness — Implementation Plan
 
+> [!CAUTION]
+> Historical execution record. Do not run deployment commands from this file.
+> Use `docs/guides/edge-function-deployments.md` and `npm run deploy:functions`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Close data gaps in the shared AI chat context builder (bedtime/wake time, honest week-over-week comparisons, health concerns, health alerts, past recommendations, goal progress) and give the Gemini chat function-calling access to precise date ranges, so `chat-health` answers stop being incomplete or fabricated.

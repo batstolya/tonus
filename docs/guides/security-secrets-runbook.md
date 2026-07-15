@@ -1,51 +1,77 @@
-# Security secrets & deploy runbook
+# Security secrets and deploy runbook
 
-Все секреты живут в **Supabase Function secrets** (не Vercel env, не SQL, не git).
+Application secrets belong in Supabase Function secrets. Do not store them in
+Vercel environment variables, SQL, repository files, receipts, issues, pull
+requests, or terminal transcripts.
 
-## Required secrets
+## Authentication-boundary secrets covered here
 
-| Secret | Используется | Заголовок |
+This table is intentionally limited to credentials that authenticate inbound
+webhook, cron, and administrator requests. It is not a complete runtime-secret
+inventory. Provider, bot, encryption, and platform credentials such as
+`GEMINI_API_KEY`, `TELEGRAM_BOT_TOKEN`, `API_FOOTBALL_KEY`, `CAL_ENC_KEY`, and
+`SUPABASE_SERVICE_ROLE_KEY` remain part of the private credential inventory and
+rotation work; never infer their presence or status from this table.
+
+| Secret | Used by | Request boundary |
 |---|---|---|
-| `TELEGRAM_WEBHOOK_SECRET` | telegram-bot, register-webhook | `X-Telegram-Bot-Api-Secret-Token` |
-| `TONUS_CRON_SECRET` | send-reminders, coach-weekly, sync-cal, football fns | `x-cron-secret` |
-| `TONUS_ADMIN_SECRET` | register-webhook | `x-admin-secret` |
+| `TELEGRAM_WEBHOOK_SECRET` | `telegram-bot`, `register-webhook` | `X-Telegram-Bot-Api-Secret-Token` |
+| `TONUS_CRON_SECRET` | reminder, coaching, calendar, environment and football workers | `x-cron-secret` |
+| `TONUS_ADMIN_SECRET` | `register-webhook` | `x-admin-secret` |
 
-Временные алиасы при переходе (можно удалить после того, как все cron job'ы
-переведены на `TONUS_CRON_SECRET`): `CRON_SECRET` (sync-cal),
-`FOOTBALL_INTERNAL_SECRET` (football fns).
+Temporary migration aliases may still exist: `CRON_SECRET` for calendar sync
+and `FOOTBALL_INTERNAL_SECRET` for football workers. Remove them only after
+every live caller has moved to `TONUS_CRON_SECRET` and its smoke check passes.
 
-## Set secrets
+## Setting or rotating secrets
 
-    npx supabase secrets set TONUS_CRON_SECRET=<random> TONUS_ADMIN_SECRET=<random> --project-ref <ref>
-    # TELEGRAM_WEBHOOK_SECRET уже задан; проверь, что не пустой.
+Use the Supabase dashboard or an authenticated local CLI session. Never put the
+value on a command line that will be retained in a public transcript. Record
+only the secret name, owner, rotation time, affected callers, and sanitized
+verification result.
 
-## Deploy order
+Rotate callers and callees in a reviewed order that keeps at least one valid
+credential boundary throughout the transition. A missing runtime secret must
+fail closed before any side effect.
 
-1. Задать секреты (выше).
-2. Задеплоить функции:
+## Deploying affected functions
 
-       npx supabase functions deploy telegram-bot send-reminders coach-weekly sync-cal send-football-reminders sync-football-fixtures register-webhook --no-verify-jwt --project-ref <ref>
+Use only the explicit wrapper, smoke, and receipt workflow in
+[Edge Function Deployment Guide](edge-function-deployments.md). Do not copy old
+multi-function commands or add `--no-verify-jwt` manually. JWT modes come from
+the complete `supabase/config.toml` manifest and must match live metadata after
+each named deployment.
 
-   (`--no-verify-jwt` — как и раньше; эти функции сами проверяют секреты.)
-3. **Заново зарегистрировать webhook** (иначе Telegram шлёт без нового header):
+After changing a shared secret contract, list every caller and callee in the
+review and deployment record. Deploy one function at a time and stop on the
+first failure.
 
-       curl -X POST https://<ref>.supabase.co/functions/v1/register-webhook \
-         -H 'x-admin-secret: <TONUS_ADMIN_SECRET>' -H 'content-type: application/json' -d '{}'
+## Telegram webhook rotation
 
-4. Обновить `x-cron-secret` в pg_cron / планировщике на значение `TONUS_CRON_SECRET`.
+After `TELEGRAM_WEBHOOK_SECRET` changes, register the webhook again through the
+reviewed `register-webhook` boundary. Do not put the admin secret or webhook
+secret in a public command, log, screenshot, receipt, or PR. Verify with a
+sanitized real-bot action only when that action cannot expose user data.
 
-## Manual verification (spec §6 «перед релизом»)
+## Required post-change checks
 
-- Настоящий Telegram update проходит (напиши боту).
-- `curl` в telegram-bot без header → 401.
-- `curl` в send-reminders без `x-cron-secret` → 401.
-- `curl` в coach-weekly без Authorization и без cron secret → 401.
-- cron с правильным `x-cron-secret` отрабатывает.
-- Логи функций не печатают значения токенов/заголовков.
+- `telegram-bot` rejects a request without the webhook secret.
+- `send-reminders` rejects a request without the cron secret.
+- `coach-weekly` rejects a request without its documented user or cron
+  credential.
+- a trusted scheduled call with the rotated secret still succeeds exactly
+  once;
+- the Telegram webhook accepts one expected update;
+- logs and receipts contain no secret value, header, payload, response body,
+  user identifier, or health data;
+- all synthetic fixtures and temporary credentials are removed.
 
-## Session rotation (после удаления browser-profile из git)
+Attach only the sanitized smoke result to the change record.
 
-Профиль `claude-monitor/browser-profile/` лежал в git. Ротировать всё, что там
-могло быть: залогиненные сессии в Chromium (Telegram web, Google/Supabase),
-cookies. History rewrite отложен (репо приватное) — при первом расширении
-доступа к репозиторию выполнить очистку истории и force-push.
+## Historical browser-session rotation
+
+The removed `claude-monitor/browser-profile/` directory once contained browser
+session material. Treat any session or credential that could have existed
+there as exposed until its revocation or rotation is privately verified.
+Record credential family, status, date, and owner, never the value. Repository
+history cleanup does not replace session revocation.

@@ -5,7 +5,8 @@ import { computeDailyScores, avg } from '../../supabase/functions/_shared/scores
 // Формулы дневных оценок живут в ОДНОМ месте — supabase/functions/_shared/scores.ts
 // (чистый модуль, его же импортирует ingest-health). Этот файл — клиентский фасад:
 // re-export расчёта + браузерные надстройки (persist в supabase, отклонения от нормы).
-// После правки формул задеплой ingest-health (--no-verify-jwt!).
+// After changing formulas, release ingest-health through the canonical reviewed
+// Edge Function wrapper so the server does not keep the previous calculation.
 
 export { computeDailyScores }
 export type { DailyScore, ScoreInput } from '../../supabase/functions/_shared/scores'

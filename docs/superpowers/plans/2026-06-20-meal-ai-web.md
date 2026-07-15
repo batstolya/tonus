@@ -1,5 +1,9 @@
 # Meal AI Web Input Implementation Plan
 
+> [!CAUTION]
+> Historical execution record. Do not run deployment commands from this file.
+> Use `docs/guides/edge-function-deployments.md` and `npm run deploy:functions`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add AI-powered meal logging directly from the web — user uploads a photo or types what they ate, Gemini returns dish name + calories + macros, result is saved to `intake_events` and shown in NutritionScreen.

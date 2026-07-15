@@ -1,5 +1,9 @@
 # Умный Tonus: страж здоровья, единый AI-контекст, лаг-корреляции (+виджет, погода, соблюдение)
 
+> [!CAUTION]
+> Historical execution record. Do not run deployment commands from this file.
+> Use `docs/guides/edge-function-deployments.md` and `npm run deploy:functions`.
+
 Дата: 2026-07-05 · Статус: **ВСЁ РЕАЛИЗОВАНО И ЗАДЕПЛОЕНО 2026-07-05/06** (F1–F6)
 
 Заметки реализации: health_alerts оказалась существующим дедуп-леджером

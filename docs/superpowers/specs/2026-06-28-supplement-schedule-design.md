@@ -1,5 +1,9 @@
 # Tonus — ТЗ: ИИ «Идеальное время приёма добавок»
 
+> [!CAUTION]
+> Historical execution record. Do not run deployment commands from this file.
+> Use `docs/guides/edge-function-deployments.md` and `npm run deploy:functions`.
+
 ## 0. Цель
 
 На странице «Препараты и добавки» (`SupplementsScreen`) добавить ИИ-функцию,

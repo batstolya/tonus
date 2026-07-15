@@ -1,5 +1,9 @@
 # Readiness Forecast Implementation Plan
 
+> [!CAUTION]
+> Historical execution record. Do not run deployment commands from this file.
+> Use `docs/guides/edge-function-deployments.md` and `npm run deploy:functions`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Детерминированный прогноз readiness на завтра: движок → вечернее сообщение бота → карточка на дашборде → бэктест (SPEC-READINESS-FORECAST.md).

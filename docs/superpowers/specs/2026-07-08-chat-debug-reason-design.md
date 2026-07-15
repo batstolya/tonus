@@ -1,5 +1,9 @@
 # Chat debug-режим «причина в скобках»
 
+> [!CAUTION]
+> Historical execution record. Do not run deployment commands from this file.
+> Use `docs/guides/edge-function-deployments.md` and `npm run deploy:functions`.
+
 **Дата:** 2026-07-08
 **Статус:** дизайн одобрен, ждёт плана
 **Характер:** временный диагностический режим (~1 неделя), за env-флагом

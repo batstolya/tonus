@@ -1,5 +1,9 @@
 # Connect Guide (анимированный гайд подключения) — Implementation Plan
 
+> [!CAUTION]
+> Historical execution record. Do not run deployment commands from this file.
+> Use `docs/guides/edge-function-deployments.md` and `npm run deploy:functions`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Пошаговый анимированный wizard, который доводит нового пользователя от пустого аккаунта до первого принятого payload'а из Health Auto Export (спека `docs/specs/SPEC-CONNECT-GUIDE.md`, плюс этап B1 из `docs/specs/SPEC-BANDS-AUTOSYNC.md` — ветка «Mi Band + iPhone»).

@@ -41,8 +41,8 @@ Service key обходит RLS — не выводи чужие данные и 
 ## Типовые проверки
 
 - «Данные не обновляются» → `ingest_tokens.last_ingest_at`; если давно —
-  смотри логи `ingest-health` (частая причина: задеплоили без `--no-verify-jwt`,
-  см. `deploying-tonus`).
+  inspect `ingest-health` logs and compare its live JWT mode with
+  `supabase/config.toml` and the deployment receipt (see `deploying-tonus`).
 - «Скоры не совпадают с приложением» → сравни `daily_scores` с расчётом клиента,
   см. скилл `updating-score-formulas` (две копии формул).
 - Ошибки бота → логи `telegram-bot`.
