@@ -183,6 +183,8 @@ npm run media:readme
 
 | Location | Contents |
 |---|---|
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Local setup, required checks and pull request workflow |
+| [`SECURITY.md`](SECURITY.md) | Private vulnerability reporting and disclosure policy |
 | [`docs/specs/`](docs/specs/) | Product and feature specifications |
 | [`docs/guides/`](docs/guides/) | Operations, calendar export, reminders and security guides |
 | [`.claude/skills/`](.claude/skills/) | Repository workflows for AI coding agents |
