@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient, type User } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient, type User } from 'npm:@supabase/supabase-js@2.110.2'
 import { checkBudget } from '../_shared/costGuard.ts'
 import { daysSinceFreshData } from '../_shared/staleness.ts'
 import { plannedDaysInRange, attendance, scheduleWeekdays, type DayTimes } from '../_shared/workoutPlan.ts'

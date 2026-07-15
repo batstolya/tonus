@@ -1,7 +1,7 @@
 // Версионирование промптов (#3). Активная версия берётся из ai_prompts;
 // если таблицы/строки нет — используется fallback из кода (ничего не ломается).
 
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import type { SupabaseClient } from 'npm:@supabase/supabase-js@2.110.2'
 
 export interface ResolvedPrompt {
   text: string

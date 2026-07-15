@@ -2,7 +2,7 @@
 // Один источник правды: бот, коуч, отчёты используют его, чтобы логика
 // контекста не разъезжалась между функциями (см. new-speca-refactoring #1).
 
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import type { SupabaseClient } from 'npm:@supabase/supabase-js@2.110.2'
 import { plannedDaysInRange, attendance, scheduleWeekdays, type DayTimes } from './workoutPlan.ts'
 
 export interface HealthContextOptions {

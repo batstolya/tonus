@@ -14,7 +14,7 @@ if (files.length === 0) {
 // non-zero; a clean run exits 0 without the summary line.
 let count = 0
 try {
-  execFileSync('deno', ['check', ...files], {
+  execFileSync('deno', ['check', '--node-modules-dir=none', ...files], {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
     env: { ...process.env, NO_COLOR: '1' },

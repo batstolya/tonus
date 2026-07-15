@@ -24,9 +24,11 @@ not release instructions.
 - Deploy from an immutable archive materialized from the reviewed Git object,
   never from mutable worktree bytes.
 - Recursively validate every literal module import reachable from each selected
-  `index.ts`; remote modules must use an allowlisted host plus an exact semantic
-  version or immutable GitHub commit. A root lockfile alone is not deployment
-  proof for API-side bundling.
+  `index.ts`; npm specifiers must use exact versions, and remote modules must use
+  an allowlisted host plus an exact semantic version or immutable GitHub
+  commit. Resolve the selected entrypoints against the checked-in `deno.lock`
+  with Deno's frozen mode before any Supabase request. A lockfile that was not
+  validated against the complete transitive graph is not deployment proof.
 - Reject non-literal dynamic imports, custom entrypoints, Deno/import-map
   manifests, and package manifests until the wrapper has reviewed resolver
   support and adversarial tests for them.
@@ -88,6 +90,7 @@ npm run test:readme
 npm run lint:ceiling
 npm run lint:diff -- <merge-base>
 npm run check:functions
+npm run check:edge-lock
 npm run gen:types:check
 VITE_SUPABASE_URL=http://localhost:54321 \
   VITE_SUPABASE_ANON_KEY=test-anon-key \
@@ -118,8 +121,9 @@ receipt parent directory must already exist.
 ## 4. Run a network-free preflight
 
 The same production command supports `--dry-run`. It validates the checkout,
-project, full function manifest, target list, tracked Deno lockfile, and receipt
-path without calling Supabase:
+project, full function manifest, target list, tracked Deno lockfile, complete
+selected dependency graph in frozen mode, and receipt path without calling
+Supabase:
 
 ```bash
 npm run deploy:functions -- deploy \
@@ -261,7 +265,8 @@ Do not deploy, or stop immediately, when any of these is true:
   or a source-identical bundle was not explicitly approved;
 - downloaded live source differs from the reviewed Git blobs, or the live
   version/hash/JWT tuple changes during verification or smoke;
-- a selected function or shared module uses a floating remote dependency;
+- a selected function or shared module uses a floating dependency or cannot be
+  resolved from the checked-in lockfile in frozen mode;
 - a selected module graph uses a non-literal import, bare alias, custom
   entrypoint, or unsupported dependency manifest;
 - a smoke check cannot use synthetic data or cannot clean up safely;

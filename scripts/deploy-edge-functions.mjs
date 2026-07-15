@@ -388,6 +388,31 @@ function validateSnapshotModuleGraph(snapshotPath, functions) {
       queue.push(importedPath)
     }
   }
+
+  const lockPath = join(snapshotPath, 'deno.lock')
+  const entrypoints = functions.map((name) => join(functionsRoot, name, 'index.ts'))
+  const frozen = spawnSync(
+    'deno',
+    [
+      'cache',
+      '--no-config',
+      '--lock', lockPath,
+      '--frozen',
+      '--node-modules-dir=none',
+      ...entrypoints,
+    ],
+    {
+      cwd: snapshotPath,
+      encoding: 'utf8',
+      shell: false,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: { ...process.env, NO_COLOR: '1' },
+      maxBuffer: MAX_OUTPUT,
+    },
+  )
+  if (frozen.error || frozen.status !== 0) {
+    fail('preflight', 'dependency_lock_invalid')
+  }
 }
 
 function removeSnapshot(snapshot) {

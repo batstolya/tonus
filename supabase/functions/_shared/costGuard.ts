@@ -1,7 +1,7 @@
 // AI Cost Guard — единый предохранитель бюджета перед каждым вызовом Gemini
 // (см. new-speca-refactoring #2). Источник лимита: profiles.ai_budget_usd.
 
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import type { SupabaseClient } from 'npm:@supabase/supabase-js@2.110.2'
 
 const COST_PER_1M = 0.30 // Gemini 2.5 Flash, $/1M токенов (как на фронте)
 

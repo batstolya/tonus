@@ -51,6 +51,8 @@ npm run gen:types:check
   branch history to be available locally.
 - `check:functions` is the equivalent Deno type-check ratchet for Edge
   Functions and requires Deno 2.
+- `check:edge-lock` resolves every Edge Function entrypoint with a frozen
+  `deno.lock`; direct and transitive dependency drift fails before deployment.
 - `gen:types:check` verifies generated database types when Supabase credentials
   are available; without them it reports that the live drift check was skipped.
 - Run `npm run test:readme` when changing either README or its media.

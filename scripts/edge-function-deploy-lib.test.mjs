@@ -507,3 +507,22 @@ test('requires exact versions for every remote module import in a deployment gra
     },
   ]), /unpinned remote module import/i)
 })
+
+test('every checked-in Edge Function source uses reproducible module specifiers', () => {
+  const root = new URL('../supabase/functions/', import.meta.url)
+  const sources = []
+  const visit = (directory) => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const url = new URL(entry.name, directory)
+      if (entry.isDirectory()) {
+        visit(new URL(`${entry.name}/`, directory))
+      } else if (entry.isFile() && /\.[cm]?[jt]sx?$/.test(entry.name)) {
+        sources.push({ path: url.pathname, source: readFileSync(url, 'utf8') })
+      }
+    }
+  }
+  visit(root)
+
+  assert.ok(sources.length > 20)
+  assert.doesNotThrow(() => validatePinnedRemoteImports(sources))
+})

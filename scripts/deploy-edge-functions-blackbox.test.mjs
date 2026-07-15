@@ -76,6 +76,13 @@ if (action === 'list') {
 }
 `
 
+const FAKE_DENO = `#!/usr/bin/env node
+import { appendFileSync } from 'node:fs'
+
+appendFileSync(process.env.FAKE_DENO_LOG, JSON.stringify({ args: process.argv.slice(2), cwd: process.cwd() }) + '\\n')
+if (process.env.FAKE_DENO_FAIL === '1') process.exit(8)
+`
+
 function git(repo, args) {
   return execFileSync('git', args, { cwd: repo, encoding: 'utf8' }).trim()
 }
@@ -126,8 +133,12 @@ function fixture({
   const fakeNpx = join(bin, 'npx')
   writeFileSync(fakeNpx, FAKE_NPX, { mode: 0o755 })
   chmodSync(fakeNpx, 0o755)
+  const fakeDeno = join(bin, 'deno')
+  writeFileSync(fakeDeno, FAKE_DENO, { mode: 0o755 })
+  chmodSync(fakeDeno, 0o755)
   const statePath = join(root, 'state.json')
   const logPath = join(root, 'calls.ndjson')
+  const denoLogPath = join(root, 'deno-calls.ndjson')
   writeFileSync(statePath, JSON.stringify({
     failDeploy,
     live: [{
@@ -140,7 +151,8 @@ function fixture({
     }],
   }))
   writeFileSync(logPath, '')
-  return { root, repo, bin, receiptDir, statePath, logPath, sha }
+  writeFileSync(denoLogPath, '')
+  return { root, repo, bin, receiptDir, statePath, logPath, denoLogPath, sha }
 }
 
 function runDeploy(value, extraEnv = {}) {
@@ -166,6 +178,7 @@ function runDeploy(value, extraEnv = {}) {
         PATH: `${value.bin}:${process.env.PATH}`,
         FAKE_SUPABASE_STATE: value.statePath,
         FAKE_SUPABASE_LOG: value.logPath,
+        FAKE_DENO_LOG: value.denoLogPath,
         FAKE_REPO: value.repo,
         SECRET_SENTINEL,
         ...extraEnv,
@@ -199,7 +212,28 @@ test('actual CLI deploys immutable reviewed bytes and leaves a sanitized pending
     assert.equal(deployCall.args.includes('supabase@2.109.1'), true)
     assert.equal(calls.some((call) => call.args.includes('--no-verify-jwt')), false)
     assert.equal(calls.some((call) => call.args.includes('--prune')), false)
+    const denoCalls = readFileSync(value.denoLogPath, 'utf8').trim().split('\n').map(JSON.parse)
+    assert.equal(denoCalls.length, 1)
+    assert.deepEqual(denoCalls[0].args.slice(0, 2), ['cache', '--no-config'])
+    assert.equal(denoCalls[0].args.includes('--frozen'), true)
+    assert.equal(denoCalls[0].args.includes('--lock'), true)
+    assert.equal(denoCalls[0].args.some((arg) => arg.endsWith('/deno.lock')), true)
+    assert.equal(denoCalls[0].args.some((arg) => arg.endsWith('/chat-health/index.ts')), true)
     assert.match(readFileSync(join(value.repo, 'supabase/functions/chat-health/index.ts'), 'utf8'), /mutable worktree edit/)
+  } finally {
+    rmSync(value.root, { recursive: true, force: true })
+  }
+})
+
+test('actual CLI rejects a stale transitive dependency lock before Supabase or receipt mutation', () => {
+  const value = fixture()
+  try {
+    const { result, receipt } = runDeploy(value, { FAKE_DENO_FAIL: '1' })
+    assert.notEqual(result.status, 0)
+    assert.match(result.stderr, /dependency_lock_invalid/)
+    assert.equal(readFileSync(value.logPath, 'utf8'), '')
+    assert.equal(existsSync(receipt), false)
+    assert.notEqual(readFileSync(value.denoLogPath, 'utf8'), '')
   } finally {
     rmSync(value.root, { recursive: true, force: true })
   }
