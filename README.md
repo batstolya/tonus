@@ -183,8 +183,11 @@ npm run media:readme
 
 | Location | Contents |
 |---|---|
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Local setup, required checks and pull request workflow |
+| [`SECURITY.md`](SECURITY.md) | Private vulnerability reporting and disclosure policy |
 | [`docs/specs/`](docs/specs/) | Product and feature specifications |
 | [`docs/guides/`](docs/guides/) | Operations, calendar export, reminders and security guides |
+| [`docs/guides/edge-function-deployments.md`](docs/guides/edge-function-deployments.md) | Reviewed Supabase deployment, smoke and receipt workflow |
 | [`.claude/skills/`](.claude/skills/) | Repository workflows for AI coding agents |
 | [`CLAUDE.md`](CLAUDE.md) | Codebase orientation and working conventions |
 
