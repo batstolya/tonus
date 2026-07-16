@@ -116,7 +116,7 @@
     },
     "biweekly-report": {
       "authOwner": "gateway:user-jwt-or-internal-secret",
-      "credentialType": "user-or-internal-secret-or-service-role",
+      "credentialType": "user-or-internal-secret",
       "cors": "allowlist",
       "rateLimit": "ai-budget",
       "dataSensitivity": "health"
@@ -137,7 +137,7 @@
     },
     "coach-profile": {
       "authOwner": "handler:user-jwt-or-internal-secret",
-      "credentialType": "user-or-internal-secret-or-service-role",
+      "credentialType": "user-or-internal-secret",
       "cors": "allowlist",
       "rateLimit": "ai-budget",
       "dataSensitivity": "health"
@@ -228,7 +228,7 @@
     },
     "suggest-experiments": {
       "authOwner": "gateway:user-jwt-or-internal-secret",
-      "credentialType": "user-or-internal-secret-or-service-role",
+      "credentialType": "user-or-internal-secret",
       "cors": "allowlist",
       "rateLimit": "ai-budget",
       "dataSensitivity": "health"

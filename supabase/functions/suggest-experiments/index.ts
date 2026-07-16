@@ -1,7 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { checkBudget, budgetExceededMessage } from '../_shared/costGuard.ts'
-import { isServiceRoleCall } from '../_shared/serviceRoleAuth.ts'
 import { isValidInternalSecret } from '../_shared/auth.ts'
 import { aiConsentRequiredResponse, fetchGeminiWithConsent, isAiConsentRequired } from '../_shared/aiConsent.ts'
 import { corsHeadersFor } from '../_shared/cors.ts'
@@ -60,10 +59,10 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization') ?? ''
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
-    // Service-role вызов из telegram-bot с x-user-id (паттерн biweekly-report)
+    // Internal call from telegram-bot with x-user-id + x-internal-secret (biweekly-report pattern)
     const serviceUserId = req.headers.get('x-user-id')
     let user: { id: string } | null = null
-    if (serviceUserId && (isValidInternalSecret(req, INTERNAL_SECRET) || isServiceRoleCall(req, SUPABASE_SERVICE_KEY))) {
+    if (serviceUserId && isValidInternalSecret(req, INTERNAL_SECRET)) {
       const { data } = await supabase.auth.admin.getUserById(serviceUserId)
       user = data.user
     } else {
