@@ -10,6 +10,7 @@ import { detectSaveIntent } from '../_shared/saveIntent.ts'
 import { parseFootballCallback, buildFootballResponseText, localizeRoundName } from '../_shared/football.ts'
 import { isValidTelegramSecret } from '../_shared/auth.ts'
 import { addDays as expAddDays, computeBaselineStart, metricLabel as expMetricLabel } from '../_shared/experiments.ts'
+import { withObservability } from '../_shared/observability.ts'
 import {
   loadOwnedChatHistory,
   resolveOrCreateOwnedChatSession,
@@ -681,7 +682,7 @@ async function handleExperimentSuggest(chatId: number | string, userId: string, 
 
 // ── Main handler ──────────────────────────────────────────────────────────────
 
-serve(async (req) => {
+const handler = async (req: Request) => {
   // Fail closed: секрет обязателен в runtime (спека §3.1).
   if (!WEBHOOK_SECRET) return new Response('webhook secret not configured', { status: 503 })
   // Проверяем заголовок Telegram ДО чтения тела, setupCommands и createClient.
@@ -1431,4 +1432,6 @@ serve(async (req) => {
       .eq('user_id', userId)
   }
   return new Response('ok')
-})
+}
+
+serve(withObservability('edge.telegram_bot', handler))

@@ -12,6 +12,7 @@ import { forecastReadiness } from '../_shared/forecast.ts'
 import { forecastBlock } from '../_shared/forecastMessage.ts'
 import { computeBaselineStart, computeResult, type ExpDaily, type ExperimentRow } from '../_shared/experiments.ts'
 import { verdictMessage } from '../_shared/experimentVerdict.ts'
+import { withObservability } from '../_shared/observability.ts'
 
 const TG_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -93,7 +94,7 @@ async function buildForecastText(
   }
 }
 
-serve(async (req) => {
+const handler = async (req: Request) => {
   // Fail closed: без корректного cron-секрета не читаем таблицы и не шлём (спека §3.2).
   if (!isValidCronSecret(req, CRON_SECRET)) return new Response('unauthorized', { status: 401 })
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
@@ -688,7 +689,9 @@ serve(async (req) => {
   }), {
     headers: { 'Content-Type': 'application/json' },
   })
-})
+}
+
+serve(withObservability('edge.send_reminders', handler))
 
 // время дозы наступило в текущем 5-минутном окне cron
 function timeDue(target: string, nowHHMM: string): boolean {
