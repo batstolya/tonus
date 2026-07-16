@@ -1,31 +1,12 @@
 import { useState, useEffect } from 'react'
 import type { User } from '@supabase/supabase-js'
-import { supabase } from '../../lib/supabase'
+import {
+  getTreatments, getSupplementOptions, getMetricDailyRows, createTreatment, deleteTreatment,
+  type SupplementOption, type Treatment, type MetricRow,
+} from '../../lib/api/supplements'
 import { isDemoActive } from '../../lib/demo'
 import { demoList, demoInsert, demoRemove, demoId } from '../../lib/demoDb'
 import { useT } from '../../lib/i18n'
-
-interface SupplementItem {
-  id: string
-  name: string
-}
-
-interface Treatment {
-  id: string
-  user_id: string
-  supplement_id: string | null
-  name: string
-  started_at: string
-  outcome_metrics: string[]
-  notes: string | null
-  created_at: string
-}
-
-interface MetricRow {
-  date: string
-  metric: string
-  avg_val: number
-}
 
 interface MetricComparison {
   metric: string
@@ -72,7 +53,7 @@ interface Props {
 export function TreatmentTracker({ user }: Props) {
   const { t } = useT()
   const [treatments, setTreatments] = useState<Treatment[]>([])
-  const [supplements, setSupplements] = useState<SupplementItem[]>([])
+  const [supplements, setSupplements] = useState<SupplementOption[]>([])
   const [comparisons, setComparisons] = useState<Record<string, MetricComparison[]>>({})
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -88,26 +69,15 @@ export function TreatmentTracker({ user }: Props) {
   useEffect(() => {
     async function load() {
       setLoading(true)
-      const [{ data: treatData }, { data: supData }] = isDemoActive()
+      const [treatData, supData] = isDemoActive()
         ? [
-          { data: demoList('treatments').sort((a, b) => b.started_at.localeCompare(a.started_at)) },
-          { data: demoList('supplements').map(s => ({ id: s.id, name: s.name })) },
+          demoList('treatments').sort((a, b) => b.started_at.localeCompare(a.started_at)),
+          demoList('supplements').map(s => ({ id: s.id, name: s.name })),
         ]
-        : await Promise.all([
-        supabase
-          .from('treatments')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('started_at', { ascending: false }),
-        supabase
-          .from('supplements')
-          .select('id, name')
-          .eq('user_id', user.id)
-          .order('name'),
-      ])
-      const treats = (treatData ?? []) as Treatment[]
+        : await Promise.all([getTreatments(user.id), getSupplementOptions(user.id)])
+      const treats = treatData as Treatment[]
       setTreatments(treats)
-      setSupplements((supData ?? []) as SupplementItem[])
+      setSupplements(supData as SupplementOption[])
 
       // Fetch metric comparisons for treatments with 30+ days of data
       const comps: Record<string, MetricComparison[]> = {}
@@ -119,17 +89,9 @@ export function TreatmentTracker({ user }: Props) {
         const beforeEnd   = addDays(tr.started_at, -1)
         const afterEnd    = today
 
-        const { data: rows } = await supabase
-          .from('metrics_daily')
-          .select('date, metric, avg_val')
-          .eq('user_id', user.id)
-          .in('metric', ['hrv', 'restingHeartRate', 'sleepHours'])
-          .gte('date', beforeStart)
-          .lte('date', afterEnd)
-
-        if (!rows) continue
-
-        const typedRows = rows as MetricRow[]
+        const typedRows: MetricRow[] = await getMetricDailyRows(
+          user.id, ['hrv', 'restingHeartRate', 'sleepHours'], beforeStart, afterEnd,
+        )
         const beforeRows = typedRows.filter(r => r.date >= beforeStart && r.date <= beforeEnd)
         const afterRows  = typedRows.filter(r => r.date >= tr.started_at && r.date <= afterEnd)
 
@@ -178,18 +140,13 @@ export function TreatmentTracker({ user }: Props) {
       setFormDate(toDateStr(new Date())); setSaving(false)
       return
     }
-    const { data, error } = await supabase
-      .from('treatments')
-      .insert({
-        user_id:       user.id,
-        supplement_id: formSupId || null,
-        name,
-        started_at:    formDate,
-      })
-      .select()
-      .single()
-    if (!error && data) {
-      setTreatments(prev => [data as Treatment, ...prev])
+    const created = await createTreatment(user.id, {
+      supplement_id: formSupId || null,
+      name,
+      started_at: formDate,
+    })
+    if (created) {
+      setTreatments(prev => [created, ...prev])
     }
     setShowForm(false)
     setFormSupId('')
@@ -200,7 +157,7 @@ export function TreatmentTracker({ user }: Props) {
 
   async function handleDelete(id: string) {
     if (isDemoActive()) demoRemove('treatments', id)
-    else await supabase.from('treatments').delete().eq('id', id)
+    else await deleteTreatment(id)
     setTreatments(prev => prev.filter(tr => tr.id !== id))
     setComparisons(prev => {
       const next = { ...prev }
