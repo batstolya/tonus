@@ -17,12 +17,14 @@ import {
   type ChatHistoryClient,
   type SessionOwnershipClient,
 } from '../_shared/chatSessionOwnership.ts'
+import { fetchGeminiWithConsent, isAiConsentRequired } from '../_shared/aiConsent.ts'
 
 const TG_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const WEBHOOK_SECRET = Deno.env.get('TELEGRAM_WEBHOOK_SECRET') ?? ''
 const MAX_CHAT_MESSAGE_LENGTH = 4096
+const AI_CONSENT_TELEGRAM_MESSAGE = '🔒 Чтобы использовать функции ИИ, открой Tonus → Настройки → Обработка данных ИИ и дай согласие.'
 
 // ── Telegram API helpers ──────────────────────────────────────────────────────
 
@@ -133,6 +135,13 @@ async function handleReport(chatId: number | string, userId: string, _supabase: 
       'x-user-id': userId,
     },
   })
+  if (reportRes.status === 403) {
+    const error = await reportRes.json().catch(() => null)
+    if (error?.error === 'ai_consent_required') {
+      await tgSend(chatId, AI_CONSENT_TELEGRAM_MESSAGE, { reply_markup: BACK_MENU })
+      return
+    }
+  }
   if (!reportRes.ok) {
     await tgSend(chatId, '❌ Не удалось сгенерировать отчёт. Попробуй позже.', { reply_markup: BACK_MENU })
   }
@@ -202,7 +211,7 @@ interface MealEstimate {
   protein_g?: number | null; carbs_g?: number | null; fat_g?: number | null
   is_food?: boolean
 }
-async function classifyMealPhoto(base64: string, mime: string, caption: string): Promise<{ parsed: MealEstimate; tokens: number | null } | null> {
+async function classifyMealPhoto(userId: string, supabase: SupabaseClient, base64: string, mime: string, caption: string): Promise<{ parsed: MealEstimate; tokens: number | null } | null> {
   if (!GEMINI_KEY) return null
   const prompt = `На фото — еда. Оцени блюдо и его пищевую ценность по виду и типичным порциям.${caption ? ` Подпись пользователя: "${caption}".` : ''}
 Верни ТОЛЬКО JSON:
@@ -216,7 +225,9 @@ async function classifyMealPhoto(base64: string, mime: string, caption: string):
 }
 Если еды нет — is_food=false и остальное null. Не выдумывай точность, давай разумную оценку.`
   try {
-    const res = await fetch(
+    const res = await fetchGeminiWithConsent(
+      supabase,
+      userId,
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
       {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -231,15 +242,20 @@ async function classifyMealPhoto(base64: string, mime: string, caption: string):
     const tokens = data.usageMetadata?.totalTokenCount ?? null
     const raw = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}'
     return { parsed: JSON.parse(raw), tokens }
-  } catch { return null }
+  } catch (e) {
+    if (isAiConsentRequired(e)) throw e
+    return null
+  }
 }
 
 // Голосовое/аудио → текст через Gemini (inline-аудио). Возвращает распознанную речь.
-async function transcribeVoice(base64: string, mime: string): Promise<{ text: string; tokens: number | null } | null> {
+async function transcribeVoice(userId: string, supabase: SupabaseClient, base64: string, mime: string): Promise<{ text: string; tokens: number | null } | null> {
   if (!GEMINI_KEY) return null
   const prompt = `Это голосовое сообщение пользователя приложения о здоровье (еда, самочувствие, привычки, вопросы). Точно транскрибируй речь в текст на языке оригинала (русский или украинский). Верни ТОЛЬКО распознанный текст — без пояснений, без кавычек.`
   try {
-    const res = await fetch(
+    const res = await fetchGeminiWithConsent(
+      supabase,
+      userId,
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
       {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -254,7 +270,10 @@ async function transcribeVoice(base64: string, mime: string): Promise<{ text: st
     const tokens = data.usageMetadata?.totalTokenCount ?? null
     const raw = (data.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim()
     return { text: raw, tokens }
-  } catch { return null }
+  } catch (e) {
+    if (isAiConsentRequired(e)) throw e
+    return null
+  }
 }
 
 async function handleMealPhoto(chatId: number | string, userId: string, fileId: string, caption: string, tz: string, supabase: SupabaseClient): Promise<void> {
@@ -269,7 +288,14 @@ async function handleMealPhoto(chatId: number | string, userId: string, fileId: 
   const base64 = btoa(bin)
   const mime = filePath.endsWith('.png') ? 'image/png' : 'image/jpeg'
 
-  const out = await classifyMealPhoto(base64, mime, caption)
+  let out: Awaited<ReturnType<typeof classifyMealPhoto>>
+  try {
+    out = await classifyMealPhoto(userId, supabase, base64, mime, caption)
+  } catch (e) {
+    if (!isAiConsentRequired(e)) throw e
+    await tgSend(chatId, AI_CONSENT_TELEGRAM_MESSAGE, { reply_markup: BACK_MENU })
+    return
+  }
   if (out?.tokens) await supabase.from('ai_usage').insert({ user_id: userId, source: 'meal-photo', tokens_used: out.tokens })
   const r = out?.parsed
   if (!r || r.is_food === false) { await tgSend(chatId, '🤔 Не вижу еду на фото. Пришли фото блюда — оценю калории.'); return }
@@ -293,12 +319,14 @@ interface ClassifiedAction {
   calories?: number | null; protein_g?: number | null; carbs_g?: number | null; fat_g?: number | null
   coffee_in_meal?: boolean | null
 }
-async function classifyLog(text: string, supplementNames: string[], now: Date, tz: string): Promise<ClassifiedAction | null> {
+async function classifyLog(userId: string, supabase: SupabaseClient, text: string, supplementNames: string[], now: Date, tz: string): Promise<ClassifiedAction | null> {
   if (!GEMINI_KEY) return null
   const prompt = buildClassifyPrompt(text, supplementNames, now, tz)
 
   try {
-    const res = await fetch(
+    const res = await fetchGeminiWithConsent(
+      supabase,
+      userId,
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
       {
         method: 'POST',
@@ -314,7 +342,10 @@ async function classifyLog(text: string, supplementNames: string[], now: Date, t
     const raw = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}'
     const parsed = JSON.parse(raw)
     return parsed?.action && parsed.action !== 'chat' ? parsed : null
-  } catch { return null }
+  } catch (e) {
+    if (isAiConsentRequired(e)) throw e
+    return null
+  }
 }
 
 // Выполняет распознанное действие. Возвращает текст подтверждения или null.
@@ -442,7 +473,9 @@ async function handleAiChat(chatId: number | string, userId: string, text: strin
   ]
 
   try {
-    const res = await fetch(
+    const res = await fetchGeminiWithConsent(
+      supabase,
+      userId,
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
       {
         method: 'POST',
@@ -467,7 +500,11 @@ async function handleAiChat(chatId: number | string, userId: string, text: strin
     }
 
     await tgSend(chatId, mdToTgHtml(reply), { parse_mode: 'HTML', reply_markup: BACK_MENU })
-  } catch (_e) {
+  } catch (e) {
+    if (isAiConsentRequired(e)) {
+      await tgSend(chatId, AI_CONSENT_TELEGRAM_MESSAGE, { reply_markup: BACK_MENU })
+      return sid
+    }
     await tgSend(chatId, '❌ Ошибка ИИ. Попробуй позже.', { reply_markup: BACK_MENU })
   }
   return sid
@@ -658,6 +695,13 @@ async function handleExperimentSuggest(chatId: number | string, userId: string, 
     const j = await res.json().catch(() => null)
     await tgSend(chatId, j?.message ?? '💸 Лимит ИИ на сегодня исчерпан, попробуй завтра.')
     return
+  }
+  if (res.status === 403) {
+    const j = await res.json().catch(() => null)
+    if (j?.error === 'ai_consent_required') {
+      await tgSend(chatId, AI_CONSENT_TELEGRAM_MESSAGE, { reply_markup: BACK_MENU })
+      return
+    }
   }
   if (!res.ok) {
     await tgSend(chatId, '🤔 Не получилось сгенерировать идеи, попробуй позже.', { reply_markup: BACK_MENU })
@@ -993,7 +1037,14 @@ const handler = async (req: Request) => {
     const buf = new Uint8Array(await dl.arrayBuffer())
     let bin = ''; for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i])
     const b64 = btoa(bin)
-    const tr = await transcribeVoice(b64, voice.mime_type || 'audio/ogg')
+    let tr: Awaited<ReturnType<typeof transcribeVoice>>
+    try {
+      tr = await transcribeVoice(userId, supabase, b64, voice.mime_type || 'audio/ogg')
+    } catch (e) {
+      if (!isAiConsentRequired(e)) throw e
+      await tgSend(chatId, AI_CONSENT_TELEGRAM_MESSAGE, { reply_markup: BACK_MENU })
+      return new Response('ok')
+    }
     if (tr?.tokens) await supabase.from('ai_usage').insert({ user_id: userId, source: 'voice-transcribe', tokens_used: tr.tokens })
     if (!tr || !tr.text) { await tgSend(chatId, '🤔 Не расслышал. Попробуй сказать ещё раз чуть чётче.'); return new Response('ok') }
     text = tr.text
@@ -1379,7 +1430,13 @@ const handler = async (req: Request) => {
     const { data: supList } = await supabase
       .from('supplements').select('name').eq('user_id', userId).eq('active', true)
     const supNames = ((supList ?? []) as { name: string }[]).map(s => s.name)
-    act = await classifyLog(text, supNames, now, tz)
+    try {
+      act = await classifyLog(userId, supabase, text, supNames, now, tz)
+    } catch (e) {
+      if (!isAiConsentRequired(e)) throw e
+      await tgSend(chatId, AI_CONSENT_TELEGRAM_MESSAGE, { reply_markup: BACK_MENU })
+      return new Response('ok')
+    }
   }
 
   // Ответ на вечерний вопрос → заметка дня (N2 + N4, SPEC-DAILY-NOTE)

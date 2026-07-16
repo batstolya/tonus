@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { checkBudget, budgetExceededMessage } from '../_shared/costGuard.ts'
+import { aiConsentRequiredResponse, fetchGeminiWithConsent, isAiConsentRequired } from '../_shared/aiConsent.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
@@ -52,7 +53,9 @@ ${notes ? `\nЗАМЕТКИ ДНЯ (контекст со слов пользо�
 
 Правила: опирайся ТОЛЬКО на переданные числа, не выдумывай связи которых нет в списке. Если связь слабая по n — так и скажи. Кратко и по делу.`
 
-    const res = await fetch(
+    const res = await fetchGeminiWithConsent(
+      supabase,
+      user.id,
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
       {
         method: 'POST',
@@ -68,6 +71,7 @@ ${notes ? `\nЗАМЕТКИ ДНЯ (контекст со слов пользо�
 
     return new Response(JSON.stringify({ reply }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
   } catch (e) {
+    if (isAiConsentRequired(e)) return aiConsentRequiredResponse(CORS)
     return new Response(JSON.stringify({ error: (e as Error).message ?? 'Error' }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } })
   }
 })

@@ -274,7 +274,7 @@ const handler = async (req: Request) => {
     if (timeDue('09:00', hhmm)) {
       const { data: links } = await supabase
         .from('telegram_links')
-        .select('user_id')
+        .select('user_id, telegram_chat_id')
         .eq('status', 'active')
       for (const l of links ?? []) {
         // настройки отчёта (частота)
@@ -297,7 +297,7 @@ const handler = async (req: Request) => {
         if (daysSince < freqDays) continue
         // сгенерировать отчёт через biweekly-report (service-role + x-user-id)
         try {
-          await fetch(`${SUPABASE_URL}/functions/v1/biweekly-report`, {
+          const reportRes = await fetch(`${SUPABASE_URL}/functions/v1/biweekly-report`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -305,7 +305,14 @@ const handler = async (req: Request) => {
               'x-user-id': l.user_id,
             },
           })
-          reportsSent++
+          if (reportRes.ok) {
+            reportsSent++
+          } else if (reportRes.status === 403) {
+            const body = await reportRes.json().catch(() => null)
+            if (body?.error === 'ai_consent_required' && l.telegram_chat_id) {
+              await tgSend(String(l.telegram_chat_id), '🔒 Чтобы получать ИИ-отчёты, открой Tonus → Настройки → Обработка данных ИИ и дай согласие.')
+            }
+          }
         } catch (_e) { /* пропускаем сбойного юзера */ }
       }
     }

@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { checkBudget } from '../_shared/costGuard.ts'
 import { isValidCronSecret } from '../_shared/auth.ts'
+import { aiConsentRequiredResponse, fetchGeminiWithConsent, isAiConsentRequired } from '../_shared/aiConsent.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
@@ -10,6 +11,7 @@ const TG_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') ?? ''
 const CRON_SECRET = Deno.env.get('TONUS_CRON_SECRET') ?? ''
 
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, x-cron-secret, x-request-id' }
+const AI_CONSENT_TELEGRAM_MESSAGE = '🔒 Чтобы использовать ИИ-разборы, открой Tonus → Настройки → Обработка данных ИИ и дай согласие.'
 const avg = (a: number[]) => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null
 
 // Машинно-проверяемое условие фокуса (зеркало validateFocusCheck из src/lib/coach.ts; Deno не импортит из src).
@@ -139,7 +141,9 @@ JSON строго одной из форм (target — добавь только
 event ∈ coffee|alcohol|meal|water|meds|workout|illness|stress|travel. ВСЕГДА привязывай CHECK, если фокус хоть как-то выразим этими формами — цели про еду/сон/шаги/время отбоя/кофе/алкоголь/тренировки/самочувствие почти всегда выразимы. CHECK: none — только когда измерить действительно невозможно. Не выдумывай поля.
 Без диагнозов. Опирайся на цифры, не выдумывай. На русском.`
 
-  const res = await fetch(
+  const res = await fetchGeminiWithConsent(
+    supabase,
+    userId,
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
     {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -200,8 +204,13 @@ serve(async (req) => {
         if (rs?.paused) continue
         const { data: last } = await supabase.from('coach_events').select('created_at').eq('user_id', l.user_id).eq('type', 'weekly').order('created_at', { ascending: false }).limit(1).maybeSingle()
         if (last && (Date.now() - new Date(last.created_at).getTime()) < 6 * 86400000) continue
-        const text = await runForUser(supabase, l.user_id)
-        if (text && l.telegram_chat_id) { await tgSend(l.telegram_chat_id, `🧭 Разбор недели\n\n${text}`); sent++ }
+        try {
+          const text = await runForUser(supabase, l.user_id)
+          if (text && l.telegram_chat_id) { await tgSend(l.telegram_chat_id, `🧭 Разбор недели\n\n${text}`); sent++ }
+        } catch (e) {
+          if (!isAiConsentRequired(e)) throw e
+          if (l.telegram_chat_id) await tgSend(l.telegram_chat_id, AI_CONSENT_TELEGRAM_MESSAGE)
+        }
       }
       return new Response(JSON.stringify({ sent }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
     }
@@ -212,6 +221,7 @@ serve(async (req) => {
     const text = await runForUser(supabase, data.user.id)
     return new Response(JSON.stringify({ text }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
   } catch (e) {
+    if (isAiConsentRequired(e)) return aiConsentRequiredResponse(CORS)
     return new Response(JSON.stringify({ error: (e as Error).message ?? 'Error' }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } })
   }
 })

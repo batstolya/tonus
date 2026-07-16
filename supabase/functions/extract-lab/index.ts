@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { checkBudget, budgetExceededMessage } from '../_shared/costGuard.ts'
+import { aiConsentRequiredResponse, fetchGeminiWithConsent, isAiConsentRequired } from '../_shared/aiConsent.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
@@ -35,7 +36,9 @@ serve(async (req) => {
 
     if (isPdf || isImage) {
       const mimeType = fileType
-      const geminiRes = await fetch(
+      const geminiRes = await fetchGeminiWithConsent(
+        supabase,
+        user.id,
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
         {
           method: 'POST',
@@ -144,6 +147,7 @@ serve(async (req) => {
       headers: { ...CORS, 'Content-Type': 'application/json' },
     })
   } catch (e) {
+    if (isAiConsentRequired(e)) return aiConsentRequiredResponse(CORS)
     return new Response((e as Error).message ?? 'Error', { status: 500, headers: CORS })
   }
 })

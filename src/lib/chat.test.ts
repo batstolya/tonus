@@ -43,4 +43,19 @@ describe('chat client', () => {
       }),
     )
   })
+
+  it('preserves the structured AI consent error from chat-health', async () => {
+    vi.stubGlobal('localStorage', { getItem: () => null })
+    vi.spyOn(supabase.auth, 'getSession').mockResolvedValue({
+      data: { session: { access_token: 'user-jwt' } },
+      error: null,
+    } as never)
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      error: 'ai_consent_required',
+      message: 'Open Settings',
+    }), { status: 403, headers: { 'content-type': 'application/json' } })))
+
+    const error = await sendChatMessage('hello', null, 'en').catch(value => value)
+    expect(error).toMatchObject({ message: 'Open Settings', code: 'ai_consent_required' })
+  })
 })

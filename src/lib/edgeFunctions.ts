@@ -11,10 +11,12 @@ import { captureClientFailure } from './observability'
 
 export class EdgeFunctionError extends Error {
   status: number
-  constructor(message: string, status: number) {
+  code?: string
+  constructor(message: string, status: number, code?: string) {
     super(message)
     this.name = 'EdgeFunctionError'
     this.status = status
+    this.code = code
   }
 }
 
@@ -51,8 +53,11 @@ export async function callFunction<T = unknown>(name: string, body?: unknown): P
     if (res.status >= 500) {
       void captureClientFailure('web.edge_function_failure', 'edge_request_failed', requestId)
     }
-    const msg = json?.error || json?.message || `Ошибка сервера (${res.status})`
-    throw new EdgeFunctionError(msg, res.status)
+    const code = json?.error
+    const msg = code === 'ai_consent_required'
+      ? json?.message || 'AI processing consent is required. Open Settings to grant it.'
+      : code || json?.message || `Ошибка сервера (${res.status})`
+    throw new EdgeFunctionError(msg, res.status, code)
   }
   // некоторые функции возвращают { error } даже со статусом 200
   if (json?.error) throw new EdgeFunctionError(json.error, res.status)
