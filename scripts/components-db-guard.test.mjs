@@ -18,7 +18,6 @@ const ALLOWLIST = new Set([
   'src/components/settings/WorkoutScheduleSettings.tsx',
   'src/components/settings/sections/CalSyncSection.tsx',
   'src/components/settings/sections/EnvironmentSection.tsx',
-  'src/components/settings/sections/TelegramSection.tsx',
   'src/components/supplements/AdherenceBlock.tsx',
   'src/components/supplements/TreatmentTracker.tsx',
 ])
