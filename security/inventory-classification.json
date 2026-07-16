@@ -90,6 +90,12 @@
       "authOwner": "service-role",
       "credentialType": "service-role",
       "dataSensitivity": "credential"
+    },
+    "delete_user_data": {
+      "signature": "delete_user_data(uuid)",
+      "authOwner": "service-role",
+      "credentialType": "service-role",
+      "dataSensitivity": "health"
     }
   },
   "rpcRemediations": {},

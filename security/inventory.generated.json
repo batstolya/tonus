@@ -9,7 +9,7 @@
   "counts": {
     "tables": 55,
     "views": 2,
-    "rpcs": 9,
+    "rpcs": 10,
     "buckets": 1,
     "edgeFunctions": 23
   },
@@ -445,6 +445,13 @@
         "authOwner": "service-role",
         "credentialType": "service-role",
         "dataSensitivity": "internal"
+      },
+      {
+        "name": "delete_user_data",
+        "signature": "delete_user_data(uuid)",
+        "authOwner": "service-role",
+        "credentialType": "service-role",
+        "dataSensitivity": "health"
       },
       {
         "name": "fail_reminder_delivery",
