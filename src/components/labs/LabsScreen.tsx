@@ -4,6 +4,7 @@ import { useT } from '../../lib/i18n'
 import { loadLabFiles, loadLabResults, deleteLabFile, uploadAndExtract, type LabFile, type LabResult } from '../../lib/labs'
 import { LoadError } from '../ui/LoadError'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { isAiConsentRequiredError, loadAiConsent } from '../../lib/aiConsent'
 
 interface Props {
   user: User
@@ -29,10 +30,9 @@ export function LabsScreen({ user }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [loadError, setLoadError] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
-  const [consented, setConsented] = useState(() => localStorage.getItem('lab_ai_consent') === '1')
+  const [consented, setConsented] = useState<boolean | null>(null)
   const [showConsent, setShowConsent] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
-  const pendingFile = useRef<File | null>(null)
 
   const reload = useCallback(() => {
     Promise.all([loadLabFiles(user.id), loadLabResults(user.id)]).then(([f, r]) => {
@@ -42,28 +42,24 @@ export function LabsScreen({ user }: Props) {
 
   useEffect(() => { reload() }, [reload])
 
-  function handleFileClick() {
-    if (!consented) { setShowConsent(true); return }
-    fileRef.current?.click()
-  }
+  useEffect(() => {
+    let active = true
+    loadAiConsent(user.id)
+      .then(status => { if (active) setConsented(status.granted) })
+      .catch(() => { if (active) setConsented(false) })
+    return () => { active = false }
+  }, [user.id])
 
-  function handleConsent() {
-    localStorage.setItem('lab_ai_consent', '1')
-    setConsented(true)
-    setShowConsent(false)
-    if (pendingFile.current) {
-      doUpload(pendingFile.current)
-      pendingFile.current = null
-    } else {
-      fileRef.current?.click()
-    }
+  function handleFileClick() {
+    if (consented !== true) { setShowConsent(true); return }
+    fileRef.current?.click()
   }
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
     e.target.value = ''
-    if (!consented) { pendingFile.current = file; setShowConsent(true); return }
+    if (consented !== true) { setShowConsent(true); return }
     doUpload(file)
   }
 
@@ -79,7 +75,13 @@ export function LabsScreen({ user }: Props) {
         setResults(updated)
       }
     } catch (e) {
-      setError((e as Error)?.message ?? t('Ошибка загрузки'))
+      if (isAiConsentRequiredError(e)) {
+        setConsented(false)
+        setShowConsent(true)
+        setError(t('Согласие на обработку данных ИИ не активно.'))
+      } else {
+        setError((e as Error)?.message ?? t('Ошибка загрузки'))
+      }
     }
     setUploading(false)
   }
@@ -100,11 +102,10 @@ export function LabsScreen({ user }: Props) {
         <div className="ai-consent-overlay" onClick={() => setShowConsent(false)}>
           <div className="ai-consent-card" onClick={e => e.stopPropagation()}>
             <h3>{t('Обработка анализов через ИИ')}</h3>
-            <p>{t('Содержимое загруженного файла (PDF или фото) будет отправлено в Google Gemini для извлечения текста и биомаркеров. Это самая чувствительная категория данных.')}</p>
-            <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>{t('Нажимая «Согласен», ты подтверждаешь отправку медицинских документов во внешний сервис.')}</p>
+            <p>{t('Чтобы использовать функции ИИ, открой Настройки → Обработка данных ИИ и дай согласие на обработку через Google Gemini.')}</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>{t('Согласие хранится в аккаунте, действует на всех устройствах и может быть отозвано в любое время.')}</p>
             <div className="ai-consent-btns">
-              <button className="btn-primary" onClick={handleConsent}>{t('Согласен')}</button>
-              <button className="btn-ghost" onClick={() => setShowConsent(false)}>{t('Отмена')}</button>
+              <button className="btn-primary" onClick={() => setShowConsent(false)}>{t('Закрыть')}</button>
             </div>
           </div>
         </div>
@@ -121,7 +122,7 @@ export function LabsScreen({ user }: Props) {
             onChange={e => setUploadDate(e.target.value)}
           />
           <input ref={fileRef} type="file" accept=".pdf,image/*" style={{ display: 'none' }} onChange={handleFileChange} />
-          <button className="btn-primary" onClick={handleFileClick} disabled={uploading}>
+          <button className="btn-primary" onClick={handleFileClick} disabled={uploading || consented === null}>
             {uploading ? (
               <><span className="ai-spinner" /> {t('Извлекаем…')}</>
             ) : `+ ${t('Загрузить анализ')}`}

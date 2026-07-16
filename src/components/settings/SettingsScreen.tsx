@@ -15,6 +15,7 @@ import { TelegramSection } from './sections/TelegramSection'
 import { GoogleCalendarSection } from './sections/GoogleCalendarSection'
 import { CalSyncSection } from './sections/CalSyncSection'
 import { AiBudgetSection } from './sections/AiBudgetSection'
+import { AiConsentSection } from './sections/AiConsentSection'
 import { ImportSection } from './sections/ImportSection'
 import { EnvironmentSection } from './sections/EnvironmentSection'
 import { DeviceSection } from './sections/DeviceSection'
@@ -101,6 +102,7 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
       />
 
       <AiBudgetSection archived={isArchived('ai')} onArchive={archiveSection} user={user} />
+      <AiConsentSection user={user} />
 
       {onNavigate && (
         <ImportSection archived={isArchived('import')} onArchive={archiveSection} onNavigate={onNavigate} />

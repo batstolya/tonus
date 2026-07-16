@@ -81,8 +81,13 @@ export async function sendChatMessage(
   })
 
   if (!res.ok) {
-    if (res.status === 402) {
-      const j = await res.json().catch(() => ({}))
+    if (res.status === 402 || res.status === 403) {
+      const j = await res.json().catch(() => ({})) as { error?: string; message?: string }
+      if (res.status === 403 && j.error === 'ai_consent_required') {
+        throw Object.assign(new Error(j.message || 'AI processing consent is required. Open Settings to grant it.'), {
+          code: j.error,
+        })
+      }
       throw new Error(j.message || 'Достигнут месячный лимит ИИ-расходов. Увеличь бюджет в Настройках.')
     }
     const text = await res.text()

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import type { DailyMetrics } from '../../types'
 import { runAnalysis, loadAnalyses, deleteAnalysis, type AiAnalysis, type AnalysisPeriod } from '../../lib/aiAnalysis'
 import { useT } from '../../lib/i18n'
+import { isAiConsentRequiredError, loadAiConsent } from '../../lib/aiConsent'
 
 interface Props {
   daily: DailyMetrics[]
@@ -72,22 +73,36 @@ export function AiAnalysisBlock({ daily, userId }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [period, setPeriod] = useState<AnalysisPeriod>('14d')
-  const [consented, setConsented] = useState(() => localStorage.getItem('ai_consent') === '1')
+  const [consented, setConsented] = useState<boolean | null>(null)
   const [showConsent, setShowConsent] = useState(false)
 
   useEffect(() => {
     loadAnalyses(userId).then(setAnalyses)
   }, [userId])
 
+  useEffect(() => {
+    let active = true
+    loadAiConsent(userId)
+      .then(status => { if (active) setConsented(status.granted) })
+      .catch(() => { if (active) setConsented(false) })
+    return () => { active = false }
+  }, [userId])
+
   async function handleRun() {
-    if (!consented) { setShowConsent(true); return }
+    if (consented !== true) { setShowConsent(true); return }
     setLoading(true)
     setError(null)
     try {
       const result = await runAnalysis(userId, daily, period)
       setAnalyses(prev => [result, ...prev])
     } catch (e) {
-      setError((e as Error)?.message ?? t('Ошибка анализа'))
+      if (isAiConsentRequiredError(e)) {
+        setConsented(false)
+        setShowConsent(true)
+        setError(t('Согласие на обработку данных ИИ не активно.'))
+      } else {
+        setError((e as Error)?.message ?? t('Ошибка анализа'))
+      }
     }
     setLoading(false)
   }
@@ -97,24 +112,16 @@ export function AiAnalysisBlock({ daily, userId }: Props) {
     setAnalyses(prev => prev.filter(a => a.id !== id))
   }
 
-  function handleConsent() {
-    localStorage.setItem('ai_consent', '1')
-    setConsented(true)
-    setShowConsent(false)
-    setTimeout(handleRun, 0)
-  }
-
   return (
     <div className="ai-block">
       {showConsent && (
         <div className="ai-consent-overlay" onClick={() => setShowConsent(false)}>
           <div className="ai-consent-card" onClick={e => e.stopPropagation()}>
             <h3>{t('Анализ данных через ИИ')}</h3>
-            <p>{t('Для анализа агрегированный дайджест твоих данных здоровья (средние значения, тренды) будет отправлен в Google Gemini API. Сырые данные и персональная информация не передаются.')}</p>
-            <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>{t('Нажимая «Согласен», ты подтверждаешь отправку данных во внешний сервис.')}</p>
+            <p>{t('Чтобы использовать функции ИИ, открой Настройки → Обработка данных ИИ и дай согласие на обработку через Google Gemini.')}</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>{t('Согласие хранится в аккаунте, действует на всех устройствах и может быть отозвано в любое время.')}</p>
             <div className="ai-consent-btns">
-              <button className="btn-primary" onClick={handleConsent}>{t('Согласен')}</button>
-              <button className="btn-ghost" onClick={() => setShowConsent(false)}>{t('Отмена')}</button>
+              <button className="btn-primary" onClick={() => setShowConsent(false)}>{t('Закрыть')}</button>
             </div>
           </div>
         </div>
@@ -130,7 +137,7 @@ export function AiAnalysisBlock({ daily, userId }: Props) {
               </button>
             ))}
           </div>
-          <button className="btn-primary ai-run-btn" onClick={handleRun} disabled={loading}>
+          <button className="btn-primary ai-run-btn" onClick={handleRun} disabled={loading || consented === null}>
             {loading ? <span className="ai-spinner" /> : '✦'} {loading ? t('Анализируем…') : t('Проанализировать')}
           </button>
         </div>
