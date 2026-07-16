@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from './supabase'
+import { isDemoActive } from './demo'
 
 // The table is introduced by the same release. Generated Database types are
 // synchronized immediately after the post-merge migration is applied.
@@ -15,6 +16,9 @@ export interface AiConsentStatus {
 }
 
 export async function loadAiConsent(userId: string): Promise<AiConsentStatus> {
+  // Demo mode has no Supabase and never sends anything to Gemini
+  // (demoFunctionResponse short-circuits AI calls), so consent is implicit.
+  if (isDemoActive()) return { granted: true, grantedAt: null }
   const { data, error } = await consentDb
     .from('ai_processing_consents')
     .select('policy_version, granted_at, revoked_at')
@@ -30,6 +34,7 @@ export async function loadAiConsent(userId: string): Promise<AiConsentStatus> {
 }
 
 export async function grantAiConsent(userId: string): Promise<void> {
+  if (isDemoActive()) return
   const now = new Date().toISOString()
   const { error } = await consentDb.from('ai_processing_consents').upsert({
     user_id: userId,
@@ -43,6 +48,7 @@ export async function grantAiConsent(userId: string): Promise<void> {
 }
 
 export async function revokeAiConsent(userId: string): Promise<void> {
+  if (isDemoActive()) return
   const { error } = await consentDb
     .from('ai_processing_consents')
     .update({ revoked_at: new Date().toISOString() })

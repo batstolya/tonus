@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ from: vi.fn() }))
+const mocks = vi.hoisted(() => ({ from: vi.fn(), isDemoActive: vi.fn(() => false) }))
 vi.mock('./supabase', () => ({ supabase: { from: mocks.from } }))
+vi.mock('./demo', () => ({ isDemoActive: mocks.isDemoActive }))
 
 import {
   AI_CONSENT_POLICY_VERSION,
@@ -19,7 +20,20 @@ function loadQuery(result: { data: unknown; error: unknown }) {
 }
 
 describe('durable AI consent data layer', () => {
-  beforeEach(() => mocks.from.mockReset())
+  beforeEach(() => {
+    mocks.from.mockReset()
+    mocks.isDemoActive.mockReset()
+    mocks.isDemoActive.mockReturnValue(false)
+  })
+
+  it('treats demo mode as granted without touching Supabase', async () => {
+    mocks.isDemoActive.mockReturnValue(true)
+
+    await expect(loadAiConsent('demo-user')).resolves.toEqual({ granted: true, grantedAt: null })
+    await expect(grantAiConsent('demo-user')).resolves.toBeUndefined()
+    await expect(revokeAiConsent('demo-user')).resolves.toBeUndefined()
+    expect(mocks.from).not.toHaveBeenCalled()
+  })
 
   it('loads only the current, non-revoked account consent as granted', async () => {
     const query = loadQuery({
