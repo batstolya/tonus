@@ -1435,6 +1435,24 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limit_counters: {
+        Row: {
+          bucket: string
+          count: number
+          window_start: string
+        }
+        Insert: {
+          bucket: string
+          count?: number
+          window_start: string
+        }
+        Update: {
+          bucket?: string
+          count?: number
+          window_start?: string
+        }
+        Relationships: []
+      }
       recommendations: {
         Row: {
           created_at: string | null
@@ -2059,6 +2077,11 @@ export type Database = {
         }
         Returns: boolean
       }
+      consume_rate_limit: {
+        Args: { p_bucket: string; p_limit: number; p_window_seconds: number }
+        Returns: boolean
+      }
+      delete_user_data: { Args: { p_user_id: string }; Returns: Json }
       fail_reminder_delivery: {
         Args: {
           p_claim_token: string

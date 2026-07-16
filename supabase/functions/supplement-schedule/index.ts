@@ -2,11 +2,12 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { checkBudget, budgetExceededMessage } from '../_shared/costGuard.ts'
 import { aiConsentRequiredResponse, fetchGeminiWithConsent, isAiConsentRequired } from '../_shared/aiConsent.ts'
+import { corsHeadersFor } from '../_shared/cors.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, x-request-id' }
+const ALLOWED_ORIGINS = Deno.env.get('TONUS_ALLOWED_ORIGINS') ?? ''
 
 // Average "HH:MM" times (used for typical wake/bedtime). Handles times past
 // midnight for bedtime by treating <12:00 as next-day for the bedtime average.
@@ -26,6 +27,7 @@ function avgTime(times: string[], wrap = false): string | null {
 }
 
 serve(async (req) => {
+  const CORS = corsHeadersFor(req.headers.get('Origin'), ALLOWED_ORIGINS)
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
   try {

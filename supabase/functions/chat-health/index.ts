@@ -19,6 +19,8 @@ import {
   fetchGeminiWithConsent,
   isAiConsentRequired,
 } from '../_shared/aiConsent.ts'
+import { corsHeadersFor } from '../_shared/cors.ts'
+import { consumeRateLimit, rateLimitedResponse } from '../_shared/rateLimit.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
@@ -26,11 +28,7 @@ const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 const MAX_HISTORY = 12 // last N messages to include verbatim
 const MAX_MESSAGE_LENGTH = 4096
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info, x-request-id',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-}
+const ALLOWED_ORIGINS = Deno.env.get('TONUS_ALLOWED_ORIGINS') ?? ''
 
 const SYSTEM_PROMPT = `Ты — персональный ассистент по здоровью.
 Твоя роль: помогать пользователю понять его данные здоровья простым языком.
@@ -97,6 +95,7 @@ async function callGemini(
 }
 
 serve(async (req) => {
+  const CORS = corsHeadersFor(req.headers.get('Origin'), ALLOWED_ORIGINS)
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
   try {
@@ -104,6 +103,11 @@ serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
     const { data: { user }, error: authErr } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
     if (authErr || !user) return new Response('Unauthorized', { status: 401, headers: CORS })
+
+    // Durable request limit (PR 3): the monthly AI budget stays defense-in-depth.
+    if (!await consumeRateLimit(supabase, { bucket: `chat:${user.id}`, limit: 40, windowSeconds: 3600 })) {
+      return rateLimitedResponse(CORS)
+    }
 
     // contextSnapshot от клиента больше не принимаем: контекст строится на
     // сервере из БД (единый билдер _shared/healthContext, F2 smart-tonus) —

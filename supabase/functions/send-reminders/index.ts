@@ -17,6 +17,8 @@ import { withObservability } from '../_shared/observability.ts'
 const TG_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+const INTERNAL_SECRET = Deno.env.get('TONUS_INTERNAL_SECRET') ?? ''
 const CRON_SECRET = Deno.env.get('TONUS_CRON_SECRET') ?? Deno.env.get('CRON_SECRET') ?? ''
 
 async function tgSend(chatId: string, text: string, replyMarkup?: unknown): Promise<number | null> {
@@ -301,7 +303,8 @@ const handler = async (req: Request) => {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, // gateway only; authority is x-internal-secret
+              'x-internal-secret': INTERNAL_SECRET,
               'x-user-id': l.user_id,
             },
           })

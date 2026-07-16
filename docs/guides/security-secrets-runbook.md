@@ -12,6 +12,8 @@
 | `TONUS_RELEASE_SHA` | privacy-safe observability | server-side release metadata |
 | `TONUS_ENVIRONMENT` | privacy-safe observability | `production` enables private alerts |
 | `TONUS_ALERT_CHAT_ID` | privacy-safe observability | private owner Telegram alert target |
+| `TONUS_INTERNAL_SECRET` | telegram-bot, send-reminders → coach-profile, biweekly-report, suggest-experiments | `x-internal-secret` |
+| `TONUS_ALLOWED_ORIGINS` | all UI-facing functions (CORS allowlist) | comma-separated browser origins |
 
 Временные алиасы при переходе (можно удалить после того, как все cron job'ы
 переведены на `TONUS_CRON_SECRET`): `CRON_SECRET` (sync-cal),
@@ -29,6 +31,15 @@ clean `main` SHA and keep the private alert chat ID out of deployment receipts:
 
 See `docs/guides/observability.md` for the migration, grouped function deploy,
 safe synthetic event, and rollback procedure.
+
+Abuse-control secrets (beta-safety PR 3; see `docs/guides/abuse-controls.md`):
+
+    npx supabase secrets set TONUS_INTERNAL_SECRET="$(openssl rand -hex 32)" \
+      TONUS_ALLOWED_ORIGINS="https://tonus-anatolii-s-projects6.vercel.app" --project-ref <ref>
+
+`TONUS_INTERNAL_SECRET` unset → internal calls fail closed (401).
+`TONUS_ALLOWED_ORIGINS` unset → browsers get no CORS grant, so the UI breaks
+until the production origin is listed; non-browser clients are unaffected.
 
 ## Deploy order
 
