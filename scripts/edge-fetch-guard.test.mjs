@@ -1,15 +1,10 @@
-// Ratchet: every outbound fetch in Edge Functions must use _shared/http.ts.
-// Files listed below still contain raw fetch calls; migrate a file, then
-// REMOVE it from the list. Adding new raw fetch anywhere fails this test.
+// Guard: every outbound fetch in Edge Functions must use _shared/http.ts.
+// The allowlist is EMPTY and must stay that way — new raw fetch calls fail here.
 import { test } from 'node:test'
 import assert from 'node:assert'
 import { execSync } from 'node:child_process'
 
 const ALLOWLIST = new Set([
-  'supabase/functions/_shared/observability.ts',
-  'supabase/functions/send-reminders/index.ts',
-  'supabase/functions/sync-cal/index.ts',
-  'supabase/functions/telegram-bot/index.ts',
 ])
 
 const grep = () => {
