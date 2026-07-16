@@ -1435,6 +1435,24 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limit_counters: {
+        Row: {
+          bucket: string
+          count: number
+          window_start: string
+        }
+        Insert: {
+          bucket: string
+          count?: number
+          window_start: string
+        }
+        Update: {
+          bucket?: string
+          count?: number
+          window_start?: string
+        }
+        Relationships: []
+      }
       recommendations: {
         Row: {
           created_at: string | null
@@ -2057,6 +2075,10 @@ export type Database = {
           p_status?: string
           p_telegram_message_id?: number
         }
+        Returns: boolean
+      }
+      consume_rate_limit: {
+        Args: { p_bucket: string; p_limit: number; p_window_seconds: number }
         Returns: boolean
       }
       fail_reminder_delivery: {
