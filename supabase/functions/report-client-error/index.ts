@@ -11,7 +11,7 @@ const TONUS_ENVIRONMENT = Deno.env.get('TONUS_ENVIRONMENT') ?? ''
 const TONUS_RELEASE_SHA = (Deno.env.get('TONUS_RELEASE_SHA') ?? '').toLowerCase()
 const CORS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
+  'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info, x-request-id',
 }
 
 serve(async (req) => {

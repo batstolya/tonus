@@ -6,7 +6,7 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 // Свой секрет для cron-джобы (ENV_CRON_SECRET) с фолбэком на общий
 const CRON_SECRET = Deno.env.get('ENV_CRON_SECRET') ?? Deno.env.get('TONUS_CRON_SECRET') ?? ''
-const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, x-cron-secret' }
+const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, x-cron-secret, x-request-id' }
 
 // Default location: Munich, Germany
 const DEFAULT_LAT = 48.1351

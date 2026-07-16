@@ -23,7 +23,7 @@ const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, content-type, x-cron-secret',
+  'Access-Control-Allow-Headers': 'authorization, content-type, x-cron-secret, x-request-id',
 }
 
 interface ApiFootballResponse<T> {

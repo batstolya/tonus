@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 
 const criticalHandlers = [
   ['ingest-health', 'edge.ingest_health'],
@@ -35,6 +35,21 @@ describe('observability inventory', () => {
 
     expect(source).toContain("'x-request-id': requestId")
     expect(source).toContain("captureClientFailure('web.edge_function_failure', 'edge_request_failed', requestId)")
+  })
+
+  it('lets every CORS-serving function accept the x-request-id header in preflight', () => {
+    // callFunction sends x-request-id with every browser call; a function whose
+    // Access-Control-Allow-Headers omits it would fail the CORS preflight and
+    // block the whole request, not just the correlation header.
+    const corsFunctions = readdirSync('supabase/functions', { withFileTypes: true })
+      .filter(entry => entry.isDirectory() && entry.name !== '_shared')
+      .map(entry => entry.name)
+    for (const name of corsFunctions) {
+      const source = readFileSync(`supabase/functions/${name}/index.ts`, 'utf8')
+      const allowHeaders = source.match(/'Access-Control-Allow-Headers':\s*'([^']*)'/)
+      if (!allowHeaders) continue
+      expect(allowHeaders[1], `${name} must allow x-request-id in CORS preflight`).toContain('x-request-id')
+    }
   })
 
   it('provides no storage columns for arbitrary or identifying payloads', () => {

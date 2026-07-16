@@ -10,7 +10,7 @@ import { withObservability } from '../_shared/observability.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' }
+const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, x-request-id' }
 
 // Имена метрик HAE → наши ключи (camelCase, как в боевой metrics_daily)
 const METRIC_MAP: Record<string, string> = {

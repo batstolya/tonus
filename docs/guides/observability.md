@@ -54,6 +54,12 @@ From a clean checkout of the reviewed `main` commit:
    `TONUS_ALERT_CHAT_ID` without copying their values into a log or receipt.
 3. Deploy `report-client-error`, `ingest-health`, `send-reminders`, and
    `telegram-bot` from that checkout, preserving their `config.toml` JWT modes.
+   Also redeploy every function the browser calls through `callFunction`
+   (analyze-health, classify-meal, coach-weekly, deep-research, extract-lab,
+   fetch-cal, fetch-environment, generate-recommendations, suggest-experiments,
+   sync-cal): the frontend now sends `x-request-id` with every call, and a
+   deployed function whose `Access-Control-Allow-Headers` predates this release
+   fails the CORS preflight entirely.
 4. Let the green `main` workflow deploy the matching frontend release.
 5. Confirm migration parity and deployed function/source parity.
 
