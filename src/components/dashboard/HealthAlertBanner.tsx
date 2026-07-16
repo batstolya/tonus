@@ -1,18 +1,11 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../../lib/supabase'
+import { getOpenHealthAlerts, acknowledgeHealthAlert, type HealthAlert } from '../../lib/api/dashboard'
 import { demoList, demoUpdate } from '../../lib/demoDb'
 import { useT } from '../../lib/i18n'
 
 // Баннер стража здоровья (F1, smart-tonus): последний незакрытый алерт
 // не старше 48 ч. Текст приходит готовым из health_alerts (пишет ingest-health),
 // HTML-теги Telegram-разметки вычищаем.
-
-interface HealthAlert {
-  id: string
-  level: 'yellow' | 'red'
-  message: string
-  created_at: string
-}
 
 export default function HealthAlertBanner({ userId, demo }: { userId: string | null; demo: boolean }) {
   const { t } = useT()
@@ -23,19 +16,8 @@ export default function HealthAlertBanner({ userId, demo }: { userId: string | n
   useEffect(() => {
     if (!userId || demo) return
     let cancelled = false
-    const since = new Date(Date.now() - 48 * 3600_000).toISOString()
-    supabase
-      .from('health_alerts')
-      .select('id, level, message, created_at')
-      .eq('user_id', userId)
-      .eq('type', 'anomaly')
-      .is('acknowledged_at', null)
-      .gte('created_at', since)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .then(({ data }) => {
-        if (!cancelled && data?.length) setAlert(data[0] as HealthAlert)
-      })
+    getOpenHealthAlerts(userId, { sinceHours: 48, limit: 1, type: 'anomaly' })
+      .then(alerts => { if (!cancelled && alerts.length) setAlert(alerts[0]) })
     return () => { cancelled = true }
   }, [userId, demo])
 
@@ -44,7 +26,7 @@ export default function HealthAlertBanner({ userId, demo }: { userId: string | n
   const ack = async () => {
     setAlert(null)
     if (demo) return demoUpdate('health_alerts', alert.id, { acknowledged_at: new Date().toISOString() })
-    await supabase.from('health_alerts').update({ acknowledged_at: new Date().toISOString() }).eq('id', alert.id)
+    await acknowledgeHealthAlert(alert.id)
   }
 
   const text = alert.message.replace(/<[^>]+>/g, '')
