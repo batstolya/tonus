@@ -9,9 +9,9 @@
   "counts": {
     "tables": 55,
     "views": 2,
-    "rpcs": 9,
+    "rpcs": 10,
     "buckets": 1,
-    "edgeFunctions": 23
+    "edgeFunctions": 24
   },
   "surfaces": {
     "tables": [
@@ -447,6 +447,13 @@
         "dataSensitivity": "internal"
       },
       {
+        "name": "delete_user_data",
+        "signature": "delete_user_data(uuid)",
+        "authOwner": "service-role",
+        "credentialType": "service-role",
+        "dataSensitivity": "health"
+      },
+      {
         "name": "fail_reminder_delivery",
         "signature": "fail_reminder_delivery(uuid, uuid, text, boolean, integer)",
         "authOwner": "service-role",
@@ -551,6 +558,15 @@
         "credentialType": "user-jwt",
         "cors": "allowlist",
         "rateLimit": "ai-budget",
+        "dataSensitivity": "health",
+        "verifyJwt": true
+      },
+      {
+        "name": "delete-account",
+        "authOwner": "gateway:user-jwt",
+        "credentialType": "user-jwt",
+        "cors": "allowlist",
+        "rateLimit": "durable",
         "dataSensitivity": "health",
         "verifyJwt": true
       },

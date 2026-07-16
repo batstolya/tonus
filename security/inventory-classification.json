@@ -90,6 +90,12 @@
       "authOwner": "service-role",
       "credentialType": "service-role",
       "dataSensitivity": "credential"
+    },
+    "delete_user_data": {
+      "signature": "delete_user_data(uuid)",
+      "authOwner": "service-role",
+      "credentialType": "service-role",
+      "dataSensitivity": "health"
     }
   },
   "rpcRemediations": {},
@@ -259,6 +265,13 @@
       "authOwner": "handler:widget-token",
       "credentialType": "widget-token",
       "cors": "wildcard",
+      "rateLimit": "durable",
+      "dataSensitivity": "health"
+    },
+    "delete-account": {
+      "authOwner": "gateway:user-jwt",
+      "credentialType": "user-jwt",
+      "cors": "allowlist",
       "rateLimit": "durable",
       "dataSensitivity": "health"
     }
