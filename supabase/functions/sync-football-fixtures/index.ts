@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { fetchWithTimeout } from '../_shared/http.ts'
 import {
   canUpdateTeams,
   mapApiFootballFixture,
@@ -168,7 +169,7 @@ async function fetchEspn(range: Range): Promise<EspnScoreboardEvent[]> {
   url.searchParams.set('dates', `${range.from.replace(/-/g, '')}-${range.to.replace(/-/g, '')}`)
   url.searchParams.set('limit', '500')
 
-  const res = await fetch(url.toString())
+  const res = await fetchWithTimeout(url.toString(), { retryOn5xx: true })
   if (!res.ok) {
     throw new Error(`ESPN error ${res.status}: ${await res.text()}`)
   }
@@ -180,7 +181,8 @@ async function fetchEspn(range: Range): Promise<EspnScoreboardEvent[]> {
 async function fetchFootballData(): Promise<FootballDataMatch[]> {
   if (!FOOTBALL_DATA_TOKEN) throw new Error('missing FOOTBALL_DATA_TOKEN')
 
-  const res = await fetch('https://api.football-data.org/v4/competitions/WC/matches?season=2026', {
+  const res = await fetchWithTimeout('https://api.football-data.org/v4/competitions/WC/matches?season=2026', {
+    retryOn5xx: true,
     headers: { 'X-Auth-Token': FOOTBALL_DATA_TOKEN },
   })
   if (!res.ok) {
@@ -200,7 +202,8 @@ async function fetchApiFootball(range: Range): Promise<ApiFootballFixture[]> {
   url.searchParams.set('from', range.from)
   url.searchParams.set('to', range.to)
 
-  const res = await fetch(url.toString(), {
+  const res = await fetchWithTimeout(url.toString(), {
+    retryOn5xx: true,
     headers: { 'x-apisports-key': API_FOOTBALL_KEY },
   })
   if (!res.ok) {
@@ -216,7 +219,7 @@ async function fetchApiFootball(range: Range): Promise<ApiFootballFixture[]> {
 }
 
 async function fetchTheStatsApi(): Promise<TheStatsApiFixture[]> {
-  const res = await fetch('https://www.thestatsapi.com/world-cup/data/fixtures.json')
+  const res = await fetchWithTimeout('https://www.thestatsapi.com/world-cup/data/fixtures.json', { retryOn5xx: true })
   if (!res.ok) {
     throw new Error(`TheStatsAPI error ${res.status}: ${await res.text()}`)
   }

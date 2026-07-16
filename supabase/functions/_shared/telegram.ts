@@ -11,7 +11,7 @@ export interface SendTelegramOptions {
 
 export async function sendTelegram(
   token: string,
-  chatId: string,
+  chatId: string | number,
   text: string,
   opts: SendTelegramOptions = {},
 ): Promise<Response | null> {
