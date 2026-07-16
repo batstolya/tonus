@@ -3,6 +3,7 @@ import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supa
 import { checkBudget } from '../_shared/costGuard.ts'
 import { isValidCronSecret } from '../_shared/auth.ts'
 import { aiConsentRequiredResponse, fetchGeminiWithConsent, isAiConsentRequired } from '../_shared/aiConsent.ts'
+import { corsHeadersFor } from '../_shared/cors.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
@@ -10,7 +11,7 @@ const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 const TG_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') ?? ''
 const CRON_SECRET = Deno.env.get('TONUS_CRON_SECRET') ?? ''
 
-const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, x-cron-secret, x-request-id' }
+const ALLOWED_ORIGINS = Deno.env.get('TONUS_ALLOWED_ORIGINS') ?? ''
 const AI_CONSENT_TELEGRAM_MESSAGE = '🔒 Чтобы использовать ИИ-разборы, открой Tonus → Настройки → Обработка данных ИИ и дай согласие.'
 const avg = (a: number[]) => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null
 
@@ -183,6 +184,7 @@ event ∈ coffee|alcohol|meal|water|meds|workout|illness|stress|travel. ВСЕГ
 }
 
 serve(async (req) => {
+  const CORS = corsHeadersFor(req.headers.get('Origin'), ALLOWED_ORIGINS)
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)

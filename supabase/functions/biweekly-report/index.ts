@@ -6,6 +6,7 @@ import { plannedDaysInRange, attendance, scheduleWeekdays, type DayTimes } from 
 import { isServiceRoleCall } from '../_shared/serviceRoleAuth.ts'
 import { isValidInternalSecret } from '../_shared/auth.ts'
 import { aiConsentRequiredResponse, fetchGeminiWithConsent, isAiConsentRequired } from '../_shared/aiConsent.ts'
+import { corsHeadersFor } from '../_shared/cors.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -13,7 +14,7 @@ const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const INTERNAL_SECRET = Deno.env.get('TONUS_INTERNAL_SECRET') ?? ''
 const TG_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') ?? ''
 
-const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, x-request-id' }
+const ALLOWED_ORIGINS = Deno.env.get('TONUS_ALLOWED_ORIGINS') ?? ''
 
 function avg(vals: number[]) { return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null }
 
@@ -110,6 +111,7 @@ function splitForTelegram(text: string, limit = 4000): string[] {
 }
 
 serve(async (req) => {
+  const CORS = corsHeadersFor(req.headers.get('Origin'), ALLOWED_ORIGINS)
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
   try {

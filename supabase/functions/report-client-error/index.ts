@@ -4,17 +4,16 @@ import {
   captureClientReportedFailure,
   parseClientFailurePayload,
 } from '../_shared/observability.ts'
+import { corsHeadersFor } from '../_shared/cors.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
 const TONUS_ENVIRONMENT = Deno.env.get('TONUS_ENVIRONMENT') ?? ''
 const TONUS_RELEASE_SHA = (Deno.env.get('TONUS_RELEASE_SHA') ?? '').toLowerCase()
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info, x-request-id',
-}
+const ALLOWED_ORIGINS = Deno.env.get('TONUS_ALLOWED_ORIGINS') ?? ''
 
 serve(async (req) => {
+  const CORS = corsHeadersFor(req.headers.get('Origin'), ALLOWED_ORIGINS)
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
   if (req.method !== 'POST') return new Response('method not allowed', { status: 405, headers: CORS })
 

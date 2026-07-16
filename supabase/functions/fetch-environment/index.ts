@@ -1,18 +1,20 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { isValidCronSecret } from '../_shared/auth.ts'
+import { corsHeadersFor } from '../_shared/cors.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 // Свой секрет для cron-джобы (ENV_CRON_SECRET) с фолбэком на общий
 const CRON_SECRET = Deno.env.get('ENV_CRON_SECRET') ?? Deno.env.get('TONUS_CRON_SECRET') ?? ''
-const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, x-cron-secret, x-request-id' }
+const ALLOWED_ORIGINS = Deno.env.get('TONUS_ALLOWED_ORIGINS') ?? ''
 
 // Default location: Munich, Germany
 const DEFAULT_LAT = 48.1351
 const DEFAULT_LON = 11.5820
 
 serve(async (req) => {
+  const CORS = corsHeadersFor(req.headers.get('Origin'), ALLOWED_ORIGINS)
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
