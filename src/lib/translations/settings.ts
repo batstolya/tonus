@@ -46,6 +46,23 @@ export const settings: Record<string, Translation> = {
   '💬 Чат': { uk: '💬 Чат', en: '💬 Chat' },
   '🔍 Анализ данных': { uk: '🔍 Аналіз даних', en: '🔍 Data analysis' },
   '🔬 OCR анализов': { uk: '🔬 OCR аналізів', en: '🔬 Lab OCR' },
+  'Обработка данных ИИ': { uk: 'Обробка даних ШІ', en: 'AI data processing' },
+  'Google Gemini обрабатывает сводки здоровья, сообщения чата, фото еды и медицинские документы, когда ты запускаешь соответствующую функцию.': { uk: 'Google Gemini обробляє зведення здоров’я, повідомлення чату, фото їжі та медичні документи, коли ти запускаєш відповідну функцію.', en: 'Google Gemini processes health summaries, chat messages, meal photos and medical documents when you use the corresponding feature.' },
+  'Цель обработки — анализ данных, извлечение показателей, персональные рекомендации и ответы ИИ. Tonus не отправляет эти данные в Gemini без активного согласия.': { uk: 'Мета обробки — аналіз даних, вилучення показників, персональні рекомендації та відповіді ШІ. Tonus не надсилає ці дані в Gemini без активної згоди.', en: 'The purpose is data analysis, metric extraction, personalised recommendations and AI answers. Tonus does not send this data to Gemini without active consent.' },
+  'Новое согласие действует на всех устройствах. Отзыв блокирует следующие обращения к ИИ.': { uk: 'Нова згода діє на всіх пристроях. Відкликання блокує наступні звернення до ШІ.', en: 'New consent applies on every device. Revoking it blocks subsequent AI requests.' },
+  'Отзыв не удаляет данные, которые Google уже обработал по своим условиям.': { uk: 'Відкликання не видаляє дані, які Google уже обробив за своїми умовами.', en: 'Revoking consent does not erase data that Google has already processed under its terms.' },
+  'Разрешить обработку данных через Google Gemini': { uk: 'Дозволити обробку даних через Google Gemini', en: 'Allow data processing through Google Gemini' },
+  'Загружаем статус…': { uk: 'Завантажуємо статус…', en: 'Loading status…' },
+  'Согласие активно': { uk: 'Згода активна', en: 'Consent active' },
+  'Согласие не дано': { uk: 'Згоду не надано', en: 'Consent not granted' },
+  'Дать согласие': { uk: 'Надати згоду', en: 'Grant consent' },
+  'Отозвать согласие': { uk: 'Відкликати згоду', en: 'Revoke consent' },
+  'Сохраняем…': { uk: 'Зберігаємо…', en: 'Saving…' },
+  'Не удалось загрузить статус согласия. ИИ останется заблокирован.': { uk: 'Не вдалося завантажити статус згоди. ШІ залишиться заблокованим.', en: 'Could not load consent status. AI will remain blocked.' },
+  'Не удалось сохранить согласие. Попробуй ещё раз.': { uk: 'Не вдалося зберегти згоду. Спробуй ще раз.', en: 'Could not save consent. Please try again.' },
+  'Чтобы использовать функции ИИ, открой Настройки → Обработка данных ИИ и дай согласие на обработку через Google Gemini.': { uk: 'Щоб використовувати функції ШІ, відкрий Налаштування → Обробка даних ШІ та надай згоду на обробку через Google Gemini.', en: 'To use AI features, open Settings → AI data processing and consent to processing through Google Gemini.' },
+  'Согласие хранится в аккаунте, действует на всех устройствах и может быть отозвано в любое время.': { uk: 'Згода зберігається в обліковому записі, діє на всіх пристроях і може бути відкликана будь-коли.', en: 'Consent is stored with your account, applies on every device and can be revoked at any time.' },
+  'Согласие на обработку данных ИИ не активно.': { uk: 'Згода на обробку даних ШІ не активна.', en: 'AI data processing consent is not active.' },
 
 
   // ── Отчёт для врача ────────────────────────────────────────

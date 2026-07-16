@@ -14,6 +14,11 @@ import {
   type ChatHistoryClient,
   type SessionLookupClient,
 } from '../_shared/chatSessionOwnership.ts'
+import {
+  aiConsentRequiredResponse,
+  fetchGeminiWithConsent,
+  isAiConsentRequired,
+} from '../_shared/aiConsent.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
@@ -53,7 +58,12 @@ const SYSTEM_PROMPT = `Ты — персональный ассистент по
 const DEBUG = Deno.env.get('CHAT_DEBUG_REASON') === '1'
 const DEBUG_INSTRUCTION = `\n\nВАЖНО (диагностический режим): итоговый ответ верни СТРОГО как JSON-объект без markdown-ограждения и без текста вокруг: {"answer": "<твой обычный ответ пользователю>", "reason": "<на каких именно данных/инструментах построен ответ, 1-2 предложения>"}. Промежуточные вызовы инструментов делай как обычно — JSON нужен только в самом последнем, текстовом ответе.`
 
-async function callGemini(contents: ChatLoopMessage[], withTools: boolean): Promise<{ parts: GeminiPart[]; tokensUsed: number }> {
+async function callGemini(
+  client: unknown,
+  userId: string,
+  contents: ChatLoopMessage[],
+  withTools: boolean,
+): Promise<{ parts: GeminiPart[]; tokensUsed: number }> {
   const body: Record<string, unknown> = {
     contents,
     generationConfig: {
@@ -72,7 +82,9 @@ async function callGemini(contents: ChatLoopMessage[], withTools: boolean): Prom
   }
   if (withTools) body.tools = [{ functionDeclarations: CHAT_TOOL_DECLARATIONS }]
 
-  const res = await fetch(
+  const res = await fetchGeminiWithConsent(
+    client,
+    userId,
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
   )
@@ -203,7 +215,9 @@ serve(async (req) => {
     ]
 
     const executeTool = (name: string, args: Record<string, unknown>) => executeChatTool(supabase, user.id, name, args)
-    const { reply: rawReply, totalTokens: tokensUsed, toolCalls } = await runChatLoop(geminiContents, callGemini, executeTool)
+    const callConsentedGemini = (contents: ChatLoopMessage[], withTools: boolean) =>
+      callGemini(supabase, user.id, contents, withTools)
+    const { reply: rawReply, totalTokens: tokensUsed, toolCalls } = await runChatLoop(geminiContents, callConsentedGemini, executeTool)
     const { answer, reason } = DEBUG ? parseDebugReply(rawReply) : { answer: rawReply, reason: '' }
     const debug = DEBUG ? { reason, tools: formatToolTrace(toolCalls) } : undefined
 
@@ -232,7 +246,8 @@ serve(async (req) => {
     return new Response(JSON.stringify({ reply: answer, sessionId: session.id, ...(debug ? { debug } : {}) }), {
       headers: { ...CORS, 'Content-Type': 'application/json' },
     })
-  } catch {
+  } catch (e) {
+    if (isAiConsentRequired(e)) return aiConsentRequiredResponse(CORS)
     return new Response('Internal error', { status: 500, headers: CORS })
   }
 })

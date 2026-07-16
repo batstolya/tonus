@@ -4,6 +4,7 @@ import { checkBudget } from '../_shared/costGuard.ts'
 import { daysSinceFreshData } from '../_shared/staleness.ts'
 import { plannedDaysInRange, attendance, scheduleWeekdays, type DayTimes } from '../_shared/workoutPlan.ts'
 import { isServiceRoleCall } from '../_shared/serviceRoleAuth.ts'
+import { aiConsentRequiredResponse, fetchGeminiWithConsent, isAiConsentRequired } from '../_shared/aiConsent.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -334,7 +335,9 @@ ${detailSpec}
 - Без медицинских диагнозов. При тревожных значениях мягко советуй врача.
 - На русском.`
 
-    const geminiRes = await fetch(
+    const geminiRes = await fetchGeminiWithConsent(
+      supabase,
+      user.id,
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
       {
         method: 'POST',
@@ -379,6 +382,7 @@ ${detailSpec}
       headers: { ...CORS, 'Content-Type': 'application/json' },
     })
   } catch (e) {
+    if (isAiConsentRequired(e)) return aiConsentRequiredResponse(CORS)
     return new Response((e as Error).message ?? 'Error', { status: 500, headers: CORS })
   }
 })
