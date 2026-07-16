@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { DailyMetrics } from '../../types'
-import { supabase } from '../../lib/supabase'
+import { getOpenHealthAlerts, acknowledgeHealthAlert, type HealthAlert } from '../../lib/api/dashboard'
 import { demoList, demoUpdate } from '../../lib/demoDb'
 import { buildBellItems, type BellItem } from '../../lib/notifications'
 import { ACTIVE_STEPS_MIN, ACTIVE_EXERCISE_MIN } from '../../lib/streak'
@@ -10,14 +10,6 @@ interface Props {
   daily: DailyMetrics[]
   userId: string | null
   demo: boolean
-}
-
-// Алерты стража из БД (та же выборка, что HealthAlertBanner, но списком).
-interface HealthAlert {
-  id: string
-  level: 'yellow' | 'red'
-  message: string
-  created_at: string
 }
 
 const DISMISSED_KEY = 'bell_dismissed'
@@ -52,18 +44,9 @@ export function NotificationBell({ daily, userId, demo }: Props) {
   useEffect(() => {
     if (!userId || demo) return
     let cancelled = false
-    const since = new Date(Date.now() - 14 * 24 * 3600_000).toISOString()
-    supabase
-      .from('health_alerts')
-      .select('id, level, message, created_at')
-      .eq('user_id', userId)
-      .is('acknowledged_at', null)
-      .gte('created_at', since)
-      .order('created_at', { ascending: false })
-      .limit(10)
-      .then(({ data }) => {
-        if (!cancelled && data) setAlerts(data as HealthAlert[])
-      })
+    // Та же выборка, что в HealthAlertBanner, но списком за 14 дней.
+    getOpenHealthAlerts(userId, { sinceHours: 14 * 24, limit: 10 })
+      .then(data => { if (!cancelled && data.length) setAlerts(data) })
     return () => { cancelled = true }
   }, [userId, demo])
 
@@ -94,7 +77,7 @@ export function NotificationBell({ daily, userId, demo }: Props) {
   const ackAlert = async (id: string) => {
     setAlerts(list => list.filter(a => a.id !== id))
     if (demo) return demoUpdate('health_alerts', id, { acknowledged_at: new Date().toISOString() })
-    await supabase.from('health_alerts').update({ acknowledged_at: new Date().toISOString() }).eq('id', id)
+    await acknowledgeHealthAlert(id)
   }
 
   const dismissDerived = (id: string) => {

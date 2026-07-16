@@ -6,7 +6,6 @@ import assert from 'node:assert'
 import { execSync } from 'node:child_process'
 
 const ALLOWLIST = new Set([
-  'src/components/dashboard/NotificationBell.tsx',
   'src/components/dashboard/WorkoutPlanCard.tsx',
   'src/components/insights/CorrelationsBlock.tsx',
   'src/components/intake/QuickLog.tsx',
