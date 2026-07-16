@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Nightly Tonus database backup. Install:
+       cp scripts/backup/com.tonus.backup.plist ~/Library/LaunchAgents/
+       launchctl load ~/Library/LaunchAgents/com.tonus.backup.plist
+     launchd runs a missed schedule on the next wake, so a sleeping Mac
+     still gets its daily backup. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.tonus.backup</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/anatolii/tonus/scripts/backup/tonus-backup.sh</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>9</integer>
+    <key>Minute</key>
+    <integer>30</integer>
+  </dict>
+  <key>StandardErrorPath</key>
+  <string>/tmp/com.tonus.backup.err</string>
+</dict>
+</plist>

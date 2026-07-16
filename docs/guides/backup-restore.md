@@ -16,17 +16,46 @@ Checked via `npx supabase backups list --project-ref <prod-ref>`:
 backups. Until a recovery path is selected and tested, external invitations
 remain blocked per the Phase 0 release rule.
 
-### Options (owner decision required)
+### Decision — 2026-07-16: self-managed encrypted dumps (option 2)
 
-1. **Upgrade the Supabase project to Pro** — daily automated backups,
-   optional PITR add-on. Smallest operational surface; recommended.
-2. **Self-managed logical dumps** — scheduled `pg_dump` to private storage.
-   Requires new credentials, a scheduler outside the public repo, encryption,
-   and its own restore test. More moving parts; only worth it if staying on
-   the free plan is a hard constraint.
+The owner chose to stay on the free plan; nightly encrypted logical dumps run
+on the owner's Mac via launchd. A Pro upgrade remains the recommended path
+once the user base grows.
 
-Whichever is chosen, the scratch-project restore below must be performed once
-and recorded before the first invitation.
+**Mechanism** (`scripts/backup/tonus-backup.sh` + `com.tonus.backup.plist`):
+
+- Nightly at 09:30 local (launchd runs a missed schedule on next wake).
+- Dumps roles, schema, and data through the locally authenticated
+  `supabase` CLI — no database password or service key stored anywhere.
+- Archive encrypted with AES-256-CBC; the key lives only in the macOS
+  Keychain item `tonus-backup-key`.
+- Retention: newest 30 archives in `~/TonusBackups`; failures log to
+  `~/TonusBackups/backup.log` and raise a desktop notification.
+
+**Install (one-time):**
+
+```bash
+cp scripts/backup/com.tonus.backup.plist ~/Library/LaunchAgents/
+launchctl load ~/Library/LaunchAgents/com.tonus.backup.plist
+bash scripts/backup/tonus-backup.sh   # first run, verify the archive appears
+```
+
+**Decrypt an archive:**
+
+```bash
+security find-generic-password -s tonus-backup-key -w > /tmp/key
+openssl enc -d -aes-256-cbc -pbkdf2 -pass file:/tmp/key \
+  -in ~/TonusBackups/tonus-<stamp>.tar.gz.enc | tar xz && rm /tmp/key
+```
+
+**Known limits:** single machine (Mac disk dies together with its backups —
+periodically copy an archive to a second location, e.g. iCloud Drive; the
+archive is encrypted so the copy is safe), no PITR (worst case loses up to
+one day), Keychain key must be exported to the owner's password manager so
+a lost Mac doesn't mean undecryptable backups.
+
+The scratch-project restore below must be performed once and recorded before
+the first invitation.
 
 ## Recovery requirements inventory
 
