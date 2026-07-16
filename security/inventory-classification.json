@@ -2,7 +2,7 @@
   "version": 1,
   "tables": {
     "publicReference": ["football_matches"],
-    "serviceOnly": ["ai_prompts", "claude_usage", "codex_usage"],
+    "serviceOnly": ["ai_prompts", "claude_usage", "codex_usage", "observability_events"],
     "ownerColumnOverrides": { "profiles": "id" },
     "credentialTables": ["cal_sync", "ingest_tokens", "telegram_link_tokens", "telegram_links", "widget_tokens"]
   },
