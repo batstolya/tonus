@@ -32,3 +32,9 @@ export function isValidTelegramSecret(req: Request, expected: string | undefined
 export function isValidAdminSecret(req: Request, expected: string | undefined): boolean {
   return secretMatches(req.headers.get('x-admin-secret'), expected)
 }
+
+// Dedicated inter-function secret (beta-safety PR 3). Replaces the service-role
+// key as the internal bearer; spec: 2026-07-14-beta-safety-minimum-design.md §4.
+export function isValidInternalSecret(req: Request, expected: string | undefined): boolean {
+  return secretMatches(req.headers.get('x-internal-secret'), expected)
+}
