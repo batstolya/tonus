@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "tables": {
+    "publicReference": ["football_matches"],
+    "serviceOnly": ["ai_prompts", "claude_usage", "codex_usage"],
+    "ownerColumnOverrides": { "profiles": "id" },
+    "credentialTables": ["cal_sync", "ingest_tokens", "telegram_link_tokens", "telegram_links", "widget_tokens"]
+  },
+  "views": {
+    "daily_metrics": { "ownerColumn": "user_id", "authOwner": "rls:user_id", "dataSensitivity": "health", "exposure": "user-owned-view" },
+    "daily_summary": { "ownerColumn": "user_id", "authOwner": "rls:user_id", "dataSensitivity": "health", "exposure": "user-owned-view" }
+  },
+  "rpcs": {
+    "claim_due_football_reminders": { "signature": "claim_due_football_reminders()", "authOwner": "service-role", "credentialType": "service-role", "dataSensitivity": "health" },
+    "claim_due_reminder_events": { "signature": "claim_due_reminder_events(integer, integer, integer)", "authOwner": "service-role", "credentialType": "service-role", "dataSensitivity": "health" },
+    "complete_reminder_delivery": { "signature": "complete_reminder_delivery(uuid, uuid, bigint, text)", "authOwner": "service-role", "credentialType": "service-role", "dataSensitivity": "health" },
+    "fail_reminder_delivery": { "signature": "fail_reminder_delivery(uuid, uuid, text, boolean, integer)", "authOwner": "service-role", "credentialType": "service-role", "dataSensitivity": "health" },
+    "generate_football_reminders": { "signature": "generate_football_reminders()", "authOwner": "service-role", "credentialType": "service-role", "dataSensitivity": "health" },
+    "mark_football_reminder_failed": { "signature": "mark_football_reminder_failed(uuid, text)", "authOwner": "service-role", "credentialType": "service-role", "dataSensitivity": "health" },
+    "mark_football_reminder_sent": { "signature": "mark_football_reminder_sent(uuid, bigint)", "authOwner": "service-role", "credentialType": "service-role", "dataSensitivity": "health" },
+    "schedule_env_sync": { "signature": "schedule_env_sync(text)", "authOwner": "service-role", "credentialType": "service-role", "dataSensitivity": "credential" }
+  },
+  "rpcRemediations": {},
+  "buckets": {
+    "health-photos": { "authOwner": "storage-path-owner", "dataSensitivity": "health", "public": false }
+  },
+  "edgeFunctions": {
+    "analyze-health": { "authOwner": "gateway:user-jwt", "credentialType": "user-jwt", "cors": "wildcard", "rateLimit": "ai-budget", "dataSensitivity": "health" },
+    "biweekly-report": { "authOwner": "gateway:user-or-service-jwt", "credentialType": "user-or-service-role", "cors": "wildcard", "rateLimit": "ai-budget", "dataSensitivity": "health" },
+    "chat-health": { "authOwner": "gateway:user-jwt", "credentialType": "user-jwt", "cors": "wildcard", "rateLimit": "ai-budget", "dataSensitivity": "health" },
+    "classify-meal": { "authOwner": "gateway:user-jwt", "credentialType": "user-jwt", "cors": "wildcard", "rateLimit": "ai-budget", "dataSensitivity": "health" },
+    "coach-profile": { "authOwner": "handler:user-or-service-jwt", "credentialType": "user-or-service-role", "cors": "wildcard", "rateLimit": "ai-budget", "dataSensitivity": "health" },
+    "coach-weekly": { "authOwner": "handler:user-jwt-or-cron-secret", "credentialType": "user-jwt-or-cron-secret", "cors": "wildcard", "rateLimit": "ai-budget", "dataSensitivity": "health" },
+    "deep-research": { "authOwner": "gateway:user-jwt", "credentialType": "user-jwt", "cors": "wildcard", "rateLimit": "ai-budget", "dataSensitivity": "health" },
+    "extract-lab": { "authOwner": "gateway:user-jwt", "credentialType": "user-jwt", "cors": "wildcard", "rateLimit": "ai-budget", "dataSensitivity": "health" },
+    "fetch-cal": { "authOwner": "gateway:user-jwt", "credentialType": "user-jwt", "cors": "wildcard", "rateLimit": "none", "dataSensitivity": "credential" },
+    "fetch-environment": { "authOwner": "handler:user-jwt-or-cron-secret", "credentialType": "user-jwt-or-cron-secret", "cors": "wildcard", "rateLimit": "none", "dataSensitivity": "health" },
+    "fetch-ics": { "authOwner": "gateway:user-jwt", "credentialType": "user-jwt", "cors": "wildcard", "rateLimit": "none", "dataSensitivity": "health" },
+    "generate-recommendations": { "authOwner": "gateway:user-jwt", "credentialType": "user-jwt", "cors": "wildcard", "rateLimit": "ai-budget", "dataSensitivity": "health" },
+    "ingest-health": { "authOwner": "handler:ingest-token", "credentialType": "ingest-token", "cors": "wildcard", "rateLimit": "none", "dataSensitivity": "health" },
+    "register-webhook": { "authOwner": "handler:admin-secret", "credentialType": "admin-secret", "cors": "none", "rateLimit": "none", "dataSensitivity": "internal" },
+    "send-football-reminders": { "authOwner": "handler:cron-secret", "credentialType": "cron-secret", "cors": "wildcard", "rateLimit": "none", "dataSensitivity": "health" },
+    "send-reminders": { "authOwner": "handler:cron-secret", "credentialType": "cron-secret", "cors": "none", "rateLimit": "none", "dataSensitivity": "health" },
+    "suggest-experiments": { "authOwner": "gateway:user-or-service-jwt", "credentialType": "user-or-service-role", "cors": "wildcard", "rateLimit": "ai-budget", "dataSensitivity": "health" },
+    "supplement-schedule": { "authOwner": "gateway:user-jwt", "credentialType": "user-jwt", "cors": "wildcard", "rateLimit": "ai-budget", "dataSensitivity": "health" },
+    "sync-cal": { "authOwner": "handler:user-jwt-or-cron-secret", "credentialType": "user-jwt-or-cron-secret", "cors": "wildcard", "rateLimit": "none", "dataSensitivity": "credential" },
+    "sync-football-fixtures": { "authOwner": "handler:cron-secret", "credentialType": "cron-secret", "cors": "wildcard", "rateLimit": "none", "dataSensitivity": "public" },
+    "telegram-bot": { "authOwner": "handler:telegram-webhook-secret", "credentialType": "telegram-webhook-secret", "cors": "none", "rateLimit": "ai-budget", "dataSensitivity": "health" },
+    "widget-data": { "authOwner": "handler:widget-token", "credentialType": "widget-token", "cors": "wildcard", "rateLimit": "none", "dataSensitivity": "health" }
+  }
+}
