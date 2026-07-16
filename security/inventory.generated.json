@@ -11,7 +11,7 @@
     "views": 2,
     "rpcs": 10,
     "buckets": 1,
-    "edgeFunctions": 23
+    "edgeFunctions": 24
   },
   "surfaces": {
     "tables": [
@@ -558,6 +558,15 @@
         "credentialType": "user-jwt",
         "cors": "allowlist",
         "rateLimit": "ai-budget",
+        "dataSensitivity": "health",
+        "verifyJwt": true
+      },
+      {
+        "name": "delete-account",
+        "authOwner": "gateway:user-jwt",
+        "credentialType": "user-jwt",
+        "cors": "allowlist",
+        "rateLimit": "durable",
         "dataSensitivity": "health",
         "verifyJwt": true
       },

@@ -267,6 +267,13 @@
       "cors": "wildcard",
       "rateLimit": "durable",
       "dataSensitivity": "health"
+    },
+    "delete-account": {
+      "authOwner": "gateway:user-jwt",
+      "credentialType": "user-jwt",
+      "cors": "allowlist",
+      "rateLimit": "durable",
+      "dataSensitivity": "health"
     }
   }
 }
