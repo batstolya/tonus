@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { computeAdherence, type AdherenceLog } from '../../lib/adherence'
-import { supabase } from '../../lib/supabase'
+import { getAdherenceLogs } from '../../lib/api/supplements'
 import { isDemoActive } from '../../lib/demo'
 import { demoList } from '../../lib/demoDb'
 import { useT } from '../../lib/i18n'
@@ -27,11 +27,7 @@ export function AdherenceBlock({ supplements }: { supplements: Supplement[] }) {
     if (!active.length || isDemoActive()) return
     let cancelled = false
     const since = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
-    supabase
-      .from('supplement_logs')
-      .select('supplement_id, date, taken')
-      .gte('date', since)
-      .then(({ data }) => { if (!cancelled) setLogs((data as AdherenceLog[]) ?? []) })
+    getAdherenceLogs(since).then(data => { if (!cancelled) setLogs(data) })
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active.length])
