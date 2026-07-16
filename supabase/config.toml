@@ -54,5 +54,8 @@ verify_jwt = true
 [functions.suggest-experiments]
 verify_jwt = true
 
+[functions.delete-account]
+verify_jwt = true    # account deletion; handler re-verifies the password server-side
+
 [functions.register-webhook]
 verify_jwt = false   # установка вебхука, без user-JWT

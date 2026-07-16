@@ -8,10 +8,6 @@ const CRON_SECRET = Deno.env.get('TONUS_CRON_SECRET') ?? Deno.env.get('FOOTBALL_
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, content-type, x-cron-secret, x-request-id',
-}
 
 interface ClaimedReminder extends FootballReminderView {
   reminder_id: string
@@ -21,7 +17,7 @@ interface ClaimedReminder extends FootballReminderView {
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
+  if (req.method === 'OPTIONS') return new Response('ok')
 
   if (!isValidCronSecret(req, CRON_SECRET)) {
     return json({ error: 'unauthorized' }, 401)
@@ -77,6 +73,6 @@ serve(async (req) => {
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...CORS, 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json' },
   })
 }

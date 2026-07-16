@@ -53,6 +53,8 @@ test('maps every custom credential class to side-effect-free missing and invalid
   const functions = [
     { name: 'cron', verifyJwt: false, credentialType: 'cron-secret' },
     { name: 'ingest', verifyJwt: false, credentialType: 'ingest-token' },
+    { name: 'internal', verifyJwt: false, credentialType: 'user-or-internal-secret-or-service-role' },
+    { name: 'internal-only', verifyJwt: false, credentialType: 'user-or-internal-secret' },
     { name: 'telegram', verifyJwt: false, credentialType: 'telegram-webhook-secret' },
     { name: 'user', verifyJwt: true, credentialType: 'user-jwt' },
   ]
@@ -60,11 +62,15 @@ test('maps every custom credential class to side-effect-free missing and invalid
 
   assert.deepEqual(probes.map(probe => `${probe.functionName}:${probe.variant}`), [
     'cron:missing', 'cron:invalid', 'ingest:missing', 'ingest:invalid',
+    'internal:missing', 'internal:invalid',
+    'internal-only:missing', 'internal-only:invalid',
     'telegram:missing', 'telegram:invalid',
   ])
   assert.equal(probes.find(probe => probe.functionName === 'cron' && probe.variant === 'invalid').headers['x-cron-secret'], 'invalid')
   assert.equal(probes.find(probe => probe.functionName === 'ingest' && probe.variant === 'invalid').query, '?token=invalid')
   assert.equal(probes.find(probe => probe.functionName === 'telegram' && probe.variant === 'invalid').headers['x-telegram-bot-api-secret-token'], 'invalid')
+  assert.equal(probes.find(probe => probe.functionName === 'internal' && probe.variant === 'invalid').headers['x-internal-secret'], 'invalid')
+  assert.equal(probes.find(probe => probe.functionName === 'internal-only' && probe.variant === 'invalid').headers['x-internal-secret'], 'invalid')
 })
 
 test('requires visible owner canaries and empty-or-denied foreign reads', () => {

@@ -22,6 +22,8 @@ import { fetchGeminiWithConsent, isAiConsentRequired } from '../_shared/aiConsen
 const TG_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+const INTERNAL_SECRET = Deno.env.get('TONUS_INTERNAL_SECRET') ?? ''
 const WEBHOOK_SECRET = Deno.env.get('TELEGRAM_WEBHOOK_SECRET') ?? ''
 const MAX_CHAT_MESSAGE_LENGTH = 4096
 const AI_CONSENT_TELEGRAM_MESSAGE = '🔒 Чтобы использовать функции ИИ, открой Tonus → Настройки → Обработка данных ИИ и дай согласие.'
@@ -131,7 +133,8 @@ async function handleReport(chatId: number | string, userId: string, _supabase: 
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, // gateway only; authority is x-internal-secret
+      'x-internal-secret': INTERNAL_SECRET,
       'x-user-id': userId,
     },
   })
@@ -686,7 +689,8 @@ async function handleExperimentSuggest(chatId: number | string, userId: string, 
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, // gateway only; authority is x-internal-secret
+      'x-internal-secret': INTERNAL_SECRET,
       'x-user-id': userId,
     },
     body: JSON.stringify({ mode: 'generate' }),

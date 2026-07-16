@@ -20,6 +20,7 @@ import { ImportSection } from './sections/ImportSection'
 import { EnvironmentSection } from './sections/EnvironmentSection'
 import { DeviceSection } from './sections/DeviceSection'
 import { ExportSection } from './sections/ExportSection'
+import { DeleteAccountSection } from './sections/DeleteAccountSection'
 
 interface Props {
   user: User
@@ -153,6 +154,8 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
         user={user}
         onShowDoctorReport={() => setShowDoctorReport(true)}
       />
+
+      {user && <DeleteAccountSection />}
 
       {archivedSections.length > 0 && (
         <section className="settings-section settings-archive">

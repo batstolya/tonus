@@ -7,11 +7,11 @@
     "security/inventory-classification.json"
   ],
   "counts": {
-    "tables": 54,
+    "tables": 55,
     "views": 2,
-    "rpcs": 8,
+    "rpcs": 10,
     "buckets": 1,
-    "edgeFunctions": 23
+    "edgeFunctions": 24
   },
   "surfaces": {
     "tables": [
@@ -289,6 +289,13 @@
         "exposure": "user-owned"
       },
       {
+        "name": "rate_limit_counters",
+        "ownerColumn": null,
+        "authOwner": "service-role",
+        "dataSensitivity": "internal",
+        "exposure": "service-only"
+      },
+      {
         "name": "recommendations",
         "ownerColumn": "user_id",
         "authOwner": "rls:user_id",
@@ -433,6 +440,20 @@
         "dataSensitivity": "health"
       },
       {
+        "name": "consume_rate_limit",
+        "signature": "consume_rate_limit(text, integer, integer)",
+        "authOwner": "service-role",
+        "credentialType": "service-role",
+        "dataSensitivity": "internal"
+      },
+      {
+        "name": "delete_user_data",
+        "signature": "delete_user_data(uuid)",
+        "authOwner": "service-role",
+        "credentialType": "service-role",
+        "dataSensitivity": "health"
+      },
+      {
         "name": "fail_reminder_delivery",
         "signature": "fail_reminder_delivery(uuid, uuid, text, boolean, integer)",
         "authOwner": "service-role",
@@ -481,16 +502,16 @@
         "name": "analyze-health",
         "authOwner": "gateway:user-jwt",
         "credentialType": "user-jwt",
-        "cors": "wildcard",
+        "cors": "allowlist",
         "rateLimit": "ai-budget",
         "dataSensitivity": "health",
         "verifyJwt": true
       },
       {
         "name": "biweekly-report",
-        "authOwner": "gateway:user-or-service-jwt",
-        "credentialType": "user-or-service-role",
-        "cors": "wildcard",
+        "authOwner": "gateway:user-jwt-or-internal-secret",
+        "credentialType": "user-or-internal-secret-or-service-role",
+        "cors": "allowlist",
         "rateLimit": "ai-budget",
         "dataSensitivity": "health",
         "verifyJwt": true
@@ -499,8 +520,8 @@
         "name": "chat-health",
         "authOwner": "gateway:user-jwt",
         "credentialType": "user-jwt",
-        "cors": "wildcard",
-        "rateLimit": "ai-budget",
+        "cors": "allowlist",
+        "rateLimit": "ai-budget+durable",
         "dataSensitivity": "health",
         "verifyJwt": true
       },
@@ -508,16 +529,16 @@
         "name": "classify-meal",
         "authOwner": "gateway:user-jwt",
         "credentialType": "user-jwt",
-        "cors": "wildcard",
+        "cors": "allowlist",
         "rateLimit": "ai-budget",
         "dataSensitivity": "health",
         "verifyJwt": true
       },
       {
         "name": "coach-profile",
-        "authOwner": "handler:user-or-service-jwt",
-        "credentialType": "user-or-service-role",
-        "cors": "wildcard",
+        "authOwner": "handler:user-jwt-or-internal-secret",
+        "credentialType": "user-or-internal-secret-or-service-role",
+        "cors": "allowlist",
         "rateLimit": "ai-budget",
         "dataSensitivity": "health",
         "verifyJwt": false
@@ -526,7 +547,7 @@
         "name": "coach-weekly",
         "authOwner": "handler:user-jwt-or-cron-secret",
         "credentialType": "user-jwt-or-cron-secret",
-        "cors": "wildcard",
+        "cors": "allowlist",
         "rateLimit": "ai-budget",
         "dataSensitivity": "health",
         "verifyJwt": false
@@ -535,8 +556,17 @@
         "name": "deep-research",
         "authOwner": "gateway:user-jwt",
         "credentialType": "user-jwt",
-        "cors": "wildcard",
+        "cors": "allowlist",
         "rateLimit": "ai-budget",
+        "dataSensitivity": "health",
+        "verifyJwt": true
+      },
+      {
+        "name": "delete-account",
+        "authOwner": "gateway:user-jwt",
+        "credentialType": "user-jwt",
+        "cors": "allowlist",
+        "rateLimit": "durable",
         "dataSensitivity": "health",
         "verifyJwt": true
       },
@@ -544,7 +574,7 @@
         "name": "extract-lab",
         "authOwner": "gateway:user-jwt",
         "credentialType": "user-jwt",
-        "cors": "wildcard",
+        "cors": "allowlist",
         "rateLimit": "ai-budget",
         "dataSensitivity": "health",
         "verifyJwt": true
@@ -553,7 +583,7 @@
         "name": "fetch-cal",
         "authOwner": "gateway:user-jwt",
         "credentialType": "user-jwt",
-        "cors": "wildcard",
+        "cors": "allowlist",
         "rateLimit": "none",
         "dataSensitivity": "credential",
         "verifyJwt": true
@@ -562,7 +592,7 @@
         "name": "fetch-environment",
         "authOwner": "handler:user-jwt-or-cron-secret",
         "credentialType": "user-jwt-or-cron-secret",
-        "cors": "wildcard",
+        "cors": "allowlist",
         "rateLimit": "none",
         "dataSensitivity": "health",
         "verifyJwt": false
@@ -571,7 +601,7 @@
         "name": "fetch-ics",
         "authOwner": "gateway:user-jwt",
         "credentialType": "user-jwt",
-        "cors": "wildcard",
+        "cors": "allowlist",
         "rateLimit": "none",
         "dataSensitivity": "health",
         "verifyJwt": true
@@ -580,7 +610,7 @@
         "name": "generate-recommendations",
         "authOwner": "gateway:user-jwt",
         "credentialType": "user-jwt",
-        "cors": "wildcard",
+        "cors": "allowlist",
         "rateLimit": "ai-budget",
         "dataSensitivity": "health",
         "verifyJwt": true
@@ -590,7 +620,7 @@
         "authOwner": "handler:ingest-token",
         "credentialType": "ingest-token",
         "cors": "wildcard",
-        "rateLimit": "none",
+        "rateLimit": "durable",
         "dataSensitivity": "health",
         "verifyJwt": false
       },
@@ -607,8 +637,8 @@
         "name": "report-client-error",
         "authOwner": "gateway:user-jwt",
         "credentialType": "user-jwt",
-        "cors": "wildcard",
-        "rateLimit": "none",
+        "cors": "allowlist",
+        "rateLimit": "durable",
         "dataSensitivity": "internal",
         "verifyJwt": true
       },
@@ -616,7 +646,7 @@
         "name": "send-football-reminders",
         "authOwner": "handler:cron-secret",
         "credentialType": "cron-secret",
-        "cors": "wildcard",
+        "cors": "none",
         "rateLimit": "none",
         "dataSensitivity": "health",
         "verifyJwt": false
@@ -632,9 +662,9 @@
       },
       {
         "name": "suggest-experiments",
-        "authOwner": "gateway:user-or-service-jwt",
-        "credentialType": "user-or-service-role",
-        "cors": "wildcard",
+        "authOwner": "gateway:user-jwt-or-internal-secret",
+        "credentialType": "user-or-internal-secret-or-service-role",
+        "cors": "allowlist",
         "rateLimit": "ai-budget",
         "dataSensitivity": "health",
         "verifyJwt": true
@@ -643,7 +673,7 @@
         "name": "supplement-schedule",
         "authOwner": "gateway:user-jwt",
         "credentialType": "user-jwt",
-        "cors": "wildcard",
+        "cors": "allowlist",
         "rateLimit": "ai-budget",
         "dataSensitivity": "health",
         "verifyJwt": true
@@ -652,7 +682,7 @@
         "name": "sync-cal",
         "authOwner": "handler:user-jwt-or-cron-secret",
         "credentialType": "user-jwt-or-cron-secret",
-        "cors": "wildcard",
+        "cors": "allowlist",
         "rateLimit": "none",
         "dataSensitivity": "credential",
         "verifyJwt": false
@@ -661,7 +691,7 @@
         "name": "sync-football-fixtures",
         "authOwner": "handler:cron-secret",
         "credentialType": "cron-secret",
-        "cors": "wildcard",
+        "cors": "none",
         "rateLimit": "none",
         "dataSensitivity": "public",
         "verifyJwt": false
@@ -680,7 +710,7 @@
         "authOwner": "handler:widget-token",
         "credentialType": "widget-token",
         "cors": "wildcard",
-        "rateLimit": "none",
+        "rateLimit": "durable",
         "dataSensitivity": "health",
         "verifyJwt": false
       }
