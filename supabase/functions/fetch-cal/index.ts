@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeadersFor } from '../_shared/cors.ts'
+import { fetchWithTimeout } from '../_shared/http.ts'
 
 const ALLOWED_ORIGINS = Deno.env.get('TONUS_ALLOWED_ORIGINS') ?? ''
 const CAL_BASE = 'https://cal.beskarstaff.com'
@@ -53,8 +54,9 @@ serve(async (req) => {
         },
       }))
 
-      const r = await fetch(`${CAL_BASE}/api/trpc/bookings/get?batch=1&input=${input}`, {
+      const r = await fetchWithTimeout(`${CAL_BASE}/api/trpc/bookings/get?batch=1&input=${input}`, {
         headers: { cookie: `__Secure-next-auth.session-token=${sessionToken}` },
+        retryOn5xx: true,
       })
       if (!r.ok) throw new Error(`cal.com API error: ${r.status}`)
       const d = await r.json()

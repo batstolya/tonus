@@ -7,12 +7,7 @@ import { execSync } from 'node:child_process'
 
 const ALLOWLIST = new Set([
   'supabase/functions/_shared/observability.ts',
-  'supabase/functions/coach-weekly/index.ts',
-  'supabase/functions/fetch-cal/index.ts',
   'supabase/functions/fetch-environment/index.ts',
-  'supabase/functions/fetch-ics/index.ts',
-  'supabase/functions/ingest-health/index.ts',
-  'supabase/functions/register-webhook/index.ts',
   'supabase/functions/send-football-reminders/index.ts',
   'supabase/functions/send-reminders/index.ts',
   'supabase/functions/sync-cal/index.ts',
