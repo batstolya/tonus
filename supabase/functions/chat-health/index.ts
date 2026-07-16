@@ -20,6 +20,7 @@ import {
   isAiConsentRequired,
 } from '../_shared/aiConsent.ts'
 import { corsHeadersFor } from '../_shared/cors.ts'
+import { consumeRateLimit, rateLimitedResponse } from '../_shared/rateLimit.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
@@ -102,6 +103,11 @@ serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
     const { data: { user }, error: authErr } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
     if (authErr || !user) return new Response('Unauthorized', { status: 401, headers: CORS })
+
+    // Durable request limit (PR 3): the monthly AI budget stays defense-in-depth.
+    if (!await consumeRateLimit(supabase, { bucket: `chat:${user.id}`, limit: 40, windowSeconds: 3600 })) {
+      return rateLimitedResponse(CORS)
+    }
 
     // contextSnapshot от клиента больше не принимаем: контекст строится на
     // сервере из БД (единый билдер _shared/healthContext, F2 smart-tonus) —
