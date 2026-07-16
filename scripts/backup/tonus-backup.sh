@@ -1,31 +1,34 @@
 #!/bin/bash
 # Nightly encrypted logical backup of the Tonus production database.
 #
-# Runs via launchd (see scripts/backup/com.tonus.backup.plist). Uses the
-# locally authenticated supabase CLI (login lives in the macOS Keychain),
-# so no database password or service key is stored anywhere.
+# Runs via launchd (see scripts/backup/com.tonus.backup.plist). Uses native
+# pg_dump (brew libpq) with a connection URL stored only in the macOS
+# Keychain — no Docker required (supabase CLI's `db dump` needs Docker).
+#
+# One-time setup (owner):
+#   brew install libpq
+#   security add-generic-password -s tonus-db-url -a tonus \
+#     -w "postgresql://postgres.<ref>:<DB_PASSWORD>@<pooler-host>:5432/postgres"
+#   security add-generic-password -s tonus-backup-key -a tonus -w "$(openssl rand -hex 32)"
 #
 # Output: $BACKUP_DIR/tonus-YYYY-MM-DD_HHMMSS.tar.gz.enc
-#   - roles.sql   (cluster roles)
-#   - schema.sql  (full schema incl. dashboard-created objects)
-#   - data.sql    (all rows, COPY format)
+#   - public.sql     (public schema: DDL + data, owner/privilege-free)
+#   - auth_data.sql  (auth schema data — user accounts; best-effort)
 # Encryption: AES-256-CBC (pbkdf2), key in Keychain item "tonus-backup-key".
 # Retention: last $KEEP archives (default 30).
 #
 # Restore (see docs/guides/backup-restore.md for the full procedure):
 #   security find-generic-password -s tonus-backup-key -w > /tmp/key
 #   openssl enc -d -aes-256-cbc -pbkdf2 -pass file:/tmp/key \
-#     -in tonus-<date>.tar.gz.enc | tar xz
+#     -in tonus-<stamp>.tar.gz.enc | tar xz
 
 set -euo pipefail
 
-REPO_DIR="${TONUS_REPO_DIR:-$HOME/tonus}"
 BACKUP_DIR="${TONUS_BACKUP_DIR:-$HOME/TonusBackups}"
 KEEP="${TONUS_BACKUP_KEEP:-30}"
-KEYCHAIN_ITEM="tonus-backup-key"
-
-# Node 24 (nvm) + deno paths; launchd starts with a minimal PATH.
-export PATH="$HOME/.nvm/versions/node/v24.16.0/bin:/usr/local/bin:/opt/homebrew/bin:$PATH"
+KEY_ITEM="tonus-backup-key"
+URL_ITEM="tonus-db-url"
+PG_DUMP="${TONUS_PG_DUMP:-/opt/homebrew/opt/libpq/bin/pg_dump}"
 
 STAMP="$(date +%Y-%m-%d_%H%M%S)"
 WORK="$(mktemp -d)"
@@ -42,21 +45,32 @@ fail() {
   exit 1
 }
 
-cd "$REPO_DIR" || fail "repo dir not found: $REPO_DIR"
+[ -x "$PG_DUMP" ] || fail "pg_dump not found at $PG_DUMP (brew install libpq)"
 
-KEY="$(security find-generic-password -s "$KEYCHAIN_ITEM" -w 2>/dev/null)" \
-  || fail "encryption key '$KEYCHAIN_ITEM' not found in Keychain"
+KEY="$(security find-generic-password -s "$KEY_ITEM" -w 2>/dev/null)" \
+  || fail "encryption key '$KEY_ITEM' not found in Keychain"
+DB_URL="$(security find-generic-password -s "$URL_ITEM" -w 2>/dev/null)" \
+  || fail "connection URL '$URL_ITEM' not found in Keychain"
 
 log "dump started"
-npx --yes supabase db dump --linked --role-only -f "$WORK/roles.sql"  >> "$LOG" 2>&1 || fail "roles dump failed"
-npx --yes supabase db dump --linked             -f "$WORK/schema.sql" >> "$LOG" 2>&1 || fail "schema dump failed"
-npx --yes supabase db dump --linked --data-only --use-copy -f "$WORK/data.sql" >> "$LOG" 2>&1 || fail "data dump failed"
 
-# Empty data dump means the dump silently produced nothing — treat as failure.
-[ -s "$WORK/data.sql" ] || fail "data.sql is empty"
+# Public schema: DDL + data, portable into a fresh project.
+"$PG_DUMP" "$DB_URL" --schema public --no-owner --no-privileges \
+  --quote-all-identifiers -f "$WORK/public.sql" 2>> "$LOG" \
+  || fail "public schema dump failed"
+[ -s "$WORK/public.sql" ] || fail "public.sql is empty"
+
+# Auth schema data (user accounts). Best-effort: schema layout is managed
+# by the platform, so only rows are captured; a permission change on the
+# managed schema must not kill the whole backup.
+if ! "$PG_DUMP" "$DB_URL" --schema auth --data-only --quote-all-identifiers \
+  -f "$WORK/auth_data.sql" 2>> "$LOG"; then
+  log "WARN: auth schema dump failed, archive has public schema only"
+  : > "$WORK/auth_data.sql"
+fi
 
 ARCHIVE="$BACKUP_DIR/tonus-$STAMP.tar.gz.enc"
-tar -czf - -C "$WORK" roles.sql schema.sql data.sql \
+tar -czf - -C "$WORK" public.sql auth_data.sql \
   | openssl enc -aes-256-cbc -pbkdf2 -pass "pass:$KEY" -out "$ARCHIVE" \
   || fail "encryption failed"
 rm -rf "$WORK"
