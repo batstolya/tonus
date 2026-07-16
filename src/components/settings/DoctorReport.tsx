@@ -7,7 +7,7 @@ import { loadSupplements, type Supplement } from '../../lib/supplements'
 import { loadConcerns, STATUS_LABELS, type HealthConcern } from '../../lib/concerns'
 import { computeAdherence } from '../../lib/adherence'
 import { isUnlocked } from '../../lib/privacy'
-import { supabase } from '../../lib/supabase'
+import { getSupplementLogsSince, type SupplementAdherenceLog } from '../../lib/api/settings'
 import { callFunction } from '../../lib/edgeFunctions'
 import { isDemoActive } from '../../lib/demo'
 import { demoList } from '../../lib/demoDb'
@@ -27,8 +27,6 @@ interface Props {
   onClose: () => void
 }
 
-interface AdhLog { supplement_id: string; date: string; taken: boolean }
-
 const METRIC_NAMES: Record<string, string> = {
   restingHeartRate: 'Пульс покоя',
   hrv: 'HRV',
@@ -47,9 +45,9 @@ export function DoctorReport({ user, daily, onClose }: Props) {
   const [labs, setLabs] = useState<LabLine[]>([])
   const [supplements, setSupplements] = useState<Supplement[]>([])
   // Демо: логи приёма ленивым инициализатором (эффект в демо в БД не ходит).
-  const [adhLogs, setAdhLogs] = useState<AdhLog[]>(
+  const [adhLogs, setAdhLogs] = useState<SupplementAdherenceLog[]>(
     () => isDemoActive()
-      ? demoList('supplement_logs').filter(l => l.date >= addDays(localDate(), -365)) as AdhLog[]
+      ? demoList('supplement_logs').filter(l => l.date >= addDays(localDate(), -365)) as SupplementAdherenceLog[]
       : [])
   const [concerns, setConcerns] = useState<HealthConcern[]>([])
   const [pickedConcerns, setPickedConcerns] = useState<Set<string>>(new Set())
@@ -66,11 +64,7 @@ export function DoctorReport({ user, daily, onClose }: Props) {
     loadLabResults(user.id).then(rs => setLabs(latestLabs(rs))).catch(() => {})
     loadSupplements(user.id).then(setSupplements).catch(() => {})
     if (!isDemoActive()) {
-      supabase.from('supplement_logs')
-        .select('supplement_id, date, taken')
-        .eq('user_id', user.id)
-        .gte('date', addDays(localDate(), -365))
-        .then(({ data }) => { if (data) setAdhLogs(data as AdhLog[]) })
+      getSupplementLogsSince(user.id, addDays(localDate(), -365)).then(setAdhLogs)
     }
     loadConcerns(user.id).then(cs => {
       setConcerns(cs)

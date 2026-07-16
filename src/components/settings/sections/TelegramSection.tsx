@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { useT } from '../../../lib/i18n'
-import { supabase } from '../../../lib/supabase'
+import { getActiveTelegramLink, createTelegramLinkToken, pauseTelegramLink } from '../../../lib/api/settings'
 import { loadDailyNoteSettings, saveDailyNoteSettings } from '../../../lib/dailyNote'
 import { loadReportSettings, saveReportSettings, type ReportSettings } from '../../../lib/reportSettings'
 import { ArchiveBtn } from './ArchiveBtn'
@@ -27,11 +27,9 @@ export function TelegramSection({ user, archivedTelegram, archivedReports, onArc
   const [rep, setRep] = useState<ReportSettings | null>(null)
 
   useEffect(() => {
-    supabase.from('telegram_links').select('telegram_chat_id, telegram_username, status')
-      .eq('user_id', user.id).eq('status', 'active').maybeSingle()
-      .then(({ data }) => {
-        if (data) { setTgLinked(true); setTgUsername(data.telegram_username) }
-      })
+    getActiveTelegramLink(user.id).then(link => {
+      if (link) { setTgLinked(true); setTgUsername(link.telegram_username) }
+    })
     loadDailyNoteSettings(user.id).then(s => { setNoteEnabled(s.enabled); setNoteTime(s.time) }).catch(() => {})
     loadReportSettings(user.id).then(setRep).catch(() => {})
   }, [user.id])
@@ -54,17 +52,15 @@ export function TelegramSection({ user, archivedTelegram, archivedReports, onArc
     setTgLinking(true)
     setTgMsg(null)
     try {
-      const token = crypto.randomUUID().replace(/-/g, '').slice(0, 16)
-      const expires = new Date(Date.now() + 10 * 60 * 1000).toISOString()
-      await supabase.from('telegram_link_tokens').insert({ token, user_id: user.id, expires_at: expires })
+      const token = await createTelegramLinkToken(user.id)
       const botName = import.meta.env.VITE_TELEGRAM_BOT_NAME ?? 'tonus_health_bot'
       const url = `https://t.me/${botName}?start=${token}`
       window.open(url, '_blank')
       setTgMsg('Открыли Telegram. После нажатия Start аккаунт привяжется автоматически.')
       // Poll for 60s
       const interval = setInterval(async () => {
-        const { data } = await supabase.from('telegram_links').select('telegram_username').eq('user_id', user.id).eq('status', 'active').maybeSingle()
-        if (data) { setTgLinked(true); setTgUsername(data.telegram_username); setTgMsg(null); clearInterval(interval) }
+        const link = await getActiveTelegramLink(user.id)
+        if (link) { setTgLinked(true); setTgUsername(link.telegram_username); setTgMsg(null); clearInterval(interval) }
       }, 3000)
       setTimeout(() => clearInterval(interval), 60000)
     } catch (e) {
@@ -74,7 +70,7 @@ export function TelegramSection({ user, archivedTelegram, archivedReports, onArc
   }
 
   async function handleTgDisconnect() {
-    await supabase.from('telegram_links').update({ status: 'paused' }).eq('user_id', user.id)
+    await pauseTelegramLink(user.id)
     setTgLinked(false)
     setTgUsername(null)
     setTgMsg('Telegram отключён.')

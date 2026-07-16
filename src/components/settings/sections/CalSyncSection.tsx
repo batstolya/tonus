@@ -3,11 +3,9 @@ import type { User } from '@supabase/supabase-js'
 import type { CalendarEvent } from '../../../types'
 import type { AppView } from '../../../store/appStore'
 import { useT } from '../../../lib/i18n'
-import { supabase } from '../../../lib/supabase'
+import { getCalSyncStatus, type CalSyncStatus } from '../../../lib/api/settings'
 import { callFunction } from '../../../lib/edgeFunctions'
 import { ArchiveBtn, type SectionProps } from './ArchiveBtn'
-
-type CalStatus = { cal_email: string | null; last_sync_at: string | null; last_status: string | null; event_count: number | null; enabled: boolean }
 
 interface Props extends SectionProps {
   user: User
@@ -22,7 +20,7 @@ export function CalSyncSection({ archived, onArchive, user, onCalEvents, onNavig
   const [calMsg, setCalMsg] = useState<string | null>(null)
   const [calEmail, setCalEmail] = useState('')
   const [calPassword, setCalPassword] = useState('')
-  const [calStatus, setCalStatus] = useState<CalStatus | null>(null)
+  const [calStatus, setCalStatus] = useState<CalSyncStatus | null>(null)
   const [editingCal, setEditingCal] = useState(false)
 
   async function handleCalSync() {
@@ -43,10 +41,7 @@ export function CalSyncSection({ archived, onArchive, user, onCalEvents, onNavig
   }
 
   async function refreshCalStatus() {
-    const { data } = await supabase.from('cal_sync')
-      .select('cal_email, last_sync_at, last_status, event_count, enabled')
-      .eq('user_id', user.id).maybeSingle()
-    setCalStatus(data ?? null)
+    setCalStatus(await getCalSyncStatus(user.id))
   }
 
   async function handleCalSaveAndSync() {
@@ -85,10 +80,7 @@ export function CalSyncSection({ archived, onArchive, user, onCalEvents, onNavig
   }
 
   useEffect(() => {
-    supabase.from('cal_sync')
-      .select('cal_email, last_sync_at, last_status, event_count, enabled')
-      .eq('user_id', user.id).maybeSingle()
-      .then(({ data }) => setCalStatus(data ?? null))
+    getCalSyncStatus(user.id).then(setCalStatus)
   }, [user.id])
 
   return (

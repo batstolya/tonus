@@ -85,7 +85,7 @@ ratchet as the guide.
 
 | Item | Size | Status |
 |---|---|---|
-| B1 http timeouts | S | planned — plan file exists |
-| B2 data layer + component tests | L (per-feature PRs) | pending B1 |
+| B1 http timeouts | S | DONE — PR #88, 24 fns redeployed 2026-07-16 |
+| B2 data layer + component tests | L (per-feature PRs) | in progress — settings migrated (guard 15→10) |
 | B3 telegram-bot split | M | pending B2 start |
 | B4 lint 16→0 | S | any time; scheduled last to avoid conflicts |

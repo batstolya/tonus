@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { useT } from '../../../lib/i18n'
-import { supabase } from '../../../lib/supabase'
+import { getProfileLocation, saveProfileLocation, updateLocationLabel } from '../../../lib/api/settings'
 import { callFunction } from '../../../lib/edgeFunctions'
 import { ArchiveBtn, type SectionProps } from './ArchiveBtn'
 
@@ -49,8 +49,8 @@ export function EnvironmentSection({ archived, onArchive, user }: SectionProps &
 
   async function handleLocationPick(r: LocResult) {
     const label = [r.name, r.admin1, r.country].filter(Boolean).join(', ')
-    const { error } = await supabase.from('profiles').upsert({ id: user.id, latitude: r.latitude, longitude: r.longitude, location_label: label })
-    if (error) { setLocMsg(`${t('Ошибка')}: ${error.message}`); return }
+    const err = await saveProfileLocation(user.id, { latitude: r.latitude, longitude: r.longitude, label })
+    if (err) { setLocMsg(`${t('Ошибка')}: ${err}`); return }
     setLocLabel(label); setLocResults([]); setLocQuery(''); setEditingLoc(false); setLocMsg(`✅ ${t('Локация определена')}`)
   }
 
@@ -69,9 +69,9 @@ export function EnvironmentSection({ archived, onArchive, user }: SectionProps &
           const parts = [g.city || g.locality, g.principalSubdivision, g.countryName].filter(Boolean)
           if (parts.length) label = parts.join(', ')
         } catch { /* без названия — оставим координаты */ }
-        const { error } = await supabase.from('profiles').upsert({ id: user.id, latitude, longitude, location_label: label })
+        const err = await saveProfileLocation(user.id, { latitude, longitude, label })
         setLocLocating(false)
-        if (error) { setLocMsg(`${t('Ошибка')}: ${error.message}`); return }
+        if (err) { setLocMsg(`${t('Ошибка')}: ${err}`); return }
         setLocLabel(label); setLocResults([]); setLocQuery(''); setEditingLoc(false); setLocMsg(`✅ ${t('Локация определена')}`)
       },
       (err) => {
@@ -87,23 +87,21 @@ export function EnvironmentSection({ archived, onArchive, user }: SectionProps &
   // языке момента (напр. русском) и «застревала» на нём при смене языка.
   useEffect(() => {
     let cancelled = false
-    supabase.from('profiles').select('location_label, latitude, longitude').eq('id', user.id).maybeSingle()
-      .then(async ({ data }) => {
-        if (cancelled || !data) return
-        if (data.location_label) setLocLabel(data.location_label)
-        if (data.latitude == null || data.longitude == null) return
-        try {
-          const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${data.latitude}&longitude=${data.longitude}&localityLanguage=${lang}`)
-          const g = await res.json()
-          const parts = [g.city || g.locality, g.principalSubdivision, g.countryName].filter(Boolean)
-          const label = parts.join(', ')
-          if (!cancelled && label && label !== data.location_label) {
-            setLocLabel(label)
-            // без await builder supabase-js не выполняется — запрос бы не ушёл
-            await supabase.from('profiles').update({ location_label: label }).eq('id', user.id)
-          }
-        } catch { /* нет сети/геокодера — оставляем сохранённую подпись */ }
-      })
+    getProfileLocation(user.id).then(async data => {
+      if (cancelled || !data) return
+      if (data.location_label) setLocLabel(data.location_label)
+      if (data.latitude == null || data.longitude == null) return
+      try {
+        const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${data.latitude}&longitude=${data.longitude}&localityLanguage=${lang}`)
+        const g = await res.json()
+        const parts = [g.city || g.locality, g.principalSubdivision, g.countryName].filter(Boolean)
+        const label = parts.join(', ')
+        if (!cancelled && label && label !== data.location_label) {
+          setLocLabel(label)
+          await updateLocationLabel(user.id, label)
+        }
+      } catch { /* нет сети/геокодера — оставляем сохранённую подпись */ }
+    })
     return () => { cancelled = true }
   }, [user.id, lang])
 
