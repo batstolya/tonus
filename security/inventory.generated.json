@@ -663,34 +663,5 @@
       }
     ]
   },
-  "findings": [
-    {
-      "id": "SEC-RPC-PUBLIC-EXECUTE-claim_due_football_reminders",
-      "severity": "high",
-      "surface": "rpc:claim_due_football_reminders",
-      "summary": "Service-only SECURITY DEFINER RPC lacks an explicit PUBLIC/anon/authenticated revoke",
-      "remediation": "PR #77"
-    },
-    {
-      "id": "SEC-RPC-PUBLIC-EXECUTE-generate_football_reminders",
-      "severity": "high",
-      "surface": "rpc:generate_football_reminders",
-      "summary": "Service-only SECURITY DEFINER RPC lacks an explicit PUBLIC/anon/authenticated revoke",
-      "remediation": "PR #77"
-    },
-    {
-      "id": "SEC-RPC-PUBLIC-EXECUTE-mark_football_reminder_failed",
-      "severity": "high",
-      "surface": "rpc:mark_football_reminder_failed",
-      "summary": "Service-only SECURITY DEFINER RPC lacks an explicit PUBLIC/anon/authenticated revoke",
-      "remediation": "PR #77"
-    },
-    {
-      "id": "SEC-RPC-PUBLIC-EXECUTE-mark_football_reminder_sent",
-      "severity": "high",
-      "surface": "rpc:mark_football_reminder_sent",
-      "summary": "Service-only SECURITY DEFINER RPC lacks an explicit PUBLIC/anon/authenticated revoke",
-      "remediation": "PR #77"
-    }
-  ]
+  "findings": []
 }

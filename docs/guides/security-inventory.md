@@ -30,10 +30,13 @@ CI runs the check but never regenerates the reviewed artifact automatically.
 ## Findings
 
 The generator also checks that service-only RPC signatures have an explicit
-`REVOKE ... FROM PUBLIC, anon, authenticated`. The current branch records four
-high findings for football worker RPCs and links their remediation to PR #77.
-They are recorded rather than silently treated as fixed; until #77 is merged,
-applied, and live permissions are rechecked, the Phase 0 safety gate is open.
+`REVOKE ... FROM PUBLIC, anon, authenticated`. The four high findings this
+check originally recorded for the football worker RPCs were fixed by PR #77
+(migration `20260716005000_restrict_football_rpc_execute.sql`, applied to
+production on 2026-07-16 and verified with `has_function_privilege`), so the
+current findings list is empty. Every new high finding must carry an assigned
+remediation in `rpcRemediations`, and a remediation entry without a matching
+active finding fails the build as stale.
 
 ## Isolated negative-read runner
 

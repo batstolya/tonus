@@ -20,12 +20,7 @@
     "mark_football_reminder_sent": { "signature": "mark_football_reminder_sent(uuid, bigint)", "authOwner": "service-role", "credentialType": "service-role", "dataSensitivity": "health" },
     "schedule_env_sync": { "signature": "schedule_env_sync(text)", "authOwner": "service-role", "credentialType": "service-role", "dataSensitivity": "credential" }
   },
-  "rpcRemediations": {
-    "claim_due_football_reminders": "PR #77",
-    "generate_football_reminders": "PR #77",
-    "mark_football_reminder_failed": "PR #77",
-    "mark_football_reminder_sent": "PR #77"
-  },
+  "rpcRemediations": {},
   "buckets": {
     "health-photos": { "authOwner": "storage-path-owner", "dataSensitivity": "health", "public": false }
   },
