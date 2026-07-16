@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
-import { supabase } from '../../lib/supabase'
+import { createMealEvent } from '../../lib/api/intake'
 import { callFunction } from '../../lib/edgeFunctions'
 import { isDemoActive } from '../../lib/demo'
 import { demoInsert, demoId } from '../../lib/demoDb'
@@ -101,10 +101,7 @@ export function MealLogger({ user, onSaved }: Props) {
       onSaved?.()
       return
     }
-    await supabase.from('intake_events').insert({
-      user_id: user.id,
-      ts: new Date().toISOString(),
-      type: 'meal',
+    await createMealEvent(user.id, {
       note: editResult.dish || text || t('Еда'),
       calories: editResult.calories,
       protein_g: editResult.protein_g,
