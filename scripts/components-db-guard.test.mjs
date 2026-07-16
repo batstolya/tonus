@@ -14,7 +14,6 @@ const ALLOWLIST = new Set([
   'src/components/nutrition/MealLogger.tsx',
   'src/components/nutrition/NutritionScreen.tsx',
   'src/components/research/ExperimentsScreen.tsx',
-  'src/components/settings/DoctorReport.tsx',
   'src/components/supplements/AdherenceBlock.tsx',
   'src/components/supplements/TreatmentTracker.tsx',
 ])
