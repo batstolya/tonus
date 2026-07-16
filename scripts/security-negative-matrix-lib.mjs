@@ -38,6 +38,9 @@ function invalidCredential(credentialType) {
       return { headers: { authorization: 'Bearer invalid', 'x-cron-secret': 'invalid' }, query: '' }
     case 'user-or-service-role':
       return { headers: { authorization: 'Bearer invalid' }, query: '' }
+    case 'user-or-internal-secret':
+    case 'user-or-internal-secret-or-service-role':
+      return { headers: { authorization: 'Bearer invalid', 'x-internal-secret': 'invalid', 'x-user-id': '00000000-0000-0000-0000-000000000000' }, query: '' }
     case 'ingest-token':
       return { headers: {}, query: '?token=invalid' }
     case 'widget-token':
