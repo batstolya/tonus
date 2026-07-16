@@ -1,3 +1,5 @@
+import { AI_TIMEOUT_MS, fetchWithTimeout } from './http.ts'
+
 export const AI_CONSENT_PROVIDER = 'google_gemini'
 export const AI_CONSENT_PURPOSE = 'health_ai_processing'
 export const AI_CONSENT_POLICY_VERSION = '2026-07-16'
@@ -75,5 +77,5 @@ export async function fetchGeminiWithConsent(
   providerFetch: ProviderFetch = fetch,
 ): Promise<Response> {
   await requireAiConsent(client as AiConsentClient, userId)
-  return providerFetch(input, init)
+  return fetchWithTimeout(input, { ...init, timeoutMs: AI_TIMEOUT_MS, fetchImpl: providerFetch as typeof fetch })
 }

@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { isValidCronSecret } from '../_shared/auth.ts'
 import { corsHeadersFor } from '../_shared/cors.ts'
+import { fetchWithTimeout } from '../_shared/http.ts'
 
 const ALLOWED_ORIGINS = Deno.env.get('TONUS_ALLOWED_ORIGINS') ?? ''
 const CAL_BASE = 'https://cal.beskarstaff.com'
@@ -31,11 +32,11 @@ async function decrypt(b64: string): Promise<string> {
 
 // ---- cal.com NextAuth credentials login -> fresh session token ----
 async function calLogin(email: string, password: string): Promise<string> {
-  const csrfRes = await fetch(`${CAL_BASE}/api/auth/csrf`)
+  const csrfRes = await fetchWithTimeout(`${CAL_BASE}/api/auth/csrf`, { retryOn5xx: true })
   const { csrfToken } = await csrfRes.json()
   const csrfCookie = csrfRes.headers.getSetCookie().map(c => c.split(';')[0]).join('; ')
   const body = new URLSearchParams({ csrfToken, email, password, json: 'true', callbackUrl: CAL_BASE })
-  const res = await fetch(`${CAL_BASE}/api/auth/callback/credentials`, {
+  const res = await fetchWithTimeout(`${CAL_BASE}/api/auth/callback/credentials`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded', cookie: csrfCookie },
     body: body.toString(),
@@ -79,8 +80,9 @@ async function fetchBookings(sessionToken: string): Promise<CalBooking[]> {
         'filters.afterStartDate': ['undefined'], 'filters.beforeEndDate': ['undefined'],
       } } },
     }))
-    const r = await fetch(`${CAL_BASE}/api/trpc/bookings/get?batch=1&input=${input}`, {
+    const r = await fetchWithTimeout(`${CAL_BASE}/api/trpc/bookings/get?batch=1&input=${input}`, {
       headers: { cookie: `__Secure-next-auth.session-token=${sessionToken}` },
+      retryOn5xx: true,
     })
     if (!r.ok) throw new Error(`cal.com tRPC error: ${r.status}`)
     const d = await r.json()

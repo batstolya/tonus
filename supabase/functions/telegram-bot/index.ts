@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { buildHealthContext, healthContextToText } from '../_shared/healthContext.ts'
+import { fetchWithTimeout } from '../_shared/http.ts'
 import { checkBudget, budgetExceededMessage } from '../_shared/costGuard.ts'
 import { getPrompt } from '../_shared/prompts.ts'
 import { localToIso, localDate } from '../_shared/time.ts'
@@ -31,7 +32,7 @@ const AI_CONSENT_TELEGRAM_MESSAGE = '🔒 Чтобы использовать ф
 // ── Telegram API helpers ──────────────────────────────────────────────────────
 
 async function tgCall(method: string, body: Record<string, unknown>) {
-  const res = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/${method}`, {
+  const res = await fetchWithTimeout(`https://api.telegram.org/bot${TG_TOKEN}/${method}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -129,8 +130,10 @@ async function setupCommands() {
 
 async function handleReport(chatId: number | string, userId: string, _supabase: unknown, _msgId?: number) {
   await tgTyping(chatId)
-  const reportRes = await fetch(`${SUPABASE_URL}/functions/v1/biweekly-report`, {
+  // Report generation includes a Gemini round-trip — allow well past the 10 s default.
+  const reportRes = await fetchWithTimeout(`${SUPABASE_URL}/functions/v1/biweekly-report`, {
     method: 'POST',
+    timeoutMs: 60_000,
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, // gateway only; authority is x-internal-secret
@@ -285,7 +288,7 @@ async function handleMealPhoto(chatId: number | string, userId: string, fileId: 
   const fileRes = await tgCall('getFile', { file_id: fileId })
   const filePath = fileRes?.result?.file_path
   if (!filePath) { await tgSend(chatId, 'Не удалось загрузить фото, попробуй ещё раз.'); return }
-  const dl = await fetch(`https://api.telegram.org/file/bot${TG_TOKEN}/${filePath}`)
+  const dl = await fetchWithTimeout(`https://api.telegram.org/file/bot${TG_TOKEN}/${filePath}`, { retryOn5xx: true, timeoutMs: 30_000 })
   const buf = new Uint8Array(await dl.arrayBuffer())
   let bin = ''; for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i])
   const base64 = btoa(bin)
@@ -685,8 +688,10 @@ async function checkStaleness(chatId: number | string, userId: string, supabase:
 // сообщением с кнопкой запуска expsug:<id>.
 async function handleExperimentSuggest(chatId: number | string, userId: string, supabase: SupabaseClient) {
   await tgSend(chatId, '⏳ Смотрю твои данные и придумываю эксперименты…')
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/suggest-experiments`, {
+  // Suggestion generation includes a Gemini round-trip — allow well past the 10 s default.
+  const res = await fetchWithTimeout(`${SUPABASE_URL}/functions/v1/suggest-experiments`, {
     method: 'POST',
+    timeoutMs: 60_000,
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, // gateway only; authority is x-internal-secret
@@ -1037,7 +1042,7 @@ const handler = async (req: Request) => {
     const fileRes = await tgCall('getFile', { file_id: voice.file_id })
     const filePath = fileRes?.result?.file_path
     if (!filePath) { await tgSend(chatId, '🤔 Не удалось загрузить голосовое, попробуй ещё раз.'); return new Response('ok') }
-    const dl = await fetch(`https://api.telegram.org/file/bot${TG_TOKEN}/${filePath}`)
+    const dl = await fetchWithTimeout(`https://api.telegram.org/file/bot${TG_TOKEN}/${filePath}`, { retryOn5xx: true, timeoutMs: 30_000 })
     const buf = new Uint8Array(await dl.arrayBuffer())
     let bin = ''; for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i])
     const b64 = btoa(bin)

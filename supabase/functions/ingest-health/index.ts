@@ -4,6 +4,7 @@ import { computeDailyScores } from '../_shared/scores.ts'
 import { detectAnomaly, shouldSendAlert, buildAlertMessage, type AnomalyDay } from '../_shared/anomaly.ts'
 import { withObservability } from '../_shared/observability.ts'
 import { consumeRateLimit, hashRateLimitSubject, rateLimitedResponse } from '../_shared/rateLimit.ts'
+import { sendTelegram } from '../_shared/telegram.ts'
 
 // Приём данных Apple Health от Health Auto Export (SPEC-AUTOSYNC).
 // Изолировано: пишет в *_staging; в боевые таблицы — только при mode='live'.
@@ -274,11 +275,7 @@ const handler = async (req: Request) => {
                 .from('telegram_links').select('telegram_chat_id')
                 .eq('user_id', userId).maybeSingle()
               if (tgToken && link?.telegram_chat_id) {
-                await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ chat_id: link.telegram_chat_id, text: message, parse_mode: 'HTML' }),
-                })
+                await sendTelegram(tgToken, link.telegram_chat_id, message, { payload: { parse_mode: 'HTML' } })
               }
             }
           }

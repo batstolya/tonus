@@ -4,6 +4,7 @@ import { checkBudget } from '../_shared/costGuard.ts'
 import { isValidCronSecret } from '../_shared/auth.ts'
 import { aiConsentRequiredResponse, fetchGeminiWithConsent, isAiConsentRequired } from '../_shared/aiConsent.ts'
 import { corsHeadersFor } from '../_shared/cors.ts'
+import { sendTelegram } from '../_shared/telegram.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
@@ -58,13 +59,7 @@ type MetricRow = { date: string; resting_heart_rate: number | null; hrv: number 
 type SleepRow = { date: string; duration_hours: number | null; deep_hours: number | null; rem_hours: number | null; bedtime: string | null }
 type IntakeRow = { ts: string; type: string; note: string | null }
 
-async function tgSend(chatId: string, text: string) {
-  if (!TG_TOKEN) return
-  await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text }),
-  })
-}
+const tgSend = (chatId: string, text: string) => sendTelegram(TG_TOKEN, chatId, text)
 
 // Разбор для одного пользователя
 async function runForUser(supabase: SupabaseClient, userId: string): Promise<string | null> {

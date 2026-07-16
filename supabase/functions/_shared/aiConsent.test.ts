@@ -74,4 +74,22 @@ describe('requireAiConsent', () => {
 
     expect(providerFetch).toHaveBeenCalledOnce()
   })
+
+  it('applies an abort deadline to the provider call', async () => {
+    let sawSignal: AbortSignal | undefined
+    const providerFetch = (async (_url: RequestInfo | URL, init?: RequestInit) => {
+      sawSignal = init?.signal ?? undefined
+      return new Response('{}', { status: 200 })
+    }) as typeof fetch
+
+    await fetchGeminiWithConsent(
+      client({ data: { policy_version: '2026-07-16', revoked_at: null }, error: null }),
+      'user-1',
+      'https://generativelanguage.googleapis.com/test',
+      { method: 'POST' },
+      providerFetch,
+    )
+
+    expect(sawSignal).toBeInstanceOf(AbortSignal)
+  })
 })

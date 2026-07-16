@@ -2,6 +2,8 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { localToIso, localDate } from '../_shared/time.ts'
 import { isValidCronSecret } from '../_shared/auth.ts'
+import { fetchWithTimeout } from '../_shared/http.ts'
+import { sendTelegram } from '../_shared/telegram.ts'
 import {
   deliverReminder, nextActionOnFailure,
   type ClaimedReminder, type TelegramTransport,
@@ -22,11 +24,10 @@ const INTERNAL_SECRET = Deno.env.get('TONUS_INTERNAL_SECRET') ?? ''
 const CRON_SECRET = Deno.env.get('TONUS_CRON_SECRET') ?? Deno.env.get('CRON_SECRET') ?? ''
 
 async function tgSend(chatId: string, text: string, replyMarkup?: unknown): Promise<number | null> {
-  const res = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML', reply_markup: replyMarkup }),
+  const res = await sendTelegram(TG_TOKEN, chatId, text, {
+    payload: { parse_mode: 'HTML', reply_markup: replyMarkup },
   })
+  if (!res) return null
   const data = await res.json()
   return data?.result?.message_id ?? null
 }
@@ -146,7 +147,7 @@ const handler = async (req: Request) => {
   }
   const claimed = (claimedRows ?? []) as ClaimedReminder[]
   const transport: TelegramTransport = (body) =>
-    fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+    fetchWithTimeout(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -299,8 +300,10 @@ const handler = async (req: Request) => {
         if (daysSince < freqDays) continue
         // сгенерировать отчёт через biweekly-report (service-role + x-user-id)
         try {
-          const reportRes = await fetch(`${SUPABASE_URL}/functions/v1/biweekly-report`, {
+          // Report generation includes a Gemini round-trip — allow well past the 10 s default.
+          const reportRes = await fetchWithTimeout(`${SUPABASE_URL}/functions/v1/biweekly-report`, {
             method: 'POST',
+            timeoutMs: 60_000,
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, // gateway only; authority is x-internal-secret

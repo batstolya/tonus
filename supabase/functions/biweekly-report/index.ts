@@ -4,6 +4,7 @@ import { checkBudget } from '../_shared/costGuard.ts'
 import { daysSinceFreshData } from '../_shared/staleness.ts'
 import { plannedDaysInRange, attendance, scheduleWeekdays, type DayTimes } from '../_shared/workoutPlan.ts'
 import { isValidInternalSecret } from '../_shared/auth.ts'
+import { sendTelegram as sendTelegramWithToken } from '../_shared/telegram.ts'
 import { aiConsentRequiredResponse, fetchGeminiWithConsent, isAiConsentRequired } from '../_shared/aiConsent.ts'
 import { corsHeadersFor } from '../_shared/cors.ts'
 
@@ -83,14 +84,7 @@ function buildDigest(rows: DailyRow[], label: string, sleep: SleepSessionRow[]):
   return lines.join('\n')
 }
 
-async function sendTelegram(chatId: string, text: string) {
-  if (!TG_TOKEN) return
-  await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text }),
-  })
-}
+const sendTelegram = (chatId: string, text: string) => sendTelegramWithToken(TG_TOKEN, chatId, text)
 
 // Разбивает длинный текст на части ≤4000 символов по границам абзацев
 function splitForTelegram(text: string, limit = 4000): string[] {
