@@ -7,7 +7,6 @@ import { execSync } from 'node:child_process'
 
 const ALLOWLIST = new Set([
   'src/components/insights/CorrelationsBlock.tsx',
-  'src/components/intake/QuickLog.tsx',
   'src/components/nutrition/MealLogger.tsx',
   'src/components/nutrition/NutritionScreen.tsx',
   'src/components/research/ExperimentsScreen.tsx',
