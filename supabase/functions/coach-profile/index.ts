@@ -1,7 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { checkBudget } from '../_shared/costGuard.ts'
-import { isServiceRoleCall } from '../_shared/serviceRoleAuth.ts'
 import { isValidInternalSecret } from '../_shared/auth.ts'
 import { aiConsentRequiredResponse, fetchGeminiWithConsent, isAiConsentRequired } from '../_shared/aiConsent.ts'
 import { corsHeadersFor } from '../_shared/cors.ts'
@@ -21,10 +20,10 @@ serve(async (req) => {
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
     const authHeader = req.headers.get('Authorization') ?? ''
-    // поддержка service-role вызова (из cron) с x-user-id, иначе по токену пользователя
+    // internal call (from cron) with x-user-id + x-internal-secret, otherwise user JWT
     const serviceUserId = req.headers.get('x-user-id')
     let userId: string | null = null
-    if (serviceUserId && (isValidInternalSecret(req, INTERNAL_SECRET) || isServiceRoleCall(req, SUPABASE_SERVICE_KEY))) {
+    if (serviceUserId && isValidInternalSecret(req, INTERNAL_SECRET)) {
       userId = serviceUserId
     } else {
       const { data, error } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))

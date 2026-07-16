@@ -3,7 +3,6 @@ import { createClient, type User } from 'https://esm.sh/@supabase/supabase-js@2'
 import { checkBudget } from '../_shared/costGuard.ts'
 import { daysSinceFreshData } from '../_shared/staleness.ts'
 import { plannedDaysInRange, attendance, scheduleWeekdays, type DayTimes } from '../_shared/workoutPlan.ts'
-import { isServiceRoleCall } from '../_shared/serviceRoleAuth.ts'
 import { isValidInternalSecret } from '../_shared/auth.ts'
 import { aiConsentRequiredResponse, fetchGeminiWithConsent, isAiConsentRequired } from '../_shared/aiConsent.ts'
 import { corsHeadersFor } from '../_shared/cors.ts'
@@ -118,10 +117,10 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization') ?? ''
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
-    // Allow service-role calls (from telegram-bot) with x-user-id header
+    // Allow internal calls (from telegram-bot) with x-user-id + x-internal-secret
     const serviceUserId = req.headers.get('x-user-id')
     let user: User | null = null
-    if (serviceUserId && (isValidInternalSecret(req, INTERNAL_SECRET) || isServiceRoleCall(req, SUPABASE_SERVICE_KEY))) {
+    if (serviceUserId && isValidInternalSecret(req, INTERNAL_SECRET)) {
       const { data } = await supabase.auth.admin.getUserById(serviceUserId)
       user = data.user
     } else {
