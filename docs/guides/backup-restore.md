@@ -25,8 +25,10 @@ once the user base grows.
 **Mechanism** (`scripts/backup/tonus-backup.sh` + `com.tonus.backup.plist`):
 
 - Nightly at 09:30 local (launchd runs a missed schedule on next wake).
-- Dumps roles, schema, and data through the locally authenticated
-  `supabase` CLI — no database password or service key stored anywhere.
+- Dumps the public schema (DDL + data) and auth-schema rows with native
+  `pg_dump` (brew `libpq`); the connection URL — the only stored credential —
+  lives in the macOS Keychain item `tonus-db-url`. (The supabase CLI's
+  `db dump` was rejected: it requires Docker, which is not installed.)
 - Archive encrypted with AES-256-CBC; the key lives only in the macOS
   Keychain item `tonus-backup-key`.
 - Retention: newest 30 archives in `~/TonusBackups`; failures log to
@@ -35,6 +37,11 @@ once the user base grows.
 **Install (one-time):**
 
 ```bash
+brew install libpq
+# DB password: Supabase dashboard → Settings → Database (or reset it there).
+# Pooler host/ref for the URL are in supabase/.temp/pooler-url.
+security add-generic-password -s tonus-db-url -a tonus \
+  -w "postgresql://postgres.<ref>:<DB_PASSWORD>@<pooler-host>:5432/postgres"
 cp scripts/backup/com.tonus.backup.plist ~/Library/LaunchAgents/
 launchctl load ~/Library/LaunchAgents/com.tonus.backup.plist
 bash scripts/backup/tonus-backup.sh   # first run, verify the archive appears
