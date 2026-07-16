@@ -4,6 +4,18 @@
 import type { Translation } from './index'
 
 export const settings: Record<string, Translation> = {
+  // ── Удаление аккаунта (beta-safety PR 6) ───────────────────
+  'Удаление аккаунта': { uk: 'Видалення акаунта', en: 'Delete account' },
+  'Безвозвратно удаляет аккаунт и все данные: метрики, сон, анализы, чат, фото, токены и интеграции. Отменить нельзя.': { uk: 'Безповоротно видаляє акаунт і всі дані: метрики, сон, аналізи, чат, фото, токени та інтеграції. Скасувати неможливо.', en: 'Irreversibly deletes the account and all data: metrics, sleep, labs, chat, photos, tokens and integrations. This cannot be undone.' },
+  'Сначала скачай бэкап в разделе «Экспорт данных» — после удаления данные восстановить невозможно.': { uk: 'Спершу завантаж бекап у розділі «Експорт даних» — після видалення дані відновити неможливо.', en: 'Download a backup in the "Data export" section first — data cannot be recovered after deletion.' },
+  'В демо-режиме удаление недоступно.': { uk: 'У демо-режимі видалення недоступне.', en: 'Deletion is unavailable in demo mode.' },
+  'Удалить аккаунт…': { uk: 'Видалити акаунт…', en: 'Delete account…' },
+  'Пароль (подтверждение личности)': { uk: 'Пароль (підтвердження особи)', en: 'Password (identity confirmation)' },
+  'Введи DELETE для подтверждения': { uk: 'Введи DELETE для підтвердження', en: 'Type DELETE to confirm' },
+  'Удалить навсегда': { uk: 'Видалити назавжди', en: 'Delete forever' },
+  'Неверный пароль. Аккаунт не удалён.': { uk: 'Невірний пароль. Акаунт не видалено.', en: 'Wrong password. The account was not deleted.' },
+  'Слишком много попыток. Попробуй через час.': { uk: 'Забагато спроб. Спробуй за годину.', en: 'Too many attempts. Try again in an hour.' },
+  'Не удалось удалить аккаунт. Попробуй ещё раз.': { uk: 'Не вдалося видалити акаунт. Спробуй ще раз.', en: 'Could not delete the account. Please try again.' },
   // ── Настройки ──────────────────────────────────────────────
   'Подключён': { uk: 'Підключено', en: 'Connected' },
   'Получать двухнедельные отчёты в Telegram': { uk: 'Отримувати двотижневі звіти в Telegram', en: 'Get biweekly reports in Telegram' },
