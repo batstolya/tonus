@@ -53,6 +53,18 @@ verify_jwt = true
   ])
 })
 
+test('detects allowlist CORS and durable rate limits from shared helpers', () => {
+  assert.deepEqual(discoverEdgeFunctions(['allowlisted', 'token-api', 'ai-chat'], '', {
+    allowlisted: "const CORS = corsHeadersFor(req.headers.get('Origin'), ALLOWED_ORIGINS)",
+    'token-api': "await consumeRateLimit(supabase, { bucket: `ingest:${subject}`, limit: 120, windowSeconds: 3600 })",
+    'ai-chat': "const CORS = corsHeadersFor(origin, ALLOWED_ORIGINS); await checkBudget(db, u); await consumeRateLimit(db, rule)",
+  }), [
+    { name: 'ai-chat', verifyJwt: true, cors: 'allowlist', rateLimit: 'ai-budget+durable' },
+    { name: 'allowlisted', verifyJwt: true, cors: 'allowlist', rateLimit: 'none' },
+    { name: 'token-api', verifyJwt: true, cors: 'none', rateLimit: 'durable' },
+  ])
+})
+
 test('builds a deterministic fully classified inventory', () => {
   const discovered = {
     ...discoverDatabaseSurfaces(TYPES),
