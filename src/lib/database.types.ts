@@ -2081,6 +2081,7 @@ export type Database = {
         Args: { p_bucket: string; p_limit: number; p_window_seconds: number }
         Returns: boolean
       }
+      delete_user_data: { Args: { p_user_id: string }; Returns: Json }
       fail_reminder_delivery: {
         Args: {
           p_claim_token: string
