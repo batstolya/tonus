@@ -35,6 +35,9 @@ jobs:
       - name: Script unit tests
         run: npm run test:scripts
 
+      - name: Security inventory drift guard
+        run: npm run security:inventory:check
+
       - name: README validation
         run: npm run test:readme
 

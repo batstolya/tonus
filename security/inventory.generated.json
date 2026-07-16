@@ -1,0 +1,696 @@
+{
+  "version": 1,
+  "sources": [
+    "src/lib/database.types.ts",
+    "supabase/config.toml",
+    "supabase/functions/",
+    "security/inventory-classification.json"
+  ],
+  "counts": {
+    "tables": 52,
+    "views": 2,
+    "rpcs": 8,
+    "buckets": 1,
+    "edgeFunctions": 22
+  },
+  "surfaces": {
+    "tables": [
+      {
+        "name": "ai_analyses",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "ai_prompts",
+        "ownerColumn": null,
+        "authOwner": "service-role",
+        "dataSensitivity": "internal",
+        "exposure": "service-only"
+      },
+      {
+        "name": "ai_usage",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "cal_sync",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "credential",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "calendar_events",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "chat_messages",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "chat_sessions",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "claude_usage",
+        "ownerColumn": null,
+        "authOwner": "service-role",
+        "dataSensitivity": "internal",
+        "exposure": "service-only"
+      },
+      {
+        "name": "coach_events",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "coach_profile",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "codex_usage",
+        "ownerColumn": null,
+        "authOwner": "service-role",
+        "dataSensitivity": "internal",
+        "exposure": "service-only"
+      },
+      {
+        "name": "concern_logs",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "context_notes",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "daily_note_settings",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "daily_scores",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "environment_daily",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "experiments",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "football_match_reminders",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "football_match_responses",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "football_matches",
+        "ownerColumn": null,
+        "authOwner": "public-read/service-write",
+        "dataSensitivity": "public",
+        "exposure": "public-reference"
+      },
+      {
+        "name": "football_user_settings",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "goal_progress",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "goals",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "hair_entries",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "health_alerts",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "health_concerns",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "heart_rate_samples",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "ideas",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "imports",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "ingest_raw",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "ingest_tokens",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "credential",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "intake_events",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "lab_files",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "lab_results",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "metrics_daily",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "metrics_daily_staging",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "profiles",
+        "ownerColumn": "id",
+        "authOwner": "rls:id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "recommendations",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "reminder_events",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "reminder_settings",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "report_settings",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "research_runs",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "scheduled_reports",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "sleep_sessions",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "sleep_sessions_staging",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "supplement_logs",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "supplements",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "telegram_link_tokens",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "credential",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "telegram_links",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "credential",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "treatments",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "widget_tokens",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "credential",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "workout_schedule",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      }
+    ],
+    "views": [
+      {
+        "name": "daily_metrics",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned-view"
+      },
+      {
+        "name": "daily_summary",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned-view"
+      }
+    ],
+    "rpcs": [
+      {
+        "name": "claim_due_football_reminders",
+        "signature": "claim_due_football_reminders()",
+        "authOwner": "service-role",
+        "credentialType": "service-role",
+        "dataSensitivity": "health"
+      },
+      {
+        "name": "claim_due_reminder_events",
+        "signature": "claim_due_reminder_events(integer, integer, integer)",
+        "authOwner": "service-role",
+        "credentialType": "service-role",
+        "dataSensitivity": "health"
+      },
+      {
+        "name": "complete_reminder_delivery",
+        "signature": "complete_reminder_delivery(uuid, uuid, bigint, text)",
+        "authOwner": "service-role",
+        "credentialType": "service-role",
+        "dataSensitivity": "health"
+      },
+      {
+        "name": "fail_reminder_delivery",
+        "signature": "fail_reminder_delivery(uuid, uuid, text, boolean, integer)",
+        "authOwner": "service-role",
+        "credentialType": "service-role",
+        "dataSensitivity": "health"
+      },
+      {
+        "name": "generate_football_reminders",
+        "signature": "generate_football_reminders()",
+        "authOwner": "service-role",
+        "credentialType": "service-role",
+        "dataSensitivity": "health"
+      },
+      {
+        "name": "mark_football_reminder_failed",
+        "signature": "mark_football_reminder_failed(uuid, text)",
+        "authOwner": "service-role",
+        "credentialType": "service-role",
+        "dataSensitivity": "health"
+      },
+      {
+        "name": "mark_football_reminder_sent",
+        "signature": "mark_football_reminder_sent(uuid, bigint)",
+        "authOwner": "service-role",
+        "credentialType": "service-role",
+        "dataSensitivity": "health"
+      },
+      {
+        "name": "schedule_env_sync",
+        "signature": "schedule_env_sync(text)",
+        "authOwner": "service-role",
+        "credentialType": "service-role",
+        "dataSensitivity": "credential"
+      }
+    ],
+    "buckets": [
+      {
+        "name": "health-photos",
+        "authOwner": "storage-path-owner",
+        "dataSensitivity": "health",
+        "public": false
+      }
+    ],
+    "edgeFunctions": [
+      {
+        "name": "analyze-health",
+        "authOwner": "gateway:user-jwt",
+        "credentialType": "user-jwt",
+        "cors": "wildcard",
+        "rateLimit": "ai-budget",
+        "dataSensitivity": "health",
+        "verifyJwt": true
+      },
+      {
+        "name": "biweekly-report",
+        "authOwner": "gateway:user-or-service-jwt",
+        "credentialType": "user-or-service-role",
+        "cors": "wildcard",
+        "rateLimit": "ai-budget",
+        "dataSensitivity": "health",
+        "verifyJwt": true
+      },
+      {
+        "name": "chat-health",
+        "authOwner": "gateway:user-jwt",
+        "credentialType": "user-jwt",
+        "cors": "wildcard",
+        "rateLimit": "ai-budget",
+        "dataSensitivity": "health",
+        "verifyJwt": true
+      },
+      {
+        "name": "classify-meal",
+        "authOwner": "gateway:user-jwt",
+        "credentialType": "user-jwt",
+        "cors": "wildcard",
+        "rateLimit": "ai-budget",
+        "dataSensitivity": "health",
+        "verifyJwt": true
+      },
+      {
+        "name": "coach-profile",
+        "authOwner": "handler:user-or-service-jwt",
+        "credentialType": "user-or-service-role",
+        "cors": "wildcard",
+        "rateLimit": "ai-budget",
+        "dataSensitivity": "health",
+        "verifyJwt": false
+      },
+      {
+        "name": "coach-weekly",
+        "authOwner": "handler:user-jwt-or-cron-secret",
+        "credentialType": "user-jwt-or-cron-secret",
+        "cors": "wildcard",
+        "rateLimit": "ai-budget",
+        "dataSensitivity": "health",
+        "verifyJwt": false
+      },
+      {
+        "name": "deep-research",
+        "authOwner": "gateway:user-jwt",
+        "credentialType": "user-jwt",
+        "cors": "wildcard",
+        "rateLimit": "ai-budget",
+        "dataSensitivity": "health",
+        "verifyJwt": true
+      },
+      {
+        "name": "extract-lab",
+        "authOwner": "gateway:user-jwt",
+        "credentialType": "user-jwt",
+        "cors": "wildcard",
+        "rateLimit": "ai-budget",
+        "dataSensitivity": "health",
+        "verifyJwt": true
+      },
+      {
+        "name": "fetch-cal",
+        "authOwner": "gateway:user-jwt",
+        "credentialType": "user-jwt",
+        "cors": "wildcard",
+        "rateLimit": "none",
+        "dataSensitivity": "credential",
+        "verifyJwt": true
+      },
+      {
+        "name": "fetch-environment",
+        "authOwner": "handler:user-jwt-or-cron-secret",
+        "credentialType": "user-jwt-or-cron-secret",
+        "cors": "wildcard",
+        "rateLimit": "none",
+        "dataSensitivity": "health",
+        "verifyJwt": false
+      },
+      {
+        "name": "fetch-ics",
+        "authOwner": "gateway:user-jwt",
+        "credentialType": "user-jwt",
+        "cors": "wildcard",
+        "rateLimit": "none",
+        "dataSensitivity": "health",
+        "verifyJwt": true
+      },
+      {
+        "name": "generate-recommendations",
+        "authOwner": "gateway:user-jwt",
+        "credentialType": "user-jwt",
+        "cors": "wildcard",
+        "rateLimit": "ai-budget",
+        "dataSensitivity": "health",
+        "verifyJwt": true
+      },
+      {
+        "name": "ingest-health",
+        "authOwner": "handler:ingest-token",
+        "credentialType": "ingest-token",
+        "cors": "wildcard",
+        "rateLimit": "none",
+        "dataSensitivity": "health",
+        "verifyJwt": false
+      },
+      {
+        "name": "register-webhook",
+        "authOwner": "handler:admin-secret",
+        "credentialType": "admin-secret",
+        "cors": "none",
+        "rateLimit": "none",
+        "dataSensitivity": "internal",
+        "verifyJwt": false
+      },
+      {
+        "name": "send-football-reminders",
+        "authOwner": "handler:cron-secret",
+        "credentialType": "cron-secret",
+        "cors": "wildcard",
+        "rateLimit": "none",
+        "dataSensitivity": "health",
+        "verifyJwt": false
+      },
+      {
+        "name": "send-reminders",
+        "authOwner": "handler:cron-secret",
+        "credentialType": "cron-secret",
+        "cors": "none",
+        "rateLimit": "none",
+        "dataSensitivity": "health",
+        "verifyJwt": false
+      },
+      {
+        "name": "suggest-experiments",
+        "authOwner": "gateway:user-or-service-jwt",
+        "credentialType": "user-or-service-role",
+        "cors": "wildcard",
+        "rateLimit": "ai-budget",
+        "dataSensitivity": "health",
+        "verifyJwt": true
+      },
+      {
+        "name": "supplement-schedule",
+        "authOwner": "gateway:user-jwt",
+        "credentialType": "user-jwt",
+        "cors": "wildcard",
+        "rateLimit": "ai-budget",
+        "dataSensitivity": "health",
+        "verifyJwt": true
+      },
+      {
+        "name": "sync-cal",
+        "authOwner": "handler:user-jwt-or-cron-secret",
+        "credentialType": "user-jwt-or-cron-secret",
+        "cors": "wildcard",
+        "rateLimit": "none",
+        "dataSensitivity": "credential",
+        "verifyJwt": false
+      },
+      {
+        "name": "sync-football-fixtures",
+        "authOwner": "handler:cron-secret",
+        "credentialType": "cron-secret",
+        "cors": "wildcard",
+        "rateLimit": "none",
+        "dataSensitivity": "public",
+        "verifyJwt": false
+      },
+      {
+        "name": "telegram-bot",
+        "authOwner": "handler:telegram-webhook-secret",
+        "credentialType": "telegram-webhook-secret",
+        "cors": "none",
+        "rateLimit": "ai-budget",
+        "dataSensitivity": "health",
+        "verifyJwt": false
+      },
+      {
+        "name": "widget-data",
+        "authOwner": "handler:widget-token",
+        "credentialType": "widget-token",
+        "cors": "wildcard",
+        "rateLimit": "none",
+        "dataSensitivity": "health",
+        "verifyJwt": false
+      }
+    ]
+  },
+  "findings": [
+    {
+      "id": "SEC-RPC-PUBLIC-EXECUTE-claim_due_football_reminders",
+      "severity": "high",
+      "surface": "rpc:claim_due_football_reminders",
+      "summary": "Service-only SECURITY DEFINER RPC lacks an explicit PUBLIC/anon/authenticated revoke",
+      "remediation": "PR #77"
+    },
+    {
+      "id": "SEC-RPC-PUBLIC-EXECUTE-generate_football_reminders",
+      "severity": "high",
+      "surface": "rpc:generate_football_reminders",
+      "summary": "Service-only SECURITY DEFINER RPC lacks an explicit PUBLIC/anon/authenticated revoke",
+      "remediation": "PR #77"
+    },
+    {
+      "id": "SEC-RPC-PUBLIC-EXECUTE-mark_football_reminder_failed",
+      "severity": "high",
+      "surface": "rpc:mark_football_reminder_failed",
+      "summary": "Service-only SECURITY DEFINER RPC lacks an explicit PUBLIC/anon/authenticated revoke",
+      "remediation": "PR #77"
+    },
+    {
+      "id": "SEC-RPC-PUBLIC-EXECUTE-mark_football_reminder_sent",
+      "severity": "high",
+      "surface": "rpc:mark_football_reminder_sent",
+      "summary": "Service-only SECURITY DEFINER RPC lacks an explicit PUBLIC/anon/authenticated revoke",
+      "remediation": "PR #77"
+    }
+  ]
+}
