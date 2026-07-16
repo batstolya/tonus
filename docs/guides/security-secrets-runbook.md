@@ -9,6 +9,9 @@
 | `TELEGRAM_WEBHOOK_SECRET` | telegram-bot, register-webhook | `X-Telegram-Bot-Api-Secret-Token` |
 | `TONUS_CRON_SECRET` | send-reminders, coach-weekly, sync-cal, football fns | `x-cron-secret` |
 | `TONUS_ADMIN_SECRET` | register-webhook | `x-admin-secret` |
+| `TONUS_RELEASE_SHA` | privacy-safe observability | server-side release metadata |
+| `TONUS_ENVIRONMENT` | privacy-safe observability | `production` enables private alerts |
+| `TONUS_ALERT_CHAT_ID` | privacy-safe observability | private owner Telegram alert target |
 
 Временные алиасы при переходе (можно удалить после того, как все cron job'ы
 переведены на `TONUS_CRON_SECRET`): `CRON_SECRET` (sync-cal),
@@ -18,6 +21,14 @@
 
     npx supabase secrets set TONUS_CRON_SECRET=<random> TONUS_ADMIN_SECRET=<random> --project-ref <ref>
     # TELEGRAM_WEBHOOK_SECRET уже задан; проверь, что не пустой.
+
+Observability secrets must be set only after its PR is merged. Use the exact
+clean `main` SHA and keep the private alert chat ID out of deployment receipts:
+
+    npx supabase secrets set TONUS_RELEASE_SHA="$(git rev-parse HEAD)" TONUS_ENVIRONMENT=production TONUS_ALERT_CHAT_ID=<private-chat-id> --project-ref <ref>
+
+See `docs/guides/observability.md` for the migration, grouped function deploy,
+safe synthetic event, and rollback procedure.
 
 ## Deploy order
 

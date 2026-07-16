@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { computeDailyScores } from '../_shared/scores.ts'
 import { detectAnomaly, shouldSendAlert, buildAlertMessage, type AnomalyDay } from '../_shared/anomaly.ts'
+import { withObservability } from '../_shared/observability.ts'
 
 // Приём данных Apple Health от Health Auto Export (SPEC-AUTOSYNC).
 // Изолировано: пишет в *_staging; в боевые таблицы — только при mode='live'.
@@ -9,7 +10,7 @@ import { detectAnomaly, shouldSendAlert, buildAlertMessage, type AnomalyDay } fr
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' }
+const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, x-request-id' }
 
 // Имена метрик HAE → наши ключи (camelCase, как в боевой metrics_daily)
 const METRIC_MAP: Record<string, string> = {
@@ -153,7 +154,7 @@ function parseHRSamples(userId: string, payload: HaePayload): { user_id: string;
   return [...byTs.values()]
 }
 
-serve(async (req) => {
+const handler = async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
   try {
     const url = new URL(req.url)
@@ -286,4 +287,6 @@ serve(async (req) => {
   } catch (e) {
     return new Response(JSON.stringify({ error: (e as Error).message ?? 'Error' }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } })
   }
-})
+}
+
+serve(withObservability('edge.ingest_health', handler))

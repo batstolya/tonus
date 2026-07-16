@@ -7,7 +7,7 @@ import { aiConsentRequiredResponse, fetchGeminiWithConsent, isAiConsentRequired 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' }
+const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, x-request-id' }
 
 // target_metric ОБЯЗАН быть одним из этих ключей — ровно те, что понимает фронт
 // (METRIC_OPTIONS в ExperimentsScreen.tsx). Невалидные отсеиваем и на клиенте, и здесь.

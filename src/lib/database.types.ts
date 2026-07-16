@@ -56,6 +56,33 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_processing_consents: {
+        Row: {
+          granted_at: string
+          policy_version: string
+          provider: string
+          purpose: string
+          revoked_at: string | null
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string
+          policy_version: string
+          provider: string
+          purpose: string
+          revoked_at?: string | null
+          user_id: string
+        }
+        Update: {
+          granted_at?: string
+          policy_version?: string
+          provider?: string
+          purpose?: string
+          revoked_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_prompts: {
         Row: {
           active: boolean
@@ -1324,6 +1351,48 @@ export type Database = {
           sum_val?: number | null
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      observability_events: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          environment: string
+          error_code: string | null
+          event_timestamp: string
+          id: string
+          operation: string
+          outcome: string
+          release: string
+          request_id: string
+          service: string
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          environment: string
+          error_code?: string | null
+          event_timestamp: string
+          id?: string
+          operation: string
+          outcome: string
+          release: string
+          request_id: string
+          service: string
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          environment?: string
+          error_code?: string | null
+          event_timestamp?: string
+          id?: string
+          operation?: string
+          outcome?: string
+          release?: string
+          request_id?: string
+          service?: string
         }
         Relationships: []
       }

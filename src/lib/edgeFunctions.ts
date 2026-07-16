@@ -1,6 +1,7 @@
 import { supabase } from './supabase'
 import { isDemoActive } from './demo'
 import { demoFunctionResponse } from './demoAi'
+import { captureClientFailure } from './observability'
 
 // Единый вызов Supabase Edge Functions с авторизацией и обработкой ошибок.
 // Заменяет повторяющийся бойлерплейт (getSession + fetch + headers) в 12 местах.
@@ -34,11 +35,13 @@ export async function callFunction<T = unknown>(name: string, body?: unknown): P
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) throw new EdgeFunctionError('Не авторизован', 401)
 
+  const requestId = crypto.randomUUID()
   const res = await fetch(`${BASE}/functions/v1/${name}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${session.access_token}`,
+      'x-request-id': requestId,
     },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
@@ -47,6 +50,9 @@ export async function callFunction<T = unknown>(name: string, body?: unknown): P
   try { json = await res.json() } catch { /* пустое тело — ок для некоторых функций */ }
 
   if (!res.ok) {
+    if (res.status >= 500) {
+      void captureClientFailure('web.edge_function_failure', 'edge_request_failed', requestId)
+    }
     const code = json?.error
     const msg = code === 'ai_consent_required'
       ? json?.message || 'AI processing consent is required. Open Settings to grant it.'

@@ -7,16 +7,23 @@
     "security/inventory-classification.json"
   ],
   "counts": {
-    "tables": 52,
+    "tables": 54,
     "views": 2,
     "rpcs": 8,
     "buckets": 1,
-    "edgeFunctions": 22
+    "edgeFunctions": 23
   },
   "surfaces": {
     "tables": [
       {
         "name": "ai_analyses",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "ai_processing_consents",
         "ownerColumn": "user_id",
         "authOwner": "rls:user_id",
         "dataSensitivity": "health",
@@ -266,6 +273,13 @@
         "authOwner": "rls:user_id",
         "dataSensitivity": "health",
         "exposure": "user-owned"
+      },
+      {
+        "name": "observability_events",
+        "ownerColumn": null,
+        "authOwner": "service-role",
+        "dataSensitivity": "internal",
+        "exposure": "service-only"
       },
       {
         "name": "profiles",
@@ -588,6 +602,15 @@
         "rateLimit": "none",
         "dataSensitivity": "internal",
         "verifyJwt": false
+      },
+      {
+        "name": "report-client-error",
+        "authOwner": "gateway:user-jwt",
+        "credentialType": "user-jwt",
+        "cors": "wildcard",
+        "rateLimit": "none",
+        "dataSensitivity": "internal",
+        "verifyJwt": true
       },
       {
         "name": "send-football-reminders",
