@@ -11,7 +11,7 @@
     "views": 2,
     "rpcs": 8,
     "buckets": 1,
-    "edgeFunctions": 22
+    "edgeFunctions": 23
   },
   "surfaces": {
     "tables": [
@@ -588,6 +588,15 @@
         "rateLimit": "none",
         "dataSensitivity": "internal",
         "verifyJwt": false
+      },
+      {
+        "name": "report-client-error",
+        "authOwner": "gateway:user-jwt",
+        "credentialType": "user-jwt",
+        "cors": "wildcard",
+        "rateLimit": "none",
+        "dataSensitivity": "internal",
+        "verifyJwt": true
       },
       {
         "name": "send-football-reminders",

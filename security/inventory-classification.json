@@ -39,6 +39,7 @@
     "generate-recommendations": { "authOwner": "gateway:user-jwt", "credentialType": "user-jwt", "cors": "wildcard", "rateLimit": "ai-budget", "dataSensitivity": "health" },
     "ingest-health": { "authOwner": "handler:ingest-token", "credentialType": "ingest-token", "cors": "wildcard", "rateLimit": "none", "dataSensitivity": "health" },
     "register-webhook": { "authOwner": "handler:admin-secret", "credentialType": "admin-secret", "cors": "none", "rateLimit": "none", "dataSensitivity": "internal" },
+    "report-client-error": { "authOwner": "gateway:user-jwt", "credentialType": "user-jwt", "cors": "wildcard", "rateLimit": "none", "dataSensitivity": "internal" },
     "send-football-reminders": { "authOwner": "handler:cron-secret", "credentialType": "cron-secret", "cors": "wildcard", "rateLimit": "none", "dataSensitivity": "health" },
     "send-reminders": { "authOwner": "handler:cron-secret", "credentialType": "cron-secret", "cors": "none", "rateLimit": "none", "dataSensitivity": "health" },
     "suggest-experiments": { "authOwner": "gateway:user-or-service-jwt", "credentialType": "user-or-service-role", "cors": "wildcard", "rateLimit": "ai-budget", "dataSensitivity": "health" },
