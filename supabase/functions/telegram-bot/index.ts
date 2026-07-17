@@ -19,112 +19,18 @@ import {
   type SessionOwnershipClient,
 } from '../_shared/chatSessionOwnership.ts'
 import { fetchGeminiWithConsent, isAiConsentRequired } from '../_shared/aiConsent.ts'
+import {
+  tgCall, tgSend, tgEdit, tgAnswerCallback, tgTyping, tgFileUrl, mdToTgHtml,
+  setupCommands, MAX_CHAT_MESSAGE_LENGTH,
+} from './tg.ts'
+import { MAIN_MENU, REPORT_ACTIONS, STATUS_ACTIONS, BACK_MENU, FOOTBALL_MENU } from './menus.ts'
 
-const TG_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
 const INTERNAL_SECRET = Deno.env.get('TONUS_INTERNAL_SECRET') ?? ''
 const WEBHOOK_SECRET = Deno.env.get('TELEGRAM_WEBHOOK_SECRET') ?? ''
-const MAX_CHAT_MESSAGE_LENGTH = 4096
 const AI_CONSENT_TELEGRAM_MESSAGE = '🔒 Чтобы использовать функции ИИ, открой Tonus → Настройки → Обработка данных ИИ и дай согласие.'
-
-// ── Telegram API helpers ──────────────────────────────────────────────────────
-
-async function tgCall(method: string, body: Record<string, unknown>) {
-  const res = await fetchWithTimeout(`https://api.telegram.org/bot${TG_TOKEN}/${method}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
-  return res.json()
-}
-
-async function tgSend(chatId: number | string, text: string, extra: Record<string, unknown> = {}) {
-  return tgCall('sendMessage', { chat_id: chatId, text, ...extra })
-}
-
-// Конвертирует markdown ответа ИИ (Gemini пишет **жирным**, * списками) в Telegram-HTML.
-// Только парные **…** / __…__ → <b> (нет незакрытых тегов → нет ошибок 400 от Telegram).
-function mdToTgHtml(s: string): string {
-  let t = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')   // экранируем спецсимволы
-  t = t.replace(/^[ \t]*[*-] +/gm, '• ')                                          // пункты "* " / "- " → "• "
-  t = t.replace(/^#{1,6}[ \t]+(.+)$/gm, '<b>$1</b>')                              // заголовки # → жирная строка
-  t = t.replace(/\*\*([^\n]+?)\*\*/g, '<b>$1</b>').replace(/__([^\n]+?)__/g, '<b>$1</b>') // жирный (парный)
-  t = t.replace(/`([^`\n]+?)`/g, '<code>$1</code>')                              // инлайн-код
-  return t
-}
-
-async function tgEdit(chatId: number | string, messageId: number, text: string, extra: Record<string, unknown> = {}) {
-  return tgCall('editMessageText', { chat_id: chatId, message_id: messageId, text, ...extra })
-}
-
-async function tgAnswerCallback(callbackQueryId: string, text?: string) {
-  return tgCall('answerCallbackQuery', { callback_query_id: callbackQueryId, text })
-}
-
-async function tgTyping(chatId: number | string) {
-  return tgCall('sendChatAction', { chat_id: chatId, action: 'typing' })
-}
-
-// ── Keyboard builders ─────────────────────────────────────────────────────────
-
-const MAIN_MENU = {
-  inline_keyboard: [
-    [{ text: '📊 Отчёт за 2 недели', callback_data: 'report' }, { text: '📈 Статус сегодня', callback_data: 'status' }],
-    [{ text: '💊 Препараты', callback_data: 'supplements' }, { text: '🎯 Цели', callback_data: 'goals' }],
-    [{ text: '⚽ Матчи ЧМ-2026', callback_data: 'fb_matches' }],
-    [{ text: '🧪 Предложи эксперимент', callback_data: 'exp_suggest' }],
-    [{ text: '⚙️ Настройки', callback_data: 'settings' }],
-  ],
-}
-
-const REPORT_ACTIONS = {
-  inline_keyboard: [
-    [{ text: '🔄 Обновить отчёт', callback_data: 'report' }, { text: '📈 Статус сегодня', callback_data: 'status' }],
-    [{ text: '🏠 Главное меню', callback_data: 'menu' }],
-  ],
-}
-
-const STATUS_ACTIONS = {
-  inline_keyboard: [
-    [{ text: '📊 Полный отчёт', callback_data: 'report' }],
-    [{ text: '🏠 Главное меню', callback_data: 'menu' }],
-  ],
-}
-
-const BACK_MENU = {
-  inline_keyboard: [[{ text: '🏠 Главное меню', callback_data: 'menu' }]],
-}
-
-const FOOTBALL_MENU = {
-  inline_keyboard: [
-    [{ text: '📅 Ближайшие матчи', callback_data: 'fb_matches' }],
-    [{ text: '🔔 Включить напоминания', callback_data: 'fb_on' }, { text: '🔕 Выключить напоминания', callback_data: 'fb_off' }],
-    [{ text: '🏠 Главное меню', callback_data: 'menu' }],
-  ],
-}
-
-// ── Setup bot commands (called once on startup) ───────────────────────────────
-
-async function setupCommands() {
-  await tgCall('setMyCommands', {
-    commands: [
-      { command: 'menu', description: '🏠 Главное меню' },
-      { command: 'report', description: '📊 Двухнедельный отчёт' },
-      { command: 'status', description: '📈 Статус за сегодня' },
-      { command: 'sync', description: '📲 Дата последней синхронизации' },
-      { command: 'pause', description: '⏸ Приостановить отчёты' },
-      { command: 'resume', description: '▶️ Возобновить отчёты' },
-      { command: 'usage', description: '🤖 Лимиты Claude + Codex' },
-      { command: 'tokens', description: '✨ Токены Gemini' },
-      { command: 'idea', description: '💡 Записать идею' },
-      { command: 'ideas', description: '💡 Список идей' },
-      { command: 'football', description: '⚽ Напоминания о матчах ЧМ-2026' },
-      { command: 'matches', description: '📅 Ближайшие матчи' },
-    ],
-  })
-}
 
 // ── Action handlers ───────────────────────────────────────────────────────────
 
@@ -288,7 +194,7 @@ async function handleMealPhoto(chatId: number | string, userId: string, fileId: 
   const fileRes = await tgCall('getFile', { file_id: fileId })
   const filePath = fileRes?.result?.file_path
   if (!filePath) { await tgSend(chatId, 'Не удалось загрузить фото, попробуй ещё раз.'); return }
-  const dl = await fetchWithTimeout(`https://api.telegram.org/file/bot${TG_TOKEN}/${filePath}`, { retryOn5xx: true, timeoutMs: 30_000 })
+  const dl = await fetchWithTimeout(tgFileUrl(filePath), { retryOn5xx: true, timeoutMs: 30_000 })
   const buf = new Uint8Array(await dl.arrayBuffer())
   let bin = ''; for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i])
   const base64 = btoa(bin)
@@ -1042,7 +948,7 @@ const handler = async (req: Request) => {
     const fileRes = await tgCall('getFile', { file_id: voice.file_id })
     const filePath = fileRes?.result?.file_path
     if (!filePath) { await tgSend(chatId, '🤔 Не удалось загрузить голосовое, попробуй ещё раз.'); return new Response('ok') }
-    const dl = await fetchWithTimeout(`https://api.telegram.org/file/bot${TG_TOKEN}/${filePath}`, { retryOn5xx: true, timeoutMs: 30_000 })
+    const dl = await fetchWithTimeout(tgFileUrl(filePath), { retryOn5xx: true, timeoutMs: 30_000 })
     const buf = new Uint8Array(await dl.arrayBuffer())
     let bin = ''; for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i])
     const b64 = btoa(bin)

@@ -31,7 +31,7 @@ Handlers receive `(chatId, userId, supabase, ...)` as today; shared env consts (
 ---
 
 ### Task 1: Extract `menus.ts` + `tg.ts`
-- [ ] **1.1** Create `menus.ts` (pure object literals, no imports) and `tg.ts` (reads `TG_TOKEN`); move the listed symbols verbatim, export all. `tgSend` routes through the existing `sendTelegram` from `../_shared/telegram.ts` (already tested, deadline built in); `tgCall`/`tgEdit`/`tgAnswerCallback`/`tgTyping` keep `fetchWithTimeout` directly since they hit other methods. (send-reminders has its own duplicate `tgSend` — consolidating it is a separate follow-up, out of this behavior-preserving PR.)
+- [ ] **1.1** Create `menus.ts` (pure object literals, no imports) and `tg.ts` (reads `TG_TOKEN`); move the listed symbols verbatim, export all. All helpers stay thin wrappers over `tgCall` (which returns parsed json) — rerouting `tgSend` through `_shared/telegram.ts#sendTelegram` would change the return type and the empty-token no-op, so it stays as is; consolidating the duplicate `tgSend` in send-reminders is a separate follow-up.
 - [ ] **1.2** In `index.ts` delete moved code, import from `./tg.ts` / `./menus.ts`.
 - [ ] **1.3** `npm run check:functions` — count ≤ 16. Diff-review: moved code byte-identical.
 - [ ] **1.4** Commit `refactor(telegram-bot): extract tg api helpers and menus`.
