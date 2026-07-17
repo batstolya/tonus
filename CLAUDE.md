@@ -12,10 +12,10 @@
   `src/test/utils.tsx` → `renderWithProviders`).
 - `npm run build` — `tsc -b && vite build`.
 - `npm run lint` — eslint с `--max-warnings 0`: ноль ошибок и предупреждений,
-  любой новый линт-долг роняет CI. Оставшийся храповик — `.deno-check-ceiling`
-  (type-ошибки edge-функций, `npm run check:functions`, нужен deno:
-  `export PATH="$HOME/.deno/bin:$PATH"`). Число может только падать; снизил
-  долг — обнови файл.
+  любой новый линт-долг роняет CI. Храповиков больше нет: `npm run
+  check:functions` — обычный `deno check` c нулевой терпимостью по прод-коду
+  функций (`*.test.ts` исполняются vitest'ом и не проверяются deno; нужен deno:
+  `export PATH="$HOME/.deno/bin:$PATH"`).
 
 Подробности запуска/деплоя — в проектных скиллах `running-tonus` и `deploying-tonus`
 (`.claude/skills/`).
