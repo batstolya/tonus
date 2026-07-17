@@ -9,6 +9,7 @@ import { aiConsentRequiredResponse, fetchGeminiWithConsent, isAiConsentRequired 
 import { corsHeadersFor } from '../_shared/cors.ts'
 import { loadUserTimezone } from '../_shared/userTimezone.ts'
 import { coverage, lateBedtimes, lateComparisonLine, lowHrvDays, median } from './digest.ts'
+import { buildReportPrompt } from './prompt.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -303,47 +304,15 @@ serve(async (req) => {
     const safeAdherenceBlock = sensitive ? adherenceBlock : ''
 
     const periodLabel = `${Math.round((p1End.getTime() - p1Start.getTime()) / 86400000) + 1} дн.`
-    const detailSpec = detail === 'short'
-      ? `Формат: КРАТКО, до 800 символов. Разделы:
-  📋 Итог (1-2 предложения)
-  ✅ что улучшилось · 📉 что просело (с цифрами)
-  💡 1-2 совета`
-      : detail === 'medium'
-      ? `Формат: СРЕДНЕ. Основные разделы с цифрами:
-  📋 Итог · 😴 Сон · ❤️ Сердце/HRV · 🏃 Активность · 🍽 Привычки · 💡 3 совета`
-      : `Формат: ПОДРОБНО, по всем разделам с цифрами и датами:
-  📋 Краткий итог
-  😴 Сон — длительность, фазы (глубокий/REM), позднее засыпание, динамика
-  ❤️ Сердце и восстановление — ЧСС покоя, HRV, стрессовые дни
-  🏃 Активность — шаги, калории, динамика
-  🫁 Кислород — если есть SpO2
-  🍽 Питание и привычки — кофе, алкоголь, еда; связь с самочувствием/сном
-${sensitive ? '  💊 Препараты — соблюдение приёма\n  🧪 Анализы — отклонения и тренды\n' : ''}  🔗 Связи и закономерности — свяжи события из заметок с метриками по датам
-  💡 Рекомендации — 3-5 конкретных советов`
-
-    const prompt = `Ты — опытный аналитик здоровья. Напиши отчёт для пользователя за ${periodLabel}.
-
-${digest1}
-${spo2Block}${sleepStagesBlock}${nutritionBlock}${workoutBlock}${safeAdherenceBlock}${safeLabsBlock}${notesBlock}
-
-ДЛЯ СРАВНЕНИЯ — предыдущий период:
-${digest2}
-
-ГОТОВЫЕ ФАКТЫ СРАВНЕНИЯ (используй как есть, не пересчитывай):
-${lateFact}
-
-${detailSpec}
-
-Общие требования:
-- Plain text, без markdown (никаких *, #, _). Emoji для заголовков разделов желательны.
-- Опирайся на личные тренды пользователя, сравнивай с его же прошлым периодом, не с абсолютными нормами.
-- Конкретика по датам и цифрам, без воды и общих фраз.
-- Межпериодные сравнения бери ТОЛЬКО из готовых фактов и дайджестов — сам ничего не пересчитывай и не сравнивай количества.
-- В кратком итоге укажи покрытие данных (строки «Покрытие данных» из дайджеста).
-- Разделяй формулировки: факт из данных / возможная связь / предположение — и помечай предположения словами «возможно», «нельзя исключить».
-- Физиологию трактуй осторожно: низкая ЧСС покоя или изменение HRV — это тренд относительно личной нормы, а не «хорошо/плохо» само по себе.
-- Без медицинских диагнозов и догадок о причинах болезни (не пиши «вирус», «отравление» и т.п.) — опиши симптомы из заметок и отметь, что причину по данным установить нельзя. При тревожных значениях мягко советуй врача.
-- На русском.`
+    const prompt = buildReportPrompt({
+      periodLabel,
+      digest1,
+      digest2,
+      lateFact,
+      extraBlocks: `${spo2Block}${sleepStagesBlock}${nutritionBlock}${workoutBlock}${safeAdherenceBlock}${safeLabsBlock}${notesBlock}`,
+      detail: detail === 'short' || detail === 'medium' ? detail : 'full',
+      sensitive,
+    })
 
     const geminiRes = await fetchGeminiWithConsent(
       supabase,
