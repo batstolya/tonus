@@ -54,3 +54,49 @@ vi.mock('motion/react', () => {
     animate,
   }
 })
+
+// ---------------------------------------------------------------------------
+// Network isolation: the jsdom project never touches the network. Real
+// requests from mount effects used to resolve after jsdom teardown and fail
+// unrelated tests (#93). Tests that need data still vi.mock their api module;
+// this is the inert safety net underneath.
+// ---------------------------------------------------------------------------
+
+const inertResult = { data: null, error: null, count: null }
+
+// Chainable thenable: every method returns the chain, `await` resolves inert.
+function chain(): unknown {
+  const proxy: unknown = new Proxy(() => proxy, {
+    get(_target, prop) {
+      if (prop === 'then') {
+        return (resolve: (v: unknown) => unknown) => Promise.resolve(inertResult).then(resolve)
+      }
+      return () => proxy
+    },
+    apply: () => proxy,
+  })
+  return proxy
+}
+
+vi.mock('./src/lib/supabase', () => ({
+  supabase: {
+    from: () => chain(),
+    rpc: () => chain(),
+    storage: { from: () => chain() },
+    functions: { invoke: async () => inertResult },
+    auth: {
+      getSession: async () => ({ data: { session: null }, error: null }),
+      getUser: async () => ({ data: { user: null }, error: null }),
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
+      signInWithOtp: async () => ({ data: {}, error: null }),
+      signOut: async () => ({ error: null }),
+    },
+    channel: () => chain(),
+    removeChannel: () => {},
+  },
+}))
+
+// Direct fetch sites (geocoding, food search, callFunction) get an inert 200.
+vi.stubGlobal('fetch', vi.fn(async () =>
+  new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } }),
+))
