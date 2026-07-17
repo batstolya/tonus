@@ -93,10 +93,10 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
   }
 
   const today = new Date().toISOString().slice(0, 10)
-  const yesterday = new Date(Date.now() - 864e5).toISOString().slice(0, 10)
+  const yesterday = new Date(new Date().getTime() - 864e5).toISOString().slice(0, 10)
 
   // Group events by date, show last 3 days
-  const recentDays = [today, yesterday, new Date(Date.now() - 2 * 864e5).toISOString().slice(0, 10)]
+  const recentDays = [today, yesterday, new Date(new Date().getTime() - 2 * 864e5).toISOString().slice(0, 10)]
   const grouped = recentDays
     .map(date => ({ date, items: events.filter(e => e.ts.slice(0, 10) === date) }))
     .filter(g => g.items.length > 0)
@@ -109,7 +109,7 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
 
   // Caffeine model: 80mg per 200ml, half-life 5.5h
   function caffeineNow(): number {
-    const nowMs = Date.now()
+    const nowMs = new Date().getTime()
     return events
       .filter(e => e.type === 'coffee' && e.ts.slice(0, 10) === today)
       .reduce((total, ev) => {
@@ -181,7 +181,7 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
             )}
             <div className="time-chips">
               {[0, 30, 60, 120, 180].map(mins => {
-                const d = new Date(Date.now() - mins * 60000)
+                const d = new Date(new Date().getTime() - mins * 60000)
                 const val = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
                 const label = mins === 0 ? t('Сейчас') : mins < 60 ? `${mins}${t('м')}` : `${mins/60}${t('ч')}`
                 return (

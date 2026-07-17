@@ -88,4 +88,4 @@ ratchet as the guide.
 | B1 http timeouts | S | DONE — PR #88, 24 fns redeployed 2026-07-16 |
 | B2 data layer + component tests | L (per-feature PRs) | DONE — settings #89, dashboard #90, supplements #91, intake+nutrition #92, research+insights (final); guard allowlist empty, zero `.from(` in components |
 | B3 telegram-bot split | M | DONE — router + handler modules, index 1503→41 lines, router tests in vitest |
-| B4 lint 16→0 | S | any time; scheduled last to avoid conflicts |
+| B4 lint 16→0 | S | DONE — 0 errors/warnings, CI on `eslint --max-warnings 0`, ratchet retired; deno ceiling (16) kept — type fixes not cheap |

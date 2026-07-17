@@ -14,6 +14,7 @@ import { ExperimentCard } from './ExperimentCard'
 import { LoadError } from '../ui/LoadError'
 import { isDemoActive } from '../../lib/demo'
 import { makeDemoExperiments, makeDemoSuggestions, type DemoSuggestion } from '../../lib/demoFixture'
+import { startEffect } from '../../lib/startEffect'
 
 interface Props { user: User; daily: DailyMetrics[] }
 
@@ -58,19 +59,21 @@ export function ExperimentsScreen({ user, daily }: Props) {
   useEffect(() => { loadExps() }, [user.id])
 
   useEffect(() => {
-    const raw = sessionStorage.getItem(EXPERIMENT_PREFILL_KEY)
-    if (!raw) return
-    sessionStorage.removeItem(EXPERIMENT_PREFILL_KEY)
-    try {
-      const p = JSON.parse(raw) as ExperimentPrefill
-      setForm(prev => ({
-        ...prev,
-        hypothesis: p.hypothesis,
-        change_rule: p.change_rule,
-        target_metric: isValidMetric(p.target_metric) ? p.target_metric : prev.target_metric,
-      }))
-      setShowForm(true)
-    } catch { /* битый prefill — игнорируем */ }
+    startEffect(async () => {
+      const raw = sessionStorage.getItem(EXPERIMENT_PREFILL_KEY)
+      if (!raw) return
+      sessionStorage.removeItem(EXPERIMENT_PREFILL_KEY)
+      try {
+        const p = JSON.parse(raw) as ExperimentPrefill
+        setForm(prev => ({
+          ...prev,
+          hypothesis: p.hypothesis,
+          change_rule: p.change_rule,
+          target_metric: isValidMetric(p.target_metric) ? p.target_metric : prev.target_metric,
+        }))
+        setShowForm(true)
+      } catch { /* битый prefill — игнорируем */ }
+    })
   }, [])
 
   async function handleCreate(e: React.FormEvent) {

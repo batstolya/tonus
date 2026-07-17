@@ -3,7 +3,7 @@ import type { CalendarEvent } from '../types'
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined
 const SCOPES = 'https://www.googleapis.com/auth/calendar.events.readonly'
 
-let tokenClient: google.accounts.oauth2.TokenClient | null = null
+let tokenClient: GoogleTokenClient | null = null
 let accessToken: string | null = null
 
 export function isGoogleCalendarAvailable() {
@@ -115,16 +115,20 @@ async function fetchGoogleEvents(token: string): Promise<CalendarEvent[]> {
   return items
 }
 
-// Extend window types for Google Identity Services
-declare global {
-  namespace google.accounts.oauth2 {
-    interface TokenClient {
-      requestAccessToken(options?: { prompt?: string }): void
+// Types for the Google Identity Services script global (module-scoped ambient
+// declaration instead of a `declare global` namespace — no-namespace lint).
+interface GoogleTokenClient {
+  requestAccessToken(options?: { prompt?: string }): void
+}
+
+declare const google: {
+  accounts: {
+    oauth2: {
+      initTokenClient(config: {
+        client_id: string
+        scope: string
+        callback: (resp: { access_token: string; error?: string }) => void
+      }): GoogleTokenClient
     }
-    function initTokenClient(config: {
-      client_id: string
-      scope: string
-      callback: (resp: { access_token: string; error?: string }) => void
-    }): TokenClient
   }
 }

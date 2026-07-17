@@ -29,7 +29,6 @@ export function AdherenceBlock({ supplements }: { supplements: Supplement[] }) {
     const since = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
     getAdherenceLogs(since).then(data => { if (!cancelled) setLogs(data) })
     return () => { cancelled = true }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active.length])
 
   if (!active.length) return null

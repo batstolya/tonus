@@ -11,11 +11,11 @@
   **jsdom** (`*.test.tsx`, рендер компонентов через
   `src/test/utils.tsx` → `renderWithProviders`).
 - `npm run build` — `tsc -b && vite build`.
-- `npm run lint` — eslint (в проекте есть pre-existing ошибки; не добавляй новых).
-  Потолки-храповики: `.lint-ceiling` (eslint, `npm run lint:ceiling`) и
-  `.deno-check-ceiling` (type-ошибки edge-функций, `npm run check:functions`,
-  нужен deno: `export PATH="$HOME/.deno/bin:$PATH"`). Число может только падать;
-  снизил долг — обнови файл.
+- `npm run lint` — eslint с `--max-warnings 0`: ноль ошибок и предупреждений,
+  любой новый линт-долг роняет CI. Оставшийся храповик — `.deno-check-ceiling`
+  (type-ошибки edge-функций, `npm run check:functions`, нужен deno:
+  `export PATH="$HOME/.deno/bin:$PATH"`). Число может только падать; снизил
+  долг — обнови файл.
 
 Подробности запуска/деплоя — в проектных скиллах `running-tonus` и `deploying-tonus`
 (`.claude/skills/`).

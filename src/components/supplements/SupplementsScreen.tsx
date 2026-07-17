@@ -12,6 +12,7 @@ import { TreatmentTracker } from './TreatmentTracker'
 import { SupplementSchedule } from './SupplementSchedule'
 import { AdherenceBlock } from './AdherenceBlock'
 import { LoadError } from '../ui/LoadError'
+import { startEffect } from '../../lib/startEffect'
 
 interface Props {
   user: User
@@ -78,7 +79,7 @@ export function SupplementsScreen({ user }: Props) {
     }
   }, [user.id, year, month])
 
-  useEffect(() => { reload() }, [reload])
+  useEffect(() => { startEffect(reload) }, [reload])
 
   useEffect(() => {
     loadReminders(user.id).then(setReminders).catch(() => {})
