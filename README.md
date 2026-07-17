@@ -137,7 +137,7 @@ unrestricted access to the database.
 - AI chat uses bounded server-side function calling instead of asking the model to guess missing facts.
 - Reminder delivery uses claim/complete/fail states, retries and timezone-correct local dates.
 - Feature screens are lazy-loaded; the landing page and authentication avoid chart-heavy bundles.
-- Production deploys only after CI passes tests, build, e2e smoke checks and the lint ceiling.
+- Production deploys only after CI passes tests, build, e2e smoke checks and zero-tolerance lint/type gates.
 
 ## Run locally
 

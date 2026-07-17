@@ -6,7 +6,7 @@ import { buildHealthContext, healthContextToText } from '../_shared/healthContex
 import { localNow } from '../_shared/time.ts'
 import { normalizeTimezone } from '../_shared/userTimezone.ts'
 import { runChatLoop, type ChatLoopMessage, type GeminiPart } from '../_shared/chatToolLoop.ts'
-import { CHAT_TOOL_DECLARATIONS, executeChatTool } from '../_shared/chatTools.ts'
+import { CHAT_TOOL_DECLARATIONS, executeChatTool, type SupabaseLike } from '../_shared/chatTools.ts'
 import { parseDebugReply, formatToolTrace } from '../_shared/chatDebug.ts'
 import {
   findOwnedChatSession,
@@ -220,7 +220,10 @@ serve(async (req) => {
       { role: 'user', parts: [{ text: message }] },
     ]
 
-    const executeTool = (name: string, args: Record<string, unknown>) => executeChatTool(supabase, user.id, name, args)
+    // SupabaseLike is a structural stub for chatTools chains; the real client
+    // is runtime-compatible (methods appear after .select) but not type-wise.
+    const executeTool = (name: string, args: Record<string, unknown>) =>
+      executeChatTool(supabase as unknown as SupabaseLike, user.id, name, args)
     const callConsentedGemini = (contents: ChatLoopMessage[], withTools: boolean) =>
       callGemini(supabase, user.id, contents, withTools)
     const { reply: rawReply, totalTokens: tokensUsed, toolCalls } = await runChatLoop(geminiContents, callConsentedGemini, executeTool)

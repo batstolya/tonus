@@ -158,7 +158,8 @@ async function fetchProvider(
     case 'football-data':
       return (await fetchFootballData()).map(match => mapFootballDataMatch(match, now))
     case 'api-football':
-      return (await fetchApiFootball(range)).map(mapApiFootballFixture)
+      // NOT point-free: map would pass the array index as the updatedAt param.
+      return (await fetchApiFootball(range)).map(f => mapApiFootballFixture(f))
     case 'thestatsapi':
       return (await fetchTheStatsApi()).map(mapTheStatsApiFixture)
   }
