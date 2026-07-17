@@ -7,6 +7,8 @@ import { isValidInternalSecret } from '../_shared/auth.ts'
 import { sendTelegram as sendTelegramWithToken } from '../_shared/telegram.ts'
 import { aiConsentRequiredResponse, fetchGeminiWithConsent, isAiConsentRequired } from '../_shared/aiConsent.ts'
 import { corsHeadersFor } from '../_shared/cors.ts'
+import { loadUserTimezone } from '../_shared/userTimezone.ts'
+import { coverage, lateBedtimes, lateComparisonLine, lowHrvDays, median } from './digest.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -44,41 +46,38 @@ interface LabRow { marker: string; value: number; unit: string | null; date: str
 const nums = (vals: (number | null | undefined)[]): number[] =>
   vals.filter((v): v is number => v != null)
 
-function fmtBedtime(iso: string): string {
-  const d = new Date(iso)
-  return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' })
-}
+const PERIOD_DAYS = 14
 
-function buildDigest(rows: DailyRow[], label: string, sleep: SleepSessionRow[]): string {
+function buildDigest(
+  rows: DailyRow[],
+  label: string,
+  sleep: SleepSessionRow[],
+  tz: string,
+  hrvBaseline: number | null,
+): string {
   if (!rows.length) return `${label}: нет данных`
   const lines = [`=== ${label} (${rows[0].date} — ${rows[rows.length-1].date}) ===`]
   const rhr = nums(rows.map(r => r.resting_heart_rate))
   const hrv = nums(rows.map(r => r.hrv))
   const sleepHours = nums(rows.map(r => r.sleep_hours))
   const steps = nums(rows.map(r => r.steps))
+  lines.push(coverage(PERIOD_DAYS, rows.length, sleepHours.length))
   if (rhr.length) lines.push(`ЧСС покоя: ${avg(rhr)!.toFixed(0)} уд/мин`)
   if (hrv.length) {
     lines.push(`HRV: среднее ${avg(hrv)!.toFixed(0)} мс`)
-    // Days with low HRV (stress) = below 75% of average
-    const avgHrv = avg(hrv)!
-    const lowHrvDays = rows.flatMap(r => r.hrv != null && r.hrv < avgHrv * 0.8 ? [{ date: r.date, hrv: r.hrv }] : [])
-    if (lowHrvDays.length) {
-      lines.push(`Высокий стресс (низкий HRV): ${lowHrvDays.map(r => `${r.date} (${r.hrv.toFixed(0)}мс)`).join(', ')}`)
+    if (hrvBaseline != null) {
+      const low = lowHrvDays(rows, hrvBaseline)
+      if (low.length) {
+        lines.push(`HRV ниже 80% личной 4-недельной медианы (${hrvBaseline.toFixed(0)} мс): ${low.map(r => `${r.date} (${r.hrv.toFixed(0)}мс)`).join(', ')}`)
+      }
     }
   }
   if (sleepHours.length) lines.push(`Сон: ${avg(sleepHours)!.toFixed(1)} ч, ночей ≥7ч: ${sleepHours.filter(v => v >= 7).length}/${sleepHours.length}`)
   if (steps.length) lines.push(`Шаги: ${Math.round(avg(steps)!).toLocaleString()}/день`)
 
-  // Bedtime analysis
-  const lateBeds = sleep.flatMap(s => {
-    if (!s.bedtime) return []
-    const d = new Date(s.bedtime)
-    const h = d.getUTCHours()
-    // Late = after 01:00 local (rough: UTC+3 → after 22:00 UTC)
-    return h >= 22 || h < 6 ? [{ date: s.date, bedtime: s.bedtime }] : []
-  })
+  const lateBeds = lateBedtimes(sleep, tz)
   if (lateBeds.length) {
-    lines.push(`Позднее засыпание: ${lateBeds.map(s => `${s.date} (${fmtBedtime(s.bedtime)})`).join(', ')}`)
+    lines.push(`Позднее засыпание: ${lateBeds.map(s => `${s.date} (${s.local})`).join(', ')}`)
   }
 
   return lines.join('\n')
@@ -183,8 +182,15 @@ serve(async (req) => {
     const sleep2: SleepSessionRow[] = s2.data ?? []
     const intakeRows: IntakeRow[] = intake.data ?? []
 
-    const digest1 = buildDigest(rows1, 'Последние 2 недели', sleep1)
-    const digest2 = buildDigest(rows2, 'Предыдущие 2 недели', sleep2)
+    // Один источник таймзоны для всех локальных времён (profiles.timezone).
+    const tz = await loadUserTimezone(supabase, user.id)
+    // Личный baseline HRV = медиана по обоим периодам (~4 недели данных уже в памяти).
+    const hrvBaseline = median(nums([...rows1, ...rows2].map(r => r.hrv)))
+
+    const digest1 = buildDigest(rows1, 'Последние 2 недели', sleep1, tz, hrvBaseline)
+    const digest2 = buildDigest(rows2, 'Предыдущие 2 недели', sleep2, tz, hrvBaseline)
+    // Межпериодные сравнения считаем кодом — модель не должна выводить их сама.
+    const lateFact = lateComparisonLine(lateBedtimes(sleep1, tz).length, lateBedtimes(sleep2, tz).length)
 
     // SpO2 — хранится как доля (0.96 = 96%), переводим в проценты
     const spo2Block = (() => {
@@ -323,13 +329,20 @@ ${spo2Block}${sleepStagesBlock}${nutritionBlock}${workoutBlock}${safeAdherenceBl
 ДЛЯ СРАВНЕНИЯ — предыдущий период:
 ${digest2}
 
+ГОТОВЫЕ ФАКТЫ СРАВНЕНИЯ (используй как есть, не пересчитывай):
+${lateFact}
+
 ${detailSpec}
 
 Общие требования:
 - Plain text, без markdown (никаких *, #, _). Emoji для заголовков разделов желательны.
 - Опирайся на личные тренды пользователя, сравнивай с его же прошлым периодом, не с абсолютными нормами.
 - Конкретика по датам и цифрам, без воды и общих фраз.
-- Без медицинских диагнозов. При тревожных значениях мягко советуй врача.
+- Межпериодные сравнения бери ТОЛЬКО из готовых фактов и дайджестов — сам ничего не пересчитывай и не сравнивай количества.
+- В кратком итоге укажи покрытие данных (строки «Покрытие данных» из дайджеста).
+- Разделяй формулировки: факт из данных / возможная связь / предположение — и помечай предположения словами «возможно», «нельзя исключить».
+- Физиологию трактуй осторожно: низкая ЧСС покоя или изменение HRV — это тренд относительно личной нормы, а не «хорошо/плохо» само по себе.
+- Без медицинских диагнозов и догадок о причинах болезни (не пиши «вирус», «отравление» и т.п.) — опиши симптомы из заметок и отметь, что причину по данным установить нельзя. При тревожных значениях мягко советуй врача.
 - На русском.`
 
     const geminiRes = await fetchGeminiWithConsent(

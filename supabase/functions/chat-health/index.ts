@@ -4,6 +4,7 @@ import { checkBudget, budgetExceededMessage } from '../_shared/costGuard.ts'
 import { getPrompt } from '../_shared/prompts.ts'
 import { buildHealthContext, healthContextToText } from '../_shared/healthContext.ts'
 import { localNow } from '../_shared/time.ts'
+import { normalizeTimezone } from '../_shared/userTimezone.ts'
 import { runChatLoop, type ChatLoopMessage, type GeminiPart } from '../_shared/chatToolLoop.ts'
 import { CHAT_TOOL_DECLARATIONS, executeChatTool } from '../_shared/chatTools.ts'
 import { parseDebugReply, formatToolTrace } from '../_shared/chatDebug.ts'
@@ -186,7 +187,8 @@ serve(async (req) => {
 
     const { data: profile } = await supabase.from('profiles')
       .select('timezone, birth_year, sex').eq('id', user.id).maybeSingle()
-    const timezone = profile?.timezone ?? 'Europe/Berlin'
+    // Единый источник таймзоны (был расхождением: чат — Berlin, отчёт — Moscow).
+    const timezone = normalizeTimezone(profile?.timezone)
 
     // Контекст всегда свежий, из БД (30 дней + цели/эксперименты/профиль)
     const ctx = await buildHealthContext(supabase, user.id, { periodDays: 30, includeCoachProfile: true, timezone })
