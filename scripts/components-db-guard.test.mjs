@@ -1,13 +1,11 @@
 // Guard: components must not query the DB directly — use src/lib/api/* (or src/lib/*) modules.
-// Ratchet: the allowlist below may only shrink. New `.from('table')` calls in
-// src/components fail here; migrated files must be removed from the allowlist.
+// The allowlist emptied with B2 and must stay empty forever: any `.from('table')`
+// call in src/components fails here — put the query in a src/lib/api/* module.
 import { test } from 'node:test'
 import assert from 'node:assert'
 import { execSync } from 'node:child_process'
 
-const ALLOWLIST = new Set([
-  'src/components/research/ExperimentsScreen.tsx',
-])
+const ALLOWLIST = new Set([])
 
 const grep = () => {
   try {
