@@ -49,6 +49,7 @@ import { shouldAutoSync } from './lib/syncSchedule'
 import { detectAvailableMetrics } from './lib/availableMetrics'
 import { useT } from './lib/i18n'
 import './index.css'
+import { startEffect } from './lib/startEffect'
 
 
 type GroupId = 'body' | 'journal' | 'coach'
@@ -164,11 +165,11 @@ export default function App() {
     : state.events.filter(e => e.source !== 'google')
 
   useEffect(() => {
-    if (!user) { setDbLoading(false); return }
     let cancelled = false
-    setDbLoading(true)
 
     async function init() {
+      if (!user) { setDbLoading(false); return }
+      setDbLoading(true)
       // Демо-режим: фикстурные данные вместо Supabase (метрики + события лога).
       if (isDemoActive()) {
         const [{ makeDemoDaily, makeDemoHRSamples }, { demoList }] = await Promise.all([
@@ -202,7 +203,7 @@ export default function App() {
       setDbLoading(false)
     }
 
-    init()
+    startEffect(init)
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id])

@@ -8,6 +8,7 @@ import {
 } from '../../lib/concerns'
 import { LoadError } from '../ui/LoadError'
 import { useT } from '../../lib/i18n'
+import { startEffect } from '../../lib/startEffect'
 import { isMasked, loadPinHash, unlock } from '../../lib/privacy'
 
 interface Props { user: User; onNavigateHair?: () => void }
@@ -62,7 +63,7 @@ function ConcernDetail({ concern, userId, onBack, onUpdate }: {
     setPhotoUrls(urls)
   }, [concern.id])
 
-  useEffect(() => { reload() }, [reload])
+  useEffect(() => { startEffect(reload) }, [reload])
 
   async function handleSave() {
     setSaving(true)
@@ -206,7 +207,7 @@ export function ConcernsScreen({ user, onNavigateHair }: Props) {
     }
   }, [user.id])
 
-  useEffect(() => { reload() }, [reload])
+  useEffect(() => { startEffect(reload) }, [reload])
 
   async function handleAdd() {
     if (!name.trim()) return

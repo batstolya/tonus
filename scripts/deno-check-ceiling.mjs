@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process'
 import { readFileSync, globSync } from 'node:fs'
-import { decideCeiling } from './lint-ceiling-lib.mjs'
+import { decideCeiling } from './ceiling-lib.mjs'
 
 const ceiling = Number(readFileSync(new URL('../.deno-check-ceiling', import.meta.url), 'utf8').trim())
 

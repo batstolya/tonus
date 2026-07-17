@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, ReferenceLine,
@@ -9,6 +9,7 @@ import { demoList } from '../../lib/demoDb'
 import { useT } from '../../lib/i18n'
 import { MealLogger } from './MealLogger'
 import { LoadError } from '../ui/LoadError'
+import { startEffect } from '../../lib/startEffect'
 
 interface DayAgg { date: string; calories: number; protein: number; carbs: number; fat: number; meals: Meal[] }
 
@@ -42,16 +43,15 @@ export function NutritionScreen({ user }: { user: User }) {
     loadMeals()
   }
 
-  function loadMeals() {
+  const loadMeals = useCallback(async () => {
     const since = new Date(Date.now() - 30 * 86400000).toISOString()
-    getMeals(user.id, since).then(data => {
-      if (data === null) setLoadError(true)
-      else { setMeals(data); setLoadError(false) }
-      setLoading(false)
-    })
-  }
+    const data = await getMeals(user.id, since)
+    if (data === null) setLoadError(true)
+    else { setMeals(data); setLoadError(false) }
+    setLoading(false)
+  }, [user.id])
 
-  useEffect(() => { if (!isDemoActive()) loadMeals() }, [user.id])
+  useEffect(() => { if (!isDemoActive()) startEffect(loadMeals) }, [loadMeals])
 
   const days = useMemo<DayAgg[]>(() => {
     const map = new Map<string, DayAgg>()

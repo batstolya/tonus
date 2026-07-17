@@ -117,15 +117,10 @@ export function MealLogger({ user, onSaved }: Props) {
   const switchTab = (newTab: 'photo' | 'text' | 'search') => { setTab(newTab); reset() }
   const canAnalyze = tab === 'photo' ? !!imageData : text.trim().length > 2
 
-  // Debounced search
+  // Queries shorter than 2 chars clear the results in onSearchInput; the
+  // debounced effect only ever starts a fetch.
   useEffect(() => {
-    if (tab !== 'search') return
-    if (searchQuery.trim().length < 2) {
-      setSearchResults([])
-      setSearched(false)
-      setSearchError(null)
-      return
-    }
+    if (tab !== 'search' || searchQuery.trim().length < 2) return
     const timer = setTimeout(async () => {
       setSearchLoading(true)
       setSearchError(null)
@@ -150,6 +145,15 @@ export function MealLogger({ user, onSaved }: Props) {
     }, 400)
     return () => clearTimeout(timer)
   }, [searchQuery, tab])
+
+  function onSearchInput(q: string) {
+    setSearchQuery(q)
+    if (q.trim().length < 2) {
+      setSearchResults([])
+      setSearched(false)
+      setSearchError(null)
+    }
+  }
 
   function handleSelectProduct(product: OFFProduct) {
     const n = product.nutriments
@@ -215,7 +219,7 @@ export function MealLogger({ user, onSaved }: Props) {
             type="text"
             placeholder={t('Поиск продукта…')}
             value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
+            onChange={e => onSearchInput(e.target.value)}
             autoFocus
           />
           {searchLoading && (

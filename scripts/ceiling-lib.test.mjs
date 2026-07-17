@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { decideCeiling } from './lint-ceiling-lib.mjs'
+import { decideCeiling } from './ceiling-lib.mjs'
 
 test('fails when count exceeds ceiling', () => {
   const r = decideCeiling(293, 292)
