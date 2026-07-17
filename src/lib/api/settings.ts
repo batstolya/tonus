@@ -98,6 +98,15 @@ export async function updateLocationLabel(userId: string, label: string): Promis
   await supabase.from('profiles').update({ location_label: label }).eq('id', userId)
 }
 
+// Keeps profiles.timezone in step with the device. Every server-rendered local
+// time (biweekly report, chat, bot AI context) reads this column via
+// _shared/userTimezone.ts; without it they fall back to the product default.
+export async function syncProfileTimezone(userId: string): Promise<void> {
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+  if (!timezone) return
+  await supabase.from('profiles').upsert({ id: userId, timezone })
+}
+
 // ── Supplement adherence logs (doctor report) ────────────────────────────────
 
 export interface SupplementAdherenceLog { supplement_id: string; date: string; taken: boolean }
