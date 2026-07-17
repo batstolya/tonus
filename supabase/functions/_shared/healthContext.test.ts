@@ -42,10 +42,10 @@ describe('buildHealthContext: goals & experiments', () => {
     expect(ctx.experiments).toHaveLength(1)
   })
 
-  it('falls back to Europe/Berlin instead of throwing when given an invalid timezone', async () => {
+  it('falls back to the product default timezone instead of throwing when given an invalid one', async () => {
     const sb = stubSupabase({})
     const ctx = await buildHealthContext(sb, 'user-1', { timezone: 'not-a-real-timezone' })
-    expect(ctx.timezone).toBe('Europe/Berlin')
+    expect(ctx.timezone).toBe('Europe/Kyiv')
   })
 })
 

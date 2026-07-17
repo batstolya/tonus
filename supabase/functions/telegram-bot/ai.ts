@@ -3,6 +3,7 @@
 
 import { type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { buildHealthContext, healthContextToText } from '../_shared/healthContext.ts'
+import { loadUserTimezone } from '../_shared/userTimezone.ts'
 import { fetchWithTimeout } from '../_shared/http.ts'
 import { checkBudget, budgetExceededMessage } from '../_shared/costGuard.ts'
 import { getPrompt } from '../_shared/prompts.ts'
@@ -260,7 +261,8 @@ export async function execLog(chatId: number | string, userId: string, act: Clas
 }
 
 export async function buildBotContext(userId: string, supabase: SupabaseClient): Promise<string> {
-  const ctx = await buildHealthContext(supabase, userId, { periodDays: 14, includeCoachProfile: true })
+  const timezone = await loadUserTimezone(supabase, userId)
+  const ctx = await buildHealthContext(supabase, userId, { periodDays: 14, includeCoachProfile: true, timezone })
   return healthContextToText(ctx)
 }
 
