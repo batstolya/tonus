@@ -40,10 +40,23 @@ VITE_SUPABASE_ANON_KEY=test-anon-key
 
 ```bash
 npm run dev    # vite, порт 5173
-npm test       # vitest, 82 теста, окружение node (не jsdom — рендера компонентов нет)
+npm test       # vitest, два проекта: node (*.test.ts) и jsdom (*.test.tsx — рендер компонентов)
 npm run build  # tsc -b && vite build
-npm run lint   # eslint; ~295 pre-existing ошибок (в основном no-explicit-any) — не добавляй новых
+npm run lint   # eslint --max-warnings 0: ноль ошибок И предупреждений, любое новое роняет CI
 ```
+
+Если в `.env.local` стоит `VITE_DEMO=1`, локальный `npm test` ломает несколько
+тестов — гоняй как `VITE_DEMO= npm test`.
+
+## Тесты компонентов: сеть отключена
+
+jsdom-проект vitest сетево изолирован (`vitest.setup.ts`): supabase-клиент
+замокан инертной чейн-заглушкой (`await` любой цепочки → `{data:null,
+error:null, count:null}`), глобальный `fetch` отдаёт пустой 200. Компонент
+без моков просто рендерит пустое состояние; данные в тест подавай локальным
+`vi.mock('…/lib/api/<feature>')` — он работает поверх глобального слоя.
+Контракт закреплён guard-тестом `src/test/network-isolation.test.tsx` —
+не ослабляй его и не зови реальную сеть из компонентных тестов.
 
 Для предпросмотра в Claude Code есть `.claude/launch.json` с конфигурацией
 `tonus-dev` (использует preview-сервер на 5173 с Node 24 напрямую).
