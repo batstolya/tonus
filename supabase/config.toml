@@ -37,6 +37,9 @@ verify_jwt = false   # cron (x-cron-secret) + UI (user JWT) — делает с�
 [functions.telegram-bot]
 verify_jwt = false   # Telegram webhook, не Supabase JWT
 
+[functions.ops-reminder]
+verify_jwt = false   # pg_cron (x-cron-secret), fail-closed без секрета
+
 [functions.report-client-error]
 verify_jwt = true    # Authenticated browser telemetry; handler also calls auth.getUser()
 

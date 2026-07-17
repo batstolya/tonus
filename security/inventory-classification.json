@@ -274,6 +274,13 @@
       "cors": "allowlist",
       "rateLimit": "durable",
       "dataSensitivity": "health"
+    },
+    "ops-reminder": {
+      "authOwner": "handler:cron-secret",
+      "credentialType": "cron-secret",
+      "cors": "none",
+      "rateLimit": "none",
+      "dataSensitivity": "none"
     }
   }
 }
