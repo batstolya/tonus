@@ -86,6 +86,6 @@ ratchet as the guide.
 | Item | Size | Status |
 |---|---|---|
 | B1 http timeouts | S | DONE — PR #88, 24 fns redeployed 2026-07-16 |
-| B2 data layer + component tests | L (per-feature PRs) | in progress — settings #89, dashboard #90, supplements #91, intake+nutrition (guard 15→2) |
+| B2 data layer + component tests | L (per-feature PRs) | DONE — settings #89, dashboard #90, supplements #91, intake+nutrition #92, research+insights (final); guard allowlist empty, zero `.from(` in components |
 | B3 telegram-bot split | M | pending B2 start |
 | B4 lint 16→0 | S | any time; scheduled last to avoid conflicts |
