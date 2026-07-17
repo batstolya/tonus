@@ -11,9 +11,15 @@ function geminiFunctions(): { name: string; source: string }[] {
   return readdirSync(functionsDir, { withFileTypes: true })
     .filter(entry => entry.isDirectory() && entry.name !== '_shared')
     .flatMap(entry => {
-      const file = resolve(functionsDir, entry.name, 'index.ts')
+      // Scan every module of the function, not just index.ts — the telegram-bot
+      // split moved its Gemini calls into ai.ts and egress must stay visible.
+      const dir = resolve(functionsDir, entry.name)
       try {
-        const source = readFileSync(file, 'utf8')
+        const source = readdirSync(dir)
+          .filter(f => f.endsWith('.ts') && !f.endsWith('.test.ts'))
+          .sort()
+          .map(f => readFileSync(resolve(dir, f), 'utf8'))
+          .join('\n')
         return source.includes(providerMarker) ? [{ name: entry.name, source }] : []
       } catch {
         return []
