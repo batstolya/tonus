@@ -50,6 +50,7 @@ import { detectAvailableMetrics } from './lib/availableMetrics'
 import { useT } from './lib/i18n'
 import './index.css'
 import { startEffect } from './lib/startEffect'
+import { syncProfileTimezone } from './lib/api/settings'
 
 
 type GroupId = 'body' | 'journal' | 'coach'
@@ -146,6 +147,14 @@ export default function App() {
   }
 
   const demo = isDemoActive()
+
+  // Держим profiles.timezone в такт устройству: серверные локальные времена
+  // (отчёт, чат, бот) читают эту колонку через _shared/userTimezone.ts.
+  const tzSyncUserId = !demo && user ? user.id : null
+  useEffect(() => {
+    if (!tzSyncUserId) return
+    startEffect(() => syncProfileTimezone(tzSyncUserId).catch(() => {}))
+  }, [tzSyncUserId])
 
   function handleSignOut() {
     if (isDemoActive()) {

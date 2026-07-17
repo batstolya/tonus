@@ -25,6 +25,7 @@ import {
   getWorkoutSchedule, saveWorkoutSchedule,
   getCalSyncStatus,
   getProfileLocation, saveProfileLocation, updateLocationLabel,
+  syncProfileTimezone,
   getSupplementLogsSince,
 } from './settings'
 
@@ -123,6 +124,14 @@ describe('cal sync + profile location', () => {
     expect(state.calls[0].steps).toContainEqual(['upsert', [{ id: 'u1', latitude: 1, longitude: 2, location_label: 'X' }]])
     state.response = { data: null, error: { message: 'denied' } }
     expect(await saveProfileLocation('u1', { latitude: 1, longitude: 2, label: 'X' })).toBe('denied')
+  })
+
+  it('syncProfileTimezone upserts the device IANA timezone into the profile', async () => {
+    await syncProfileTimezone('u1')
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+    expect(tz).toBeTruthy() // sanity: node resolves a real zone in tests
+    expect(state.calls[0].table).toBe('profiles')
+    expect(state.calls[0].steps).toContainEqual(['upsert', [{ id: 'u1', timezone: tz }]])
   })
 
   it('updateLocationLabel updates only the label', async () => {
