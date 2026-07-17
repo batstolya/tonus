@@ -48,6 +48,7 @@ npx supabase functions deploy <name> --project-ref <ref>
 | `classifyPrompt.ts` | telegram-bot |
 | `saveIntent.ts` | telegram-bot |
 | `staleness.ts` | biweekly-report, telegram-bot |
+| `userTimezone.ts` | biweekly-report, chat-health, telegram-bot |
 
 Таблица может устареть — перед редеплоем сверься:
 `grep -rl "_shared/<module>" supabase/functions --include=index.ts`

@@ -58,3 +58,8 @@ description: Use when modifying the Tonus AI chat (chat-health edge function), a
 - Таймзона: `executeChatTool` не получает tz юзера; UTC-«сегодня» у полуночи
   сдвигает окна на день. Для date-чувствительных инструментов пробрасывай
   `todayStr` через замыкание executeTool в index.ts.
+- **Таймзону юзера не хардкодить.** Единственный источник —
+  `profiles.timezone`, читать через `_shared/userTimezone.ts`
+  (`loadUserTimezone`/`normalizeTimezone`, фолбэк Europe/Kyiv). Колонка
+  авто-синкается с устройства при логине (PR #100). Хардкоды зон уже давали
+  ±1ч (отчёт Moscow vs чат Berlin, вычищено в PR #99).
