@@ -182,7 +182,7 @@ export function makeDemoHRSamples(days = 7): HeartRateSample[] {
         const t = new Date(now)
         t.setDate(t.getDate() - i); t.setHours(h, m, 0, 0)
         const base = h < 7 ? 52 : h < 9 ? 70 : h < 19 ? 75 : 62
-        out.push({ time: t, value: base + rnd(i * 1440 + h * 60 + m) * 25, sourceName: 'Demo Watch' })
+        out.push({ time: t, value: Math.round(base + rnd(i * 1440 + h * 60 + m) * 25), sourceName: 'Demo Watch' })
       }
     }
   }
