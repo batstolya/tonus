@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { UploadZone } from './UploadZone'
 import { parseICS } from '../../parsers/icsParser'
+import { parseCalBookings } from '../../parsers/calBookingsParser'
 import { parseXiaomiCSV } from '../../parsers/xiaomiParser'
 import type { ParseProgress, CalendarEvent } from '../../types'
 import type { DeviceType } from '../../store/appStore'
@@ -87,6 +88,16 @@ export function UploadScreen({ onProgress, onDone, onEvents, onError, progress, 
     })
   }
 
+  function handleCalBookingsFile(file: File) {
+    file.text().then(text => {
+      try {
+        onEvents(parseCalBookings(text))
+      } catch {
+        onError(t('Не удалось прочитать .ics файл'))
+      }
+    })
+  }
+
   const isXiaomi = deviceType === 'xiaomi'
 
   return (
@@ -128,6 +139,13 @@ export function UploadScreen({ onProgress, onDone, onEvents, onError, progress, 
           sublabel={t('Для карты стресса')}
           optional
           onFile={handleICSFile}
+        />
+        <UploadZone
+          accept=".json"
+          label={t('Перетащите cal_bookings.json')}
+          sublabel={t('Экспорт Cal.com')}
+          optional
+          onFile={handleCalBookingsFile}
         />
       </div>
 
