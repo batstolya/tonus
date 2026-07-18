@@ -1,5 +1,5 @@
 // Фикстурные данные демо-режима и живой панели лендинга (VITE_DEMO / кнопка «Посмотреть демо»).
-import type { DailyMetrics, HeartRateSample } from '../types'
+import type { DailyMetrics, HeartRateSample, CalendarEvent } from '../types'
 import { localDate, addDays, computeBaselineStart, type ExperimentRow } from './experiments'
 
 // Форма предложения от ИИ (та же, что у edge-функции suggest-experiments).
@@ -182,11 +182,40 @@ export function makeDemoHRSamples(days = 7): HeartRateSample[] {
         const t = new Date(now)
         t.setDate(t.getDate() - i); t.setHours(h, m, 0, 0)
         const base = h < 7 ? 52 : h < 9 ? 70 : h < 19 ? 75 : 62
-        out.push({ time: t, value: base + rnd(i * 1440 + h * 60 + m) * 25, sourceName: 'Demo Watch' })
+        out.push({ time: t, value: Math.round(base + rnd(i * 1440 + h * 60 + m) * 25), sourceName: 'Demo Watch' })
       }
     }
   }
   return out
+}
+
+// Demo calendar events for the stress map. Placed inside the makeDemoHRSamples
+// window (last 7 days) so every event gets a real heart-rate delta. One workout
+// is tagged as physical activity via PHYSICAL_KEYWORDS in stressMap.ts.
+export function makeDemoEvents(): CalendarEvent[] {
+  // Work-week template: [days ago, hour, duration min, title].
+  const template: [number, number, number, string][] = [
+    [6, 10, 30, 'Дейли-стендап'],
+    [6, 15, 60, 'Созвон с клиентом'],
+    [5, 11, 90, 'Дедлайн по проекту'],
+    [5, 13, 45, 'Обед с командой'],
+    [4, 9, 30, '1:1 с руководителем'],
+    [4, 18, 60, 'Тренировка в зале'],
+    [3, 14, 120, 'Планирование спринта'],
+    [3, 16, 30, 'Ретро'],
+    [2, 10, 60, 'Собеседование'],
+    [2, 19, 90, 'Ужин с друзьями'],
+    [1, 12, 45, 'Демо для стейкхолдеров'],
+    [1, 17, 30, 'Разбор инцидента'],
+  ]
+  const now = new Date()
+  return template.map(([daysAgo, hour, durMin, title], idx) => {
+    const start = new Date(now)
+    start.setDate(start.getDate() - daysAgo)
+    start.setHours(hour, Math.floor(rnd(idx * 13) * 30), 0, 0)
+    const end = new Date(start.getTime() + durMin * 60 * 1000)
+    return { uid: `demo-evt-${idx}`, title, start, end, source: 'demo' }
+  })
 }
 
 // Демо-расписание тренировок для WorkoutPlanCard (Пн волейбол / Ср футбол / Пт волейбол).
