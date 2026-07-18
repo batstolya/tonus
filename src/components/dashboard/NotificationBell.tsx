@@ -127,9 +127,11 @@ export function NotificationBell({ daily, userId, demo }: Props) {
 
       {open && (
         <section id="bell-panel" className="bell-panel" role="dialog" aria-label={t('Уведомления')}>
+          {/* Без кнопки закрытия: панель и так закрывается кликом вне и Escape,
+              а второй крестик рядом с крестиками отдельных уведомлений читался
+              как «убрать всё». */}
           <div className="bell-head">
             <span className="bell-title">{t('Уведомления')}</span>
-            <button type="button" className="streak-menu-close" onClick={() => setOpen(false)} aria-label={t('Закрыть')}>×</button>
           </div>
           {count === 0 ? (
             <div className="bell-empty">{t('Все спокойно — сигналов нет')} 👌</div>

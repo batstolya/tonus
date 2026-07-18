@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { eventMarkers, groupMarkersByDate, MAX_LABELED_MARKER_DATES } from './chartEvents'
+import { eventMarkers, groupMarkersByDate, markersByDate, MAX_MARKER_DOTS } from './chartEvents'
 import type { IntakeEvent } from './chat'
 
 const ev = (ts: string, type: string): IntakeEvent =>
@@ -14,21 +14,49 @@ describe('groupMarkersByDate', () => {
     )
     const grouped = groupMarkersByDate(markers)
     expect(grouped).toHaveLength(2)
-    expect(grouped[0]).toEqual({ x: '07-01', emojis: ['🍷', '😰'], color: '#f43f5e' })
-    expect(grouped[1].emojis).toEqual(['🏋️'])
+    expect(grouped[0].x).toBe('07-01')
+    expect(grouped[0].events.map(e => e.emoji)).toEqual(['🍷', '😰'])
+    expect(grouped[0].color).toBe('#f43f5e')
+    expect(grouped[1].events.map(e => e.emoji)).toEqual(['🏋️'])
   })
 
-  it('keeps one emoji per type per date (eventMarkers dedupes upstream)', () => {
+  it('carries the label of every event type so the tooltip can name them', () => {
+    const markers = eventMarkers(
+      [ev('2026-07-01T10:00:00Z', 'alcohol'), ev('2026-07-01T18:00:00Z', 'stress')],
+      new Set(['07-01']),
+      iso => iso.slice(5),
+    )
+    expect(groupMarkersByDate(markers)[0].events).toEqual([
+      { type: 'alcohol', emoji: '🍷', color: '#f43f5e', label: 'Алкоголь' },
+      { type: 'stress', emoji: '😰', color: '#f59e0b', label: 'Стресс' },
+    ])
+  })
+
+  it('keeps one entry per type per date (eventMarkers dedupes upstream)', () => {
     const markers = eventMarkers(
       [ev('2026-07-01T10:00:00Z', 'alcohol'), ev('2026-07-01T22:00:00Z', 'alcohol')],
       new Set(['07-01']),
       iso => iso.slice(5),
     )
-    expect(groupMarkersByDate(markers)[0].emojis).toEqual(['🍷'])
+    expect(groupMarkersByDate(markers)[0].events.map(e => e.emoji)).toEqual(['🍷'])
   })
 
-  it('exposes a sane label-density cap', () => {
-    expect(MAX_LABELED_MARKER_DATES).toBeGreaterThan(0)
-    expect(MAX_LABELED_MARKER_DATES).toBeLessThanOrEqual(15)
+  it('caps how many dots a single date draws', () => {
+    expect(MAX_MARKER_DOTS).toBeGreaterThan(0)
+    expect(MAX_MARKER_DOTS).toBeLessThanOrEqual(5)
+  })
+})
+
+describe('markersByDate', () => {
+  it('indexes grouped markers so a tooltip can look up its date in O(1)', () => {
+    const markers = eventMarkers(
+      [ev('2026-07-01T10:00:00Z', 'alcohol'), ev('2026-07-03T09:00:00Z', 'workout')],
+      new Set(['07-01', '07-02', '07-03']),
+      iso => iso.slice(5),
+    )
+    const index = markersByDate(groupMarkersByDate(markers))
+    expect(index.get('07-01')?.events.map(e => e.type)).toEqual(['alcohol'])
+    expect(index.get('07-03')?.events.map(e => e.type)).toEqual(['workout'])
+    expect(index.get('07-02')).toBeUndefined()
   })
 })
