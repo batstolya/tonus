@@ -492,7 +492,6 @@ export default function App() {
           <StressMapScreen
             heartRateSamples={state.heartRateSamples}
             events={visibleEvents}
-            onEvents={e => handleEvents(e, 'ics')}
             onGoogleCalendar={isGoogleCalendarAvailable() ? handleGoogleCalendar : undefined}
             googleConnected={googleConnected}
             showGoogle={showGoogleEvents}
