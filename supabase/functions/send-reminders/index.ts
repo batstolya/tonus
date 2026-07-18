@@ -15,6 +15,7 @@ import { forecastBlock } from '../_shared/forecastMessage.ts'
 import { computeBaselineStart, computeResult, type ExpDaily, type ExperimentRow } from '../_shared/experiments.ts'
 import { verdictMessage } from '../_shared/experimentVerdict.ts'
 import { withObservability } from '../_shared/observability.ts'
+import { localNow, timeDue } from './time.ts'
 
 const TG_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -30,22 +31,6 @@ async function tgSend(chatId: string, text: string, replyMarkup?: unknown): Prom
   if (!res) return null
   const data = await res.json()
   return data?.result?.message_id ?? null
-}
-
-// Текущее локальное время в указанной таймзоне → { hhmm, weekday(1=Пн..7=Вс), dateStr }
-function localNow(tz: string) {
-  const now = new Date()
-  const fmt = new Intl.DateTimeFormat('en-GB', {
-    timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false,
-    weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit',
-  })
-  const parts = Object.fromEntries(fmt.formatToParts(now).map(p => [p.type, p.value]))
-  const wdMap: Record<string, number> = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 }
-  return {
-    hhmm: `${parts.hour}:${parts.minute}`,
-    weekday: wdMap[parts.weekday] ?? 1,
-    dateStr: `${parts.year}-${parts.month}-${parts.day}`,
-  }
 }
 
 // Прогноз readiness на завтра для вечернего сообщения (SPEC-READINESS-FORECAST §3.2).
@@ -705,13 +690,3 @@ const handler = async (req: Request) => {
 }
 
 serve(withObservability('edge.send_reminders', handler))
-
-// время дозы наступило в текущем 5-минутном окне cron
-function timeDue(target: string, nowHHMM: string): boolean {
-  const [th, tm] = target.split(':').map(Number)
-  const [nh, nm] = nowHHMM.split(':').map(Number)
-  const tMin = th * 60 + tm
-  const nMin = nh * 60 + nm
-  // окно [target, target+5) — cron тикает каждые 5 мин
-  return nMin >= tMin && nMin < tMin + 5
-}
