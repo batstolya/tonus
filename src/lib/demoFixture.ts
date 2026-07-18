@@ -189,7 +189,6 @@ export function makeDemoHRSamples(days = 7): HeartRateSample[] {
   return out
 }
 
-// Демо-расписание тренировок для WorkoutPlanCard (Пн волейбол / Ср футбол / Пт волейбол).
 // Demo calendar events for the stress map. Placed inside the makeDemoHRSamples
 // window (last 7 days) so every event gets a real heart-rate delta. One workout
 // is tagged as physical activity via PHYSICAL_KEYWORDS in stressMap.ts.
@@ -219,6 +218,7 @@ export function makeDemoEvents(): CalendarEvent[] {
   })
 }
 
+// Демо-расписание тренировок для WorkoutPlanCard (Пн волейбол / Ср футбол / Пт волейбол).
 export function makeDemoWorkoutSchedule() {
   return {
     day_times: {
