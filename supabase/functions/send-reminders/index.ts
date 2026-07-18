@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { localToIso, localDate } from '../_shared/time.ts'
+import { localDate } from '../_shared/time.ts'
 import { isValidCronSecret } from '../_shared/auth.ts'
 import { fetchWithTimeout } from '../_shared/http.ts'
 import {
@@ -16,6 +16,8 @@ import { verdictMessage } from '../_shared/experimentVerdict.ts'
 import { withObservability } from '../_shared/observability.ts'
 import { localNow, timeDue } from './time.ts'
 import { tgSend, makeTransport } from './tg.ts'
+import type { Ctx } from './ctx.ts'
+import { runDoseCreation } from './doses.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -78,35 +80,9 @@ const handler = async (req: Request) => {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
   const nowMs = Date.now()
   const runId = crypto.randomUUID()
+  const ctx: Ctx = { supabase, nowMs }
 
-  // ── 1. Создать события для наступивших доз ──────────────────────────────────
-  const { data: settings } = await supabase
-    .from('reminder_settings')
-    .select('user_id, supplement_id, times, weekdays, timezone, quiet_until, enabled, supplements(name, default_dose, unit)')
-    .eq('enabled', true)
-
-  let created = 0
-  for (const s of settings ?? []) {
-    const { hhmm, weekday, dateStr } = localNow(s.timezone || 'Europe/Kyiv')
-    if (!s.weekdays?.includes(weekday)) continue
-    // тихие часы: если сейчас позже quiet_until — не создавать
-    if (s.quiet_until && hhmm > s.quiet_until) continue
-
-    for (const t of s.times ?? []) {
-      // совпадение с точностью до минуты (cron тикает каждые 5 мин — допускаем окно)
-      if (!timeDue(t, hhmm)) continue
-      // due_at = сегодняшняя дата + время в этой tz → UTC (через таймзонный хелпер,
-      // иначе момент трактуется в UTC рантайма и due_at уезжает на смещение tz).
-      const dueKey = localToIso(s.timezone || 'Europe/Kyiv', t, dateStr)
-      const { error } = await supabase.from('reminder_events').insert({
-        user_id: s.user_id,
-        supplement_id: s.supplement_id,
-        due_at: dueKey,
-        status: 'pending',
-      })
-      if (!error) created++
-    }
-  }
+  const created = await runDoseCreation(ctx)
 
   // ── 2. Доставка due-событий через атомарный claim (спека automation §2.2–2.3) ─
   // Claim RPC (FOR UPDATE SKIP LOCKED) исключает дубли при overlapping cron.
