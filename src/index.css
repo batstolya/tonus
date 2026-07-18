@@ -815,9 +815,9 @@ body {
   .sync-label { display: none !important; }
   .signout-btn { display: none !important; }
   .theme-toggle { display: none !important; }
-  .streak-menu-trigger { min-height: 32px; padding: 0 8px; }
   .streak-menu-label { display: none; }
-  .streak-menu-panel { right: -42px; width: min(340px, calc(100vw - 24px)); max-height: calc(100vh - 68px); }
+  /* Topbar dropdown panels are sized down further in the media query that
+     follows their base rules — putting them here would lose the cascade. */
 
   /* Show burger on mobile */
   .burger-btn { display: flex !important; align-items: center; justify-content: center; }
@@ -2209,6 +2209,20 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
   transition: background 0.15s, color 0.15s;
 }
 .bell-item-ack:hover { color: var(--green); }
+
+/* On a phone these panels are wider than the gap between their trigger and the
+   left edge of the screen, so anchoring them to the button clips them. Pin them
+   to the viewport instead, gutter to gutter, under the topbar. Must stay after
+   the base rules above — a media query adds no specificity, so the later
+   declaration wins. */
+@media (max-width: 768px) {
+  .streak-menu-trigger { min-height: 32px; padding: 0 8px; }
+  .streak-menu-panel, .bell-panel, .geostorm-pop {
+    position: fixed; top: 58px; left: 12px; right: 12px;
+    width: auto; max-height: calc(100vh - 68px);
+  }
+  .geostorm-pop { overflow-y: auto; }
+}
 
 /* Пульс: таблица по дням, аномально низкие дни подсвечены */
 .hr-daily { margin-top: 18px; }
