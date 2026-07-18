@@ -7,6 +7,8 @@
 // Даты считаются от сегодня, поэтому фикстуры всегда совпадают по периоду с
 // makeDemoDaily() и не протухают.
 
+import { alertTranslatableLines } from './notifications'
+
 const DAY = 86400000
 const DEMO_USER = 'demo-user'
 
@@ -487,16 +489,19 @@ function makeRecommendations(): SeedRecommendation[] {
 }
 
 // ── Алерты стража и заметки самочувствия ───────────────────────────────────
+// Формат — 1:1 как в бою (buildAlertMessage, _shared/anomaly.ts): заголовок в
+// <b>, строки метрик, «Совет: …», дисклеймер. Демо-колокольчик показывает те же
+// компактные карточки с разворотом совета, что и у реального пользователя.
 function makeHealthAlerts(): SeedHealthAlert[] {
   return [
     {
       id: 'demo-alert-1', user_id: DEMO_USER, level: 'yellow', type: 'guard',
-      message: 'Пульс покоя третий день выше базового — похоже на недовосстановление.',
+      message: '🟡 <b>Присмотрись к самочувствию</b>\n\n↑ Пульс покоя: 64 уд/мин при твоей норме 55 уд/мин (2.3σ)\n\nСовет: полегче сегодня, понаблюдай за собой.\n<i>Это наблюдение по данным часов, не диагноз.</i>',
       created_at: at(1, 7), acknowledged_at: null,
     },
     {
       id: 'demo-alert-2', user_id: DEMO_USER, level: 'red', type: 'anomaly',
-      message: 'HRV упал на 25% относительно базы. Стоит взять день полегче.',
+      message: '🔴 <b>Организм с чем-то борется</b>\n\n↓ HRV: 39 мс при твоей норме 52 мс (1.8σ)\n↑ Частота дыхания: 18.4/мин при твоей норме 15.2/мин (2.6σ)\n\nСовет: день без нагрузок, больше воды и сна. Если появятся симптомы — не геройствуй.\n<i>Это наблюдение по данным часов, не диагноз.</i>',
       created_at: at(0, 7), acknowledged_at: null,
     },
   ]
@@ -558,7 +563,9 @@ export function demoSeedStrings(): string[] {
   for (const h of seed.hair_entries) if (h.notes) strings.add(h.notes)
   for (const g of seed.goals) strings.add(g.title)
   for (const r of seed.recommendations) { strings.add(r.text); if (r.rationale) strings.add(r.rationale) }
-  for (const a of seed.health_alerts) strings.add(a.message)
+  // Алерты локализуются построчно (localizeAlertText), не целой строкой:
+  // проверяем только строки, обязанные быть ключами словаря.
+  for (const a of seed.health_alerts) for (const l of alertTranslatableLines(a.message)) strings.add(l)
   for (const n of seed.context_notes) strings.add(n.note)
   return [...strings]
 }

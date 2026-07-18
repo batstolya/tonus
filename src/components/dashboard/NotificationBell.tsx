@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { DailyMetrics } from '../../types'
 import { getOpenHealthAlerts, acknowledgeHealthAlert, type HealthAlert } from '../../lib/api/dashboard'
 import { demoList, demoUpdate } from '../../lib/demoDb'
-import { buildBellItems, parseAlertMessage, type BellItem } from '../../lib/notifications'
+import { buildBellItems, parseAlertMessage, splitAlertBody, localizeAlertText, type BellItem } from '../../lib/notifications'
 import { ACTIVE_STEPS_MIN, ACTIVE_EXERCISE_MIN } from '../../lib/streak'
 import { useT } from '../../lib/i18n'
 
@@ -39,7 +39,18 @@ export function NotificationBell({ daily, userId, demo }: Props) {
   const [alerts, setAlerts] = useState<HealthAlert[]>(
     () => demo ? demoList('health_alerts').filter(a => !a.acknowledged_at) as HealthAlert[] : [])
   const [dismissed, setDismissed] = useState<Set<string>>(loadDismissed)
+  // Развёрнутые карточки: совет с дисклеймером виден только после клика.
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const rootRef = useRef<HTMLDivElement>(null)
+
+  const toggleExpanded = (id: string) => {
+    setExpanded(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   useEffect(() => {
     if (!userId || demo) return
@@ -139,15 +150,25 @@ export function NotificationBell({ daily, userId, demo }: Props) {
           ) : (
             <ul className="bell-list">
               {alerts.map(a => {
+                // Серверный текст русский (язык бота) — локализуем построчно.
+                // Совет с дисклеймером свёрнут: карточки компактнее, факты видны сразу.
                 const { title, body } = parseAlertMessage(a.message)
+                const { facts, advice } = splitAlertBody(body)
+                const isOpen = expanded.has(a.id)
                 return (
                   <li key={a.id} className={`bell-item level-${a.level}`}>
                     <span className="bell-item-icon" aria-hidden>{a.level === 'red' ? '🫀' : '👀'}</span>
                     <div className="bell-item-text">
-                      <span className="bell-item-title">{title}</span>
-                      {body && <span className="bell-item-body">{body}</span>}
+                      <span className="bell-item-title">{localizeAlertText(title, t)}</span>
+                      {facts && <span className="bell-item-body">{localizeAlertText(facts, t)}</span>}
+                      {advice && isOpen && <span className="bell-item-body bell-item-advice">{localizeAlertText(advice, t)}</span>}
                       <span className="bell-item-time">
                         {new Date(a.created_at).toLocaleDateString(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        {advice && (
+                          <button type="button" className="bell-item-more" onClick={() => toggleExpanded(a.id)} aria-expanded={isOpen}>
+                            {isOpen ? t('Свернуть') : t('Подробнее')}
+                          </button>
+                        )}
                       </span>
                     </div>
                     <button type="button" className="bell-item-ack" onClick={() => ackAlert(a.id)} aria-label={t('Понятно')}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M18 6 6 18M6 6l12 12" /></svg></button>

@@ -2192,7 +2192,13 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 .bell-item-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .bell-item-title { font-size: 13.5px; font-weight: 700; line-height: 1.35; }
 .bell-item-body { font-size: 12.5px; line-height: 1.45; color: var(--text-muted); white-space: pre-line; }
-.bell-item-time { margin-top: 2px; font-size: 11px; color: var(--text-muted); opacity: 0.8; }
+.bell-item-time { margin-top: 2px; font-size: 11px; color: var(--text-muted); opacity: 0.8; display: flex; align-items: center; gap: 10px; }
+/* Разворот совета: текстовая кнопка в строке с датой. */
+.bell-item-more {
+  border: none; background: none; padding: 0;
+  font: inherit; font-weight: 600; color: var(--accent); cursor: pointer;
+}
+.bell-item-advice { white-space: pre-line; }
 .bell-item-ack {
   width: 28px; height: 28px; flex-shrink: 0; align-self: flex-start;
   display: grid; place-items: center;
