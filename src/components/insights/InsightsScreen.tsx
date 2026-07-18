@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import type { DailyMetrics } from '../../types'
-import { generateInsights } from '../../utils/insights'
+import { generateInsights } from '../../lib/insights'
 import {
   computeTrends, computeRecords, computeStreaks, computeAnomalies,
   computeWeekdayPatterns, buildHeatmap, INSIGHT_METRICS, WD_NAMES,
-} from '../../utils/insightsExtra'
+} from '../../lib/insightsExtra'
 import { useT } from '../../lib/i18n'
 import { CorrelationsBlock } from './CorrelationsBlock'
 

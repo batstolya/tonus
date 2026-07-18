@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build the MVP from `docs/specs/football_match_reminders_spec.md`: sync World Cup fixtures, create due reminders, send Telegram messages, and save watch responses from inline buttons.
+**Goal:** Build the MVP from `docs/specs/SPEC-FOOTBALL-REMINDERS.md`: sync World Cup fixtures, create due reminders, send Telegram messages, and save watch responses from inline buttons.
 
 **Architecture:** Use Supabase SQL as the durable scheduler state, Supabase Edge Functions for provider sync and Telegram sending, and the existing `telegram-bot` function for callback/command handling. Keep reusable football mapping, formatting, and callback parsing in `supabase/functions/_shared/football.ts` so it can be tested with Vitest without Deno network/runtime concerns.
 

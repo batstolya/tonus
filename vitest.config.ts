@@ -6,6 +6,9 @@ import react from '@vitejs/plugin-react'
 const env = {
   VITE_SUPABASE_URL: 'http://localhost:54321',
   VITE_SUPABASE_ANON_KEY: 'test-anon-key',
+  // A developer's .env.local may set VITE_DEMO=1; tests must never run in
+  // demo mode (the demo stub replaces mocked network calls).
+  VITE_DEMO: '',
 }
 // scripts/*.test.mjs are node:test suites (run via `npm run test:scripts`), not Vitest.
 const exclude = ['**/node_modules/**', 'e2e/**', 'scripts/**']

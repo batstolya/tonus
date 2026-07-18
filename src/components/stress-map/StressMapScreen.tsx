@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import type { HeartRateSample, CalendarEvent } from '../../types'
 import { useT } from '../../lib/i18n'
-import { buildStressMap } from '../../utils/stressMap'
+import { buildStressMap } from '../../lib/stressMap'
 import { parseICS } from '../../parsers/icsParser'
 import { parseCalBookings } from '../../parsers/calBookingsParser'
 import { StressCharts } from './StressCharts'
