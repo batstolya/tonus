@@ -18,7 +18,6 @@ const Dashboard = lazy(() => import('./components/dashboard/Dashboard').then(m =
 const StreakMenu = lazy(() => import('./components/dashboard/StreakMenu').then(m => ({ default: m.StreakMenu })))
 const NotificationBell = lazy(() => import('./components/dashboard/NotificationBell').then(m => ({ default: m.NotificationBell })))
 const GeoStormBadge = lazy(() => import('./components/dashboard/GeoStormBadge').then(m => ({ default: m.GeoStormBadge })))
-const HealthAlertBanner = lazy(() => import('./components/dashboard/HealthAlertBanner'))
 const HeartRateScreen = lazy(() => import('./components/heart-rate/HeartRateScreen').then(m => ({ default: m.HeartRateScreen })))
 const MetricsScreen = lazy(() => import('./components/metrics/MetricsScreen').then(m => ({ default: m.MetricsScreen })))
 const StressMapScreen = lazy(() => import('./components/stress-map/StressMapScreen').then(m => ({ default: m.StressMapScreen })))
@@ -472,23 +471,18 @@ export default function App() {
             />
           )
         ) : state.view === 'dashboard' ? (
-          // Баннер — над строкой: .dashboard-layout это flex-row, и его
-          // `> :first-child { flex: 1 }` растягивал бы баннер вместо дашборда.
-          <>
-            <HealthAlertBanner userId={user?.id ?? null} demo={demo} />
-            <div className="dashboard-layout">
-              <Dashboard
-                daily={state.daily}
-                heartRateSamples={state.heartRateSamples}
-                events={visibleEvents}
-                onNavigate={setView}
-                user={user}
-              />
-              <aside className="dashboard-aside">
-                <QuickLog user={user} events={intakeEvents} onEventsChange={setIntakeEvents} />
-              </aside>
-            </div>
-          </>
+          <div className="dashboard-layout">
+            <Dashboard
+              daily={state.daily}
+              heartRateSamples={state.heartRateSamples}
+              events={visibleEvents}
+              onNavigate={setView}
+              user={user}
+            />
+            <aside className="dashboard-aside">
+              <QuickLog user={user} events={intakeEvents} onEventsChange={setIntakeEvents} />
+            </aside>
+          </div>
         ) : state.view === 'heart-rate' ? (
           <HeartRateScreen daily={state.daily} intakeEvents={intakeEvents} />
         ) : state.view === 'metrics' ? (
