@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { isDemoActive } from '../lib/demo'
+import { translateStandalone } from '../lib/translate'
 import { loadMetricsFromSupabase, loadHRSamples } from '../lib/sync'
 import { persistDailyScores } from '../lib/scores'
 import { loadCalendarEvents } from '../lib/calendarSync'
@@ -44,7 +45,9 @@ export function useAppBootstrap({ user, setDaily, setEvents }: Args) {
         ])
         if (cancelled) return
         setDaily(makeDemoDaily(), makeDemoHRSamples(), true)
-        setEvents(makeDemoEvents())
+        // Demo event titles are stored in Russian (the i18n key); translate them
+        // to the active locale so a uk/en demo guest doesn't read Russian cards.
+        setEvents(makeDemoEvents().map(e => ({ ...e, title: translateStandalone(e.title) })))
         setIntakeEvents(demoList('intake_events') as IntakeEvent[])
         setDbLoading(false)
         return

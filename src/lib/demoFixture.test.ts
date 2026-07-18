@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { makeDemoDaily, makeDemoHRSamples, makeDemoEvents } from './demoFixture'
 import { computeDailyScores } from './scores'
 import { buildStressMap } from './stressMap'
+import { translate } from './translate'
 
 // Смоук демо-режима: лендинг («Посмотреть демо» / VITE_DEMO=1) целиком живёт
 // на этих фикстурах — сломанная генерация означает пустое/битое демо.
@@ -115,6 +116,16 @@ describe('makeDemoEvents', () => {
   it('includes at least one physical-activity event', () => {
     const map = buildStressMap(events, samples)
     expect(map.some(m => m.isPhysicalActivity)).toBe(true)
+  })
+
+  // Titles are translated to the active locale before buildStressMap runs, so the
+  // physical-activity keywords must survive translation (regression: uk lost the badge).
+  it('still detects the physical event after translating titles to uk/en', () => {
+    for (const lang of ['uk', 'en'] as const) {
+      const localized = events.map(e => ({ ...e, title: translate(e.title, lang) }))
+      const map = buildStressMap(localized, samples)
+      expect(map.some(m => m.isPhysicalActivity), lang).toBe(true)
+    }
   })
 
   it('yields non-null heart-rate deltas against demo HR samples', () => {

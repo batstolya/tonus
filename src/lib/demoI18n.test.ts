@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { translations } from './translations'
-import { makeDemoExperiments, makeDemoSuggestions, makeDemoWorkoutSchedule } from './demoFixture'
+import { makeDemoExperiments, makeDemoSuggestions, makeDemoWorkoutSchedule, makeDemoEvents } from './demoFixture'
 import { demoSeedStrings } from './demoSeed'
 import { METRIC_OPTIONS } from './experiments'
 import { METRIC_CONFIG } from './goals'
@@ -30,6 +30,10 @@ describe('demo fixtures are translatable', () => {
       expectTranslated(s.change_rule)
       if (s.rationale) expectTranslated(s.rationale)
     }
+  })
+
+  it('translates every stress-map event title', () => {
+    for (const e of makeDemoEvents()) expectTranslated(e.title)
   })
 
   it('translates every workout label', () => {
