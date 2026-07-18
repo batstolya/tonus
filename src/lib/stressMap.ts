@@ -1,6 +1,8 @@
 import type { CalendarEvent, HeartRateSample, StressMapEntry } from '../types'
 
-const PHYSICAL_KEYWORDS = /тренировк|бег|спорт|gym|workout|run|yoga|йога|плавани|велосипед|cycling|swim|walk|ходьба/i
+// ru + uk + en keywords: real calendars come in the user's language, and demo
+// event titles are translated to the active locale before they reach here.
+const PHYSICAL_KEYWORDS = /тренировк|тренуванн|бег|біг|спорт|gym|workout|run|yoga|йога|плавани|плаванн|велосипед|cycling|swim|walk|ходьба|вправ/i
 
 function isPhysical(event: CalendarEvent): boolean {
   return PHYSICAL_KEYWORDS.test(event.title) || PHYSICAL_KEYWORDS.test(event.description ?? '')

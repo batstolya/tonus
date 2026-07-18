@@ -215,4 +215,17 @@ export const demo: Record<string, Translation> = {
     uk: 'Демо-аналіз (заглушка, не справжній ШІ). Загальна картина спокійна: відновлення в нормі, пульс спокою стабільний, сну в середньому 7 годин. Слабке місце — вечірня кава та пізній відбій у будні. З аналізів: феритин підтягнувся з 24 до 41, вітамін D вийшов у норму.',
     en: 'Demo analysis (a stub, not real AI). The overall picture is calm: recovery is normal, resting heart rate is steady, sleep averages 7 hours. The weak spot is evening coffee and late weekday bedtimes. From the labs: ferritin climbed from 24 to 41 and vitamin D is back in range.',
   },
+  // ── Календарные события карты стресса (makeDemoEvents) ──────
+  'Дейли-стендап': { uk: 'Дейлі-стендап', en: 'Daily standup' },
+  'Созвон с клиентом': { uk: 'Дзвінок з клієнтом', en: 'Client call' },
+  'Дедлайн по проекту': { uk: 'Дедлайн по проєкту', en: 'Project deadline' },
+  'Обед с командой': { uk: 'Обід з командою', en: 'Team lunch' },
+  '1:1 с руководителем': { uk: '1:1 з керівником', en: '1:1 with manager' },
+  'Тренировка в зале': { uk: 'Тренування в залі', en: 'Gym workout' },
+  'Планирование спринта': { uk: 'Планування спринту', en: 'Sprint planning' },
+  'Ретро': { uk: 'Ретро', en: 'Retro' },
+  'Собеседование': { uk: 'Співбесіда', en: 'Interview' },
+  'Ужин с друзьями': { uk: 'Вечеря з друзями', en: 'Dinner with friends' },
+  'Демо для стейкхолдеров': { uk: 'Демо для стейкхолдерів', en: 'Stakeholder demo' },
+  'Разбор инцидента': { uk: 'Розбір інциденту', en: 'Incident review' },
 }
