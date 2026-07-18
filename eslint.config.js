@@ -6,7 +6,11 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // .claude/** keeps agent worktrees out of the lint run: a nested checkout has
+  // its own tsconfig, and typed linting then fails EVERY file (including real
+  // source) with "multiple candidate TSConfigRootDirs". Same reason vitest
+  // excludes it (#113).
+  globalIgnores(['dist', '.claude/**']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
