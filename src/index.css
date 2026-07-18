@@ -1069,7 +1069,10 @@ body {
   padding: 12px 16px;
   margin-bottom: 16px;
 }
-.geostorm-icon { font-size: 20px; flex-shrink: 0; }
+.geostorm-icon { flex-shrink: 0; display: inline-flex; align-items: center; }
+.geostorm-banner.minor .geostorm-icon { color: #BA7517; }
+.geostorm-banner.strong .geostorm-icon { color: #D85A30; }
+.geostorm-banner.extreme .geostorm-icon { color: #E24B4A; }
 .geostorm-banner strong { font-size: 14px; display: block; margin-bottom: 2px; }
 .geostorm-hint { font-size: 13px; color: var(--text-muted); }
 .geostorm-banner.minor  { background: rgba(239, 159, 39, 0.10); border-color: #BA7517; }
@@ -1085,13 +1088,14 @@ body {
 }
 
 .geostorm-badge {
-  font-size: 17px;
   line-height: 1;
   cursor: default;
   display: inline-flex;
   align-items: center;
-  filter: saturate(1.2);
 }
+.geostorm-badge.minor { color: #BA7517; }
+.geostorm-badge.strong { color: #D85A30; }
+.geostorm-badge.extreme { color: #E24B4A; }
 .geostorm-badge.strong, .geostorm-badge.extreme { animation: geostorm-pulse 2s ease-in-out infinite; }
 @keyframes geostorm-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
