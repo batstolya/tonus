@@ -93,7 +93,7 @@ export function UploadScreen({ onProgress, onDone, onEvents, onError, progress, 
       try {
         onEvents(parseCalBookings(text))
       } catch {
-        onError(t('Не удалось прочитать .ics файл'))
+        onError(t('Не удалось прочитать cal_bookings.json'))
       }
     })
   }

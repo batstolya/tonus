@@ -82,6 +82,7 @@ export const metrics: Record<string, Translation> = {
     en: 'Drop cal_bookings.json',
   },
   'Экспорт Cal.com': { uk: 'Експорт Cal.com', en: 'Cal.com export' },
+  'Не удалось прочитать cal_bookings.json': { uk: 'Не вдалося прочитати cal_bookings.json', en: "Couldn't read cal_bookings.json" },
   'активность': { uk: 'активність', en: 'activity' },
   'Нет данных о пульсе за это время': { uk: 'Немає даних про пульс за цей час', en: 'No heart-rate data for this time' },
   'уд/мин (ср)': { uk: 'уд/хв (сер)', en: 'bpm (avg)' },
