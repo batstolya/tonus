@@ -1,6 +1,6 @@
 import { useTodayStorm } from '../../lib/useTodayStorm'
 import { useT } from '../../lib/i18n'
-import { MagnetIcon } from './MagnetIcon'
+import { StormIcon } from './StormIcon'
 
 // Бейдж магнитной бури в топбаре. Виден только в дни бури (Kp ≥ 5).
 export function GeoStormBadge() {
@@ -15,7 +15,7 @@ export function GeoStormBadge() {
       role="img"
       aria-label={`${t('Магнитная буря сегодня')} · Kp ${kpStr}`}
     >
-      <MagnetIcon size={16} />
+      <StormIcon size={16} />
     </span>
   )
 }
