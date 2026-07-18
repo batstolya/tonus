@@ -3,10 +3,9 @@ import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supa
 import { localToIso, localDate } from '../_shared/time.ts'
 import { isValidCronSecret } from '../_shared/auth.ts'
 import { fetchWithTimeout } from '../_shared/http.ts'
-import { sendTelegram } from '../_shared/telegram.ts'
 import {
   deliverReminder, nextActionOnFailure,
-  type ClaimedReminder, type TelegramTransport,
+  type ClaimedReminder,
 } from '../_shared/reminderDelivery.ts'
 import { shiftTime, workoutNotificationText, type DayEntry, type DayTimes } from '../_shared/workoutPlan.ts'
 import { stormNotificationClause } from '../_shared/geoStorm.ts'
@@ -16,22 +15,13 @@ import { computeBaselineStart, computeResult, type ExpDaily, type ExperimentRow 
 import { verdictMessage } from '../_shared/experimentVerdict.ts'
 import { withObservability } from '../_shared/observability.ts'
 import { localNow, timeDue } from './time.ts'
+import { tgSend, makeTransport } from './tg.ts'
 
-const TG_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
 const INTERNAL_SECRET = Deno.env.get('TONUS_INTERNAL_SECRET') ?? ''
 const CRON_SECRET = Deno.env.get('TONUS_CRON_SECRET') ?? Deno.env.get('CRON_SECRET') ?? ''
-
-async function tgSend(chatId: string, text: string, replyMarkup?: unknown): Promise<number | null> {
-  const res = await sendTelegram(TG_TOKEN, chatId, text, {
-    payload: { parse_mode: 'HTML', reply_markup: replyMarkup },
-  })
-  if (!res) return null
-  const data = await res.json()
-  return data?.result?.message_id ?? null
-}
 
 // Прогноз readiness на завтра для вечернего сообщения (SPEC-READINESS-FORECAST §3.2).
 // Любая ошибка данных → null: вечерний вопрос важнее прогноза.
@@ -131,12 +121,7 @@ const handler = async (req: Request) => {
     })
   }
   const claimed = (claimedRows ?? []) as ClaimedReminder[]
-  const transport: TelegramTransport = (body) =>
-    fetchWithTimeout(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+  const transport = makeTransport()
 
   let sent = 0, skipped = 0, retried = 0, failed = 0, deliveryUnknown = 0
   for (const ev of claimed) {
