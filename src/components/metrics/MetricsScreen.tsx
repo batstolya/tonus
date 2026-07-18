@@ -4,7 +4,7 @@ import {
 } from 'recharts'
 import type { DailyMetrics, MetricKey } from '../../types'
 import type { IntakeEvent } from '../../lib/chat'
-import { eventMarkers, CHART_EVENT_TYPES } from '../../lib/chartEvents'
+import { eventMarkers, groupMarkersByDate, CHART_EVENT_TYPES, MAX_LABELED_MARKER_DATES } from '../../lib/chartEvents'
 import { useT } from '../../lib/i18n'
 
 const METRIC_LABELS: Record<MetricKey, string> = {
@@ -66,8 +66,9 @@ export function MetricsScreen({ daily, intakeEvents = [] }: Props) {
   const markers = useMemo(() => {
     if (!showEvents) return []
     const shown = new Set(chartData.map(d => d.date))
-    return eventMarkers(intakeEvents, shown, iso => iso.slice(5))
+    return groupMarkersByDate(eventMarkers(intakeEvents, shown, iso => iso.slice(5)))
   }, [intakeEvents, chartData, showEvents])
+  const labelMarkers = markers.length <= MAX_LABELED_MARKER_DATES
 
   return (
     <div className="screen">
@@ -102,15 +103,15 @@ export function MetricsScreen({ daily, intakeEvents = [] }: Props) {
       )}
 
       <ResponsiveContainer width="100%" height={320}>
-        <LineChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+        <LineChart data={chartData} margin={{ top: labelMarkers ? 24 : 8, right: 16, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
           <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
           <YAxis yAxisId="left" domain={['auto', 'auto']} tick={{ fontSize: 11 }} />
           {secondary && <YAxis yAxisId="right" orientation="right" domain={['auto', 'auto']} tick={{ fontSize: 11 }} />}
           <Tooltip />
           {markers.map((m, i) => (
-            <ReferenceLine key={i} yAxisId="left" x={m.x} stroke={m.color} strokeOpacity={0.5} strokeDasharray="3 3"
-              label={{ value: m.emoji, position: 'top', fontSize: 13 }} />
+            <ReferenceLine key={i} yAxisId="left" x={m.x} stroke={m.color} strokeOpacity={0.35} strokeDasharray="3 3"
+              {...(labelMarkers ? { label: { value: m.emojis.slice(0, 2).join(''), position: 'top', fontSize: 12 } } : {})} />
           ))}
           <Line yAxisId="left" type="monotone" dataKey="primary" name={t(METRIC_LABELS[primary])} stroke="#6c8fff" strokeWidth={2} dot={false} connectNulls />
           {secondary && (

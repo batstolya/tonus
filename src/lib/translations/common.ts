@@ -84,5 +84,7 @@ export const common: Record<string, Translation> = {
   'Средний': { uk: 'Середній', en: 'Average' },
   'Покой': { uk: 'Спокій', en: 'Resting' },
   'Макс': { uk: 'Макс', en: 'Max' },
+  'По дням': { uk: 'По днях', en: 'By day' },
+  'низкий': { uk: 'низький', en: 'low' },
 
 }

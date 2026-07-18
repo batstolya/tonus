@@ -50,3 +50,22 @@ export function buildBellItems(daily: DailyMetrics[], today: Date = new Date()):
 
   return items
 }
+
+// Алерты стража приходят HTML-строкой вида '🔴 <b>Заголовок</b>\n\nтело…'.
+// Раскладываем на заголовок и тело для карточки колокольчика; теги и
+// статусные эмодзи убираем (уровень показывает подложка иконки).
+export function parseAlertMessage(message: string): { title: string; body: string } {
+  const bold = message.match(/<b>([^<]+)<\/b>/)
+  const stripped = message
+    .replace(/<[^>]+>/g, '')
+    .replace(/[🔴🟡]/gu, '')
+    .trim()
+  if (bold) {
+    const title = bold[1].trim()
+    const body = stripped.startsWith(title) ? stripped.slice(title.length) : stripped.replace(title, '')
+    return { title, body: body.replace(/\n{3,}/g, '\n\n').trim() }
+  }
+  const nl = stripped.indexOf('\n')
+  if (nl === -1) return { title: stripped, body: '' }
+  return { title: stripped.slice(0, nl).trim(), body: stripped.slice(nl + 1).trim() }
+}

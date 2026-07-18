@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildBellItems } from './notifications'
+import { buildBellItems, parseAlertMessage } from './notifications'
 import type { DailyMetrics } from '../types'
 
 // Активный день по новой механике — шаги выше порога.
@@ -55,5 +55,26 @@ describe('buildBellItems', () => {
 
   it('is empty for empty input', () => {
     expect(buildBellItems([], TODAY)).toEqual([])
+  })
+})
+
+describe('parseAlertMessage', () => {
+  it('splits the bold heading from the body and strips tags', () => {
+    const msg = '🔴 <b>Организм с чем-то борется</b>\n\n↑ HRV: 58 мс при твоей норме 82 мс (1.5σ)\n\nСовет: день без нагрузок.\n<i>Это наблюдение по данным часов, не диагноз.</i>'
+    const parsed = parseAlertMessage(msg)
+    expect(parsed.title).toBe('Организм с чем-то борется')
+    expect(parsed.body).toContain('HRV: 58 мс')
+    expect(parsed.body).toContain('не диагноз')
+    expect(parsed.body).not.toMatch(/<[^>]+>|🔴/)
+  })
+
+  it('falls back to a plain first line when there is no bold heading', () => {
+    const parsed = parseAlertMessage('Резкий рост пульса покоя\nПонаблюдай за собой.')
+    expect(parsed.title).toBe('Резкий рост пульса покоя')
+    expect(parsed.body).toBe('Понаблюдай за собой.')
+  })
+
+  it('handles a single-line message', () => {
+    expect(parseAlertMessage('Сообщение')).toEqual({ title: 'Сообщение', body: '' })
   })
 })

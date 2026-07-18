@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { DailyMetrics } from '../../types'
 import { getOpenHealthAlerts, acknowledgeHealthAlert, type HealthAlert } from '../../lib/api/dashboard'
 import { demoList, demoUpdate } from '../../lib/demoDb'
-import { buildBellItems, type BellItem } from '../../lib/notifications'
+import { buildBellItems, parseAlertMessage, type BellItem } from '../../lib/notifications'
 import { ACTIVE_STEPS_MIN, ACTIVE_EXERCISE_MIN } from '../../lib/streak'
 import { useT } from '../../lib/i18n'
 
@@ -135,22 +135,26 @@ export function NotificationBell({ daily, userId, demo }: Props) {
             <div className="bell-empty">{t('Все спокойно — сигналов нет')} 👌</div>
           ) : (
             <ul className="bell-list">
-              {alerts.map(a => (
-                <li key={a.id} className={`bell-item level-${a.level}`}>
-                  <span className="bell-item-icon" aria-hidden>{a.level === 'red' ? '🔴' : '🟡'}</span>
-                  <div className="bell-item-text">
-                    <span className="bell-item-body">{a.message.replace(/<[^>]+>/g, '')}</span>
-                    <span className="bell-item-time">
-                      {new Date(a.created_at).toLocaleDateString(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                  <button type="button" className="bell-item-ack" onClick={() => ackAlert(a.id)} aria-label={t('Понятно')}>✓</button>
-                </li>
-              ))}
+              {alerts.map(a => {
+                const { title, body } = parseAlertMessage(a.message)
+                return (
+                  <li key={a.id} className={`bell-item level-${a.level}`}>
+                    <span className="bell-item-icon" aria-hidden>{a.level === 'red' ? '🫀' : '👀'}</span>
+                    <div className="bell-item-text">
+                      <span className="bell-item-title">{title}</span>
+                      {body && <span className="bell-item-body">{body}</span>}
+                      <span className="bell-item-time">
+                        {new Date(a.created_at).toLocaleDateString(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <button type="button" className="bell-item-ack" onClick={() => ackAlert(a.id)} aria-label={t('Понятно')}>✓</button>
+                  </li>
+                )
+              })}
               {derived.map(item => {
                 const { icon, title, body } = derivedText(item)
                 return (
-                  <li key={item.id} className="bell-item">
+                  <li key={item.id} className={`bell-item level-${item.kind === 'streak-risk' ? 'streak' : 'info'}`}>
                     <span className="bell-item-icon" aria-hidden>{icon}</span>
                     <div className="bell-item-text">
                       <span className="bell-item-title">{title}</span>
