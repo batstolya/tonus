@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { makeDemoDaily, makeDemoHRSamples } from './demoFixture'
+import { makeDemoDaily, makeDemoHRSamples, makeDemoEvents } from './demoFixture'
 import { computeDailyScores } from './scores'
+import { buildStressMap } from './stressMap'
 
 // Смоук демо-режима: лендинг («Посмотреть демо» / VITE_DEMO=1) целиком живёт
 // на этих фикстурах — сломанная генерация означает пустое/битое демо.
@@ -83,5 +84,49 @@ describe('makeDemoHRSamples', () => {
       expect(s.value).toBeLessThan(220)
       expect(Number.isNaN(s.time.getTime())).toBe(false)
     }
+  })
+})
+
+describe('makeDemoEvents', () => {
+  const events = makeDemoEvents()
+  const samples = makeDemoHRSamples()
+
+  it('generates a non-trivial set of events', () => {
+    expect(events.length).toBeGreaterThanOrEqual(10)
+  })
+
+  it('gives every event a unique uid and end after start', () => {
+    const uids = new Set(events.map(e => e.uid))
+    expect(uids.size).toBe(events.length)
+    for (const e of events) {
+      expect(e.end.getTime()).toBeGreaterThan(e.start.getTime())
+    }
+  })
+
+  it('places all events inside the 7-day HR sample window', () => {
+    const now = Date.now()
+    const weekAgo = now - 7 * 24 * 3600 * 1000
+    for (const e of events) {
+      expect(e.start.getTime(), e.title).toBeGreaterThanOrEqual(weekAgo)
+      expect(e.start.getTime(), e.title).toBeLessThanOrEqual(now)
+    }
+  })
+
+  it('includes at least one physical-activity event', () => {
+    const map = buildStressMap(events, samples)
+    expect(map.some(m => m.isPhysicalActivity)).toBe(true)
+  })
+
+  it('yields non-null heart-rate deltas against demo HR samples', () => {
+    const map = buildStressMap(events, samples)
+    expect(map.every(m => m.heartRateDelta !== null)).toBe(true)
+  })
+
+  it('is deterministic', () => {
+    const a = makeDemoEvents()
+    const b = makeDemoEvents()
+    expect(a.map(e => e.uid + e.start.toISOString())).toEqual(
+      b.map(e => e.uid + e.start.toISOString()),
+    )
   })
 })
