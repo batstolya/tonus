@@ -11,7 +11,7 @@
     "views": 2,
     "rpcs": 10,
     "buckets": 1,
-    "edgeFunctions": 24
+    "edgeFunctions": 25
   },
   "surfaces": {
     "tables": [
@@ -622,6 +622,15 @@
         "cors": "wildcard",
         "rateLimit": "durable",
         "dataSensitivity": "health",
+        "verifyJwt": false
+      },
+      {
+        "name": "ops-reminder",
+        "authOwner": "handler:cron-secret",
+        "credentialType": "cron-secret",
+        "cors": "none",
+        "rateLimit": "none",
+        "dataSensitivity": "none",
         "verifyJwt": false
       },
       {
