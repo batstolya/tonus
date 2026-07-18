@@ -2125,37 +2125,65 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
   background: var(--red, #e5484d); color: #fff;
   border-radius: 999px; font-size: 10px; font-weight: 700; line-height: 1;
 }
+/* Панель в духе mate.academy: белая карточка с крупным радиусом, каждое
+   уведомление — своя мягкая карточка без рамок, иконка в тонированной
+   скруглённой плитке (цвет плитки = уровень сигнала). */
 .bell-panel {
   position: absolute; z-index: 20; top: calc(100% + 10px); right: 0;
-  width: min(320px, calc(100vw - 32px)); max-height: calc(100vh - 78px);
+  width: min(372px, calc(100vw - 32px)); max-height: calc(100vh - 78px);
   overflow-y: auto; background: var(--surface); border: 1px solid var(--border);
-  border-radius: 12px; box-shadow: var(--card-shadow); animation: fadeIn 0.18s ease-out;
+  border-radius: 18px; box-shadow: 0 12px 32px rgba(17, 17, 24, 0.12);
+  animation: fadeIn 0.18s ease-out;
 }
 .bell-head {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 14px 6px;
+  padding: 16px 18px 10px;
 }
-.bell-title { font-size: 14px; font-weight: 700; }
-.bell-empty { padding: 8px 14px 16px; font-size: 13px; color: var(--text-muted); }
-.bell-list { list-style: none; margin: 0; padding: 0 8px 10px; }
+.bell-title { font-size: 16px; font-weight: 800; letter-spacing: -0.01em; }
+.bell-empty { padding: 8px 18px 20px; font-size: 13.5px; color: var(--text-muted); }
+.bell-list {
+  list-style: none; margin: 0; padding: 0 10px 12px;
+  display: flex; flex-direction: column; gap: 8px;
+}
 .bell-item {
-  display: flex; align-items: flex-start; gap: 8px;
-  padding: 8px 6px; border-radius: 8px;
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px; border-radius: 14px;
+  background: var(--surface2);
 }
-.bell-item + .bell-item { border-top: 1px solid var(--border); }
-.bell-item-icon { font-size: 15px; line-height: 1.3; }
-.bell-item-text { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-.bell-item-title { font-size: 13px; font-weight: 600; }
-.bell-item-body { font-size: 12px; color: var(--text-muted); }
-.bell-item-time { font-size: 11px; color: var(--text-muted); }
-.bell-item-ack {
-  width: 24px; height: 24px; flex-shrink: 0;
+.bell-item-icon {
+  width: 38px; height: 38px; flex-shrink: 0;
   display: grid; place-items: center;
-  color: var(--text-muted); background: transparent;
-  border: 1px solid var(--border); border-radius: 6px;
-  font-size: 12px; cursor: pointer;
+  font-size: 18px; line-height: 1; border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
-.bell-item-ack:hover { color: var(--text); background: var(--surface2); }
+.bell-item.level-red .bell-item-icon { background: color-mix(in srgb, var(--red) 15%, transparent); }
+.bell-item.level-yellow .bell-item-icon { background: color-mix(in srgb, var(--yellow) 20%, transparent); }
+.bell-item.level-streak .bell-item-icon { background: color-mix(in srgb, #ff7a1a 16%, transparent); }
+.bell-item-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.bell-item-title { font-size: 13.5px; font-weight: 700; line-height: 1.35; }
+.bell-item-body { font-size: 12.5px; line-height: 1.45; color: var(--text-muted); white-space: pre-line; }
+.bell-item-time { margin-top: 2px; font-size: 11px; color: var(--text-muted); opacity: 0.8; }
+.bell-item-ack {
+  width: 28px; height: 28px; flex-shrink: 0; align-self: flex-start;
+  display: grid; place-items: center;
+  color: var(--text-muted); background: var(--surface);
+  border: none; border-radius: 999px;
+  font-size: 13px; cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: background 0.15s, color 0.15s;
+}
+.bell-item-ack:hover { color: var(--green); }
+
+/* Пульс: таблица по дням, аномально низкие дни подсвечены */
+.hr-daily { margin-top: 18px; }
+.hr-daily h3 { font-size: 15px; margin: 0 0 8px; }
+.hr-daily-low td { color: var(--red); }
+.hr-low-badge {
+  display: inline-block; padding: 2px 8px;
+  font-size: 11px; font-weight: 700; line-height: 1.4;
+  color: var(--red); background: color-mix(in srgb, var(--red) 12%, transparent);
+  border-radius: 999px; white-space: nowrap;
+}
 
 /* ── Gamified home: activity calendar ───────────────────────── */
 .activity-cal {

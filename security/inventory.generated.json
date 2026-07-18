@@ -9,7 +9,7 @@
   "counts": {
     "tables": 55,
     "views": 2,
-    "rpcs": 10,
+    "rpcs": 11,
     "buckets": 1,
     "edgeFunctions": 25
   },
@@ -480,6 +480,13 @@
         "authOwner": "service-role",
         "credentialType": "service-role",
         "dataSensitivity": "health"
+      },
+      {
+        "name": "schedule_backup_reminder",
+        "signature": "schedule_backup_reminder(text)",
+        "authOwner": "service-role",
+        "credentialType": "service-role",
+        "dataSensitivity": "credential"
       },
       {
         "name": "schedule_env_sync",

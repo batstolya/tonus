@@ -7,7 +7,10 @@ const api = vi.hoisted(() => ({
   acknowledgeHealthAlert: vi.fn().mockResolvedValue(undefined),
 }))
 vi.mock('../../lib/api/dashboard', () => api)
-vi.mock('../../lib/notifications', () => ({ buildBellItems: () => [] }))
+vi.mock('../../lib/notifications', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/notifications')>()),
+  buildBellItems: () => [],
+}))
 
 import { NotificationBell } from './NotificationBell'
 

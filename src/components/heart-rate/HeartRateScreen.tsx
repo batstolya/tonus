@@ -94,6 +94,14 @@ export function HeartRateScreen({ daily, intakeEvents = [] }: Props) {
     return lines
   }, [coffeeByDate, shown, data])
 
+  // «Неадекватно низкий» пульс: абсолютная брадикардия или заметно ниже
+  // личного среднего за период — такие дни подсвечиваем в таблице.
+  const isLowDay = (d: { resting: number | null; avg: number | null }) =>
+    (d.resting !== null && (d.resting < 40 || (avgRHR !== null && d.resting < avgRHR * 0.85)))
+    || (d.avg !== null && d.avg < 45)
+
+  const dailyRows = [...data].reverse().slice(0, 30)
+
   return (
     <div className="screen">
       <h2>{t('Пульс за период')}</h2>
@@ -149,6 +157,36 @@ export function HeartRateScreen({ daily, intakeEvents = [] }: Props) {
           ))}
         </LineChart>
       </ResponsiveContainer>
+
+      {dailyRows.length > 0 && (
+        <div className="hr-daily">
+          <h3>{t('По дням')}</h3>
+          <div className="metrics-table-wrap">
+            <table className="metrics-table">
+              <thead>
+                <tr>
+                  <th>{t('Дата')}</th>
+                  <th>{t('Средний')}</th>
+                  <th>{t('Покой')}</th>
+                  <th>{t('Макс')}</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {dailyRows.map(d => (
+                  <tr key={d.fullDate} className={isLowDay(d) ? 'hr-daily-low' : undefined}>
+                    <td>{d.fullDate}</td>
+                    <td>{d.avg ?? '—'}</td>
+                    <td>{d.resting ?? '—'}</td>
+                    <td>{d.max !== null ? Math.round(d.max) : '—'}</td>
+                    <td>{isLowDay(d) ? <span className="hr-low-badge">↓ {t('низкий')}</span> : null}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

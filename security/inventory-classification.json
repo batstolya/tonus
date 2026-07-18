@@ -91,6 +91,12 @@
       "credentialType": "service-role",
       "dataSensitivity": "credential"
     },
+    "schedule_backup_reminder": {
+      "signature": "schedule_backup_reminder(text)",
+      "authOwner": "service-role",
+      "credentialType": "service-role",
+      "dataSensitivity": "credential"
+    },
     "delete_user_data": {
       "signature": "delete_user_data(uuid)",
       "authOwner": "service-role",

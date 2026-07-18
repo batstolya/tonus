@@ -2101,6 +2101,10 @@ export type Database = {
         Args: { p_reminder_id: string; p_telegram_message_id: number }
         Returns: undefined
       }
+      schedule_backup_reminder: {
+        Args: { p_secret: string }
+        Returns: undefined
+      }
       schedule_env_sync: { Args: { p_secret: string }; Returns: undefined }
     }
     Enums: {

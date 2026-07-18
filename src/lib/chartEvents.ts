@@ -11,6 +11,25 @@ export const CHART_EVENT_TYPES: { type: string; emoji: string; color: string; la
 
 export interface EventMarker { x: string; emoji: string; color: string; type: string }
 
+export interface GroupedEventMarker { x: string; emojis: string[]; color: string }
+
+// Больше этого числа дат с событиями — эмодзи-лейблы над графиком выключаем:
+// recharts кладёт их друг на друга нечитаемой кашей (события остаются линиями
+// и легендой-чипами).
+export const MAX_LABELED_MARKER_DATES = 10
+
+// Одна вертикальная линия на дату вместо линии на каждое событие: несколько
+// событий в день сливаются в один маркер с набором эмодзи.
+export function groupMarkersByDate(markers: EventMarker[]): GroupedEventMarker[] {
+  const byDate = new Map<string, GroupedEventMarker>()
+  for (const m of markers) {
+    const g = byDate.get(m.x)
+    if (g) g.emojis.push(m.emoji)
+    else byDate.set(m.x, { x: m.x, emojis: [m.emoji], color: m.color })
+  }
+  return [...byDate.values()]
+}
+
 // Маркеры для событий, попадающих в показанные даты графика.
 // dateKey(ts) приводит timestamp к той же форме, что dataKey оси X.
 export function eventMarkers(
