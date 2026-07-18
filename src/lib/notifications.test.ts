@@ -77,4 +77,9 @@ describe('parseAlertMessage', () => {
   it('handles a single-line message', () => {
     expect(parseAlertMessage('Сообщение')).toEqual({ title: 'Сообщение', body: '' })
   })
+
+  it('strips nested tags that survive a single replace pass', () => {
+    const parsed = parseAlertMessage('Заголовок\n<scr<script>ipt>alert(1)</scr</script>ipt>')
+    expect(parsed.body).not.toMatch(/<|script/)
+  })
 })

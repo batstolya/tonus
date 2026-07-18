@@ -56,10 +56,14 @@ export function buildBellItems(daily: DailyMetrics[], today: Date = new Date()):
 // статусные эмодзи убираем (уровень показывает подложка иконки).
 export function parseAlertMessage(message: string): { title: string; body: string } {
   const bold = message.match(/<b>([^<]+)<\/b>/)
-  const stripped = message
-    .replace(/<[^>]+>/g, '')
-    .replace(/[🔴🟡]/gu, '')
-    .trim()
+  // Теги вырезаем до неподвижной точки: один проход обходится вложенной
+  // конструкцией вида '<scr<script>ipt>' (CodeQL js/incomplete-multi-character-sanitization).
+  let untagged = message
+  for (let prev = ''; prev !== untagged; ) {
+    prev = untagged
+    untagged = untagged.replace(/<[^>]*>/g, '')
+  }
+  const stripped = untagged.replace(/[🔴🟡]/gu, '').trim()
   if (bold) {
     const title = bold[1].trim()
     const body = stripped.startsWith(title) ? stripped.slice(title.length) : stripped.replace(title, '')
