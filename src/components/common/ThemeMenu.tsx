@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useT } from '../../lib/i18n'
 import type { ThemeMode } from '../../hooks/useTheme'
+import { ThemeIcon } from './ThemeIcon'
 
 // Переключатель темы в стиле mate: попап «Тема» с тремя карточками-превью
 // (Светлая / Тёмная / Системная). Системная следует за темой ОС.
@@ -25,10 +26,7 @@ export function ThemeMenu({ mode, onSelect }: { mode: ThemeMode; onSelect: (m: T
   return (
     <div className="lang-picker">
       <button className="theme-toggle" onClick={() => setOpen(o => !o)} title={t('Тема')}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <circle cx="12" cy="12" r="10" />
-          <path d="M12 2 A10 10 0 0 1 12 22 Z" fill="currentColor" stroke="none" />
-        </svg>
+        <ThemeIcon />
       </button>
       {open && (
         <>
