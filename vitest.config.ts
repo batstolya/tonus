@@ -11,7 +11,8 @@ const env = {
   VITE_DEMO: '',
 }
 // scripts/*.test.mjs are node:test suites (run via `npm run test:scripts`), not Vitest.
-const exclude = ['**/node_modules/**', 'e2e/**', 'scripts/**']
+// .claude/** keeps agent worktrees from duplicating the suite when run from the repo root.
+const exclude = ['**/node_modules/**', 'e2e/**', 'scripts/**', '.claude/**']
 
 export default defineConfig({
   plugins: [react()],
