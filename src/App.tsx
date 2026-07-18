@@ -180,12 +180,13 @@ export default function App() {
       setDbLoading(true)
       // Демо-режим: фикстурные данные вместо Supabase (метрики + события лога).
       if (isDemoActive()) {
-        const [{ makeDemoDaily, makeDemoHRSamples }, { demoList }] = await Promise.all([
+        const [{ makeDemoDaily, makeDemoHRSamples, makeDemoEvents }, { demoList }] = await Promise.all([
           import('./lib/demoFixture'),
           import('./lib/demoDb'),
         ])
         if (cancelled) return
         setDaily(makeDemoDaily(), makeDemoHRSamples(), true)
+        setEvents(makeDemoEvents())
         setIntakeEvents(demoList('intake_events') as typeof intakeEvents)
         setDbLoading(false)
         return
