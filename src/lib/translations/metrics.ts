@@ -73,6 +73,15 @@ export const metrics: Record<string, Translation> = {
   'По стрессу': { uk: 'За стресом', en: 'By stress' },
   'По дате': { uk: 'За датою', en: 'By date' },
   'Google Календарь': { uk: 'Google Календар', en: 'Google Calendar' },
+  'Другие способы подключить календарь — в Настройках': {
+    uk: 'Інші способи підключити календар — у Налаштуваннях',
+    en: 'Other ways to connect a calendar are in Settings',
+  },
+  'Перетащите cal_bookings.json': {
+    uk: 'Перетягніть cal_bookings.json',
+    en: 'Drop cal_bookings.json',
+  },
+  'Экспорт Cal.com': { uk: 'Експорт Cal.com', en: 'Cal.com export' },
   'активность': { uk: 'активність', en: 'activity' },
   'Нет данных о пульсе за это время': { uk: 'Немає даних про пульс за цей час', en: 'No heart-rate data for this time' },
   'уд/мин (ср)': { uk: 'уд/хв (сер)', en: 'bpm (avg)' },
