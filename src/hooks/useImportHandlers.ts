@@ -17,8 +17,8 @@ type Args = {
   setEvents: (events: CalendarEvent[], source?: string) => void
 }
 
-// Импорт данных (файл/ICS/Google) и авто-синк календаря. Вынесено из App.tsx
-// (2026-07-18 monolith-decomposition spec) без изменения поведения.
+// Data import (file/ICS/Google) + calendar auto-sync. Extracted from App.tsx
+// (2026-07-18 monolith-decomposition spec) with no behavior change.
 export function useImportHandlers({ user, dbLoading, t, locale, setDaily, setEvents }: Args) {
   const [syncMsg, setSyncMsg] = useState<string | null>(null)
   const [googleLoading, setGoogleLoading] = useState(false)

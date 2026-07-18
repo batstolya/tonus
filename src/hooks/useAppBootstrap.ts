@@ -16,8 +16,8 @@ type Args = {
   setEvents: (events: CalendarEvent[], source?: string) => void
 }
 
-// Загрузка данных при входе + синк profiles.timezone. Вынесено из App.tsx
-// (2026-07-18 monolith-decomposition spec) без изменения поведения.
+// Data load on sign-in + profiles.timezone sync. Extracted from App.tsx
+// (2026-07-18 monolith-decomposition spec) with no behavior change.
 export function useAppBootstrap({ user, setDaily, setEvents }: Args) {
   const [dbLoading, setDbLoading] = useState(true)
   const [intakeEvents, setIntakeEvents] = useState<IntakeEvent[]>([])
