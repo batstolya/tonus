@@ -42,4 +42,26 @@ describe('NotificationBell', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Got it/ }))
     await waitFor(() => expect(api.acknowledgeHealthAlert).toHaveBeenCalledWith('a1'))
   })
+
+  it('localizes a guard alert and hides the advice behind an expander', async () => {
+    api.getOpenHealthAlerts.mockResolvedValue([{
+      id: 'a1', level: 'red',
+      message: '🔴 <b>Организм с чем-то борется</b>\n\n↓ HRV: 39 мс при твоей норме 52 мс (1.8σ)\n\nСовет: день без нагрузок, больше воды и сна. Если появятся симптомы — не геройствуй.\n<i>Это наблюдение по данным часов, не диагноз.</i>',
+      created_at: '2026-07-17T06:00:00Z',
+    }])
+    renderWithProviders(<NotificationBell daily={daily} userId="u1" demo={false} />)
+    fireEvent.click(await screen.findByRole('button', { name: /Notifications/ }))
+
+    // Заголовок и факты — на языке UI (en в тесте), совет свёрнут.
+    expect(await screen.findByText('Your body is fighting something')).toBeInTheDocument()
+    expect(screen.getByText(/↓ HRV: 39 ms vs your baseline 52 ms \(1\.8σ\)/)).toBeInTheDocument()
+    expect(screen.queryByText(/Advice:/)).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'More' }))
+    expect(screen.getByText(/Advice: a day off training/)).toBeInTheDocument()
+    expect(screen.getByText(/not a diagnosis/)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Less' }))
+    expect(screen.queryByText(/Advice:/)).not.toBeInTheDocument()
+  })
 })

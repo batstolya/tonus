@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { buildBellItems, parseAlertMessage } from './notifications'
+import { buildBellItems, parseAlertMessage, splitAlertBody, localizeAlertText } from './notifications'
 import type { DailyMetrics } from '../types'
+import { translate } from './translate'
 
 // Активный день по новой механике — шаги выше порога.
 function day(date: string, steps = 12000): DailyMetrics {
@@ -81,5 +82,48 @@ describe('parseAlertMessage', () => {
   it('strips nested tags that survive a single replace pass', () => {
     const parsed = parseAlertMessage('Заголовок\n<scr<script>ipt>alert(1)</scr</script>ipt>')
     expect(parsed.body).not.toMatch(/<|script/)
+  })
+})
+
+describe('splitAlertBody', () => {
+  const body = '↑ HRV: 58 мс при твоей норме 82 мс (1.5σ)\n\nСовет: полегче сегодня, понаблюдай за собой.\nЭто наблюдение по данным часов, не диагноз.'
+
+  it('splits the facts from the advice tail at the "Совет:" line', () => {
+    const { facts, advice } = splitAlertBody(body)
+    expect(facts).toBe('↑ HRV: 58 мс при твоей норме 82 мс (1.5σ)')
+    expect(advice).toBe('Совет: полегче сегодня, понаблюдай за собой.\nЭто наблюдение по данным часов, не диагноз.')
+  })
+
+  it('returns the whole body as facts when there is no advice marker', () => {
+    expect(splitAlertBody('Просто текст')).toEqual({ facts: 'Просто текст', advice: '' })
+  })
+})
+
+describe('localizeAlertText', () => {
+  // Мимикрия под t() из i18n: реальный словарь + подстановка {vars}.
+  const tFor = (lang: 'uk' | 'en') => (ru: string, vars?: Record<string, string | number>) => {
+    let s = translate(ru, lang)
+    if (vars) for (const [k, v] of Object.entries(vars)) s = s.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v))
+    return s
+  }
+
+  it('translates a metric fact line to Ukrainian, including units', () => {
+    const out = localizeAlertText('↑ Частота дыхания: 21.5/мин при твоей норме 16.0/мин (8.1σ)', tFor('uk'))
+    expect(out).toBe('↑ Частота дихання: 21.5/хв за твоєї норми 16.0/хв (8.1σ)')
+  })
+
+  it('translates advice and disclaimer lines to English', () => {
+    const out = localizeAlertText('Совет: полегче сегодня, понаблюдай за собой.\nЭто наблюдение по данным часов, не диагноз.', tFor('en'))
+    expect(out).not.toMatch(/[а-яё]/i)
+    expect(out.split('\n')).toHaveLength(2)
+  })
+
+  it('translates the resting-HR fact with bpm units', () => {
+    const out = localizeAlertText('↑ Пульс покоя: 64 уд/мин при твоей норме 55 уд/мин (2.3σ)', tFor('en'))
+    expect(out).toBe('↑ Resting HR: 64 bpm vs your baseline 55 bpm (2.3σ)')
+  })
+
+  it('passes unknown lines through unchanged', () => {
+    expect(localizeAlertText('Неизвестная строка', tFor('uk'))).toBe('Неизвестная строка')
   })
 })
