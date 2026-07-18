@@ -66,13 +66,15 @@ export const metrics: Record<string, Translation> = {
 
   // ── Карта стресса ──────────────────────────────────────────
   'Карта стресса': { uk: 'Карта стресу', en: 'Stress map' },
-  'Нужны данные календаря. Загрузите один из форматов:': { uk: 'Потрібні дані календаря. Завантажте один з форматів:', en: 'Calendar data needed. Upload one of these formats:' },
-  'Загрузить .ics': { uk: 'Завантажити .ics', en: 'Upload .ics' },
   'Карта стресса — пульс ↔ события': { uk: 'Карта стресу — пульс ↔ події', en: 'Stress map — heart rate ↔ events' },
   'События отсортированы по нагрузке на сердце (превышение над базовым уровнем). Физическая активность помечена отдельно.': { uk: 'Події відсортовані за навантаженням на серце (перевищення над базовим рівнем). Фізична активність позначена окремо.', en: 'Events are sorted by cardiac load (rise above baseline). Physical activity is marked separately.' },
   'По стрессу': { uk: 'За стресом', en: 'By stress' },
   'По дате': { uk: 'За датою', en: 'By date' },
   'Google Календарь': { uk: 'Google Календар', en: 'Google Calendar' },
+  'Нужны данные календаря, чтобы построить карту стресса.': {
+    uk: 'Потрібні дані календаря, щоб побудувати карту стресу.',
+    en: 'Calendar data is needed to build the stress map.',
+  },
   'Другие способы подключить календарь — в Настройках': {
     uk: 'Інші способи підключити календар — у Налаштуваннях',
     en: 'Other ways to connect a calendar are in Settings',

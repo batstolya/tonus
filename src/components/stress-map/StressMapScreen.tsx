@@ -33,7 +33,7 @@ export function StressMapScreen({ heartRateSamples, events, onGoogleCalendar, go
       <div className="screen">
         <h2>{t('Карта стресса')}</h2>
         <p className="empty-hint" style={{ marginBottom: 16 }}>
-          {t('Нужны данные календаря. Загрузите один из форматов:')}
+          {t('Нужны данные календаря, чтобы построить карту стресса.')}
         </p>
         {onGoogleCalendar && (
           <button className="btn-primary" style={{ maxWidth: 240, marginBottom: 12 }} onClick={onGoogleCalendar}>
