@@ -2217,10 +2217,11 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
    declaration wins. */
 @media (max-width: 768px) {
   .streak-menu-trigger { min-height: 32px; padding: 0 8px; }
-  .streak-menu-panel, .bell-panel {
+  .streak-menu-panel, .bell-panel, .geostorm-pop {
     position: fixed; top: 58px; left: 12px; right: 12px;
     width: auto; max-height: calc(100vh - 68px);
   }
+  .geostorm-pop { overflow-y: auto; }
 }
 
 /* Пульс: таблица по дням, аномально низкие дни подсвечены */
