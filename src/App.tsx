@@ -39,7 +39,7 @@ import { useTheme } from './hooks/useTheme'
 import { ThemeMenu } from './components/common/ThemeMenu'
 import { isDemoActive, enableDemo, disableDemo } from './lib/demo'
 import { supabase } from './lib/supabase'
-import { syncMetricsToSupabase, loadMetricsFromSupabase, syncHRSamples, loadHRSamples } from './lib/sync'
+import { syncMetricsToSupabase, syncHRSamples } from './lib/sync'
 import { persistDailyScores } from './lib/scores'
 import { saveCalendarEvents, loadCalendarEvents } from './lib/calendarSync'
 import { connectGoogleCalendar, silentGoogleCalendarSync, isGoogleCalendarAvailable } from './lib/googleCalendar'
@@ -47,9 +47,8 @@ import { shouldAutoSync } from './lib/syncSchedule'
 import { detectAvailableMetrics } from './lib/availableMetrics'
 import { useT } from './lib/i18n'
 import './index.css'
-import { startEffect } from './lib/startEffect'
-import { syncProfileTimezone } from './lib/api/settings'
 import { getActiveGroup, getActiveSubView, filterNavGroups } from './app/navigation'
+import { useAppBootstrap } from './hooks/useAppBootstrap'
 
 export default function App() {
   const { t, lang, setLang, locale } = useT()
@@ -57,8 +56,7 @@ export default function App() {
   const { user, loading, passwordRecovery, setPasswordRecovery } = useAuth()
   const { theme, mode: themeMode, setMode: setThemeMode, toggle: toggleTheme } = useTheme('light')
   const [syncMsg, setSyncMsg] = useState<string | null>(null)
-  const [intakeEvents, setIntakeEvents] = useState<Parameters<typeof QuickLog>[0]['events']>([])
-  const [dbLoading, setDbLoading] = useState(true)
+  const { dbLoading, intakeEvents, setIntakeEvents } = useAppBootstrap({ user, setDaily, setEvents })
   const [googleLoading, setGoogleLoading] = useState(false)
   const [showGoogleEvents, setShowGoogleEvents] = useState(true)
   const [calSyncTimes, setCalSyncTimes] = useState<Record<string, string>>(() => {
@@ -83,14 +81,6 @@ export default function App() {
 
   const demo = isDemoActive()
 
-  // Держим profiles.timezone в такт устройству: серверные локальные времена
-  // (отчёт, чат, бот) читают эту колонку через _shared/userTimezone.ts.
-  const tzSyncUserId = !demo && user ? user.id : null
-  useEffect(() => {
-    if (!tzSyncUserId) return
-    startEffect(() => syncProfileTimezone(tzSyncUserId).catch(() => {}))
-  }, [tzSyncUserId])
-
   function handleSignOut() {
     if (isDemoActive()) {
       disableDemo()
@@ -107,51 +97,6 @@ export default function App() {
   const visibleEvents = showGoogleEvents
     ? state.events
     : state.events.filter(e => e.source !== 'google')
-
-  useEffect(() => {
-    let cancelled = false
-
-    async function init() {
-      if (!user) { setDbLoading(false); return }
-      setDbLoading(true)
-      // Демо-режим: фикстурные данные вместо Supabase (метрики + события лога).
-      if (isDemoActive()) {
-        const [{ makeDemoDaily, makeDemoHRSamples, makeDemoEvents }, { demoList }] = await Promise.all([
-          import('./lib/demoFixture'),
-          import('./lib/demoDb'),
-        ])
-        if (cancelled) return
-        setDaily(makeDemoDaily(), makeDemoHRSamples(), true)
-        setEvents(makeDemoEvents())
-        setIntakeEvents(demoList('intake_events') as typeof intakeEvents)
-        setDbLoading(false)
-        return
-      }
-      const [stored, intakeRes, calEvents] = await Promise.all([
-        loadMetricsFromSupabase(user!.id),
-        supabase.from('intake_events').select('*').eq('user_id', user!.id)
-          .order('ts', { ascending: false }).limit(400),
-        loadCalendarEvents(user!.id),
-      ])
-
-      if (cancelled) return
-
-      const hrSamples = await loadHRSamples(user!.id)
-      if (cancelled) return
-
-      if (stored.length > 0) {
-        setDaily(stored, hrSamples, true)
-        persistDailyScores(user!.id, stored).catch(() => {})
-      }
-      if (intakeRes.data) setIntakeEvents(intakeRes.data as typeof intakeEvents)
-      if (calEvents.length > 0) setEvents(calEvents)
-      setDbLoading(false)
-    }
-
-    startEffect(init)
-    return () => { cancelled = true }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id])
 
   // Авто-синхронизация Google Calendar «хотя бы раз в день»: при открытии приложения,
   // если в этом браузере уже был грант Google и прошло >24ч — тихо обновляем без попапа.
