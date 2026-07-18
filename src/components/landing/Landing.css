@@ -54,6 +54,8 @@
 .landing-logo { font-size: 18px; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; }
 .landing-topbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 .landing-lang { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; width: 34px; height: 34px; cursor: pointer; font-size: 15px; }
+/* SVG glyph (ThemeIcon) needs centering the emoji buttons get from line box. */
+.landing-theme { display: grid; place-items: center; color: var(--text); }
 .landing-ghost { background: none; border: none; color: var(--text-muted); padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 14px; }
 .landing-ghost:hover { color: var(--text); background: var(--surface2); }
 .landing-cta { background: var(--accent); color: #fff; border: none; border-radius: 12px; padding: 9px 18px; font-size: 14px; font-weight: 600; cursor: pointer; transition: transform .12s, filter .12s; }

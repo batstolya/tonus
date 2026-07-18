@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { LazyMotion, domMax, MotionConfig } from 'motion/react'
 import { useT } from '../../lib/i18n'
+import { ThemeIcon } from '../common/ThemeIcon'
 import { HeroBlock } from './blocks/HeroBlock'
 import { TrustStrip } from './blocks/TrustStrip'
 import { HowItWorks } from './blocks/HowItWorks'
@@ -10,10 +11,9 @@ import { FeatureGrid } from './blocks/FeatureGrid'
 import { FinalCta } from './blocks/FinalCta'
 import './Landing.css'
 
-export function LandingScreen({ onTry, onDemo, theme, onToggleTheme }: {
+export function LandingScreen({ onTry, onDemo, onToggleTheme }: {
   onTry: () => void
   onDemo?: () => void
-  theme: 'dark' | 'light'
   onToggleTheme: () => void
 }) {
   const { t, lang, setLang } = useT()
@@ -41,8 +41,8 @@ export function LandingScreen({ onTry, onDemo, theme, onToggleTheme }: {
           <header className={`landing-topbar${scrolled ? ' scrolled' : ''}`}>
             <span className="landing-logo">Tonus</span>
             <div className="landing-topbar-right">
-              <button className="landing-lang" onClick={onToggleTheme} aria-label={t('Сменить тему')} title={t('Сменить тему')}>
-                {theme === 'dark' ? '☀️' : '🌙'}
+              <button className="landing-lang landing-theme" onClick={onToggleTheme} aria-label={t('Сменить тему')} title={t('Сменить тему')}>
+                <ThemeIcon />
               </button>
               <button className="landing-lang" onClick={() => setLang(nextLang)} aria-label="Язык">
                 {flag}
