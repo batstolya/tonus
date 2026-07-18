@@ -40,6 +40,7 @@ supabase/functions/send-reminders/
   doses.ts        # §1 create events for due doses (quiet hours, tz-correct due_at)
   delivery.ts     # §2 atomic-claim delivery + §3 mark overdue as missed
   dailyNote.ts    # §4 evening "how was your day" question (SPEC-DAILY-NOTE)
+                  # + buildForecastText (its only consumer is the evening message)
   digests.ts      # §5 biweekly auto-report + §6 morning summary (B4)
   coach.ts        # §7 proactive alerts, §8 contextual nudges, §9 follow-up resolver
   reminders.ts    # §10 generic reminders (hair photo, stale labs), §11 workout heads-up
@@ -52,8 +53,8 @@ work on the events table; alerts/nudges/follow-up share the dedup pattern). Each
 exports one `run<Name>(ctx)` async function taking a shared context object
 `{ supabase, nowUtc, log }` — plain parameter passing, no framework.
 
-`buildForecastText` moves into `digests.ts` (its only consumer); it keeps delegating to
-`_shared/forecastMessage.ts`.
+`buildForecastText` moves into `dailyNote.ts` (its only consumer is the evening
+message); it keeps delegating to `_shared/forecastMessage.ts`.
 
 ### Constraints
 
@@ -71,7 +72,8 @@ exports one `run<Name>(ctx)` async function taking a shared context object
 ### Target layout
 
 ```
-src/app/navigation.ts        # NAV_GROUPS, GroupId, getActiveGroup, getActiveSubView
+src/app/navigation.tsx       # NAV_GROUPS (contains JSX icons), GroupId,
+                             # getActiveGroup, getActiveSubView
 src/app/navigation.test.ts   # vitest (node project): group/subview resolution
 src/hooks/useAppBootstrap.ts # the init effect: auth-dependent load of metrics,
                              # HR samples, calendar events; auto-sync scheduling;
