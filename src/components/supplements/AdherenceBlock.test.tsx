@@ -31,6 +31,17 @@ describe('AdherenceBlock', () => {
     expect(daysBack).toBeLessThan(31)
   })
 
+  it('refetches logs when refreshKey changes (calendar toggle)', async () => {
+    api.getAdherenceLogs.mockResolvedValue([{ supplement_id: 's1', date: iso(1), taken: true }])
+    const { rerender } = renderWithProviders(<AdherenceBlock supplements={supplements} refreshKey={0} />)
+    await waitFor(() => expect(api.getAdherenceLogs).toHaveBeenCalledTimes(1))
+    api.getAdherenceLogs.mockResolvedValue(
+      Array.from({ length: 3 }, (_, i) => ({ supplement_id: 's1', date: iso(i + 1), taken: true })),
+    )
+    rerender(<AdherenceBlock supplements={supplements} refreshKey={1} />)
+    await waitFor(() => expect(api.getAdherenceLogs).toHaveBeenCalledTimes(2))
+  })
+
   it('renders nothing when no supplement is active', () => {
     const { container } = renderWithProviders(<AdherenceBlock supplements={[]} />)
     expect(container.firstChild).toBeNull()

@@ -49,6 +49,7 @@ export function SupplementsScreen({ user }: Props) {
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [supplements, setSupplements] = useState<Supplement[]>([])
   const [logs, setLogs] = useState<SupplementLog[]>([])
+  const [logsVersion, setLogsVersion] = useState(0)
   const [newName, setNewName] = useState('')
   const [newDose, setNewDose] = useState('')
   const [newUnit, setNewUnit] = useState('')
@@ -142,6 +143,8 @@ export function SupplementsScreen({ user }: Props) {
       return filtered
     })
     await toggleLog(user.id, supplementId, date, nextTaken)
+    // После записи в базу даём AdherenceBlock перечитать своё окно логов.
+    setLogsVersion(v => v + 1)
 
     // Auto-decrement stock when marking as taken (only for today)
     if (nextTaken && date === todayStr) {
@@ -274,7 +277,7 @@ export function SupplementsScreen({ user }: Props) {
       )}
 
       {/* ── 🕐 Идеальное время приёма — AI schedule ───────────── */}
-      <AdherenceBlock supplements={supplements} />
+      <AdherenceBlock supplements={supplements} refreshKey={logsVersion} />
 
       <SupplementSchedule user={user} supplements={supplements} />
 
