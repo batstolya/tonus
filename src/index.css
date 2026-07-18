@@ -2026,28 +2026,6 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
   box-shadow: 0 8px 24px rgba(17, 17, 24, 0.10);
 }
 
-/* ── Страж здоровья: баннер алерта (F1, smart-tonus) ─────────────────── */
-.health-alert-banner {
-  display: flex; align-items: flex-start; gap: 12px;
-  margin: 0 0 16px; padding: 12px 16px; border-radius: 12px;
-  border: 1px solid; font-size: 14px; line-height: 1.45;
-}
-.health-alert-banner.yellow {
-  background: color-mix(in srgb, #f59e0b 12%, var(--surface));
-  border-color: color-mix(in srgb, #f59e0b 45%, transparent);
-}
-.health-alert-banner.red {
-  background: color-mix(in srgb, #ef4444 12%, var(--surface));
-  border-color: color-mix(in srgb, #ef4444 45%, transparent);
-}
-.health-alert-text { flex: 1; white-space: pre-line; }
-.health-alert-ack {
-  flex-shrink: 0; padding: 6px 14px; border-radius: 8px;
-  border: 1px solid var(--border, rgba(127,127,127,.3));
-  background: var(--surface); color: inherit; cursor: pointer; font-size: 13px;
-}
-.health-alert-ack:hover { border-color: var(--accent); }
-
 /* ── Инсайты: связи в данных (F3, smart-tonus) ───────────────────────── */
 .corr-list { display: flex; flex-direction: column; gap: 8px; }
 .corr-card {

@@ -44,7 +44,8 @@ export function NotificationBell({ daily, userId, demo }: Props) {
   useEffect(() => {
     if (!userId || demo) return
     let cancelled = false
-    // Та же выборка, что в HealthAlertBanner, но списком за 14 дней.
+    // Единственная поверхность алертов стража: раньше самый свежий дублировался
+    // красным баннером над дашбордом, теперь всё живёт здесь списком за 14 дней.
     getOpenHealthAlerts(userId, { sinceHours: 14 * 24, limit: 10 })
       .then(data => { if (!cancelled && data.length) setAlerts(data) })
     return () => { cancelled = true }
