@@ -1837,8 +1837,24 @@ input[type="date"].settings-input::-webkit-calendar-picker-indicator { cursor: p
 /* Language picker dropdown */
 .lang-picker { position: relative; }
 .lang-overlay { position: fixed; inset: 0; z-index: 149; }
-.lang-menu { position: absolute; top: calc(100% + 6px); right: 0; z-index: 150; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.18); min-width: 160px; padding: 4px; display: flex; flex-direction: column; gap: 2px; }
-.lang-option { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: none; color: var(--text); font-size: 14px; padding: 8px 12px; border-radius: 7px; cursor: pointer; text-align: left; transition: background 0.12s; }
+.lang-menu {
+  position: absolute; top: calc(100% + 10px); right: 0; z-index: 150;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 18px; box-shadow: 0 12px 32px rgba(17, 17, 24, 0.12);
+  min-width: 200px; padding: 8px;
+  display: flex; flex-direction: column; gap: 4px;
+  animation: fadeIn 0.18s ease-out;
+}
+.lang-option {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  width: 100%; background: none; border: none; color: var(--text);
+  font-size: 14px; font-weight: 600; padding: 11px 14px; border-radius: 12px;
+  cursor: pointer; text-align: left; transition: background 0.12s;
+}
+.lang-code {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
 
 /* Переключатель темы (mate-style): попап с карточками-превью */
 .theme-menu { padding: 14px; min-width: 300px; }
@@ -1864,8 +1880,8 @@ input[type="date"].settings-input::-webkit-calendar-picker-indicator { cursor: p
 .mobile-theme-btn { flex: 1; padding: 8px 4px; font-size: 13px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface2); color: var(--text); cursor: pointer; }
 .mobile-theme-btn.active { border-color: var(--accent); color: var(--accent); font-weight: 600; }
 .lang-option:hover { background: var(--surface2); }
-.lang-option.active { background: color-mix(in srgb, var(--accent) 12%, transparent); }
-.lang-check { margin-left: auto; color: var(--accent); font-weight: 700; }
+.lang-option.active { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); }
+.lang-option.active .lang-code { color: var(--accent); opacity: 0.75; }
 
 /* ── MealLogger ──────────────────────────────────────────────────────────── */
 .meal-logger { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 20px; }

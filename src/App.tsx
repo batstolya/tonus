@@ -356,11 +356,11 @@ export default function App() {
                   <>
                     <div className="lang-overlay" onClick={() => setLangMenuOpen(false)} />
                     <div className="lang-menu">
-                      {([['ru','🇷🇺','Русский'],['uk','🇺🇦','Українська'],['en','🇬🇧','English']] as const).map(([code, flag, label]) => (
+                      {([['ru','Русский','RU'],['uk','Українська','UA'],['en','English','EN']] as const).map(([code, label, short]) => (
                         <button key={code} className={`lang-option${lang === code ? ' active' : ''}`}
                           onClick={() => { setLang(code); setLangMenuOpen(false) }}>
-                          <span>{flag}</span><span>{label}</span>
-                          {lang === code && <span className="lang-check">✓</span>}
+                          <span className="lang-label">{label}</span>
+                          <span className="lang-code">{short}</span>
                         </button>
                       ))}
                     </div>
@@ -411,7 +411,7 @@ export default function App() {
                   className="mobile-nav-btn"
                   onClick={() => setLang(lang === 'ru' ? 'uk' : lang === 'uk' ? 'en' : 'ru')}
                 >
-                  <span>{lang === 'ru' ? '🇷🇺' : lang === 'uk' ? '🇺🇦' : '🇬🇧'}</span>
+                  <span className="lang-code">{lang === 'ru' ? 'RU' : lang === 'uk' ? 'UA' : 'EN'}</span>
                   <span>{lang === 'ru' ? 'Русский' : lang === 'uk' ? 'Українська' : 'English'}</span>
                 </button>
                 <div className="mobile-menu-footer">
