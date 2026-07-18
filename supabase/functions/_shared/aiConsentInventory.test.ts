@@ -72,7 +72,14 @@ describe('Gemini egress inventory', () => {
     expect(migration).toMatch(/for insert to authenticated[\s\S]*auth\.uid\(\) = user_id/i)
     expect(migration).toMatch(/for update to authenticated[\s\S]*auth\.uid\(\) = user_id/i)
 
-    const reminders = readFileSync(resolve(functionsDir, 'send-reminders/index.ts'), 'utf8')
+    // Scan every module of send-reminders, not just index.ts — the digest split
+    // moved the consent-denial handling into digests.ts and it must stay visible.
+    const remindersDir = resolve(functionsDir, 'send-reminders')
+    const reminders = readdirSync(remindersDir)
+      .filter(f => f.endsWith('.ts') && !f.endsWith('.test.ts'))
+      .sort()
+      .map(f => readFileSync(resolve(remindersDir, f), 'utf8'))
+      .join('\n')
     expect(reminders).toContain("body?.error === 'ai_consent_required'")
     expect(reminders).toContain('telegram_chat_id')
     expect(reminders).toContain('Обработка данных ИИ')
