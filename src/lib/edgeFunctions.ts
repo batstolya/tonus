@@ -2,6 +2,7 @@ import { supabase } from './supabase'
 import { isDemoActive } from './demo'
 import { demoFunctionResponse } from './demoAi'
 import { captureClientFailure } from './observability'
+import { getEnv } from './env'
 
 // Единый вызов Supabase Edge Functions с авторизацией и обработкой ошибок.
 // Заменяет повторяющийся бойлерплейт (getSession + fetch + headers) в 12 местах.
@@ -20,8 +21,6 @@ export class EdgeFunctionError extends Error {
   }
 }
 
-const BASE = import.meta.env.VITE_SUPABASE_URL as string
-
 // Вызывает edge-функцию POST'ом, возвращает распарсенный JSON.
 // Бросает EdgeFunctionError при не-2xx или { error } в теле ответа.
 export async function callFunction<T = unknown>(name: string, body?: unknown): Promise<T> {
@@ -36,7 +35,7 @@ export async function callFunction<T = unknown>(name: string, body?: unknown): P
   if (!session) throw new EdgeFunctionError('Не авторизован', 401)
 
   const requestId = crypto.randomUUID()
-  const res = await fetch(`${BASE}/functions/v1/${name}`, {
+  const res = await fetch(`${getEnv().supabaseUrl}/functions/v1/${name}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

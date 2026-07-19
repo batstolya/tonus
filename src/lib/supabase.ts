@@ -1,7 +1,9 @@
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from './database.types'
+import { getEnv } from './env'
 
-const url = import.meta.env.VITE_SUPABASE_URL as string
-const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+// Module-load read: both entries (env.web.ts, vitest.env-setup.ts) run
+// initEnv() before lib modules load. Becomes a factory in Phase 0b.
+const { supabaseUrl, supabaseAnonKey } = getEnv()
 
-export const supabase = createClient<Database>(url, key)
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
