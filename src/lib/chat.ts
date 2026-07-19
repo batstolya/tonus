@@ -2,6 +2,7 @@ import { supabase } from './supabase'
 import { isDemoActive } from './demo'
 import { demoList } from './demoDb'
 import { demoChatReply } from './demoAi'
+import { getEnv } from './env'
 
 // Чат с ИИ. Контекст здоровья собирается НА СЕРВЕРЕ (chat-health →
 // _shared/healthContext.ts, F2 smart-tonus): 30 дней данных + цели,
@@ -68,8 +69,7 @@ export async function sendChatMessage(
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) throw new Error('Не авторизован')
 
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
-  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+  const { supabaseUrl, supabaseAnonKey } = getEnv()
   const res = await fetch(`${supabaseUrl}/functions/v1/chat-health`, {
     method: 'POST',
     headers: {
