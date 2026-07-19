@@ -1,15 +1,6 @@
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 
-// dummy env: src/lib/supabase.ts calls createClient(url, key) at module load;
-// empty values make it throw "supabaseUrl is required".
-const env = {
-  VITE_SUPABASE_URL: 'http://localhost:54321',
-  VITE_SUPABASE_ANON_KEY: 'test-anon-key',
-  // A developer's .env.local may set VITE_DEMO=1; tests must never run in
-  // demo mode (the demo stub replaces mocked network calls).
-  VITE_DEMO: '',
-}
 // scripts/*.test.mjs are node:test suites (run via `npm run test:scripts`), not Vitest.
 // .claude/** keeps agent worktrees from duplicating the suite when run from the repo root.
 const exclude = ['**/node_modules/**', 'e2e/**', 'scripts/**', '.claude/**']
@@ -20,7 +11,13 @@ export default defineConfig({
     projects: [
       {
         extends: true,
-        test: { name: 'node', environment: 'node', include: ['**/*.test.ts'], exclude, env },
+        test: {
+          name: 'node',
+          environment: 'node',
+          include: ['**/*.test.ts'],
+          exclude,
+          setupFiles: ['./vitest.env-setup.ts'],
+        },
       },
       {
         extends: true,
@@ -29,8 +26,7 @@ export default defineConfig({
           environment: 'jsdom',
           include: ['**/*.test.tsx'],
           exclude,
-          env,
-          setupFiles: ['./vitest.setup.ts'],
+          setupFiles: ['./vitest.env-setup.ts', './vitest.setup.ts'],
         },
       },
     ],
