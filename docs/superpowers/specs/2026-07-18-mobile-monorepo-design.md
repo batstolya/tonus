@@ -61,8 +61,16 @@ tonus/
 ## Phases
 
 Each phase is its own spec → plan → PR cycle and ends with green main and a
-working production deploy. Detailed specs exist only for Phases 0–1; Phases
-2–4 are roadmap entries here and get their own specs later.
+working production deploy. Phases 2–4 are roadmap entries here and get their
+own specs later (each still has open questions to brainstorm first).
+
+Delegable child specs (each is self-contained, with dependencies stated):
+
+- `2026-07-19-mobile-phase0a-env-module-design.md` — env module (no deps)
+- `2026-07-19-mobile-phase0b-storage-adapter-design.md` — storage adapter +
+  supabase factory (after 0a)
+- `2026-07-19-mobile-phase1-workspaces-design.md` — workspace skeleton
+  (after 0a+0b)
 
 ### Phase 0 — Portability prep (2 small PRs, current structure)
 
