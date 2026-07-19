@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { getEnv } from './env'
 
 export interface IngestToken { token: string; mode: 'shadow' | 'live'; last_ingest_at: string | null; last_status: string | null }
 
@@ -32,8 +33,7 @@ export async function setMode(userId: string, mode: 'shadow' | 'live'): Promise<
 }
 
 export function webhookUrl(token: string): string {
-  const base = import.meta.env.VITE_SUPABASE_URL as string
-  return `${base}/functions/v1/ingest-health?token=${token}`
+  return `${getEnv().supabaseUrl}/functions/v1/ingest-health?token=${token}`
 }
 
 export interface CompareRow { date: string; metric: string; prod: number | null; staging: number | null; match: boolean }
