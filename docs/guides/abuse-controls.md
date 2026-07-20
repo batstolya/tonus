@@ -32,8 +32,16 @@ UI-facing functions compute CORS per request via `corsHeadersFor()`
 (comma-separated origins). An origin not on the list — or an unset variable —
 receives no `Access-Control-Allow-Origin` header (fail closed for browsers).
 
-Production value: `https://tonus-anatolii-s-projects6.vercel.app`. Add new
-origins (e.g. a custom domain) to the secret; no redeploy required.
+Production value: `https://tonus-nu.vercel.app`. Add new origins (e.g. a
+custom domain) to the secret; no redeploy required.
+
+Note: `https://tonus-anatolii-s-projects6.vercel.app` was the value
+originally documented here, but it does not match the actual Vercel
+production alias — this mismatch left `TONUS_ALLOWED_ORIGINS` pointed at the
+wrong origin from the PR 3 rollout (2026-07-16) until fixed on 2026-07-20,
+silently breaking browser calls to every UI-facing function (chat, AI
+analysis, etc.) while curl-based smoke tests — which send no `Origin` header
+— stayed green.
 
 Documented exceptions (see `security/inventory.generated.json` for the derived
 `cors` classification of every function):
