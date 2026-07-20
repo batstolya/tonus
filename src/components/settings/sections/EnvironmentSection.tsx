@@ -140,10 +140,10 @@ export function EnvironmentSection({ archived, onArchive, user }: SectionProps &
           <button className="btn-primary" style={{ marginBottom: 8 }} onClick={handleUseMyLocation} disabled={locLocating}>
             {locLocating ? t('Определяю…') : `📍 ${t('Определить автоматически')}`}
           </button>
-          <div className="settings-muted" style={{ marginBottom: 6, fontSize: 12 }}>{t('…или найди город вручную:')}</div>
+          <div className="settings-muted" style={{ marginBottom: 6, fontSize: 13 }}>{t('…или найди город вручную:')}</div>
           <div className="settings-ics-row" style={{ flexDirection: 'column', gap: 8, alignItems: 'stretch', marginBottom: 10 }}>
             <div style={{ display: 'flex', gap: 8 }}>
-              <input className="log-input" style={{ flex: 1 }} placeholder={t('Введите город')}
+              <input className="settings-input" style={{ flex: 1 }} placeholder={t('Введите город')}
                 value={locQuery} onChange={e => setLocQuery(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') handleLocationSearch() }} />
               <button className="btn-secondary" onClick={handleLocationSearch} disabled={locSearching || !locQuery.trim()}>

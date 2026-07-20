@@ -57,7 +57,7 @@ export function WorkoutScheduleSettings({ user }: { user: User }) {
       <h3 className="settings-section-title">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: 8 }}><path d="M6.5 6.5h11v11h-11z"/><path d="M2 12h2.5M19.5 12H22M12 2v2.5M12 19.5V22"/></svg>
         {t('Расписание тренировок')}
-        {saved && <span className="settings-muted" style={{ marginLeft: 8, fontSize: 12 }}>{t('Расписание сохранено')}</span>}
+        {saved && <span className="settings-muted" style={{ marginLeft: 8, fontSize: 13 }}>{t('Расписание сохранено')}</span>}
       </h3>
 
       <div className="rep-setting">
@@ -88,14 +88,14 @@ export function WorkoutScheduleSettings({ user }: { user: User }) {
             <input
               type="time" value={entry.time} disabled={demo}
               onChange={e => patchDay(day, { time: e.target.value })}
-              className="log-input" style={{ width: 100 }}
+              className="settings-input" style={{ width: 100 }}
             />
             <input
               // Демо-расписание read-only, а его вид спорта — ключ словаря: переводим.
               type="text" value={demo ? t(entry.label ?? '') : (entry.label ?? '')} disabled={demo}
               placeholder={t('вид спорта (необязательно)')}
               onChange={e => patchDay(day, { label: e.target.value })}
-              className="log-input" style={{ width: 180, marginLeft: 8 }}
+              className="settings-input" style={{ width: 180, marginLeft: 8 }}
             />
           </div>
         )

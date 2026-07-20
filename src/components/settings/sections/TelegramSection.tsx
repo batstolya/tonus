@@ -90,7 +90,7 @@ export function TelegramSection({ user, archivedTelegram, archivedReports, onArc
               ? <div className="settings-label">✓ {t('Подключён')}{tgUsername ? ` (@${tgUsername})` : ''}</div>
               : <div className="settings-label">{t('Получать двухнедельные отчёты в Telegram')}</div>
             }
-            <div className="settings-muted" style={{ fontSize: 12, marginTop: 4 }}>
+            <div className="settings-muted" style={{ fontSize: 13, marginTop: 4 }}>
               {tgLinked ? t('Команды: /report /last /status /pause') : t('Нажми — откроется бот, нажми Start')}
             </div>
           </div>
@@ -113,7 +113,7 @@ export function TelegramSection({ user, archivedTelegram, archivedReports, onArc
                 <input type="checkbox" checked={noteEnabled} onChange={e => handleNoteToggle(e.target.checked)} style={{ width: 16, height: 16 }} />
                 🌙 {t('Вечерний вопрос «как прошёл день»')}
               </label>
-              <div className="settings-muted" style={{ fontSize: 12, marginTop: 4 }}>
+              <div className="settings-muted" style={{ fontSize: 13, marginTop: 4 }}>
                 {t('Бот спросит вечером, ответ сохранится в заметку дня и учтётся в ИИ-отчётах')}
               </div>
             </div>
@@ -122,7 +122,7 @@ export function TelegramSection({ user, archivedTelegram, archivedReports, onArc
                 type="time"
                 value={noteTime}
                 onChange={e => handleNoteTime(e.target.value)}
-                className="log-input"
+                className="settings-input"
                 style={{ width: 110, flexShrink: 0 }}
               />
             )}
@@ -168,7 +168,7 @@ export function TelegramSection({ user, archivedTelegram, archivedReports, onArc
             <input type="checkbox" checked={rep.send_sensitive} onChange={e => patchRep({ send_sensitive: e.target.checked })} />
             <span>
               <span className="settings-label">{t('Присылать чувствительное')}</span>
-              <span className="settings-muted" style={{ display: 'block', fontSize: 12 }}>{t('Анализы и препараты в отчётах. Выкл — только сводка самочувствия. Telegram не E2E-шифрован.')}</span>
+              <span className="settings-muted" style={{ display: 'block', fontSize: 13 }}>{t('Анализы и препараты в отчётах. Выкл — только сводка самочувствия. Telegram не E2E-шифрован.')}</span>
             </span>
           </label>
 
@@ -176,10 +176,10 @@ export function TelegramSection({ user, archivedTelegram, archivedReports, onArc
             <input type="checkbox" checked={rep.morning_summary} onChange={e => patchRep({ morning_summary: e.target.checked })} />
             <span>
               <span className="settings-label">{t('Утренняя сводка')}</span>
-              <span className="settings-muted" style={{ display: 'block', fontSize: 12 }}>{t('Короткое «как ты сегодня» утром')}</span>
+              <span className="settings-muted" style={{ display: 'block', fontSize: 13 }}>{t('Короткое «как ты сегодня» утром')}</span>
             </span>
             {rep.morning_summary && (
-              <input type="time" value={rep.morning_time} onChange={e => patchRep({ morning_time: e.target.value })} className="log-input" style={{ width: 100, marginLeft: 'auto' }} />
+              <input type="time" value={rep.morning_time} onChange={e => patchRep({ morning_time: e.target.value })} className="settings-input" style={{ width: 100, marginLeft: 'auto' }} />
             )}
           </label>
 

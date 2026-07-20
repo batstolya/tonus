@@ -20,7 +20,7 @@ export function GoogleCalendarSection({ archived, onArchive, onGoogleSync, googl
       <div className="settings-cal-row">
         <div>
           <div className="settings-label">{t('Загрузить события из Google Calendar')}</div>
-          {lastSync && <div className="settings-muted" style={{ fontSize: 12, marginTop: 4 }}>{t('Последняя синхронизация:')} {lastSync}</div>}
+          {lastSync && <div className="settings-muted" style={{ fontSize: 13, marginTop: 4 }}>{t('Последняя синхронизация:')} {lastSync}</div>}
         </div>
         <button
           className={`btn-primary ${googleConnected ? 'btn-success' : ''}`}

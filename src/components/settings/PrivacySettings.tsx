@@ -30,16 +30,19 @@ export function PrivacySettings({ user }: { user: User }) {
 
   return (
     <section className="settings-section">
-      <h3 className="settings-section-title">🔒 {t('Приватность')}</h3>
+      <h3 className="settings-section-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: 8 }}><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        {t('Приватность')}
+      </h3>
       <p className="settings-muted" style={{ marginBottom: 10 }}>
         {t('PIN скрывает помеченные проблемы от посторонних глаз на экране. Анализ и ИИ учитывают их как обычно.')}
       </p>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         {pinSet && (
-          <input className="log-input" type="password" inputMode="numeric" style={{ width: 140 }}
+          <input className="settings-input" type="password" inputMode="numeric" style={{ width: 140 }}
             placeholder={t('Текущий PIN')} value={current} onChange={e => setCurrent(e.target.value)} />
         )}
-        <input className="log-input" type="password" inputMode="numeric" style={{ width: 140 }}
+        <input className="settings-input" type="password" inputMode="numeric" style={{ width: 140 }}
           placeholder={pinSet ? t('Новый PIN') : 'PIN'} value={next}
           onChange={e => setNext(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleSave()} />
@@ -47,7 +50,7 @@ export function PrivacySettings({ user }: { user: User }) {
           {pinSet ? t('Сменить PIN') : t('Задать PIN')}
         </button>
         {pinSet && unlocked && (
-          <button className="btn-ghost" style={{ fontSize: 13 }}
+          <button className="link-btn"
             onClick={() => { lock(); setUnlocked(false); setMsg(t('Заблокировано')) }}>
             {t('Заблокировать сейчас')}
           </button>
