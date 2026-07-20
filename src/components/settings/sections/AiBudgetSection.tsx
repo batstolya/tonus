@@ -113,7 +113,7 @@ export function AiBudgetSection({ archived, onArchive, user }: SectionProps & { 
         ) : (
           <div className="settings-budget-display">
             <span className="settings-budget-val">${budget.toFixed(2)}</span>
-            <button className="settings-edit-btn" onClick={() => { setEditVal(String(budget)); setEditing(true) }}>
+            <button className="link-btn" onClick={() => { setEditVal(String(budget)); setEditing(true) }}>
               {t('Изменить')}
             </button>
             {saved && <span style={{ color: 'var(--green)', fontSize: 12 }}>{t('сохранено')} ✓</span>}

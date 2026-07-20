@@ -50,7 +50,7 @@ export function PrivacySettings({ user }: { user: User }) {
           {pinSet ? t('Сменить PIN') : t('Задать PIN')}
         </button>
         {pinSet && unlocked && (
-          <button className="btn-ghost" style={{ fontSize: 13 }}
+          <button className="link-btn"
             onClick={() => { lock(); setUnlocked(false); setMsg(t('Заблокировано')) }}>
             {t('Заблокировать сейчас')}
           </button>
