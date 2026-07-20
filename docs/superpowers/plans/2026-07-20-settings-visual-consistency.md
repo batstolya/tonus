@@ -231,11 +231,14 @@ git commit -m "refactor(settings): unify text-link buttons on .link-btn"
 
 ## Task 3: Consolidate Settings inputs onto `.settings-input`
 
-PrivacySettings (2 inputs) and WorkoutScheduleSettings (2 inputs) borrow the Dashboard's `.log-input`. Move them to the Settings-native `.settings-input`. `.log-input` itself is untouched (Dashboard still uses it).
+> **Scope note (corrected during execution):** the audit under-counted. ALL Settings `.log-input` call sites must move, not just two files — PrivacySettings (2), WorkoutScheduleSettings (2), TelegramSection (2), CalSyncSection (3), EnvironmentSection (1). The `.log-input` CSS definition itself stays untouched (Dashboard uses it). Verify with `grep -rn "log-input" src/components/settings/` → nothing, EXCEPT keep the CalSyncSection session-token input's inline `fontFamily: 'monospace', fontSize: 12` (that stays a monospace field). The steps below show the first two files; apply the identical class swap to the other three.
 
 **Files:**
-- Modify: `src/components/settings/PrivacySettings.tsx:39,42`
-- Modify: `src/components/settings/WorkoutScheduleSettings.tsx:91,98`
+- Modify: `src/components/settings/PrivacySettings.tsx` (2 PIN inputs)
+- Modify: `src/components/settings/WorkoutScheduleSettings.tsx` (2 day-row inputs)
+- Modify: `src/components/settings/sections/TelegramSection.tsx` (2 reminder-time inputs)
+- Modify: `src/components/settings/sections/CalSyncSection.tsx` (email, password, session-token)
+- Modify: `src/components/settings/sections/EnvironmentSection.tsx` (city search input)
 
 - [ ] **Step 1: PrivacySettings — both PIN inputs → `.settings-input`**
 
@@ -349,6 +352,8 @@ git commit -m "refactor(settings): use .settings-input for PIN and workout input
 ## Task 4: Apply the 4-step font-size scale to Settings CSS
 
 Correct the ad-hoc px values so small text follows: body 14, meta 13, accent 20. Title (15) and body (14) anchors are already correct and unchanged.
+
+> **Scope note (added during execution):** the named-CSS edits below are necessary but not sufficient for a uniform meta tier — ~22 inline `style={{ fontSize: 11|12 }}` meta/label/status declarations across the same section files also had to be bumped to 13 (a separate follow-up commit), keeping only the CalSyncSection session-token input at monospace 12. Without that sweep the meta tier stays mixed (12 vs 13). Verify with `grep -rn "fontSize: 1[12]\b" src/components/settings/ | grep -v test` → only the monospace token line remains.
 
 **Files:**
 - Modify: `src/index.css:1014` (`.link-btn` 12→13)
