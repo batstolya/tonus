@@ -50,14 +50,26 @@ Confirmed by reading every file in `src/components/settings/` and
 `src/components/settings/sections/`, and the `settings-*`/settings-only CSS
 rules in `src/index.css` (~line 1140-1170, 1747-1752).
 
-**Section title icons** — `grep -n "<h[1-6]" src/components/settings/**`:
+**Section title icons** — verified by reading every header line:
+
+Most sections **already** share one identical pattern: an inline SVG,
+`width="18" height="18"`, `viewBox="0 0 24 24"`, `stroke="currentColor"`,
+`strokeWidth="2"`, `style={{ verticalAlign: 'middle', marginRight: 8 }}`,
+followed by the title text. This is the established standard (11 headers).
 
 | Section | Current title treatment |
 |---|---|
-| LanguageSection, TelegramSection (×2), GoogleCalendarSection, CalSyncSection, EnvironmentSection, ImportSection | SVG icon already, some with icon / some plain (Environment/Import have no icon despite using the pattern's `<h3>`) |
-| PrivacySettings, AiConsentSection, DeleteAccountSection | Emoji prefix in the text node (🔒, ✨, 🗑) |
-| AiBudgetSection, AutoSyncSettings, WorkoutScheduleSettings | No icon |
-| DeviceSection | `<h2 className="settings-section-title">` — only section not using `<h3>` |
+| LanguageSection, TelegramSection (×2), GoogleCalendarSection, CalSyncSection, EnvironmentSection, ImportSection, AiBudgetSection, ExportSection, AutoSyncSettings, WorkoutScheduleSettings | ✅ Standard 18×18 SVG + inline style — no change needed |
+| PrivacySettings | ❌ Emoji prefix (🔒) in text node |
+| AiConsentSection | ❌ Emoji prefix (✨) in text node |
+| DeleteAccountSection | ❌ Emoji prefix (🗑) in text node |
+| DeviceSection | ❌ `<h2>` (not `<h3>`) **and** no icon at all |
+
+So the icon work is narrow: 3 emoji→SVG conversions plus 1 section that
+needs both an `<h2>`→`<h3>` fix and a new icon. The 11 standard headers are
+left untouched, and `.settings-section-title` needs no layout change (the
+established pattern positions the icon via inline `marginRight`, not CSS
+gap).
 
 **Text-link buttons** — three classes doing the same job inside Settings:
 
@@ -106,21 +118,22 @@ Settings-owned despite the name. (Not to be confused with the unrelated
 
 ### 1. Section header icons
 
-Standardize every section header to:
+The standard is the pattern 11 headers already use — an inline SVG at
+`width="18" height="18"`, `viewBox="0 0 24 24"`, `stroke="currentColor"`,
+`strokeWidth="2"`, `strokeLinecap="round"`, `strokeLinejoin="round"`,
+`style={{ verticalAlign: 'middle', marginRight: 8 }}`, then the title text,
+inside `<h3 className="settings-section-title">`. Bring the 4 outliers to it:
 
-```tsx
-<h3 className="settings-section-title">
-  <SectionIcon />
-  {t('Title')}
-</h3>
-```
+- **PrivacySettings** — replace `🔒 ` with a lock outline SVG.
+- **AiConsentSection** — replace `✨ ` with a sparkle outline SVG.
+- **DeleteAccountSection** — replace `🗑 ` with a trash outline SVG.
+- **DeviceSection** — change `<h2>` to `<h3>` and add a smartwatch/device outline SVG.
 
-- `.settings-section-title` gains `display: flex; align-items: center; gap: 8px;` so icon + text align regardless of which section renders it (currently only implicit via existing icon markup in a few sections).
-- Icons are inline SVG, 16×16, `stroke="currentColor"`, `strokeWidth="2"`, matching the visual weight already established by `ArchiveBtn`/`LanguageSection`'s icons — no new icon library, just hand-drawn outline SVGs consistent with the existing ones.
-- New icons needed for: AI Budget (wallet/coin outline), Import data (upload/tray outline), Auto-sync (refresh/sync outline), Workout schedule (dumbbell/calendar outline), Environment (cloud/leaf outline), Device (watch/phone outline), Export data (download outline).
-- Emoji replaced with SVG: Privacy 🔒 → lock outline, AI consent ✨ → sparkle/shield outline, Delete account 🗑 → trash outline.
-- `DeviceSection`'s `<h2>` becomes `<h3>` to match every sibling.
-- Icon SVGs live inline in each section's `.tsx` file (matching current convention — `ArchiveBtn.tsx` and `LanguageSection.tsx` already inline their SVGs; no shared icon component is introduced, since that would be a reusable-component change and this pass is Settings-only).
+No changes to the 11 standard headers. `.settings-section-title` needs no CSS
+change — icon spacing comes from the inline `marginRight: 8` the pattern
+already carries. Icon SVGs stay inline in each section's `.tsx` (matching the
+existing convention; no shared icon component, which would be a reusable-
+component change and is out of scope).
 
 ### 2. Text-link button consolidation
 
