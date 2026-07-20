@@ -35,7 +35,7 @@ safe synthetic event, and rollback procedure.
 Abuse-control secrets (beta-safety PR 3; see `docs/guides/abuse-controls.md`):
 
     npx supabase secrets set TONUS_INTERNAL_SECRET="$(openssl rand -hex 32)" \
-      TONUS_ALLOWED_ORIGINS="https://tonus-anatolii-s-projects6.vercel.app" --project-ref <ref>
+      TONUS_ALLOWED_ORIGINS="https://tonus-nu.vercel.app" --project-ref <ref>
 
 `TONUS_INTERNAL_SECRET` unset → internal calls fail closed (401).
 `TONUS_ALLOWED_ORIGINS` unset → browsers get no CORS grant, so the UI breaks
