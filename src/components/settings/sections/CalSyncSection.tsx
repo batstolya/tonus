@@ -122,9 +122,9 @@ export function CalSyncSection({ archived, onArchive, user, onCalEvents, onNavig
               : t('Введи логин и пароль cal.com — синхронизация будет автоматической раз в день. Пароль хранится зашифрованно.')}
           </div>
           <div className="settings-ics-row" style={{ flexDirection: 'column', gap: 8, alignItems: 'stretch' }}>
-            <input className="log-input" type="email" placeholder={calStatus?.cal_email || 'email@cal.com'}
+            <input className="settings-input" type="email" placeholder={calStatus?.cal_email || 'email@cal.com'}
               value={calEmail} onChange={e => setCalEmail(e.target.value)} />
-            <input className="log-input" type="password" placeholder={t('Пароль cal.com')}
+            <input className="settings-input" type="password" placeholder={t('Пароль cal.com')}
               value={calPassword} onChange={e => setCalPassword(e.target.value)} />
             <div style={{ display: 'flex', gap: 8 }}>
               <button className="btn-primary" style={{ flex: 1 }} onClick={handleCalSaveAndSync}
@@ -144,7 +144,7 @@ export function CalSyncSection({ archived, onArchive, user, onCalEvents, onNavig
           </div>
           <div className="settings-ics-row">
             <input
-              className="log-input"
+              className="settings-input"
               style={{ flex: 1, fontFamily: 'monospace', fontSize: 12 }}
               type="password"
               placeholder="eyJhbGci..."

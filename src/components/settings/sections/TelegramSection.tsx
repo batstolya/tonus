@@ -122,7 +122,7 @@ export function TelegramSection({ user, archivedTelegram, archivedReports, onArc
                 type="time"
                 value={noteTime}
                 onChange={e => handleNoteTime(e.target.value)}
-                className="log-input"
+                className="settings-input"
                 style={{ width: 110, flexShrink: 0 }}
               />
             )}
@@ -179,7 +179,7 @@ export function TelegramSection({ user, archivedTelegram, archivedReports, onArc
               <span className="settings-muted" style={{ display: 'block', fontSize: 12 }}>{t('Короткое «как ты сегодня» утром')}</span>
             </span>
             {rep.morning_summary && (
-              <input type="time" value={rep.morning_time} onChange={e => patchRep({ morning_time: e.target.value })} className="log-input" style={{ width: 100, marginLeft: 'auto' }} />
+              <input type="time" value={rep.morning_time} onChange={e => patchRep({ morning_time: e.target.value })} className="settings-input" style={{ width: 100, marginLeft: 'auto' }} />
             )}
           </label>
 
