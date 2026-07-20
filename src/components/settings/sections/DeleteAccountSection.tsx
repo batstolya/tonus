@@ -56,7 +56,7 @@ export function DeleteAccountSection() {
         </button>
       ) : (
         <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 340 }}>
-          <label className="settings-muted" style={{ fontSize: 12 }}>
+          <label className="settings-muted" style={{ fontSize: 13 }}>
             {t('Пароль (подтверждение личности)')}
             <input
               type="password"
@@ -66,7 +66,7 @@ export function DeleteAccountSection() {
               style={{ display: 'block', width: '100%', marginTop: 4 }}
             />
           </label>
-          <label className="settings-muted" style={{ fontSize: 12 }}>
+          <label className="settings-muted" style={{ fontSize: 13 }}>
             {t('Введи DELETE для подтверждения')}
             <input
               type="text"
@@ -76,7 +76,7 @@ export function DeleteAccountSection() {
               style={{ display: 'block', width: '100%', marginTop: 4 }}
             />
           </label>
-          {error && <div style={{ color: 'var(--danger, #d33)', fontSize: 12 }}>{error}</div>}
+          {error && <div style={{ color: 'var(--danger, #d33)', fontSize: 13 }}>{error}</div>}
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn-secondary" disabled={!ready} style={{ color: 'var(--danger, #d33)' }} onClick={handleDelete}>
               {deleting ? '…' : t('Удалить навсегда')}

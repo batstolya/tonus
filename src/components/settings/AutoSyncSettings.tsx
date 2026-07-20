@@ -48,7 +48,7 @@ export function AutoSyncSettings({ user }: { user: User }) {
         <div className="settings-muted">{t('Загрузка…')}</div>
       ) : (
         <div>
-          <p className="settings-muted" style={{ fontSize: 12, marginBottom: 10 }}>
+          <p className="settings-muted" style={{ fontSize: 13, marginBottom: 10 }}>
             {t('Установи на iPhone приложение Health Auto Export, создай автоматизацию с типом REST API (POST, JSON) и вставь этот адрес. Данные пойдут в тестовый слой — основные данные не затронутся, пока режим «Тест».')}
           </p>
 
@@ -65,12 +65,12 @@ export function AutoSyncSettings({ user }: { user: User }) {
           </div>
 
           <div className="autosync-row">
-            <span className="settings-muted" style={{ fontSize: 12 }}>
+            <span className="settings-muted" style={{ fontSize: 13 }}>
               {tok.last_ingest_at ? `${t('Последний приём')}: ${new Date(tok.last_ingest_at).toLocaleString()}` : t('Данные ещё не приходили')}
             </span>
             <button className="btn-secondary" onClick={regen}>{t('Новый токен')}</button>
           </div>
-          {tok.last_status && <div className="settings-muted" style={{ fontSize: 11, marginBottom: 10 }}>{tok.last_status}</div>}
+          {tok.last_status && <div className="settings-muted" style={{ fontSize: 13, marginBottom: 10 }}>{tok.last_status}</div>}
 
           <div className="autosync-compare">
             <button className="btn-secondary" onClick={runCompare} disabled={loadingCmp}>
