@@ -14,7 +14,10 @@ export function DeviceSection({ archived, onArchive, deviceType, onDeviceTypeCha
   return (
     <section className={`settings-section${archived ? ' is-archived' : ''}`}>
       <ArchiveBtn id="device" onArchive={onArchive} />
-      <h2 className="settings-section-title">{t('Устройство')}</h2>
+      <h3 className="settings-section-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: 8 }}><rect x="6" y="6" width="12" height="12" rx="3"/><path d="M9 6l.5-3h5l.5 3M9 18l.5 3h5l.5-3"/></svg>
+        {t('Устройство')}
+      </h3>
       <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>
         {t('Текущий источник данных:')} <strong>{deviceType === 'xiaomi' ? 'Xiaomi / Mi Band' : deviceType === 'apple_watch' ? 'Apple Watch' : t('не выбран')}</strong>
       </p>
