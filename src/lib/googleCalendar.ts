@@ -1,13 +1,15 @@
 import type { CalendarEvent } from '../types'
+import { getEnv } from './env'
 
-const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined
+// Lazy read: a module-load read would race initEnv for web-only files.
+const clientId = () => getEnv().googleClientId
 const SCOPES = 'https://www.googleapis.com/auth/calendar.events.readonly'
 
-let tokenClient: google.accounts.oauth2.TokenClient | null = null
+let tokenClient: GoogleTokenClient | null = null
 let accessToken: string | null = null
 
 export function isGoogleCalendarAvailable() {
-  return !!CLIENT_ID
+  return !!clientId()
 }
 
 function loadGoogleScript(): Promise<void> {
@@ -23,13 +25,14 @@ function loadGoogleScript(): Promise<void> {
 }
 
 export async function connectGoogleCalendar(): Promise<CalendarEvent[]> {
-  if (!CLIENT_ID) throw new Error('Google Client ID не настроен')
+  const id = clientId()
+  if (!id) throw new Error('Google Client ID не настроен')
 
   await loadGoogleScript()
 
   return new Promise((resolve, reject) => {
     tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID,
+      client_id: id,
       scope: SCOPES,
       callback: async (resp) => {
         if (resp.error) { reject(new Error(resp.error)); return }
@@ -49,7 +52,8 @@ export async function connectGoogleCalendar(): Promise<CalendarEvent[]> {
 // Тихая синхронизация без попапа: работает, если у пользователя ещё активен
 // грант Google. Если нужна интеракция — молча возвращает null (не показываем окно).
 export async function silentGoogleCalendarSync(): Promise<CalendarEvent[] | null> {
-  if (!CLIENT_ID) return null
+  const id = clientId()
+  if (!id) return null
   try {
     await loadGoogleScript()
   } catch { return null }
@@ -59,7 +63,7 @@ export async function silentGoogleCalendarSync(): Promise<CalendarEvent[] | null
     const done = (v: CalendarEvent[] | null) => { if (!settled) { settled = true; resolve(v) } }
     try {
       const client = google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID!,
+        client_id: id,
         scope: SCOPES,
         callback: async (resp) => {
           if (resp.error || !resp.access_token) { done(null); return }
@@ -115,16 +119,20 @@ async function fetchGoogleEvents(token: string): Promise<CalendarEvent[]> {
   return items
 }
 
-// Extend window types for Google Identity Services
-declare global {
-  namespace google.accounts.oauth2 {
-    interface TokenClient {
-      requestAccessToken(options?: { prompt?: string }): void
+// Types for the Google Identity Services script global (module-scoped ambient
+// declaration instead of a `declare global` namespace — no-namespace lint).
+interface GoogleTokenClient {
+  requestAccessToken(options?: { prompt?: string }): void
+}
+
+declare const google: {
+  accounts: {
+    oauth2: {
+      initTokenClient(config: {
+        client_id: string
+        scope: string
+        callback: (resp: { access_token: string; error?: string }) => void
+      }): GoogleTokenClient
     }
-    function initTokenClient(config: {
-      client_id: string
-      scope: string
-      callback: (resp: { access_token: string; error?: string }) => void
-    }): TokenClient
   }
 }

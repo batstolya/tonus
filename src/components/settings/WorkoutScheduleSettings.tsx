@@ -1,17 +1,9 @@
 import { useEffect, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
-import { supabase } from '../../lib/supabase'
+import { getWorkoutSchedule, saveWorkoutSchedule, type WorkoutSchedule } from '../../lib/api/settings'
 import { isDemoActive } from '../../lib/demo'
 import { makeDemoWorkoutSchedule } from '../../lib/demoFixture'
 import { useT } from '../../lib/i18n'
-import type { DayTimes } from '../../lib/workoutPlan'
-import type { Json } from '../../lib/database.types'
-
-interface ScheduleState {
-  day_times: DayTimes
-  notify_hours_before: number
-  enabled: boolean
-}
 
 const DAY_KEYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'] // индекс+1 = weekday (1=Пн…7=Вс)
 
@@ -22,30 +14,25 @@ export function WorkoutScheduleSettings({ user }: { user: User }) {
   const demo = isDemoActive()
   // Демо-значения ставим ленивыми инициализаторами, а не синхронным setState в
   // эффекте (react-hooks/set-state-in-effect) — то же состояние, на рендер меньше.
-  const [ws, setWs] = useState<ScheduleState>(() => demo ? makeDemoWorkoutSchedule() : { day_times: {}, notify_hours_before: 4, enabled: true })
+  const [ws, setWs] = useState<WorkoutSchedule>(() => demo ? makeDemoWorkoutSchedule() : { day_times: {}, notify_hours_before: 4, enabled: true })
   const [loaded, setLoaded] = useState(() => demo)
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
     if (demo) return
-    supabase.from('workout_schedule').select('day_times, notify_hours_before, enabled')
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) setWs({ ...data, day_times: (data.day_times ?? {}) as unknown as DayTimes })
-        setLoaded(true)
-      })
+    getWorkoutSchedule().then(data => {
+      if (data) setWs(data)
+      setLoaded(true)
+    })
   }, [demo])
 
-  const patch = (p: Partial<ScheduleState>) => {
+  const patch = (p: Partial<WorkoutSchedule>) => {
     const next = { ...ws, ...p }
     setWs(next)
     if (demo) return
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Kyiv'
-    supabase.from('workout_schedule')
-      .upsert({ user_id: user.id, ...next, day_times: next.day_times as unknown as Json, timezone })
-      .then(({ error }: { error: unknown }) => {
-        if (!error) { setSaved(true); setTimeout(() => setSaved(false), 1500) }
-      })
+    saveWorkoutSchedule(user.id, next).then(ok => {
+      if (ok) { setSaved(true); setTimeout(() => setSaved(false), 1500) }
+    })
   }
 
   const toggleDay = (day: number) => {
@@ -70,7 +57,7 @@ export function WorkoutScheduleSettings({ user }: { user: User }) {
       <h3 className="settings-section-title">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: 8 }}><path d="M6.5 6.5h11v11h-11z"/><path d="M2 12h2.5M19.5 12H22M12 2v2.5M12 19.5V22"/></svg>
         {t('Расписание тренировок')}
-        {saved && <span className="settings-muted" style={{ marginLeft: 8, fontSize: 12 }}>{t('Расписание сохранено')}</span>}
+        {saved && <span className="settings-muted" style={{ marginLeft: 8, fontSize: 13 }}>{t('Расписание сохранено')}</span>}
       </h3>
 
       <div className="rep-setting">
@@ -101,14 +88,14 @@ export function WorkoutScheduleSettings({ user }: { user: User }) {
             <input
               type="time" value={entry.time} disabled={demo}
               onChange={e => patchDay(day, { time: e.target.value })}
-              className="log-input" style={{ width: 100 }}
+              className="settings-input" style={{ width: 100 }}
             />
             <input
               // Демо-расписание read-only, а его вид спорта — ключ словаря: переводим.
               type="text" value={demo ? t(entry.label ?? '') : (entry.label ?? '')} disabled={demo}
               placeholder={t('вид спорта (необязательно)')}
               onChange={e => patchDay(day, { label: e.target.value })}
-              className="log-input" style={{ width: 180, marginLeft: 8 }}
+              className="settings-input" style={{ width: 180, marginLeft: 8 }}
             />
           </div>
         )

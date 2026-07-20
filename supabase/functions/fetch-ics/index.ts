@@ -1,12 +1,12 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { corsHeadersFor } from '../_shared/cors.ts'
+import { fetchWithTimeout } from '../_shared/http.ts'
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, content-type, x-request-id',
-}
+const ALLOWED_ORIGINS = Deno.env.get('TONUS_ALLOWED_ORIGINS') ?? ''
 
 serve(async (req) => {
+  const CORS = corsHeadersFor(req.headers.get('Origin'), ALLOWED_ORIGINS)
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
   try {
@@ -24,8 +24,9 @@ serve(async (req) => {
     // Only allow ics feeds
     if (!url.startsWith('https://')) return new Response('Only HTTPS urls allowed', { status: 400, headers: CORS })
 
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
       headers: { 'User-Agent': 'Tonus Health App' },
+      retryOn5xx: true,
     })
     if (!res.ok) throw new Error(`Fetch failed: ${res.status} ${res.statusText}`)
 

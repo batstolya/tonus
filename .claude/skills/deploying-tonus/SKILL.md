@@ -22,8 +22,11 @@ Vercel их **не** деплоит. Для каждой изменённой ф
 npx supabase functions deploy <name> --project-ref <ref>
 ```
 
-Логин CLI хранится в macOS Keychain. Если токена в окружении нет — попроси
-пользователя задеплоить или дай точную команду.
+Логин CLI хранится в macOS Keychain. Деплой функций разрешён владельцем
+навсегда (правило `Bash(npx supabase functions deploy *)` в
+`.claude/settings.local.json`, добавлено 2026-07-17) — деплой выполняется без
+запроса к пользователю. `npx supabase functions list` разрешён для проверки
+версий и verify_jwt после деплоя.
 
 ## Критично
 
@@ -48,6 +51,7 @@ npx supabase functions deploy <name> --project-ref <ref>
 | `classifyPrompt.ts` | telegram-bot |
 | `saveIntent.ts` | telegram-bot |
 | `staleness.ts` | biweekly-report, telegram-bot |
+| `userTimezone.ts` | biweekly-report, chat-health, telegram-bot |
 
 Таблица может устареть — перед редеплоем сверься:
 `grep -rl "_shared/<module>" supabase/functions --include=index.ts`

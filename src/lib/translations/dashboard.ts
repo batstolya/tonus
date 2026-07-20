@@ -45,6 +45,10 @@ export const dashboard: Record<string, Translation> = {
   'Восстановление может проседать — не гонись за рекордами.': { uk: 'Відновлення може просідати — не женися за рекордами.', en: 'Recovery may dip — don\u2019t chase records.' },
   'Сегодня лучше снизить нагрузку.': { uk: 'Сьогодні краще знизити навантаження.', en: 'Better to ease off today.' },
   'Дай телу отдохнуть сегодня.': { uk: 'Дай тілу відпочити сьогодні.', en: 'Let your body rest today.' },
+  'Kp — индекс геомагнитной активности (буря при Kp ≥ 5). У чувствительных людей в такие дни может проседать сон и восстановление.': {
+    uk: 'Kp — індекс геомагнітної активності (буря при Kp ≥ 5). У чутливих людей у такі дні можуть просідати сон і відновлення.',
+    en: 'Kp is the geomagnetic activity index (storm at Kp ≥ 5). Sensitive people may see sleep and recovery dip on such days.',
+  },
   'Восходящий тренд': { uk: 'Висхідний тренд', en: 'Upward trend' },
   'Ляг сегодня пораньше': { uk: 'Ляж сьогодні раніше', en: 'Go to bed early tonight' },
   'Больше воды и ранний отбой': { uk: 'Більше води та ранній відбій', en: 'More water and an early night' },

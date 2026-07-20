@@ -815,9 +815,9 @@ body {
   .sync-label { display: none !important; }
   .signout-btn { display: none !important; }
   .theme-toggle { display: none !important; }
-  .streak-menu-trigger { min-height: 32px; padding: 0 8px; }
   .streak-menu-label { display: none; }
-  .streak-menu-panel { right: -42px; width: min(340px, calc(100vw - 24px)); max-height: calc(100vh - 68px); }
+  /* Topbar dropdown panels are sized down further in the media query that
+     follows their base rules — putting them here would lose the cascade. */
 
   /* Show burger on mobile */
   .burger-btn { display: flex !important; align-items: center; justify-content: center; }
@@ -1011,7 +1011,7 @@ body {
 .r-bar-row span { width: 104px; flex-shrink: 0; white-space: nowrap; }
 
 /* Текстовая кнопка-ссылка (напр. «Изменить» в настройках локации) */
-.link-btn { background: none; border: none; padding: 0; color: var(--accent, #6c8fff); font: inherit; font-size: 12px; cursor: pointer; text-decoration: underline; }
+.link-btn { background: none; border: none; padding: 0; color: var(--accent, #6c8fff); font: inherit; font-size: 13px; cursor: pointer; text-decoration: underline; }
 .link-btn:hover { opacity: 0.8; }
 .r-bar-track { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
 .r-bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
@@ -1069,7 +1069,10 @@ body {
   padding: 12px 16px;
   margin-bottom: 16px;
 }
-.geostorm-icon { font-size: 20px; flex-shrink: 0; }
+.geostorm-icon { flex-shrink: 0; display: inline-flex; align-items: center; }
+.geostorm-banner.minor .geostorm-icon { color: #BA7517; }
+.geostorm-banner.strong .geostorm-icon { color: #D85A30; }
+.geostorm-banner.extreme .geostorm-icon { color: #E24B4A; }
 .geostorm-banner strong { font-size: 14px; display: block; margin-bottom: 2px; }
 .geostorm-hint { font-size: 13px; color: var(--text-muted); }
 .geostorm-banner.minor  { background: rgba(239, 159, 39, 0.10); border-color: #BA7517; }
@@ -1084,14 +1087,31 @@ body {
   .geostorm-banner.extreme strong { color: #F09595; }
 }
 
+.geostorm-wrap { position: relative; display: inline-flex; }
 .geostorm-badge {
-  font-size: 17px;
   line-height: 1;
-  cursor: default;
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
-  filter: saturate(1.2);
+  background: none;
+  border: none;
+  padding: 0;
 }
+.geostorm-pop {
+  position: absolute; top: calc(100% + 10px); right: -60px; z-index: 150;
+  width: min(300px, calc(100vw - 32px));
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 18px; box-shadow: 0 12px 32px rgba(17, 17, 24, 0.12);
+  padding: 14px 16px;
+  animation: fadeIn 0.18s ease-out;
+  text-align: left;
+}
+.geostorm-pop-title { display: block; font-size: 13.5px; font-weight: 700; margin-bottom: 4px; }
+.geostorm-pop-text { margin: 0 0 6px; font-size: 12.5px; line-height: 1.45; }
+.geostorm-pop-note { margin: 0; font-size: 12px; line-height: 1.45; color: var(--text-muted); }
+.geostorm-badge.minor { color: #BA7517; }
+.geostorm-badge.strong { color: #D85A30; }
+.geostorm-badge.extreme { color: #E24B4A; }
 .geostorm-badge.strong, .geostorm-badge.extreme { animation: geostorm-pulse 2s ease-in-out infinite; }
 @keyframes geostorm-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
@@ -1126,13 +1146,13 @@ body {
 .section-archive-btn { position: absolute; top: 14px; right: 14px; z-index: 2; display: inline-flex; align-items: center; justify-content: center; padding: 5px; border: none; background: none; color: var(--text-muted); cursor: pointer; border-radius: 7px; opacity: 0.45; transition: opacity .15s, background .15s, color .15s; }
 .section-archive-btn:hover { opacity: 1; color: var(--text); background: var(--surface-2); }
 .settings-archive-toggle { display: flex; align-items: center; gap: 8px; width: 100%; padding: 0; border: none; background: none; font: inherit; font-weight: 600; font-size: 15px; color: var(--text-muted); cursor: pointer; }
-.settings-archive-caret { margin-left: auto; font-size: 11px; }
+.settings-archive-caret { margin-left: auto; font-size: 13px; }
 .settings-archive-list { margin-top: 14px; display: flex; flex-direction: column; }
 .settings-archive-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--border); font-size: 14px; }
 .settings-budget-bar-track { height: 10px; background: var(--border); border-radius: 5px; overflow: hidden; margin-bottom: 10px; }
 .settings-budget-bar-fill { height: 100%; border-radius: 5px; transition: width 0.4s ease; }
 .settings-budget-row { display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; margin-bottom: 4px; }
-.settings-tokens-row { font-size: 12px; margin-bottom: 16px; }
+.settings-tokens-row { font-size: 13px; margin-bottom: 16px; }
 .settings-muted { color: var(--text-muted); font-weight: 400; }
 .settings-by-source { border-top: 1px solid var(--border); padding-top: 12px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 12px; }
 .settings-source-item { display: flex; flex-direction: column; gap: 6px; }
@@ -1142,10 +1162,9 @@ body {
 .settings-budget-edit-row { border-top: 1px solid var(--border); padding-top: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .settings-label { font-size: 14px; font-weight: 500; }
 .settings-budget-display { display: flex; align-items: center; gap: 12px; }
-.settings-budget-val { font-size: 18px; font-weight: 700; }
-.settings-edit-btn { font-size: 12px; color: var(--accent); background: none; border: none; cursor: pointer; text-decoration: underline; padding: 0; }
+.settings-budget-val { font-size: 20px; font-weight: 700; }
 .settings-budget-edit { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.settings-budget-input { width: 72px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface2); color: var(--text); font-size: 15px; }
+.settings-budget-input { width: 72px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface2); color: var(--text); font-size: 14px; }
 .settings-cal-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .settings-ics-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .cal-account-row { margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
@@ -1321,7 +1340,23 @@ body {
 /* Chart event markers legend */
 .chart-events-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 4px 0 12px; font-size: 12px; color: var(--text-muted); }
 .chart-events-toggle { display: flex; align-items: center; gap: 5px; cursor: pointer; font-weight: 600; color: var(--text); }
-.chart-event-chip { white-space: nowrap; }
+.chart-event-chip { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+
+/* Тултип графика: значения метрик + расшифровка точек-маркеров события. */
+.chart-tip {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; box-shadow: var(--card-shadow);
+  padding: 8px 10px; font-size: 12px; line-height: 1.5;
+}
+.chart-tip-date { font-weight: 700; margin-bottom: 4px; }
+.chart-tip-row { display: flex; align-items: center; gap: 5px; color: var(--text-muted); }
+.chart-tip-row strong { color: var(--text); }
+.chart-tip-swatch { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.chart-tip-events {
+  display: flex; flex-direction: column; gap: 3px;
+  margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border);
+}
+.chart-tip-event { display: inline-flex; align-items: center; gap: 5px; }
 
 /* Readiness baseline deviation */
 .readiness-verdict { margin-top: 14px; font-size: 14px; line-height: 1.5; color: var(--text); }
@@ -1837,8 +1872,24 @@ input[type="date"].settings-input::-webkit-calendar-picker-indicator { cursor: p
 /* Language picker dropdown */
 .lang-picker { position: relative; }
 .lang-overlay { position: fixed; inset: 0; z-index: 149; }
-.lang-menu { position: absolute; top: calc(100% + 6px); right: 0; z-index: 150; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.18); min-width: 160px; padding: 4px; display: flex; flex-direction: column; gap: 2px; }
-.lang-option { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: none; color: var(--text); font-size: 14px; padding: 8px 12px; border-radius: 7px; cursor: pointer; text-align: left; transition: background 0.12s; }
+.lang-menu {
+  position: absolute; top: calc(100% + 10px); right: 0; z-index: 150;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 18px; box-shadow: 0 12px 32px rgba(17, 17, 24, 0.12);
+  min-width: 200px; padding: 8px;
+  display: flex; flex-direction: column; gap: 4px;
+  animation: fadeIn 0.18s ease-out;
+}
+.lang-option {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  width: 100%; background: none; border: none; color: var(--text);
+  font-size: 14px; font-weight: 600; padding: 11px 14px; border-radius: 12px;
+  cursor: pointer; text-align: left; transition: background 0.12s;
+}
+.lang-code {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
 
 /* Переключатель темы (mate-style): попап с карточками-превью */
 .theme-menu { padding: 14px; min-width: 300px; }
@@ -1864,8 +1915,8 @@ input[type="date"].settings-input::-webkit-calendar-picker-indicator { cursor: p
 .mobile-theme-btn { flex: 1; padding: 8px 4px; font-size: 13px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface2); color: var(--text); cursor: pointer; }
 .mobile-theme-btn.active { border-color: var(--accent); color: var(--accent); font-weight: 600; }
 .lang-option:hover { background: var(--surface2); }
-.lang-option.active { background: color-mix(in srgb, var(--accent) 12%, transparent); }
-.lang-check { margin-left: auto; color: var(--accent); font-weight: 700; }
+.lang-option.active { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); }
+.lang-option.active .lang-code { color: var(--accent); opacity: 0.75; }
 
 /* ── MealLogger ──────────────────────────────────────────────────────────── */
 .meal-logger { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 20px; }
@@ -1973,28 +2024,6 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 [data-theme="light"] .concern-card:hover {
   box-shadow: 0 8px 24px rgba(17, 17, 24, 0.10);
 }
-
-/* ── Страж здоровья: баннер алерта (F1, smart-tonus) ─────────────────── */
-.health-alert-banner {
-  display: flex; align-items: flex-start; gap: 12px;
-  margin: 0 0 16px; padding: 12px 16px; border-radius: 12px;
-  border: 1px solid; font-size: 14px; line-height: 1.45;
-}
-.health-alert-banner.yellow {
-  background: color-mix(in srgb, #f59e0b 12%, var(--surface));
-  border-color: color-mix(in srgb, #f59e0b 45%, transparent);
-}
-.health-alert-banner.red {
-  background: color-mix(in srgb, #ef4444 12%, var(--surface));
-  border-color: color-mix(in srgb, #ef4444 45%, transparent);
-}
-.health-alert-text { flex: 1; white-space: pre-line; }
-.health-alert-ack {
-  flex-shrink: 0; padding: 6px 14px; border-radius: 8px;
-  border: 1px solid var(--border, rgba(127,127,127,.3));
-  background: var(--surface); color: inherit; cursor: pointer; font-size: 13px;
-}
-.health-alert-ack:hover { border-color: var(--accent); }
 
 /* ── Инсайты: связи в данных (F3, smart-tonus) ───────────────────────── */
 .corr-list { display: flex; flex-direction: column; gap: 8px; }
@@ -2125,37 +2154,85 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
   background: var(--red, #e5484d); color: #fff;
   border-radius: 999px; font-size: 10px; font-weight: 700; line-height: 1;
 }
+/* Панель в духе mate.academy: белая карточка с крупным радиусом, каждое
+   уведомление — своя мягкая карточка без рамок, иконка в тонированной
+   скруглённой плитке (цвет плитки = уровень сигнала). */
 .bell-panel {
   position: absolute; z-index: 20; top: calc(100% + 10px); right: 0;
-  width: min(320px, calc(100vw - 32px)); max-height: calc(100vh - 78px);
+  width: min(372px, calc(100vw - 32px)); max-height: calc(100vh - 78px);
   overflow-y: auto; background: var(--surface); border: 1px solid var(--border);
-  border-radius: 12px; box-shadow: var(--card-shadow); animation: fadeIn 0.18s ease-out;
+  border-radius: 18px; box-shadow: 0 12px 32px rgba(17, 17, 24, 0.12);
+  animation: fadeIn 0.18s ease-out;
 }
 .bell-head {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 14px 6px;
+  padding: 16px 18px 10px;
 }
-.bell-title { font-size: 14px; font-weight: 700; }
-.bell-empty { padding: 8px 14px 16px; font-size: 13px; color: var(--text-muted); }
-.bell-list { list-style: none; margin: 0; padding: 0 8px 10px; }
+.bell-title { font-size: 16px; font-weight: 800; letter-spacing: -0.01em; }
+.bell-empty { padding: 8px 18px 20px; font-size: 13.5px; color: var(--text-muted); }
+.bell-list {
+  list-style: none; margin: 0; padding: 0 10px 12px;
+  display: flex; flex-direction: column; gap: 8px;
+}
 .bell-item {
-  display: flex; align-items: flex-start; gap: 8px;
-  padding: 8px 6px; border-radius: 8px;
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px; border-radius: 14px;
+  background: var(--surface2);
 }
-.bell-item + .bell-item { border-top: 1px solid var(--border); }
-.bell-item-icon { font-size: 15px; line-height: 1.3; }
-.bell-item-text { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-.bell-item-title { font-size: 13px; font-weight: 600; }
-.bell-item-body { font-size: 12px; color: var(--text-muted); }
-.bell-item-time { font-size: 11px; color: var(--text-muted); }
-.bell-item-ack {
-  width: 24px; height: 24px; flex-shrink: 0;
+.bell-item-icon {
+  width: 38px; height: 38px; flex-shrink: 0;
   display: grid; place-items: center;
-  color: var(--text-muted); background: transparent;
-  border: 1px solid var(--border); border-radius: 6px;
-  font-size: 12px; cursor: pointer;
+  font-size: 18px; line-height: 1; border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
-.bell-item-ack:hover { color: var(--text); background: var(--surface2); }
+.bell-item.level-red .bell-item-icon { background: color-mix(in srgb, var(--red) 15%, transparent); }
+.bell-item.level-yellow .bell-item-icon { background: color-mix(in srgb, var(--yellow) 20%, transparent); }
+.bell-item.level-streak .bell-item-icon { background: color-mix(in srgb, #ff7a1a 16%, transparent); }
+.bell-item-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.bell-item-title { font-size: 13.5px; font-weight: 700; line-height: 1.35; }
+.bell-item-body { font-size: 12.5px; line-height: 1.45; color: var(--text-muted); white-space: pre-line; }
+.bell-item-time { margin-top: 2px; font-size: 11px; color: var(--text-muted); opacity: 0.8; display: flex; align-items: center; gap: 10px; }
+/* Разворот совета: текстовая кнопка в строке с датой. */
+.bell-item-more {
+  border: none; background: none; padding: 0;
+  font: inherit; font-weight: 600; color: var(--accent); cursor: pointer;
+}
+.bell-item-advice { white-space: pre-line; }
+.bell-item-ack {
+  width: 28px; height: 28px; flex-shrink: 0; align-self: flex-start;
+  display: grid; place-items: center;
+  color: var(--text-muted); background: var(--surface);
+  border: none; border-radius: 999px;
+  font-size: 13px; cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: background 0.15s, color 0.15s;
+}
+.bell-item-ack:hover { color: var(--green); }
+
+/* On a phone these panels are wider than the gap between their trigger and the
+   left edge of the screen, so anchoring them to the button clips them. Pin them
+   to the viewport instead, gutter to gutter, under the topbar. Must stay after
+   the base rules above — a media query adds no specificity, so the later
+   declaration wins. */
+@media (max-width: 768px) {
+  .streak-menu-trigger { min-height: 32px; padding: 0 8px; }
+  .streak-menu-panel, .bell-panel, .geostorm-pop {
+    position: fixed; top: 58px; left: 12px; right: 12px;
+    width: auto; max-height: calc(100vh - 68px);
+  }
+  .geostorm-pop { overflow-y: auto; }
+}
+
+/* Пульс: таблица по дням, аномально низкие дни подсвечены */
+.hr-daily { margin-top: 18px; }
+.hr-daily h3 { font-size: 15px; margin: 0 0 8px; }
+.hr-daily-low td { color: var(--red); }
+.hr-low-badge {
+  display: inline-block; padding: 2px 8px;
+  font-size: 11px; font-weight: 700; line-height: 1.4;
+  color: var(--red); background: color-mix(in srgb, var(--red) 12%, transparent);
+  border-radius: 999px; white-space: nowrap;
+}
 
 /* ── Gamified home: activity calendar ───────────────────────── */
 .activity-cal {

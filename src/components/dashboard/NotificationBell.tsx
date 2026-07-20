@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { DailyMetrics } from '../../types'
-import { supabase } from '../../lib/supabase'
+import { getOpenHealthAlerts, acknowledgeHealthAlert, type HealthAlert } from '../../lib/api/dashboard'
 import { demoList, demoUpdate } from '../../lib/demoDb'
-import { buildBellItems, type BellItem } from '../../lib/notifications'
+import { buildBellItems, parseAlertMessage, splitAlertBody, localizeAlertText, type BellItem } from '../../lib/notifications'
 import { ACTIVE_STEPS_MIN, ACTIVE_EXERCISE_MIN } from '../../lib/streak'
 import { useT } from '../../lib/i18n'
 
@@ -10,14 +10,6 @@ interface Props {
   daily: DailyMetrics[]
   userId: string | null
   demo: boolean
-}
-
-// Алерты стража из БД (та же выборка, что HealthAlertBanner, но списком).
-interface HealthAlert {
-  id: string
-  level: 'yellow' | 'red'
-  message: string
-  created_at: string
 }
 
 const DISMISSED_KEY = 'bell_dismissed'
@@ -47,23 +39,26 @@ export function NotificationBell({ daily, userId, demo }: Props) {
   const [alerts, setAlerts] = useState<HealthAlert[]>(
     () => demo ? demoList('health_alerts').filter(a => !a.acknowledged_at) as HealthAlert[] : [])
   const [dismissed, setDismissed] = useState<Set<string>>(loadDismissed)
+  // Развёрнутые карточки: совет с дисклеймером виден только после клика.
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const rootRef = useRef<HTMLDivElement>(null)
+
+  const toggleExpanded = (id: string) => {
+    setExpanded(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   useEffect(() => {
     if (!userId || demo) return
     let cancelled = false
-    const since = new Date(Date.now() - 14 * 24 * 3600_000).toISOString()
-    supabase
-      .from('health_alerts')
-      .select('id, level, message, created_at')
-      .eq('user_id', userId)
-      .is('acknowledged_at', null)
-      .gte('created_at', since)
-      .order('created_at', { ascending: false })
-      .limit(10)
-      .then(({ data }) => {
-        if (!cancelled && data) setAlerts(data as HealthAlert[])
-      })
+    // Единственная поверхность алертов стража: раньше самый свежий дублировался
+    // красным баннером над дашбордом, теперь всё живёт здесь списком за 14 дней.
+    getOpenHealthAlerts(userId, { sinceHours: 14 * 24, limit: 10 })
+      .then(data => { if (!cancelled && data.length) setAlerts(data) })
     return () => { cancelled = true }
   }, [userId, demo])
 
@@ -94,7 +89,7 @@ export function NotificationBell({ daily, userId, demo }: Props) {
   const ackAlert = async (id: string) => {
     setAlerts(list => list.filter(a => a.id !== id))
     if (demo) return demoUpdate('health_alerts', id, { acknowledged_at: new Date().toISOString() })
-    await supabase.from('health_alerts').update({ acknowledged_at: new Date().toISOString() }).eq('id', id)
+    await acknowledgeHealthAlert(id)
   }
 
   const dismissDerived = (id: string) => {
@@ -144,36 +139,52 @@ export function NotificationBell({ daily, userId, demo }: Props) {
 
       {open && (
         <section id="bell-panel" className="bell-panel" role="dialog" aria-label={t('Уведомления')}>
+          {/* Без кнопки закрытия: панель и так закрывается кликом вне и Escape,
+              а второй крестик рядом с крестиками отдельных уведомлений читался
+              как «убрать всё». */}
           <div className="bell-head">
             <span className="bell-title">{t('Уведомления')}</span>
-            <button type="button" className="streak-menu-close" onClick={() => setOpen(false)} aria-label={t('Закрыть')}>×</button>
           </div>
           {count === 0 ? (
             <div className="bell-empty">{t('Все спокойно — сигналов нет')} 👌</div>
           ) : (
             <ul className="bell-list">
-              {alerts.map(a => (
-                <li key={a.id} className={`bell-item level-${a.level}`}>
-                  <span className="bell-item-icon" aria-hidden>{a.level === 'red' ? '🔴' : '🟡'}</span>
-                  <div className="bell-item-text">
-                    <span className="bell-item-body">{a.message.replace(/<[^>]+>/g, '')}</span>
-                    <span className="bell-item-time">
-                      {new Date(a.created_at).toLocaleDateString(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                  <button type="button" className="bell-item-ack" onClick={() => ackAlert(a.id)} aria-label={t('Понятно')}>✓</button>
-                </li>
-              ))}
+              {alerts.map(a => {
+                // Серверный текст русский (язык бота) — локализуем построчно.
+                // Совет с дисклеймером свёрнут: карточки компактнее, факты видны сразу.
+                const { title, body } = parseAlertMessage(a.message)
+                const { facts, advice } = splitAlertBody(body)
+                const isOpen = expanded.has(a.id)
+                return (
+                  <li key={a.id} className={`bell-item level-${a.level}`}>
+                    <span className="bell-item-icon" aria-hidden>{a.level === 'red' ? '🫀' : '👀'}</span>
+                    <div className="bell-item-text">
+                      <span className="bell-item-title">{localizeAlertText(title, t)}</span>
+                      {facts && <span className="bell-item-body">{localizeAlertText(facts, t)}</span>}
+                      {advice && isOpen && <span className="bell-item-body bell-item-advice">{localizeAlertText(advice, t)}</span>}
+                      <span className="bell-item-time">
+                        {new Date(a.created_at).toLocaleDateString(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        {advice && (
+                          <button type="button" className="bell-item-more" onClick={() => toggleExpanded(a.id)} aria-expanded={isOpen}>
+                            {isOpen ? t('Свернуть') : t('Подробнее')}
+                          </button>
+                        )}
+                      </span>
+                    </div>
+                    <button type="button" className="bell-item-ack" onClick={() => ackAlert(a.id)} aria-label={t('Понятно')}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M18 6 6 18M6 6l12 12" /></svg></button>
+                  </li>
+                )
+              })}
               {derived.map(item => {
                 const { icon, title, body } = derivedText(item)
                 return (
-                  <li key={item.id} className="bell-item">
+                  <li key={item.id} className={`bell-item level-${item.kind === 'streak-risk' ? 'streak' : 'info'}`}>
                     <span className="bell-item-icon" aria-hidden>{icon}</span>
                     <div className="bell-item-text">
                       <span className="bell-item-title">{title}</span>
                       <span className="bell-item-body">{body}</span>
                     </div>
-                    <button type="button" className="bell-item-ack" onClick={() => dismissDerived(item.id)} aria-label={t('Понятно')}>✓</button>
+                    <button type="button" className="bell-item-ack" onClick={() => dismissDerived(item.id)} aria-label={t('Понятно')}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M18 6 6 18M6 6l12 12" /></svg></button>
                   </li>
                 )
               })}

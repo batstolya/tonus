@@ -11,6 +11,7 @@ import {
 } from '../../lib/goals'
 import { callFunction } from '../../lib/edgeFunctions'
 import { LoadError } from '../ui/LoadError'
+import { startEffect } from '../../lib/startEffect'
 
 interface Props {
   user: User
@@ -98,7 +99,7 @@ export function GoalsScreen({ user, daily }: Props) {
     }
   }, [user.id, daily])
 
-  useEffect(() => { reload() }, [reload])
+  useEffect(() => { startEffect(reload) }, [reload])
 
   // Пока юзер не тронул поле, заголовок = название метрики (на языке интерфейса).
   const title = fTitle ?? (cfg ? t(cfg.label) : '')
@@ -268,7 +269,7 @@ export function GoalsScreen({ user, daily }: Props) {
               const prog = computeProgress(goal, daily)
               const color = STATUS_COLOR[prog.status]
               const cfg = METRIC_CONFIG[goal.metric]
-              const daysLeft = Math.max(0, Math.ceil((new Date(goal.end_date).getTime() - Date.now()) / 86400000))
+              const daysLeft = Math.max(0, Math.ceil((new Date(goal.end_date).getTime() - new Date().getTime()) / 86400000))
 
               return (
                 <div key={goal.id} className="goal-card">

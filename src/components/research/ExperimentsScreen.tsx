@@ -1,8 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import type { User } from '@supabase/supabase-js'
 import type { DailyMetrics } from '../../types'
-import type { Json } from '../../lib/database.types'
-import { supabase } from '../../lib/supabase'
+import { getExperiments, createExperiment, saveExperimentResult, deleteExperiment } from '../../lib/api/research'
 import { callFunction } from '../../lib/edgeFunctions'
 import { EXPERIMENT_PREFILL_KEY, type ExperimentPrefill } from '../../lib/levers'
 import { useT } from '../../lib/i18n'
@@ -15,6 +14,7 @@ import { ExperimentCard } from './ExperimentCard'
 import { LoadError } from '../ui/LoadError'
 import { isDemoActive } from '../../lib/demo'
 import { makeDemoExperiments, makeDemoSuggestions, type DemoSuggestion } from '../../lib/demoFixture'
+import { startEffect } from '../../lib/startEffect'
 
 interface Props { user: User; daily: DailyMetrics[] }
 
@@ -49,30 +49,31 @@ export function ExperimentsScreen({ user, daily }: Props) {
 
   function loadExps() {
     if (isDemoActive()) return // фикстура уже в начальном стейте
-    supabase.from('experiments').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
-      .then(({ data, error }) => {
-        if (error) setLoadError(true)
-        else { setExps((data ?? []) as ExperimentRow[]); setLoadError(false) }
-      })
+    getExperiments(user.id).then(rows => {
+      if (rows === null) setLoadError(true)
+      else { setExps(rows); setLoadError(false) }
+    })
   }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadExps() }, [user.id])
 
   useEffect(() => {
-    const raw = sessionStorage.getItem(EXPERIMENT_PREFILL_KEY)
-    if (!raw) return
-    sessionStorage.removeItem(EXPERIMENT_PREFILL_KEY)
-    try {
-      const p = JSON.parse(raw) as ExperimentPrefill
-      setForm(prev => ({
-        ...prev,
-        hypothesis: p.hypothesis,
-        change_rule: p.change_rule,
-        target_metric: isValidMetric(p.target_metric) ? p.target_metric : prev.target_metric,
-      }))
-      setShowForm(true)
-    } catch { /* битый prefill — игнорируем */ }
+    startEffect(async () => {
+      const raw = sessionStorage.getItem(EXPERIMENT_PREFILL_KEY)
+      if (!raw) return
+      sessionStorage.removeItem(EXPERIMENT_PREFILL_KEY)
+      try {
+        const p = JSON.parse(raw) as ExperimentPrefill
+        setForm(prev => ({
+          ...prev,
+          hypothesis: p.hypothesis,
+          change_rule: p.change_rule,
+          target_metric: isValidMetric(p.target_metric) ? p.target_metric : prev.target_metric,
+        }))
+        setShowForm(true)
+      } catch { /* битый prefill — игнорируем */ }
+    })
   }, [])
 
   async function handleCreate(e: React.FormEvent) {
@@ -93,8 +94,7 @@ export function ExperimentsScreen({ user, daily }: Props) {
       setShowForm(false)
       return
     }
-    const { data, error } = await supabase.from('experiments').insert({
-      user_id: user.id,
+    const created = await createExperiment(user.id, {
       hypothesis: form.hypothesis,
       change_rule: form.change_rule,
       target_metric: form.target_metric,
@@ -103,9 +103,9 @@ export function ExperimentsScreen({ user, daily }: Props) {
       start_date: form.start_date,
       end_date: form.end_date,
       status: form.end_date < localDate() ? 'completed' : 'active',
-    }).select().single()
-    if (!error && data) {
-      setExps(prev => [data as ExperimentRow, ...prev])
+    })
+    if (created) {
+      setExps(prev => [created, ...prev])
       setShowForm(false)
     }
   }
@@ -188,7 +188,7 @@ export function ExperimentsScreen({ user, daily }: Props) {
       const json = await callFunction<{ reply?: string }>('deep-research', { findings: prompt, periodLabel: `${exp.baseline_days} дн` })
       const explanation = json.reply ?? ''
       if (!explanation) throw new Error('empty reply')
-      await supabase.from('experiments').update({ result: result as unknown as Json, ai_explanation: explanation }).eq('id', exp.id)
+      await saveExperimentResult(exp.id, result, explanation)
       setExps(prev => prev.map(e => e.id === exp.id ? { ...e, result, ai_explanation: explanation } : e))
     } catch {
       setAiError({ id: exp.id, msg: t('Не удалось получить разбор. Попробуй ещё раз.') })
@@ -197,7 +197,7 @@ export function ExperimentsScreen({ user, daily }: Props) {
   }
 
   async function handleDelete(id: string) {
-    if (!isDemoActive()) await supabase.from('experiments').delete().eq('id', id)
+    if (!isDemoActive()) await deleteExperiment(id)
     setExps(prev => prev.filter(e => e.id !== id))
   }
 

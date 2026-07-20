@@ -3,11 +3,9 @@ import type { User } from '@supabase/supabase-js'
 import type { CalendarEvent } from '../../../types'
 import type { AppView } from '../../../store/appStore'
 import { useT } from '../../../lib/i18n'
-import { supabase } from '../../../lib/supabase'
+import { getCalSyncStatus, type CalSyncStatus } from '../../../lib/api/settings'
 import { callFunction } from '../../../lib/edgeFunctions'
 import { ArchiveBtn, type SectionProps } from './ArchiveBtn'
-
-type CalStatus = { cal_email: string | null; last_sync_at: string | null; last_status: string | null; event_count: number | null; enabled: boolean }
 
 interface Props extends SectionProps {
   user: User
@@ -22,7 +20,7 @@ export function CalSyncSection({ archived, onArchive, user, onCalEvents, onNavig
   const [calMsg, setCalMsg] = useState<string | null>(null)
   const [calEmail, setCalEmail] = useState('')
   const [calPassword, setCalPassword] = useState('')
-  const [calStatus, setCalStatus] = useState<CalStatus | null>(null)
+  const [calStatus, setCalStatus] = useState<CalSyncStatus | null>(null)
   const [editingCal, setEditingCal] = useState(false)
 
   async function handleCalSync() {
@@ -43,10 +41,7 @@ export function CalSyncSection({ archived, onArchive, user, onCalEvents, onNavig
   }
 
   async function refreshCalStatus() {
-    const { data } = await supabase.from('cal_sync')
-      .select('cal_email, last_sync_at, last_status, event_count, enabled')
-      .eq('user_id', user.id).maybeSingle()
-    setCalStatus(data ?? null)
+    setCalStatus(await getCalSyncStatus(user.id))
   }
 
   async function handleCalSaveAndSync() {
@@ -85,10 +80,7 @@ export function CalSyncSection({ archived, onArchive, user, onCalEvents, onNavig
   }
 
   useEffect(() => {
-    supabase.from('cal_sync')
-      .select('cal_email, last_sync_at, last_status, event_count, enabled')
-      .eq('user_id', user.id).maybeSingle()
-      .then(({ data }) => setCalStatus(data ?? null))
+    getCalSyncStatus(user.id).then(setCalStatus)
   }, [user.id])
 
   return (
@@ -105,12 +97,12 @@ export function CalSyncSection({ archived, onArchive, user, onCalEvents, onNavig
             ✓ {t('Подключён:')} {calStatus.cal_email}
           </div>
           {calStatus.last_sync_at && (
-            <div className="settings-muted" style={{ fontSize: 12, marginBottom: 10 }}>
+            <div className="settings-muted" style={{ fontSize: 13, marginBottom: 10 }}>
               {t('Последняя синхронизация:')} {new Date(calStatus.last_sync_at).toLocaleString(locale)} · {calStatus.event_count ?? 0} {t('событий')}
               {calStatus.last_status && calStatus.last_status !== 'ok' && <span style={{ color: 'var(--red)' }}> · {calStatus.last_status}</span>}
             </div>
           )}
-          <label className="settings-muted" style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, fontSize: 12 }}>
+          <label className="settings-muted" style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, fontSize: 13 }}>
             <input type="checkbox" checked={calStatus.enabled} onChange={e => handleCalToggle(e.target.checked)} />
             {t('Авто-синк раз в день')}
           </label>
@@ -124,15 +116,15 @@ export function CalSyncSection({ archived, onArchive, user, onCalEvents, onNavig
       ) : (
         // ── Не подключено или смена аккаунта: форма входа ──
         <>
-          <div className="settings-muted" style={{ marginBottom: 12, fontSize: 12, lineHeight: 1.5 }}>
+          <div className="settings-muted" style={{ marginBottom: 12, fontSize: 13, lineHeight: 1.5 }}>
             {calStatus?.cal_email
               ? t('Аккаунт подключён, синхронизация раз в день. Чтобы сменить аккаунт — введи новые данные ниже.')
               : t('Введи логин и пароль cal.com — синхронизация будет автоматической раз в день. Пароль хранится зашифрованно.')}
           </div>
           <div className="settings-ics-row" style={{ flexDirection: 'column', gap: 8, alignItems: 'stretch' }}>
-            <input className="log-input" type="email" placeholder={calStatus?.cal_email || 'email@cal.com'}
+            <input className="settings-input" type="email" placeholder={calStatus?.cal_email || 'email@cal.com'}
               value={calEmail} onChange={e => setCalEmail(e.target.value)} />
-            <input className="log-input" type="password" placeholder={t('Пароль cal.com')}
+            <input className="settings-input" type="password" placeholder={t('Пароль cal.com')}
               value={calPassword} onChange={e => setCalPassword(e.target.value)} />
             <div style={{ display: 'flex', gap: 8 }}>
               <button className="btn-primary" style={{ flex: 1 }} onClick={handleCalSaveAndSync}
@@ -144,15 +136,15 @@ export function CalSyncSection({ archived, onArchive, user, onCalEvents, onNavig
               </button>
             </div>
           </div>
-          <div className="settings-muted" style={{ margin: '14px 0 6px', fontSize: 12, fontWeight: 600 }}>
+          <div className="settings-muted" style={{ margin: '14px 0 6px', fontSize: 13, fontWeight: 600 }}>
             {t('Резервный способ — вход по session-токену:')}
           </div>
-          <div className="settings-muted" style={{ marginBottom: 12, fontSize: 12, lineHeight: 1.5 }}>
+          <div className="settings-muted" style={{ marginBottom: 12, fontSize: 13, lineHeight: 1.5 }}>
             F12 → Application → Cookies → <b>__Secure-next-auth.session-token</b>. {t('Токен очищается после загрузки — можно вставить второй аккаунт следом.')}
           </div>
           <div className="settings-ics-row">
             <input
-              className="log-input"
+              className="settings-input"
               style={{ flex: 1, fontFamily: 'monospace', fontSize: 12 }}
               type="password"
               placeholder="eyJhbGci..."

@@ -60,14 +60,18 @@ export function discoverEdgeFunctions(functionNames, configText, sourceByName = 
     .map(name => {
       const source = sourceByName[name] ?? ''
       const hasCors = source.includes('Access-Control-Allow-Origin')
-      const cors = !hasCors
-        ? 'none'
-        : /Access-Control-Allow-Origin['"]?\s*[:=]\s*['"]\*['"]/.test(source) ? 'wildcard' : 'restricted'
+      const cors = /\bcorsHeadersFor\s*\(/.test(source)
+        ? 'allowlist'
+        : !hasCors
+          ? 'none'
+          : /Access-Control-Allow-Origin['"]?\s*[:=]\s*['"]\*['"]/.test(source) ? 'wildcard' : 'restricted'
+      const budget = /\bcheckBudget\s*\(/.test(source)
+      const durable = /\bconsumeRateLimit\s*\(/.test(source)
       return {
         name,
         verifyJwt: explicitModes.get(name) ?? true,
         cors,
-        rateLimit: /\bcheckBudget\s*\(/.test(source) ? 'ai-budget' : 'none',
+        rateLimit: budget && durable ? 'ai-budget+durable' : durable ? 'durable' : budget ? 'ai-budget' : 'none',
       }
     })
 }

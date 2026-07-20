@@ -61,10 +61,10 @@ jobs:
           path: test-results/
           retention-days: 7
 
-      # Потолок ошибок eslint (храповик): число в .lint-ceiling может только падать.
-      # Починил пачку старых ошибок — снизь .lint-ceiling до нового значения.
-      - name: Lint ceiling (ratchet)
-        run: npm run lint:ceiling
+      # Zero-tolerance lint: the B4 burn-down emptied the debt, so any error or
+      # warning fails CI outright (the .lint-ceiling ratchet is retired).
+      - name: Lint
+        run: npm run lint
 
       # PR-гейт: любая новая lint-ошибка на изменённых строках роняет CI,
       # даже если суммарный потолок не превышен.
@@ -72,13 +72,13 @@ jobs:
         if: github.event_name == 'pull_request'
         run: npm run lint:diff
 
-      # Потолок type-ошибок deno check в edge-функциях (храповик, как lint:ceiling).
-      # Baseline в .deno-check-ceiling может только падать.
+      # Zero-tolerance deno type check of shipped edge-function code; *.test.ts
+      # run under vitest and are excluded (the ceiling ratchet is retired).
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
 
-      - name: Deno check ceiling (ratchet)
+      - name: Deno check (zero errors)
         run: npm run check:functions
 
       # Дрифт-гард DB-типов: если миграция залита без `npm run gen:types`,

@@ -1,18 +1,9 @@
 import { useState } from 'react'
-import { supabase } from '../../lib/supabase'
+import { createIntakeEvent, deleteIntakeEvent, type IntakeEvent } from '../../lib/api/intake'
 import { isDemoActive } from '../../lib/demo'
 import { demoInsert, demoRemove, demoId } from '../../lib/demoDb'
 import type { User } from '@supabase/supabase-js'
 import { useT } from '../../lib/i18n'
-
-interface IntakeEvent {
-  id: string
-  ts: string
-  type: string
-  amount: number | null
-  unit: string | null
-  note: string | null
-}
 
 const EVENT_TYPES = [
   { type: 'coffee', label: '☕ Кофе', unit: 'мл', defaultAmount: 200 },
@@ -76,17 +67,16 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
       setSaving(false)
       return
     }
-    const { data, error } = await supabase.from('intake_events').insert({
-      user_id: user.id,
+    const created = await createIntakeEvent(user.id, {
       ts: buildTs(),
       type: selectedType,
       amount: amount ? Number(amount) : preset.defaultAmount,
       unit: preset.unit,
       note: note || null,
-    }).select().single()
+    })
 
-    if (!error && data) {
-      onEventsChange([data as IntakeEvent, ...events])
+    if (created) {
+      onEventsChange([created, ...events])
       setNote('')
       setAmount('')
       setTime(nowTimeStr())
@@ -98,15 +88,15 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
 
   async function handleDelete(id: string) {
     if (isDemoActive()) demoRemove('intake_events', id)
-    else await supabase.from('intake_events').delete().eq('id', id)
+    else await deleteIntakeEvent(id)
     onEventsChange(events.filter(e => e.id !== id))
   }
 
   const today = new Date().toISOString().slice(0, 10)
-  const yesterday = new Date(Date.now() - 864e5).toISOString().slice(0, 10)
+  const yesterday = new Date(new Date().getTime() - 864e5).toISOString().slice(0, 10)
 
   // Group events by date, show last 3 days
-  const recentDays = [today, yesterday, new Date(Date.now() - 2 * 864e5).toISOString().slice(0, 10)]
+  const recentDays = [today, yesterday, new Date(new Date().getTime() - 2 * 864e5).toISOString().slice(0, 10)]
   const grouped = recentDays
     .map(date => ({ date, items: events.filter(e => e.ts.slice(0, 10) === date) }))
     .filter(g => g.items.length > 0)
@@ -119,7 +109,7 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
 
   // Caffeine model: 80mg per 200ml, half-life 5.5h
   function caffeineNow(): number {
-    const nowMs = Date.now()
+    const nowMs = new Date().getTime()
     return events
       .filter(e => e.type === 'coffee' && e.ts.slice(0, 10) === today)
       .reduce((total, ev) => {
@@ -191,7 +181,7 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
             )}
             <div className="time-chips">
               {[0, 30, 60, 120, 180].map(mins => {
-                const d = new Date(Date.now() - mins * 60000)
+                const d = new Date(new Date().getTime() - mins * 60000)
                 const val = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
                 const label = mins === 0 ? t('Сейчас') : mins < 60 ? `${mins}${t('м')}` : `${mins/60}${t('ч')}`
                 return (

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { secretMatches, isValidCronSecret, isValidTelegramSecret, isValidAdminSecret } from './auth.ts'
+import { secretMatches, isValidCronSecret, isValidTelegramSecret, isValidAdminSecret, isValidInternalSecret } from './auth.ts'
 
 const reqWith = (headers: Record<string, string>) =>
   new Request('https://x/', { method: 'POST', headers })
@@ -37,5 +37,12 @@ describe('request header readers', () => {
   it('admin: reads x-admin-secret', () => {
     expect(isValidAdminSecret(reqWith({ 'x-admin-secret': 'a' }), 'a')).toBe(true)
     expect(isValidAdminSecret(reqWith({}), 'a')).toBe(false)
+  })
+  it('internal: reads x-internal-secret and fails closed', () => {
+    expect(isValidInternalSecret(reqWith({ 'x-internal-secret': 's3cret' }), 's3cret')).toBe(true)
+    expect(isValidInternalSecret(reqWith({ 'x-internal-secret': 'nope' }), 's3cret')).toBe(false)
+    expect(isValidInternalSecret(reqWith({}), 's3cret')).toBe(false)
+    expect(isValidInternalSecret(reqWith({ 'x-internal-secret': 's3cret' }), undefined)).toBe(false)
+    expect(isValidInternalSecret(reqWith({ 'x-internal-secret': 's3cret' }), '')).toBe(false)
   })
 })

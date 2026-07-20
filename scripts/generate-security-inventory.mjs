@@ -14,9 +14,16 @@ export function generateSecurityInventory() {
   const functionNames = readdirSync('supabase/functions', { withFileTypes: true })
     .filter(entry => entry.isDirectory() && entry.name !== '_shared')
     .map(entry => entry.name)
+  // Concatenate every non-test module of the function: auth/budget/CORS markers
+  // may live outside index.ts (e.g. the telegram-bot split moved checkBudget
+  // calls into messages.ts/ai.ts) and must stay visible to discovery.
   const functionSources = Object.fromEntries(functionNames.map(name => [
     name,
-    readFileSync(`supabase/functions/${name}/index.ts`, 'utf8'),
+    readdirSync(`supabase/functions/${name}`)
+      .filter(file => file.endsWith('.ts') && !file.endsWith('.test.ts'))
+      .sort()
+      .map(file => readFileSync(`supabase/functions/${name}/${file}`, 'utf8'))
+      .join('\n'),
   ]))
   const inventory = buildSecurityInventory({
     ...discoverDatabaseSurfaces(databaseTypes),

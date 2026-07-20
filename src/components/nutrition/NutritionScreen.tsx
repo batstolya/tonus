@@ -1,23 +1,15 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, ReferenceLine,
 } from 'recharts'
-import { supabase } from '../../lib/supabase'
+import { getMeals, type Meal } from '../../lib/api/intake'
 import { isDemoActive } from '../../lib/demo'
 import { demoList } from '../../lib/demoDb'
 import { useT } from '../../lib/i18n'
 import { MealLogger } from './MealLogger'
 import { LoadError } from '../ui/LoadError'
-
-interface Meal {
-  ts: string
-  note: string | null
-  calories: number | null
-  protein_g: number | null
-  carbs_g: number | null
-  fat_g: number | null
-}
+import { startEffect } from '../../lib/startEffect'
 
 interface DayAgg { date: string; calories: number; protein: number; carbs: number; fat: number; meals: Meal[] }
 
@@ -51,20 +43,15 @@ export function NutritionScreen({ user }: { user: User }) {
     loadMeals()
   }
 
-  function loadMeals() {
+  const loadMeals = useCallback(async () => {
     const since = new Date(Date.now() - 30 * 86400000).toISOString()
-    supabase.from('intake_events')
-      .select('ts, note, calories, protein_g, carbs_g, fat_g')
-      .eq('user_id', user.id).eq('type', 'meal')
-      .gte('ts', since).order('ts', { ascending: false })
-      .then(({ data, error }) => {
-        if (error) setLoadError(true)
-        else { setMeals((data ?? []) as Meal[]); setLoadError(false) }
-        setLoading(false)
-      })
-  }
+    const data = await getMeals(user.id, since)
+    if (data === null) setLoadError(true)
+    else { setMeals(data); setLoadError(false) }
+    setLoading(false)
+  }, [user.id])
 
-  useEffect(() => { if (!isDemoActive()) loadMeals() }, [user.id])
+  useEffect(() => { if (!isDemoActive()) startEffect(loadMeals) }, [loadMeals])
 
   const days = useMemo<DayAgg[]>(() => {
     const map = new Map<string, DayAgg>()

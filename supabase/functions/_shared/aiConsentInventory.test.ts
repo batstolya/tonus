@@ -11,9 +11,15 @@ function geminiFunctions(): { name: string; source: string }[] {
   return readdirSync(functionsDir, { withFileTypes: true })
     .filter(entry => entry.isDirectory() && entry.name !== '_shared')
     .flatMap(entry => {
-      const file = resolve(functionsDir, entry.name, 'index.ts')
+      // Scan every module of the function, not just index.ts — the telegram-bot
+      // split moved its Gemini calls into ai.ts and egress must stay visible.
+      const dir = resolve(functionsDir, entry.name)
       try {
-        const source = readFileSync(file, 'utf8')
+        const source = readdirSync(dir)
+          .filter(f => f.endsWith('.ts') && !f.endsWith('.test.ts'))
+          .sort()
+          .map(f => readFileSync(resolve(dir, f), 'utf8'))
+          .join('\n')
         return source.includes(providerMarker) ? [{ name: entry.name, source }] : []
       } catch {
         return []
@@ -66,7 +72,14 @@ describe('Gemini egress inventory', () => {
     expect(migration).toMatch(/for insert to authenticated[\s\S]*auth\.uid\(\) = user_id/i)
     expect(migration).toMatch(/for update to authenticated[\s\S]*auth\.uid\(\) = user_id/i)
 
-    const reminders = readFileSync(resolve(functionsDir, 'send-reminders/index.ts'), 'utf8')
+    // Scan every module of send-reminders, not just index.ts — the digest split
+    // moved the consent-denial handling into digests.ts and it must stay visible.
+    const remindersDir = resolve(functionsDir, 'send-reminders')
+    const reminders = readdirSync(remindersDir)
+      .filter(f => f.endsWith('.ts') && !f.endsWith('.test.ts'))
+      .sort()
+      .map(f => readFileSync(resolve(remindersDir, f), 'utf8'))
+      .join('\n')
     expect(reminders).toContain("body?.error === 'ai_consent_required'")
     expect(reminders).toContain('telegram_chat_id')
     expect(reminders).toContain('Обработка данных ИИ')

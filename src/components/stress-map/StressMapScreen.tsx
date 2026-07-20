@@ -1,15 +1,12 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { HeartRateSample, CalendarEvent } from '../../types'
 import { useT } from '../../lib/i18n'
-import { buildStressMap } from '../../utils/stressMap'
-import { parseICS } from '../../parsers/icsParser'
-import { parseCalBookings } from '../../parsers/calBookingsParser'
+import { buildStressMap } from '../../lib/stressMap'
 import { StressCharts } from './StressCharts'
 
 interface Props {
   heartRateSamples: HeartRateSample[]
   events: CalendarEvent[]
-  onEvents: (e: CalendarEvent[]) => void
   onGoogleCalendar?: () => void
   googleConnected?: boolean
   showGoogle?: boolean
@@ -22,7 +19,7 @@ function fmtDate(d: Date, locale: string): string {
 
 type Mode = 'stress' | 'date' | 'charts'
 
-export function StressMapScreen({ heartRateSamples, events, onEvents, onGoogleCalendar, googleConnected = false, showGoogle = true, onToggleGoogle }: Props) {
+export function StressMapScreen({ heartRateSamples, events, onGoogleCalendar, googleConnected = false, showGoogle = true, onToggleGoogle }: Props) {
   const { t, locale } = useT()
   const [mode, setMode] = useState<Mode>('stress')
   const rawEntries = useMemo(() => buildStressMap(events, heartRateSamples), [events, heartRateSamples])
@@ -30,45 +27,20 @@ export function StressMapScreen({ heartRateSamples, events, onEvents, onGoogleCa
     if (mode === 'date') return [...rawEntries].sort((a, b) => b.event.start.getTime() - a.event.start.getTime())
     return rawEntries
   }, [rawEntries, mode])
-  const icsRef = useRef<HTMLInputElement>(null)
-  const calRef = useRef<HTMLInputElement>(null)
-
-  function handleICS(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    file.text().then(text => { try { onEvents(parseICS(text)) } catch { /* ignore */ } })
-    e.target.value = ''
-  }
-
-  function handleCal(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    file.text().then(text => { try { onEvents(parseCalBookings(text)) } catch { /* ignore */ } })
-    e.target.value = ''
-  }
 
   if (!events.length) {
     return (
       <div className="screen">
         <h2>{t('Карта стресса')}</h2>
-        <p className="empty-hint" style={{ marginBottom: 24 }}>
-          {t('Нужны данные календаря. Загрузите один из форматов:')}
+        <p className="empty-hint" style={{ marginBottom: 16 }}>
+          {t('Нужны данные календаря, чтобы построить карту стресса.')}
         </p>
-        <div style={{ display: 'flex', gap: 12 }}>
-          <input ref={icsRef} type="file" accept=".ics" style={{ display: 'none' }} onChange={handleICS} />
-          <button className="btn-primary" style={{ maxWidth: 200 }} onClick={() => icsRef.current?.click()}>
-            📅 {t('Загрузить .ics')}
+        {onGoogleCalendar && (
+          <button className="btn-primary" style={{ maxWidth: 240, marginBottom: 12 }} onClick={onGoogleCalendar}>
+            🗓 Google Calendar
           </button>
-          <input ref={calRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleCal} />
-          <button className="btn-secondary" onClick={() => calRef.current?.click()}>
-            📋 cal_bookings.json
-          </button>
-          {onGoogleCalendar && (
-            <button className="btn-secondary" onClick={onGoogleCalendar}>
-              🗓 Google Calendar
-            </button>
-          )}
-        </div>
+        )}
+        <p className="screen-hint">{t('Другие способы подключить календарь — в Настройках')}</p>
       </div>
     )
   }

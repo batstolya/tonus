@@ -183,4 +183,27 @@ export const health: Record<string, Translation> = {
   'Своё название': { uk: 'Своя назва', en: 'Custom name' },
   '→': { uk: '→', en: '→' },
 
+  // ── Страж здоровья: серверные алерты (текст рождается в _shared/anomaly.ts
+  // по-русски, локализуется на клиенте — lib/notifications.localizeAlertText) ──
+  'Организм с чем-то борется': { uk: 'Організм із чимось бореться', en: 'Your body is fighting something' },
+  'Присмотрись к самочувствию': { uk: 'Придивись до самопочуття', en: 'Keep an eye on how you feel' },
+  '{arrow} {name}: {value} при твоей норме {baseline} ({z}σ)': {
+    uk: '{arrow} {name}: {value} за твоєї норми {baseline} ({z}σ)',
+    en: '{arrow} {name}: {value} vs your baseline {baseline} ({z}σ)',
+  },
+  '/мин': { uk: '/хв', en: '/min' },
+  'Совет: день без нагрузок, больше воды и сна. Если появятся симптомы — не геройствуй.': {
+    uk: 'Порада: день без навантажень, більше води та сну. Якщо зʼявляться симптоми — не геройствуй.',
+    en: 'Advice: a day off training, more water and sleep. If symptoms show up — don\'t push through.',
+  },
+  'Совет: полегче сегодня, понаблюдай за собой.': {
+    uk: 'Порада: легше сьогодні, поспостерігай за собою.',
+    en: 'Advice: take it easier today and watch how you feel.',
+  },
+  'Это наблюдение по данным часов, не диагноз.': {
+    uk: 'Це спостереження за даними годинника, не діагноз.',
+    en: 'This is a watch-data observation, not a diagnosis.',
+  },
+  'Подробнее': { uk: 'Докладніше', en: 'More' },
+  'Свернуть': { uk: 'Згорнути', en: 'Less' },
 }

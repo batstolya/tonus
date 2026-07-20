@@ -4,6 +4,7 @@
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { plannedDaysInRange, attendance, scheduleWeekdays, type DayTimes } from './workoutPlan.ts'
+import { DEFAULT_TIMEZONE } from './userTimezone.ts'
 
 export interface HealthContextOptions {
   periodDays?: number          // окно агрегации (по умолчанию 14)
@@ -241,7 +242,7 @@ export async function buildHealthContext(
   const prof: { summary: string | null; facts: unknown } | null = profRes.data
   return {
     periodDays,
-    timezone: opts.timezone && isValidTimezone(opts.timezone) ? opts.timezone : 'Europe/Berlin',
+    timezone: opts.timezone && isValidTimezone(opts.timezone) ? opts.timezone : DEFAULT_TIMEZONE,
     coachProfile: prof?.summary ? { summary: prof.summary, facts: Array.isArray(prof.facts) ? prof.facts : [] } : null,
     scores: scoreRes.data ?? null,
     metrics: mRes.data ?? [],

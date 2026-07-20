@@ -3,6 +3,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { computeDailyScores } from '../_shared/scores.ts'
 import { detectAnomaly, shouldSendAlert, buildAlertMessage, type AnomalyDay } from '../_shared/anomaly.ts'
 import { withObservability } from '../_shared/observability.ts'
+import { consumeRateLimit, hashRateLimitSubject, rateLimitedResponse } from '../_shared/rateLimit.ts'
+import { sendTelegram } from '../_shared/telegram.ts'
 
 // Приём данных Apple Health от Health Auto Export (SPEC-AUTOSYNC).
 // Изолировано: пишет в *_staging; в боевые таблицы — только при mode='live'.
@@ -162,6 +164,13 @@ const handler = async (req: Request) => {
     if (!token) return new Response('Missing token', { status: 401, headers: CORS })
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+
+    // Durable per-token limit (PR 3); keyed by hash so raw tokens never leave the request.
+    const rateSubject = await hashRateLimitSubject(token)
+    if (!await consumeRateLimit(supabase, { bucket: `ingest:${rateSubject}`, limit: 120, windowSeconds: 3600 })) {
+      return rateLimitedResponse(CORS)
+    }
+
     const { data: tok } = await supabase.from('ingest_tokens').select('user_id, mode').eq('token', token).maybeSingle()
     if (!tok) return new Response('Invalid token', { status: 401, headers: CORS })
     const userId = tok.user_id
@@ -266,11 +275,7 @@ const handler = async (req: Request) => {
                 .from('telegram_links').select('telegram_chat_id')
                 .eq('user_id', userId).maybeSingle()
               if (tgToken && link?.telegram_chat_id) {
-                await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ chat_id: link.telegram_chat_id, text: message, parse_mode: 'HTML' }),
-                })
+                await sendTelegram(tgToken, link.telegram_chat_id, message, { payload: { parse_mode: 'HTML' } })
               }
             }
           }

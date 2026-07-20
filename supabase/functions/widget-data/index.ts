@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { consumeRateLimit, hashRateLimitSubject, rateLimitedResponse } from '../_shared/rateLimit.ts'
 
 // Данные для iPhone-виджета (F4, spec: 2026-07-05-smart-tonus-design.md).
 // GET ?token=<widget_token> → { readiness, level, date, updatedAt, alert }.
@@ -26,6 +27,13 @@ serve(async (req) => {
     if (!token) return new Response(JSON.stringify({ error: 'Missing token' }), { status: 401, headers: JSON_HEADERS })
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+
+    // Durable per-token limit (PR 3); keyed by hash so raw tokens never leave the request.
+    const subject = await hashRateLimitSubject(token)
+    if (!await consumeRateLimit(supabase, { bucket: `widget:${subject}`, limit: 120, windowSeconds: 3600 })) {
+      return rateLimitedResponse(JSON_HEADERS)
+    }
+
     const { data: tok } = await supabase.from('widget_tokens').select('user_id').eq('token', token).maybeSingle()
     if (!tok) return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401, headers: JSON_HEADERS })
 

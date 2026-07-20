@@ -5,6 +5,7 @@ import {
 } from 'recharts'
 import type { DailyMetrics } from '../../types'
 import { useT } from '../../lib/i18n'
+import { computePeriodStats } from './periodStats'
 
 interface IntakeEvent {
   id: string
@@ -64,11 +65,14 @@ export function HeartRateScreen({ daily, intakeEvents = [] }: Props) {
     return map
   }, [intakeEvents, dateSet])
 
-  const withHR = daily.filter(d => d.heartRate)
-  const avgAll = withHR.length ? Math.round(withHR.reduce((a, d) => a + d.heartRate!.avg, 0) / withHR.length) : null
-  const withRHR = daily.filter(d => d.restingHeartRate)
-  const avgRHR = withRHR.length ? Math.round(withRHR.reduce((a, d) => a + d.restingHeartRate!, 0) / withRHR.length) : null
-  const maxEver = withHR.length ? Math.round(Math.max(...withHR.map(d => d.heartRate!.max))) : null
+  // Шапка — по выбранному периоду, чтобы биться с графиком и таблицей.
+  const { avg: avgAll, resting: avgRHR, max: maxEver } = computePeriodStats(filtered)
+  // Норма покоя для флага «низкий» — по всей истории: порог не должен
+  // плавать при переключении периода.
+  const withRHRAll = daily.filter(d => d.restingHeartRate)
+  const baselineRHR = withRHRAll.length
+    ? Math.round(withRHRAll.reduce((a, d) => a + d.restingHeartRate!, 0) / withRHRAll.length)
+    : null
 
   function toggleOverlay(key: string) {
     setShown(prev => {
@@ -93,6 +97,14 @@ export function HeartRateScreen({ daily, intakeEvents = [] }: Props) {
     }
     return lines
   }, [coffeeByDate, shown, data])
+
+  // «Неадекватно низкий» пульс: абсолютная брадикардия или заметно ниже
+  // личной долгосрочной нормы — такие дни подсвечиваем в таблице.
+  const isLowDay = (d: { resting: number | null; avg: number | null }) =>
+    (d.resting !== null && (d.resting < 40 || (baselineRHR !== null && d.resting < baselineRHR * 0.85)))
+    || (d.avg !== null && d.avg < 45)
+
+  const dailyRows = [...data].reverse().slice(0, 30)
 
   return (
     <div className="screen">
@@ -149,6 +161,36 @@ export function HeartRateScreen({ daily, intakeEvents = [] }: Props) {
           ))}
         </LineChart>
       </ResponsiveContainer>
+
+      {dailyRows.length > 0 && (
+        <div className="hr-daily">
+          <h3>{t('По дням')}</h3>
+          <div className="metrics-table-wrap">
+            <table className="metrics-table">
+              <thead>
+                <tr>
+                  <th>{t('Дата')}</th>
+                  <th>{t('Средний')}</th>
+                  <th>{t('Покой')}</th>
+                  <th>{t('Макс')}</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {dailyRows.map(d => (
+                  <tr key={d.fullDate} className={isLowDay(d) ? 'hr-daily-low' : undefined}>
+                    <td>{d.fullDate}</td>
+                    <td>{d.avg ?? '—'}</td>
+                    <td>{d.resting ?? '—'}</td>
+                    <td>{d.max !== null ? Math.round(d.max) : '—'}</td>
+                    <td>{isLowDay(d) ? <span className="hr-low-badge">↓ {t('низкий')}</span> : null}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

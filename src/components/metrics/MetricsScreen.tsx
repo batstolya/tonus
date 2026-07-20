@@ -4,8 +4,63 @@ import {
 } from 'recharts'
 import type { DailyMetrics, MetricKey } from '../../types'
 import type { IntakeEvent } from '../../lib/chat'
-import { eventMarkers, CHART_EVENT_TYPES } from '../../lib/chartEvents'
+import type { GroupedEventMarker } from '../../lib/chartEvents'
+import { eventMarkers, groupMarkersByDate, markersByDate, CHART_EVENT_TYPES, MAX_MARKER_DOTS } from '../../lib/chartEvents'
 import { useT } from '../../lib/i18n'
+
+// Полоса маркеров над графиком: на каждую дату с событиями — столбик мелких
+// точек, цвет = тип события (те же цвета, что в чипах легенды). Раньше здесь
+// были эмодзи-лейблы, но при десятке с лишним дат recharts клал их друг на
+// друга, поэтому их просто отключали и оставались голые линии.
+function EventMarkerDots({ events, viewBox }: {
+  events: GroupedEventMarker['events']
+  viewBox?: { x?: number; y?: number }
+}) {
+  if (viewBox?.x == null || viewBox.y == null) return null
+  return (
+    <g>
+      {events.slice(0, MAX_MARKER_DOTS).map((e, i) => (
+        <circle key={e.type} cx={viewBox.x} cy={viewBox.y! - 6 - i * 7} r={2.6} fill={e.color} />
+      ))}
+    </g>
+  )
+}
+
+interface TooltipEntry { name?: string; value?: number | string | null; color?: string }
+
+// Значения метрик плюс расшифровка событий дня — точки в полосе показывают
+// «что-то было», а название события читается здесь.
+function ChartTooltip({ active, payload, label, markers, t }: {
+  active?: boolean
+  payload?: TooltipEntry[]
+  label?: string
+  markers: Map<string, GroupedEventMarker>
+  t: (key: string) => string
+}) {
+  if (!active || !payload?.length) return null
+  const day = label ? markers.get(label) : undefined
+  return (
+    <div className="chart-tip">
+      <div className="chart-tip-date">{label}</div>
+      {payload.map(p => (
+        <div key={p.name} className="chart-tip-row">
+          <span className="chart-tip-swatch" style={{ background: p.color }} />
+          {p.name}: <strong>{p.value ?? '—'}</strong>
+        </div>
+      ))}
+      {day && (
+        <div className="chart-tip-events">
+          {day.events.map(e => (
+            <span key={e.type} className="chart-tip-event">
+              <span className="chart-tip-swatch" style={{ background: e.color }} />
+              {e.emoji} {t(e.label)}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 const METRIC_LABELS: Record<MetricKey, string> = {
   heartRate: 'Пульс (средний)',
@@ -66,8 +121,9 @@ export function MetricsScreen({ daily, intakeEvents = [] }: Props) {
   const markers = useMemo(() => {
     if (!showEvents) return []
     const shown = new Set(chartData.map(d => d.date))
-    return eventMarkers(intakeEvents, shown, iso => iso.slice(5))
+    return groupMarkersByDate(eventMarkers(intakeEvents, shown, iso => iso.slice(5)))
   }, [intakeEvents, chartData, showEvents])
+  const markerIndex = useMemo(() => markersByDate(markers), [markers])
 
   return (
     <div className="screen">
@@ -96,25 +152,30 @@ export function MetricsScreen({ daily, intakeEvents = [] }: Props) {
             {t('События')}
           </label>
           {showEvents && CHART_EVENT_TYPES.map(c => (
-            <span key={c.type} className="chart-event-chip">{c.emoji} {t(c.label)}</span>
+            <span key={c.type} className="chart-event-chip">
+              <span className="chart-tip-swatch" style={{ background: c.color }} />
+              {c.emoji} {t(c.label)}
+            </span>
           ))}
         </div>
       )}
 
       <ResponsiveContainer width="100%" height={320}>
-        <LineChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+        <LineChart data={chartData} margin={{ top: markers.length ? 30 : 8, right: 16, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
           <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
           <YAxis yAxisId="left" domain={['auto', 'auto']} tick={{ fontSize: 11 }} />
           {secondary && <YAxis yAxisId="right" orientation="right" domain={['auto', 'auto']} tick={{ fontSize: 11 }} />}
-          <Tooltip />
-          {markers.map((m, i) => (
-            <ReferenceLine key={i} yAxisId="left" x={m.x} stroke={m.color} strokeOpacity={0.5} strokeDasharray="3 3"
-              label={{ value: m.emoji, position: 'top', fontSize: 13 }} />
+          <Tooltip content={<ChartTooltip markers={markerIndex} t={t} />} />
+          {markers.map(m => (
+            <ReferenceLine key={m.x} yAxisId="left" x={m.x} stroke={m.color} strokeOpacity={0.35} strokeDasharray="3 3"
+              label={<EventMarkerDots events={m.events} />} />
           ))}
-          <Line yAxisId="left" type="monotone" dataKey="primary" name={t(METRIC_LABELS[primary])} stroke="#6c8fff" strokeWidth={2} dot={false} connectNulls />
+          {/* isAnimationActive={false} обязателен: recharts v3 + React 19 иначе
+              не дорисовывает серию и график остаётся пустым. */}
+          <Line yAxisId="left" type="monotone" dataKey="primary" name={t(METRIC_LABELS[primary])} stroke="#6c8fff" strokeWidth={2} dot={false} connectNulls isAnimationActive={false} />
           {secondary && (
-            <Line yAxisId="right" type="monotone" dataKey="secondary" name={t(METRIC_LABELS[secondary as MetricKey])} stroke="#5bc896" strokeWidth={2} dot={false} connectNulls />
+            <Line yAxisId="right" type="monotone" dataKey="secondary" name={t(METRIC_LABELS[secondary as MetricKey])} stroke="#5bc896" strokeWidth={2} dot={false} connectNulls isAnimationActive={false} />
           )}
         </LineChart>
       </ResponsiveContainer>

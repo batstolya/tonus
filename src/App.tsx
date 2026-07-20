@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, lazy, Suspense } from 'react'
+import React, { useState, lazy, Suspense } from 'react'
 import { useAppStore } from './store/appStore'
 import { DeviceSelectScreen } from './components/onboarding/DeviceSelectScreen'
 import { ConnectGuide } from './components/onboarding/ConnectGuide'
@@ -18,7 +18,6 @@ const Dashboard = lazy(() => import('./components/dashboard/Dashboard').then(m =
 const StreakMenu = lazy(() => import('./components/dashboard/StreakMenu').then(m => ({ default: m.StreakMenu })))
 const NotificationBell = lazy(() => import('./components/dashboard/NotificationBell').then(m => ({ default: m.NotificationBell })))
 const GeoStormBadge = lazy(() => import('./components/dashboard/GeoStormBadge').then(m => ({ default: m.GeoStormBadge })))
-const HealthAlertBanner = lazy(() => import('./components/dashboard/HealthAlertBanner'))
 const HeartRateScreen = lazy(() => import('./components/heart-rate/HeartRateScreen').then(m => ({ default: m.HeartRateScreen })))
 const MetricsScreen = lazy(() => import('./components/metrics/MetricsScreen').then(m => ({ default: m.MetricsScreen })))
 const StressMapScreen = lazy(() => import('./components/stress-map/StressMapScreen').then(m => ({ default: m.StressMapScreen })))
@@ -34,99 +33,29 @@ const SettingsScreen = lazy(() => import('./components/settings/SettingsScreen')
 const GoalsScreen = lazy(() => import('./components/goals/GoalsScreen').then(m => ({ default: m.GoalsScreen })))
 const ConcernsScreen = lazy(() => import('./components/concerns/ConcernsScreen').then(m => ({ default: m.ConcernsScreen })))
 const HairScreen = lazy(() => import('./components/hair/HairScreen').then(m => ({ default: m.HairScreen })))
-import type { AppView } from './store/appStore'
-import type { CalendarEvent, DailyMetrics, HeartRateSample } from './types'
 import { useAuth } from './hooks/useAuth'
 import { useTheme } from './hooks/useTheme'
 import { ThemeMenu } from './components/common/ThemeMenu'
 import { isDemoActive, enableDemo, disableDemo } from './lib/demo'
 import { supabase } from './lib/supabase'
-import { syncMetricsToSupabase, loadMetricsFromSupabase, syncHRSamples, loadHRSamples } from './lib/sync'
-import { persistDailyScores } from './lib/scores'
-import { saveCalendarEvents, loadCalendarEvents } from './lib/calendarSync'
-import { connectGoogleCalendar, silentGoogleCalendarSync, isGoogleCalendarAvailable } from './lib/googleCalendar'
-import { shouldAutoSync } from './lib/syncSchedule'
+import { isGoogleCalendarAvailable } from './lib/googleCalendar'
 import { detectAvailableMetrics } from './lib/availableMetrics'
 import { useT } from './lib/i18n'
 import './index.css'
-
-
-type GroupId = 'body' | 'journal' | 'coach'
-
-type NavView = { view: AppView; label: string; requiresMetric?: keyof import('./lib/availableMetrics').AvailableMetrics }
-
-const NAV_GROUPS: {
-  id: GroupId
-  label: string
-  defaultView: AppView
-  icon: React.ReactElement
-  views: NavView[]
-}[] = [
-  {
-    id: 'body',
-    label: 'Тело',
-    defaultView: 'metrics',
-    icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>,
-    views: [
-      { view: 'metrics', label: 'Обзор' },
-      { view: 'heart-rate', label: 'Пульс', requiresMetric: 'hasHeartRate' },
-      { view: 'sleep', label: 'Сон', requiresMetric: 'hasSleep' },
-      { view: 'activity', label: 'Активность', requiresMetric: 'hasActivity' },
-      { view: 'stress-map', label: 'Стресс', requiresMetric: 'hasStress' },
-    ],
-  },
-  {
-    id: 'journal',
-    label: 'Дневник',
-    defaultView: 'supplements',
-    icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>,
-    views: [
-      { view: 'supplements', label: 'Препараты' },
-      { view: 'nutrition', label: 'Питание' },
-      { view: 'labs', label: 'Анализы' },
-      { view: 'concerns', label: 'Проблемы' },
-    ],
-  },
-  {
-    id: 'coach',
-    label: 'Коуч',
-    defaultView: 'insights',
-    icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>,
-    views: [
-      { view: 'insights', label: 'Инсайты' },
-      { view: 'research', label: 'Исследования' },
-      { view: 'experiments', label: 'Эксперименты' },
-      { view: 'goals', label: 'Цели' },
-    ],
-  },
-]
-
-function getActiveGroup(view: AppView): GroupId | null {
-  if (view === 'hair') return 'journal'
-  for (const g of NAV_GROUPS) {
-    if (g.views.some(v => v.view === view)) return g.id
-  }
-  return null
-}
-
-function getActiveSubView(view: AppView): AppView {
-  if (view === 'hair') return 'concerns'
-  return view
-}
+import { getActiveGroup, getActiveSubView, filterNavGroups } from './app/navigation'
+import { useAppBootstrap } from './hooks/useAppBootstrap'
+import { useImportHandlers } from './hooks/useImportHandlers'
 
 export default function App() {
   const { t, lang, setLang, locale } = useT()
   const { state, setView, setDaily, setEvents, setProgress, setError, setDeviceType } = useAppStore()
   const { user, loading, passwordRecovery, setPasswordRecovery } = useAuth()
   const { theme, mode: themeMode, setMode: setThemeMode, toggle: toggleTheme } = useTheme('light')
-  const [syncMsg, setSyncMsg] = useState<string | null>(null)
-  const [intakeEvents, setIntakeEvents] = useState<Parameters<typeof QuickLog>[0]['events']>([])
-  const [dbLoading, setDbLoading] = useState(true)
-  const [googleLoading, setGoogleLoading] = useState(false)
-  const [showGoogleEvents, setShowGoogleEvents] = useState(true)
-  const [calSyncTimes, setCalSyncTimes] = useState<Record<string, string>>(() => {
-    try { return JSON.parse(localStorage.getItem('cal_sync_times') ?? '{}') } catch { return {} }
-  })
+  const { dbLoading, intakeEvents, setIntakeEvents } = useAppBootstrap({ user, setDaily, setEvents })
+  const {
+    syncMsg, googleLoading, showGoogleEvents, setShowGoogleEvents,
+    calSyncTimes, handleDone, handleEvents, handleGoogleCalendar,
+  } = useImportHandlers({ user, dbLoading, t, locale, setDaily, setEvents })
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [langMenuOpen, setLangMenuOpen] = useState(false)
   const [showAuth, setShowAuth] = useState(false)
@@ -163,127 +92,6 @@ export default function App() {
     ? state.events
     : state.events.filter(e => e.source !== 'google')
 
-  useEffect(() => {
-    if (!user) { setDbLoading(false); return }
-    let cancelled = false
-    setDbLoading(true)
-
-    async function init() {
-      // Демо-режим: фикстурные данные вместо Supabase (метрики + события лога).
-      if (isDemoActive()) {
-        const [{ makeDemoDaily, makeDemoHRSamples }, { demoList }] = await Promise.all([
-          import('./lib/demoFixture'),
-          import('./lib/demoDb'),
-        ])
-        if (cancelled) return
-        setDaily(makeDemoDaily(), makeDemoHRSamples(), true)
-        setIntakeEvents(demoList('intake_events') as typeof intakeEvents)
-        setDbLoading(false)
-        return
-      }
-      const [stored, intakeRes, calEvents] = await Promise.all([
-        loadMetricsFromSupabase(user!.id),
-        supabase.from('intake_events').select('*').eq('user_id', user!.id)
-          .order('ts', { ascending: false }).limit(400),
-        loadCalendarEvents(user!.id),
-      ])
-
-      if (cancelled) return
-
-      const hrSamples = await loadHRSamples(user!.id)
-      if (cancelled) return
-
-      if (stored.length > 0) {
-        setDaily(stored, hrSamples, true)
-        persistDailyScores(user!.id, stored).catch(() => {})
-      }
-      if (intakeRes.data) setIntakeEvents(intakeRes.data as typeof intakeEvents)
-      if (calEvents.length > 0) setEvents(calEvents)
-      setDbLoading(false)
-    }
-
-    init()
-    return () => { cancelled = true }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id])
-
-  // Авто-синхронизация Google Calendar «хотя бы раз в день»: при открытии приложения,
-  // если в этом браузере уже был грант Google и прошло >24ч — тихо обновляем без попапа.
-  // Серверный cron невозможен (браузерный OAuth-токен без refresh-token).
-  const googleAutoSyncedRef = useRef(false)
-  useEffect(() => {
-    if (!user || dbLoading || googleAutoSyncedRef.current) return
-    if (!isGoogleCalendarAvailable()) return
-    const lastIso = localStorage.getItem('google_last_sync_iso')
-    if (!lastIso || !shouldAutoSync(lastIso)) return // ещё не подключали тут / синк свежий
-    googleAutoSyncedRef.current = true
-    silentGoogleCalendarSync()
-      .then(events => { if (events && events.length) handleEvents(events, 'google') })
-      .catch(() => {})
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, dbLoading])
-
-  async function handleDone(daily: DailyMetrics[], samples: HeartRateSample[], filename = 'export') {
-    setDaily(daily, samples)
-    if (!user) return
-    loadCalendarEvents(user.id).then(calEvents => { if (calEvents.length > 0) setEvents(calEvents) })
-    setSyncMsg(t('Синхронизируем…'))
-    try {
-      const [result, hrOk] = await Promise.all([
-        syncMetricsToSupabase(user.id, daily, filename),
-        syncHRSamples(user.id, samples),
-      ])
-      if (!hrOk) {
-        setSyncMsg(t('⚠️ Не удалось сохранить пульс — подробности в консоли (F12)'))
-        setTimeout(() => setSyncMsg(null), 10000)
-        return
-      }
-      if (result.daysAdded > 0) {
-        setSyncMsg(t('Добавлено {n} новых дней', { n: result.daysAdded }))
-      } else {
-        setSyncMsg(t('Данные актуальны'))
-      }
-      persistDailyScores(user.id, daily).catch(() => {})
-    } catch (e) {
-      setSyncMsg(t('Ошибка синхронизации: {msg}', { msg: (e as Error)?.message ?? 'unknown' }))
-    }
-    setTimeout(() => setSyncMsg(null), 4000)
-  }
-
-  async function handleEvents(events: CalendarEvent[], source = 'ics') {
-    const tagged = events.map(e => ({ ...e, source }))
-    setEvents(tagged, source)
-    const now = new Date().toLocaleDateString(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-    const updated = { ...calSyncTimes, [source]: now }
-    setCalSyncTimes(updated)
-    localStorage.setItem('cal_sync_times', JSON.stringify(updated))
-    // ISO-метка для гейта авто-синка (локализованную строку выше распарсить нельзя)
-    if (source === 'google') localStorage.setItem('google_last_sync_iso', new Date().toISOString())
-    if (!user) return
-    const ok = await saveCalendarEvents(user.id, tagged, source)
-    if (!ok) {
-      setSyncMsg(t('⚠️ Таблица calendar_events не создана — запусти SQL в Supabase'))
-      setTimeout(() => setSyncMsg(null), 8000)
-    } else {
-      setSyncMsg(t('Сохранено {n} событий календаря', { n: events.length }))
-      setTimeout(() => setSyncMsg(null), 3000)
-    }
-  }
-
-  async function handleGoogleCalendar() {
-    setGoogleLoading(true)
-    try {
-      const events = await connectGoogleCalendar()
-      await handleEvents(events, 'google')
-      setSyncMsg(t('Загружено {n} событий из Google', { n: events.length }))
-      setTimeout(() => setSyncMsg(null), 4000)
-    } catch {
-      setSyncMsg(t('Ошибка Google Calendar'))
-      setTimeout(() => setSyncMsg(null), 3000)
-    }
-    setGoogleLoading(false)
-  }
-
   if (loading) return <DashboardSkeleton />
   if (!user) {
     const view = unauthedView({ isResetUrl: isResetUrl(window.location.search), showAuth })
@@ -296,10 +104,7 @@ export default function App() {
   const activeGroup = getActiveGroup(state.view)
   const activeSubView = getActiveSubView(state.view)
 
-  const visibleNavGroups = NAV_GROUPS.map(g => ({
-    ...g,
-    views: g.views.filter(v => !v.requiresMetric || availableMetrics[v.requiresMetric]),
-  }))
+  const visibleNavGroups = filterNavGroups(availableMetrics)
   const activeGroupData = visibleNavGroups.find(g => g.id === activeGroup) ?? null
 
   return (
@@ -346,11 +151,11 @@ export default function App() {
                   <>
                     <div className="lang-overlay" onClick={() => setLangMenuOpen(false)} />
                     <div className="lang-menu">
-                      {([['ru','🇷🇺','Русский'],['uk','🇺🇦','Українська'],['en','🇬🇧','English']] as const).map(([code, flag, label]) => (
+                      {([['ru','Русский','RU'],['uk','Українська','UA'],['en','English','EN']] as const).map(([code, label, short]) => (
                         <button key={code} className={`lang-option${lang === code ? ' active' : ''}`}
                           onClick={() => { setLang(code); setLangMenuOpen(false) }}>
-                          <span>{flag}</span><span>{label}</span>
-                          {lang === code && <span className="lang-check">✓</span>}
+                          <span className="lang-label">{label}</span>
+                          <span className="lang-code">{short}</span>
                         </button>
                       ))}
                     </div>
@@ -401,7 +206,7 @@ export default function App() {
                   className="mobile-nav-btn"
                   onClick={() => setLang(lang === 'ru' ? 'uk' : lang === 'uk' ? 'en' : 'ru')}
                 >
-                  <span>{lang === 'ru' ? '🇷🇺' : lang === 'uk' ? '🇺🇦' : '🇬🇧'}</span>
+                  <span className="lang-code">{lang === 'ru' ? 'RU' : lang === 'uk' ? 'UA' : 'EN'}</span>
                   <span>{lang === 'ru' ? 'Русский' : lang === 'uk' ? 'Українська' : 'English'}</span>
                 </button>
                 <div className="mobile-menu-footer">
@@ -462,23 +267,18 @@ export default function App() {
             />
           )
         ) : state.view === 'dashboard' ? (
-          // Баннер — над строкой: .dashboard-layout это flex-row, и его
-          // `> :first-child { flex: 1 }` растягивал бы баннер вместо дашборда.
-          <>
-            <HealthAlertBanner userId={user?.id ?? null} demo={demo} />
-            <div className="dashboard-layout">
-              <Dashboard
-                daily={state.daily}
-                heartRateSamples={state.heartRateSamples}
-                events={visibleEvents}
-                onNavigate={setView}
-                user={user}
-              />
-              <aside className="dashboard-aside">
-                <QuickLog user={user} events={intakeEvents} onEventsChange={setIntakeEvents} />
-              </aside>
-            </div>
-          </>
+          <div className="dashboard-layout">
+            <Dashboard
+              daily={state.daily}
+              heartRateSamples={state.heartRateSamples}
+              events={visibleEvents}
+              onNavigate={setView}
+              user={user}
+            />
+            <aside className="dashboard-aside">
+              <QuickLog user={user} events={intakeEvents} onEventsChange={setIntakeEvents} />
+            </aside>
+          </div>
         ) : state.view === 'heart-rate' ? (
           <HeartRateScreen daily={state.daily} intakeEvents={intakeEvents} />
         ) : state.view === 'metrics' ? (
@@ -487,7 +287,6 @@ export default function App() {
           <StressMapScreen
             heartRateSamples={state.heartRateSamples}
             events={visibleEvents}
-            onEvents={e => handleEvents(e, 'ics')}
             onGoogleCalendar={isGoogleCalendarAvailable() ? handleGoogleCalendar : undefined}
             googleConnected={googleConnected}
             showGoogle={showGoogleEvents}

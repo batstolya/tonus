@@ -4,8 +4,9 @@ import { checkBudget, budgetExceededMessage } from '../_shared/costGuard.ts'
 import { getPrompt } from '../_shared/prompts.ts'
 import { buildHealthContext, healthContextToText } from '../_shared/healthContext.ts'
 import { localNow } from '../_shared/time.ts'
+import { normalizeTimezone } from '../_shared/userTimezone.ts'
 import { runChatLoop, type ChatLoopMessage, type GeminiPart } from '../_shared/chatToolLoop.ts'
-import { CHAT_TOOL_DECLARATIONS, executeChatTool } from '../_shared/chatTools.ts'
+import { CHAT_TOOL_DECLARATIONS, executeChatTool, type SupabaseLike } from '../_shared/chatTools.ts'
 import { parseDebugReply, formatToolTrace } from '../_shared/chatDebug.ts'
 import {
   findOwnedChatSession,
@@ -19,6 +20,8 @@ import {
   fetchGeminiWithConsent,
   isAiConsentRequired,
 } from '../_shared/aiConsent.ts'
+import { corsHeadersFor } from '../_shared/cors.ts'
+import { consumeRateLimit, rateLimitedResponse } from '../_shared/rateLimit.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
@@ -26,11 +29,7 @@ const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 const MAX_HISTORY = 12 // last N messages to include verbatim
 const MAX_MESSAGE_LENGTH = 4096
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info, x-request-id',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-}
+const ALLOWED_ORIGINS = Deno.env.get('TONUS_ALLOWED_ORIGINS') ?? ''
 
 const SYSTEM_PROMPT = `Ты — персональный ассистент по здоровью.
 Твоя роль: помогать пользователю понять его данные здоровья простым языком.
@@ -97,6 +96,7 @@ async function callGemini(
 }
 
 serve(async (req) => {
+  const CORS = corsHeadersFor(req.headers.get('Origin'), ALLOWED_ORIGINS)
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
   try {
@@ -104,6 +104,11 @@ serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
     const { data: { user }, error: authErr } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
     if (authErr || !user) return new Response('Unauthorized', { status: 401, headers: CORS })
+
+    // Durable request limit (PR 3): the monthly AI budget stays defense-in-depth.
+    if (!await consumeRateLimit(supabase, { bucket: `chat:${user.id}`, limit: 40, windowSeconds: 3600 })) {
+      return rateLimitedResponse(CORS)
+    }
 
     // contextSnapshot от клиента больше не принимаем: контекст строится на
     // сервере из БД (единый билдер _shared/healthContext, F2 smart-tonus) —
@@ -182,7 +187,8 @@ serve(async (req) => {
 
     const { data: profile } = await supabase.from('profiles')
       .select('timezone, birth_year, sex').eq('id', user.id).maybeSingle()
-    const timezone = profile?.timezone ?? 'Europe/Berlin'
+    // Единый источник таймзоны (был расхождением: чат — Berlin, отчёт — Moscow).
+    const timezone = normalizeTimezone(profile?.timezone)
 
     // Контекст всегда свежий, из БД (30 дней + цели/эксперименты/профиль)
     const ctx = await buildHealthContext(supabase, user.id, { periodDays: 30, includeCoachProfile: true, timezone })
@@ -214,7 +220,10 @@ serve(async (req) => {
       { role: 'user', parts: [{ text: message }] },
     ]
 
-    const executeTool = (name: string, args: Record<string, unknown>) => executeChatTool(supabase, user.id, name, args)
+    // SupabaseLike is a structural stub for chatTools chains; the real client
+    // is runtime-compatible (methods appear after .select) but not type-wise.
+    const executeTool = (name: string, args: Record<string, unknown>) =>
+      executeChatTool(supabase as unknown as SupabaseLike, user.id, name, args)
     const callConsentedGemini = (contents: ChatLoopMessage[], withTools: boolean) =>
       callGemini(supabase, user.id, contents, withTools)
     const { reply: rawReply, totalTokens: tokensUsed, toolCalls } = await runChatLoop(geminiContents, callConsentedGemini, executeTool)

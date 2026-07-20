@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { computeAdherence, type AdherenceLog } from '../../lib/adherence'
-import { supabase } from '../../lib/supabase'
+import { getAdherenceLogs } from '../../lib/api/supplements'
 import { isDemoActive } from '../../lib/demo'
 import { demoList } from '../../lib/demoDb'
 import { useT } from '../../lib/i18n'
@@ -15,7 +15,7 @@ const demoLogs = (): AdherenceLog[] => {
   return demoList('supplement_logs').filter(l => l.date >= since) as AdherenceLog[]
 }
 
-export function AdherenceBlock({ supplements }: { supplements: Supplement[] }) {
+export function AdherenceBlock({ supplements, refreshKey = 0 }: { supplements: Supplement[]; refreshKey?: number }) {
   const { t } = useT()
   // Демо-логи ставим ленивым инициализатором, а не setState в эффекте
   // (react-hooks/set-state-in-effect) — то же состояние, на рендер меньше.
@@ -23,18 +23,15 @@ export function AdherenceBlock({ supplements }: { supplements: Supplement[] }) {
   const [win, setWin] = useState<14 | 30>(14)
   const active = supplements.filter(s => s.active)
 
+  // refreshKey бампается экраном при клике по календарю — иначе шкала
+  // живёт на логах, загруженных при маунте, до перезагрузки страницы.
   useEffect(() => {
     if (!active.length || isDemoActive()) return
     let cancelled = false
     const since = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
-    supabase
-      .from('supplement_logs')
-      .select('supplement_id, date, taken')
-      .gte('date', since)
-      .then(({ data }) => { if (!cancelled) setLogs((data as AdherenceLog[]) ?? []) })
+    getAdherenceLogs(since).then(data => { if (!cancelled) setLogs(data) })
     return () => { cancelled = true }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active.length])
+  }, [active.length, refreshKey])
 
   if (!active.length) return null
   const { items, overallPct } = computeAdherence(active, logs, win)

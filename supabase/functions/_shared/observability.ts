@@ -1,3 +1,5 @@
+import { fetchWithTimeout } from './http.ts'
+
 export type TonusEnvironment = 'preview' | 'production'
 export type TonusService = 'web' | 'edge'
 export type TonusOutcome = 'success' | 'failure' | 'delivery_unknown'
@@ -159,7 +161,7 @@ async function persistToSupabase(event: TonusEvent): Promise<void> {
   const serviceKey = runtimeEnv('SUPABASE_SERVICE_ROLE_KEY')
   if (!url || !serviceKey) throw new Error('observability_storage_not_configured')
 
-  const response = await fetch(`${url}/rest/v1/observability_events`, {
+  const response = await fetchWithTimeout(`${url}/rest/v1/observability_events`, {
     method: 'POST',
     headers: {
       apikey: serviceKey,
@@ -185,11 +187,11 @@ async function notifyTelegram(event: TonusEvent): Promise<void> {
     `request: ${event.requestId}`,
     `release: ${event.release}`,
   ].join('\n')
-  const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+  const response = await fetchWithTimeout(`https://api.telegram.org/bot${token}/sendMessage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ chat_id: chatId, text }),
-    signal: AbortSignal.timeout(1_500),
+    timeoutMs: 1_500, // alerting must stay fast — never hold the main request path
   })
   if (!response.ok) throw new Error('observability_notification_failed')
 }

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { loadHairEntries, saveHairEntry, uploadHairPhoto, getPhotoUrl, type HairEntry } from '../../lib/concerns'
 import { useT } from '../../lib/i18n'
+import { startEffect } from '../../lib/startEffect'
 
 interface Props { user: User; onBack?: () => void }
 
@@ -96,6 +97,12 @@ export function HairScreen({ user, onBack }: Props) {
   const reload = useCallback(async () => {
     const data = await loadHairEntries(user.id)
     setEntries(data)
+    // Default compare selection once at least two entries exist (previously a
+    // state-sync effect; doing it after the fetch keeps the same timing).
+    if (data.length >= 2) {
+      setCmpA(prev => prev || data[0].id)
+      setCmpB(prev => prev || data[Math.min(1, data.length - 1)].id)
+    }
     // Load urls for latest 6
     const urls: Record<string, string> = {}
     for (const e of data.slice(0, 6)) {
@@ -107,14 +114,7 @@ export function HairScreen({ user, onBack }: Props) {
     setPhotoUrls(urls)
   }, [user.id])
 
-  useEffect(() => { reload() }, [reload])
-
-  useEffect(() => {
-    if (entries.length >= 2 && !cmpA && !cmpB) {
-      setCmpA(entries[0].id)
-      setCmpB(entries[Math.min(1, entries.length - 1)].id)
-    }
-  }, [entries])
+  useEffect(() => { startEffect(reload) }, [reload])
 
   async function handleSave() {
     setSaving(true)

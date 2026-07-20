@@ -6,10 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "eslint .",
-    "lint:ceiling": "node scripts/lint-ceiling.mjs",
+    "lint": "eslint . --max-warnings 0",
     "lint:diff": "node scripts/lint-diff.mjs",
-    "check:functions": "node scripts/deno-check-ceiling.mjs",
+    "check:functions": "node scripts/deno-check.mjs",
     "security:inventory:generate": "node scripts/generate-security-inventory.mjs",
     "security:inventory:check": "node scripts/check-security-inventory.mjs",
     "security:matrix": "node scripts/run-security-negative-matrix.mjs",

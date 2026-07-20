@@ -3,15 +3,21 @@ import { createClient, type User } from 'https://esm.sh/@supabase/supabase-js@2'
 import { checkBudget } from '../_shared/costGuard.ts'
 import { daysSinceFreshData } from '../_shared/staleness.ts'
 import { plannedDaysInRange, attendance, scheduleWeekdays, type DayTimes } from '../_shared/workoutPlan.ts'
-import { isServiceRoleCall } from '../_shared/serviceRoleAuth.ts'
+import { isValidInternalSecret } from '../_shared/auth.ts'
+import { sendTelegram as sendTelegramWithToken } from '../_shared/telegram.ts'
 import { aiConsentRequiredResponse, fetchGeminiWithConsent, isAiConsentRequired } from '../_shared/aiConsent.ts'
+import { corsHeadersFor } from '../_shared/cors.ts'
+import { loadUserTimezone } from '../_shared/userTimezone.ts'
+import { coverage, lateBedtimes, lateComparisonLine, lowHrvDays, median } from './digest.ts'
+import { buildReportPrompt } from './prompt.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+const INTERNAL_SECRET = Deno.env.get('TONUS_INTERNAL_SECRET') ?? ''
 const TG_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') ?? ''
 
-const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, x-request-id' }
+const ALLOWED_ORIGINS = Deno.env.get('TONUS_ALLOWED_ORIGINS') ?? ''
 
 function avg(vals: number[]) { return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null }
 
@@ -41,54 +47,44 @@ interface LabRow { marker: string; value: number; unit: string | null; date: str
 const nums = (vals: (number | null | undefined)[]): number[] =>
   vals.filter((v): v is number => v != null)
 
-function fmtBedtime(iso: string): string {
-  const d = new Date(iso)
-  return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' })
-}
+const PERIOD_DAYS = 14
 
-function buildDigest(rows: DailyRow[], label: string, sleep: SleepSessionRow[]): string {
+function buildDigest(
+  rows: DailyRow[],
+  label: string,
+  sleep: SleepSessionRow[],
+  tz: string,
+  hrvBaseline: number | null,
+): string {
   if (!rows.length) return `${label}: нет данных`
   const lines = [`=== ${label} (${rows[0].date} — ${rows[rows.length-1].date}) ===`]
   const rhr = nums(rows.map(r => r.resting_heart_rate))
   const hrv = nums(rows.map(r => r.hrv))
   const sleepHours = nums(rows.map(r => r.sleep_hours))
   const steps = nums(rows.map(r => r.steps))
+  lines.push(coverage(PERIOD_DAYS, rows.length, sleepHours.length))
   if (rhr.length) lines.push(`ЧСС покоя: ${avg(rhr)!.toFixed(0)} уд/мин`)
   if (hrv.length) {
     lines.push(`HRV: среднее ${avg(hrv)!.toFixed(0)} мс`)
-    // Days with low HRV (stress) = below 75% of average
-    const avgHrv = avg(hrv)!
-    const lowHrvDays = rows.flatMap(r => r.hrv != null && r.hrv < avgHrv * 0.8 ? [{ date: r.date, hrv: r.hrv }] : [])
-    if (lowHrvDays.length) {
-      lines.push(`Высокий стресс (низкий HRV): ${lowHrvDays.map(r => `${r.date} (${r.hrv.toFixed(0)}мс)`).join(', ')}`)
+    if (hrvBaseline != null) {
+      const low = lowHrvDays(rows, hrvBaseline)
+      if (low.length) {
+        lines.push(`HRV ниже 80% личной 4-недельной медианы (${hrvBaseline.toFixed(0)} мс): ${low.map(r => `${r.date} (${r.hrv.toFixed(0)}мс)`).join(', ')}`)
+      }
     }
   }
   if (sleepHours.length) lines.push(`Сон: ${avg(sleepHours)!.toFixed(1)} ч, ночей ≥7ч: ${sleepHours.filter(v => v >= 7).length}/${sleepHours.length}`)
   if (steps.length) lines.push(`Шаги: ${Math.round(avg(steps)!).toLocaleString()}/день`)
 
-  // Bedtime analysis
-  const lateBeds = sleep.flatMap(s => {
-    if (!s.bedtime) return []
-    const d = new Date(s.bedtime)
-    const h = d.getUTCHours()
-    // Late = after 01:00 local (rough: UTC+3 → after 22:00 UTC)
-    return h >= 22 || h < 6 ? [{ date: s.date, bedtime: s.bedtime }] : []
-  })
+  const lateBeds = lateBedtimes(sleep, tz)
   if (lateBeds.length) {
-    lines.push(`Позднее засыпание: ${lateBeds.map(s => `${s.date} (${fmtBedtime(s.bedtime)})`).join(', ')}`)
+    lines.push(`Позднее засыпание: ${lateBeds.map(s => `${s.date} (${s.local})`).join(', ')}`)
   }
 
   return lines.join('\n')
 }
 
-async function sendTelegram(chatId: string, text: string) {
-  if (!TG_TOKEN) return
-  await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text }),
-  })
-}
+const sendTelegram = (chatId: string, text: string) => sendTelegramWithToken(TG_TOKEN, chatId, text)
 
 // Разбивает длинный текст на части ≤4000 символов по границам абзацев
 function splitForTelegram(text: string, limit = 4000): string[] {
@@ -108,16 +104,17 @@ function splitForTelegram(text: string, limit = 4000): string[] {
 }
 
 serve(async (req) => {
+  const CORS = corsHeadersFor(req.headers.get('Origin'), ALLOWED_ORIGINS)
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
   try {
     const authHeader = req.headers.get('Authorization') ?? ''
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
-    // Allow service-role calls (from telegram-bot) with x-user-id header
+    // Allow internal calls (from telegram-bot) with x-user-id + x-internal-secret
     const serviceUserId = req.headers.get('x-user-id')
     let user: User | null = null
-    if (serviceUserId && isServiceRoleCall(req, SUPABASE_SERVICE_KEY)) {
+    if (serviceUserId && isValidInternalSecret(req, INTERNAL_SECRET)) {
       const { data } = await supabase.auth.admin.getUserById(serviceUserId)
       user = data.user
     } else {
@@ -186,8 +183,15 @@ serve(async (req) => {
     const sleep2: SleepSessionRow[] = s2.data ?? []
     const intakeRows: IntakeRow[] = intake.data ?? []
 
-    const digest1 = buildDigest(rows1, 'Последние 2 недели', sleep1)
-    const digest2 = buildDigest(rows2, 'Предыдущие 2 недели', sleep2)
+    // Один источник таймзоны для всех локальных времён (profiles.timezone).
+    const tz = await loadUserTimezone(supabase, user.id)
+    // Личный baseline HRV = медиана по обоим периодам (~4 недели данных уже в памяти).
+    const hrvBaseline = median(nums([...rows1, ...rows2].map(r => r.hrv)))
+
+    const digest1 = buildDigest(rows1, 'Последние 2 недели', sleep1, tz, hrvBaseline)
+    const digest2 = buildDigest(rows2, 'Предыдущие 2 недели', sleep2, tz, hrvBaseline)
+    // Межпериодные сравнения считаем кодом — модель не должна выводить их сама.
+    const lateFact = lateComparisonLine(lateBedtimes(sleep1, tz).length, lateBedtimes(sleep2, tz).length)
 
     // SpO2 — хранится как доля (0.96 = 96%), переводим в проценты
     const spo2Block = (() => {
@@ -300,40 +304,15 @@ serve(async (req) => {
     const safeAdherenceBlock = sensitive ? adherenceBlock : ''
 
     const periodLabel = `${Math.round((p1End.getTime() - p1Start.getTime()) / 86400000) + 1} дн.`
-    const detailSpec = detail === 'short'
-      ? `Формат: КРАТКО, до 800 символов. Разделы:
-  📋 Итог (1-2 предложения)
-  ✅ что улучшилось · 📉 что просело (с цифрами)
-  💡 1-2 совета`
-      : detail === 'medium'
-      ? `Формат: СРЕДНЕ. Основные разделы с цифрами:
-  📋 Итог · 😴 Сон · ❤️ Сердце/HRV · 🏃 Активность · 🍽 Привычки · 💡 3 совета`
-      : `Формат: ПОДРОБНО, по всем разделам с цифрами и датами:
-  📋 Краткий итог
-  😴 Сон — длительность, фазы (глубокий/REM), позднее засыпание, динамика
-  ❤️ Сердце и восстановление — ЧСС покоя, HRV, стрессовые дни
-  🏃 Активность — шаги, калории, динамика
-  🫁 Кислород — если есть SpO2
-  🍽 Питание и привычки — кофе, алкоголь, еда; связь с самочувствием/сном
-${sensitive ? '  💊 Препараты — соблюдение приёма\n  🧪 Анализы — отклонения и тренды\n' : ''}  🔗 Связи и закономерности — свяжи события из заметок с метриками по датам
-  💡 Рекомендации — 3-5 конкретных советов`
-
-    const prompt = `Ты — опытный аналитик здоровья. Напиши отчёт для пользователя за ${periodLabel}.
-
-${digest1}
-${spo2Block}${sleepStagesBlock}${nutritionBlock}${workoutBlock}${safeAdherenceBlock}${safeLabsBlock}${notesBlock}
-
-ДЛЯ СРАВНЕНИЯ — предыдущий период:
-${digest2}
-
-${detailSpec}
-
-Общие требования:
-- Plain text, без markdown (никаких *, #, _). Emoji для заголовков разделов желательны.
-- Опирайся на личные тренды пользователя, сравнивай с его же прошлым периодом, не с абсолютными нормами.
-- Конкретика по датам и цифрам, без воды и общих фраз.
-- Без медицинских диагнозов. При тревожных значениях мягко советуй врача.
-- На русском.`
+    const prompt = buildReportPrompt({
+      periodLabel,
+      digest1,
+      digest2,
+      lateFact,
+      extraBlocks: `${spo2Block}${sleepStagesBlock}${nutritionBlock}${workoutBlock}${safeAdherenceBlock}${safeLabsBlock}${notesBlock}`,
+      detail: detail === 'short' || detail === 'medium' ? detail : 'full',
+      sensitive,
+    })
 
     const geminiRes = await fetchGeminiWithConsent(
       supabase,

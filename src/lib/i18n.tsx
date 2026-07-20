@@ -30,6 +30,8 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   return <Ctx.Provider value={{ lang, locale: LOCALES[lang], setLang, t }}>{children}</Ctx.Provider>
 }
 
+// Provider + hook are one unit; splitting the file would churn every consumer.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useT() {
   const ctx = useContext(Ctx)
   if (!ctx) throw new Error('useT must be used within I18nProvider')

@@ -50,3 +50,68 @@ export function buildBellItems(daily: DailyMetrics[], today: Date = new Date()):
 
   return items
 }
+
+// Алерты стража приходят HTML-строкой вида '🔴 <b>Заголовок</b>\n\nтело…'.
+// Раскладываем на заголовок и тело для карточки колокольчика; теги и
+// статусные эмодзи убираем (уровень показывает подложка иконки).
+export function parseAlertMessage(message: string): { title: string; body: string } {
+  const bold = message.match(/<b>([^<]+)<\/b>/)
+  // Теги вырезаем до неподвижной точки: один проход обходится вложенной
+  // конструкцией вида '<scr<script>ipt>' (CodeQL js/incomplete-multi-character-sanitization).
+  let untagged = message
+  for (let prev = ''; prev !== untagged; ) {
+    prev = untagged
+    untagged = untagged.replace(/<[^>]*>/g, '')
+  }
+  const stripped = untagged.replace(/[🔴🟡]/gu, '').trim()
+  if (bold) {
+    const title = bold[1].trim()
+    const body = stripped.startsWith(title) ? stripped.slice(title.length) : stripped.replace(title, '')
+    return { title, body: body.replace(/\n{3,}/g, '\n\n').trim() }
+  }
+  const nl = stripped.indexOf('\n')
+  if (nl === -1) return { title: stripped, body: '' }
+  return { title: stripped.slice(0, nl).trim(), body: stripped.slice(nl + 1).trim() }
+}
+
+// Тело алерта стража: факты (строки метрик) видны всегда, совет с дисклеймером
+// прячется за разворот — карточки в колокольчике становятся компактнее.
+export function splitAlertBody(body: string): { facts: string; advice: string } {
+  const marker = body.indexOf('Совет:')
+  if (marker === -1) return { facts: body.trim(), advice: '' }
+  return { facts: body.slice(0, marker).trim(), advice: body.slice(marker).trim() }
+}
+
+// Строка метрики из buildAlertMessage (_shared/anomaly.ts, язык бота — ru):
+// '↑ Пульс покоя: 64 уд/мин при твоей норме 55 уд/мин (2.3σ)'.
+const FACT_RE = /^([↑↓]) (.+?): (.+?) при твоей норме (.+?) \((.+?)σ\)$/
+
+// Значения приходят с русскими единицами внутри ('64 уд/мин', '21.5/мин').
+const UNIT_KEYS = ['уд/мин', 'мс', '/мин']
+
+// Серверные алерты лежат в БД русским текстом (язык бота). Формат наш и
+// стабильный, поэтому uk/en делаем на клиенте построчно: известные строки —
+// через словарь, строки метрик — по шаблону, незнакомое проходит как есть.
+export function localizeAlertText(
+  text: string,
+  t: (ru: string, vars?: Record<string, string | number>) => string,
+): string {
+  return text.split('\n').map(line => {
+    const m = line.trim().match(FACT_RE)
+    if (!m) return line.trim() ? t(line.trim()) : line
+    const [, arrow, name, value, baseline, z] = m
+    const local = (v: string) => UNIT_KEYS.reduce((s, u) => s.replace(u, t(u)), v)
+    return t('{arrow} {name}: {value} при твоей норме {baseline} ({z}σ)', {
+      arrow, name: t(name), value: local(value), baseline: local(baseline), z,
+    })
+  }).join('\n')
+}
+
+// Строки алерта, которые обязаны быть ключами словаря (заголовок, совет,
+// дисклеймер). Строки метрик собираются по шаблону и сюда не входят.
+// Используется тестом demoI18n: фикстурный алерт без перевода валит тест.
+export function alertTranslatableLines(message: string): string[] {
+  const { title, body } = parseAlertMessage(message)
+  const lines = body.split('\n').map(l => l.trim()).filter(Boolean)
+  return [title, ...lines.filter(l => !FACT_RE.test(l))]
+}

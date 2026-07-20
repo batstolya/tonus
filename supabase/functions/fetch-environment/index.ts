@@ -1,18 +1,21 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { isValidCronSecret } from '../_shared/auth.ts'
+import { corsHeadersFor } from '../_shared/cors.ts'
+import { fetchWithTimeout } from '../_shared/http.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 // Свой секрет для cron-джобы (ENV_CRON_SECRET) с фолбэком на общий
 const CRON_SECRET = Deno.env.get('ENV_CRON_SECRET') ?? Deno.env.get('TONUS_CRON_SECRET') ?? ''
-const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, x-cron-secret, x-request-id' }
+const ALLOWED_ORIGINS = Deno.env.get('TONUS_ALLOWED_ORIGINS') ?? ''
 
 // Default location: Munich, Germany
 const DEFAULT_LAT = 48.1351
 const DEFAULT_LON = 11.5820
 
 serve(async (req) => {
+  const CORS = corsHeadersFor(req.headers.get('Origin'), ALLOWED_ORIGINS)
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
@@ -68,7 +71,7 @@ async function syncUser(supabase: SupabaseClient, userId: string, lat: number, l
 
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_mean,surface_pressure_mean,precipitation_sum,daylight_duration&start_date=${start}&end_date=${end}&timezone=auto`
 
-    const res = await fetch(url)
+    const res = await fetchWithTimeout(url, { retryOn5xx: true })
     if (!res.ok) throw new Error(`Open-Meteo ${res.status}`)
     const data = await res.json()
 
@@ -84,7 +87,7 @@ async function syncUser(supabase: SupabaseClient, userId: string, lat: number, l
       const aqUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}` +
         `&hourly=european_aqi,alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,ragweed_pollen,olive_pollen` +
         `&start_date=${start}&end_date=${end}&timezone=auto`
-      const aqRes = await fetch(aqUrl)
+      const aqRes = await fetchWithTimeout(aqUrl, { retryOn5xx: true })
       if (aqRes.ok) {
         const aq = await aqRes.json()
         const times: string[] = aq.hourly?.time ?? []
@@ -120,7 +123,7 @@ async function syncUser(supabase: SupabaseClient, userId: string, lat: number, l
     // 3-часовым слотам — буря определяется пиком (Kp >= 5).
     const kpByDate: Record<string, number> = {}
     try {
-      const kpRes = await fetch(`https://kp.gfz.de/app/json/?start=${start}T00:00:00Z&end=${end}T23:59:59Z&index=Kp`)
+      const kpRes = await fetchWithTimeout(`https://kp.gfz.de/app/json/?start=${start}T00:00:00Z&end=${end}T23:59:59Z&index=Kp`, { retryOn5xx: true })
       if (kpRes.ok) {
         const kp = await kpRes.json()
         const times: string[] = kp.datetime ?? []

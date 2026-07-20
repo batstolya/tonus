@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { isValidAdminSecret } from '../_shared/auth.ts'
+import { fetchWithTimeout } from '../_shared/http.ts'
 
 const ADMIN_SECRET = Deno.env.get('TONUS_ADMIN_SECRET') ?? ''
 
@@ -15,7 +16,7 @@ serve(async (req) => {
   const body = await req.json().catch(() => ({}))
 
   if (body.action === 'info') {
-    const res = await fetch(`https://api.telegram.org/bot${token}/getWebhookInfo`)
+    const res = await fetchWithTimeout(`https://api.telegram.org/bot${token}/getWebhookInfo`, { retryOn5xx: true })
     const data = await res.json()
     // Только безопасный минимум, не весь ответ Telegram (спека §3.3).
     const r = data?.result ?? {}
@@ -29,7 +30,7 @@ serve(async (req) => {
   }
 
   if (body.action === 'commands') {
-    const res = await fetch(`https://api.telegram.org/bot${token}/setMyCommands`, {
+    const res = await fetchWithTimeout(`https://api.telegram.org/bot${token}/setMyCommands`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -47,7 +48,7 @@ serve(async (req) => {
     return new Response(JSON.stringify(data), { headers: { 'Content-Type': 'application/json' } })
   }
 
-  const res = await fetch(`https://api.telegram.org/bot${token}/setWebhook`, {
+  const res = await fetchWithTimeout(`https://api.telegram.org/bot${token}/setWebhook`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ url: webhookUrl, secret_token: secret }),

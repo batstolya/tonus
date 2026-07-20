@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { DailyMetrics } from '../../types'
 import { computeLagCorrelations, type CorrFactor, type CorrOutcome, type EnvDay } from '../../lib/correlations'
 import { computeDailyScores } from '../../lib/scores'
-import { supabase } from '../../lib/supabase'
+import { getEnvironmentDays } from '../../lib/api/insights'
 import { isDemoActive } from '../../lib/demo'
 import { useT } from '../../lib/i18n'
 
@@ -45,11 +45,7 @@ export function CorrelationsBlock({ daily, intakeEvents }: Props) {
       return () => { cancelled = true }
     }
     const since = new Date(Date.now() - 48 * 86400000).toISOString().slice(0, 10)
-    supabase
-      .from('environment_daily')
-      .select('date, temp_c, pressure_hpa, daylight_minutes, precipitation_mm, kp_index')
-      .gte('date', since).order('date')
-      .then(({ data }) => { if (!cancelled) setEnv((data as EnvDay[]) ?? []) })
+    getEnvironmentDays(since).then(days => { if (!cancelled) setEnv(days) })
     return () => { cancelled = true }
   }, [])
 
