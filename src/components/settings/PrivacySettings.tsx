@@ -39,10 +39,10 @@ export function PrivacySettings({ user }: { user: User }) {
       </p>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         {pinSet && (
-          <input className="log-input" type="password" inputMode="numeric" style={{ width: 140 }}
+          <input className="settings-input" type="password" inputMode="numeric" style={{ width: 140 }}
             placeholder={t('Текущий PIN')} value={current} onChange={e => setCurrent(e.target.value)} />
         )}
-        <input className="log-input" type="password" inputMode="numeric" style={{ width: 140 }}
+        <input className="settings-input" type="password" inputMode="numeric" style={{ width: 140 }}
           placeholder={pinSet ? t('Новый PIN') : 'PIN'} value={next}
           onChange={e => setNext(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleSave()} />

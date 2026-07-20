@@ -88,14 +88,14 @@ export function WorkoutScheduleSettings({ user }: { user: User }) {
             <input
               type="time" value={entry.time} disabled={demo}
               onChange={e => patchDay(day, { time: e.target.value })}
-              className="log-input" style={{ width: 100 }}
+              className="settings-input" style={{ width: 100 }}
             />
             <input
               // Демо-расписание read-only, а его вид спорта — ключ словаря: переводим.
               type="text" value={demo ? t(entry.label ?? '') : (entry.label ?? '')} disabled={demo}
               placeholder={t('вид спорта (необязательно)')}
               onChange={e => patchDay(day, { label: e.target.value })}
-              className="log-input" style={{ width: 180, marginLeft: 8 }}
+              className="settings-input" style={{ width: 180, marginLeft: 8 }}
             />
           </div>
         )
