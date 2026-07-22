@@ -17,4 +17,11 @@ describe('supabase module', () => {
     initEnv({ supabaseUrl: 'http://localhost:54321', supabaseAnonKey: 'test-anon-key', demo: false, googleClientId: undefined })
     expect(supabase.auth).toBeDefined()
   })
+
+  it('createTonusClient builds an independent client from explicit config', async () => {
+    vi.resetModules()
+    const { createTonusClient } = await import('./supabase')
+    const client = createTonusClient({ url: 'http://localhost:54321', anonKey: 'test-anon-key' })
+    expect(client.auth).toBeDefined()
+  })
 })

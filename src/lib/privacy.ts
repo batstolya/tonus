@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { ephemeralStorage } from './platform'
 
 // Приватность деликатных записей (см. спеку 2026-07-11-private-concerns).
 // Это защита от чужих глаз на экране, НЕ шифрование: данные в БД и в
@@ -12,13 +13,14 @@ export async function hashPin(pin: string): Promise<string> {
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
-// Разблокировка живёт до конца сессии вкладки (sessionStorage)
+// Unlock lives until the platform session ends (web: tab close).
+// Storage errors are swallowed inside the adapter implementations.
 export function isUnlocked(): boolean {
-  try { return sessionStorage.getItem(UNLOCK_KEY) === '1' } catch { return false }
+  return ephemeralStorage.get(UNLOCK_KEY) === '1'
 }
 
 export function lock(): void {
-  try { sessionStorage.removeItem(UNLOCK_KEY) } catch { /* среда без sessionStorage */ }
+  ephemeralStorage.remove(UNLOCK_KEY)
 }
 
 // Маскируем только когда PIN задан: при сброшенном PIN записи видимы,
@@ -40,7 +42,7 @@ export async function unlock(userId: string, pin: string): Promise<boolean> {
   const stored = await loadPinHash(userId)
   if (!stored) return false
   const ok = stored === await hashPin(pin)
-  if (ok) { try { sessionStorage.setItem(UNLOCK_KEY, '1') } catch { /* ignore */ } }
+  if (ok) ephemeralStorage.set(UNLOCK_KEY, '1')
   return ok
 }
 
@@ -49,6 +51,6 @@ export async function setPin(userId: string, newPin: string, currentPin?: string
   const stored = await loadPinHash(userId)
   if (stored && stored !== await hashPin(currentPin ?? '')) return 'wrong_current'
   await supabase.from('profiles').upsert({ id: userId, privacy_pin_hash: await hashPin(newPin) })
-  try { sessionStorage.setItem(UNLOCK_KEY, '1') } catch { /* ignore */ }
+  ephemeralStorage.set(UNLOCK_KEY, '1')
   return 'ok'
 }

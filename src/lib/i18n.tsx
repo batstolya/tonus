@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
 import { translate, detectLang, LOCALES, type Lang } from './translate'
+import { persistentStorage } from './platform'
 
 export type { Lang }
 export { LANGS } from './translate'
@@ -17,7 +18,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(detectLang)
 
   const setLang = useCallback((l: Lang) => {
-    localStorage.setItem('lang', l)
+    persistentStorage.set('lang', l)
     setLangState(l)
   }, [])
 
