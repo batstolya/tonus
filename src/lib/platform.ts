@@ -1,8 +1,8 @@
 // Platform hooks for shared-candidate lib code (mobile monorepo Phase 0b).
 // Mirrors env.ts: platform wiring (web: platform.web.ts, tests:
 // vitest.env-setup.ts, mobile later: mmkv/expo-localization) must call
-// initPlatform() before lib code runs. Web Storage and navigator must not
-// be touched anywhere else in src/lib — React Native has neither.
+// initPlatform() before lib code runs. Web Storage and browser locale APIs
+// must not be touched anywhere else in src/lib — React Native has neither.
 
 /** Synchronous key-value storage; implementations swallow storage errors. */
 export interface KeyValueStorage {
@@ -12,11 +12,11 @@ export interface KeyValueStorage {
 }
 
 export interface PlatformAdapters {
-  /** Survives restarts (web: localStorage; mobile later: mmkv). */
+  /** Survives restarts (web: local Web Storage; mobile later: mmkv). */
   persistentStorage: KeyValueStorage
-  /** Lives until the session ends (web: sessionStorage / tab; mobile later: in-memory / app restart). */
+  /** Lives until the session ends (web: session Web Storage / tab close; mobile later: in-memory / app restart). */
   ephemeralStorage: KeyValueStorage
-  /** BCP-47 device locale (web: navigator.language; mobile later: expo-localization). */
+  /** BCP-47 device locale (web: the browser language; mobile later: expo-localization). */
   getDeviceLocale: () => string
 }
 
