@@ -19,17 +19,36 @@ if (files.length === 0) {
   process.exit(0)
 }
 
-let out
-try {
-  out = execSync(`npx eslint ${files.map((f) => `'${f}'`).join(' ')} -f json`, {
-    encoding: 'utf8',
-    maxBuffer: 64 * 1024 * 1024,
-  })
-} catch (e) {
-  out = e.stdout
+// Each workspace ships its own flat ESLint config. ESLint resolves the config
+// from its cwd, so lint every changed file from the directory that owns it:
+// apps/web files against apps/web/eslint.config.js, everything else (tests/,
+// e2e/, packages/, root configs) against the root eslint.config.js.
+const groups = new Map()
+for (const file of files) {
+  const cwd = file.startsWith('apps/web/') ? 'apps/web' : '.'
+  const rel = cwd === 'apps/web' ? file.slice('apps/web/'.length) : file
+  if (!groups.has(cwd)) groups.set(cwd, [])
+  groups.get(cwd).push(rel)
 }
 
-const offending = offendingMessages(JSON.parse(out), added)
+const results = []
+for (const [cwd, groupFiles] of groups) {
+  let out
+  try {
+    out = execSync(`npx eslint ${groupFiles.map((f) => `'${f}'`).join(' ')} -f json`, {
+      cwd,
+      encoding: 'utf8',
+      maxBuffer: 64 * 1024 * 1024,
+    })
+  } catch (e) {
+    out = e.stdout
+  }
+  results.push(...JSON.parse(out))
+}
+
+// offendingMessages matches added-line keys (repo-root-relative) against each
+// result's absolute filePath via endsWith, so grouping by cwd stays correct.
+const offending = offendingMessages(results, added)
 if (offending.length) {
   for (const o of offending) {
     console.error(`::error file=${o.file},line=${o.line}::${o.ruleId}: ${o.message}`)

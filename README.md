@@ -173,7 +173,7 @@ npm run media:readme
 
 ## Repository map
 
-- [`src/`](src/) — feature-grouped React screens, hooks, parsers, state and client-side statistics.
+- [`apps/web/src/`](apps/web/src/) — feature-grouped React screens, hooks, parsers, state and client-side statistics.
 - [`supabase/`](supabase/) — baseline migrations, RLS policies, Deno Edge Functions and shared server logic.
 - [`scripts/`](scripts/) — operational SQL, data helpers and reproducible README-media tooling.
 - [`e2e/`](e2e/) — critical Playwright user journeys.

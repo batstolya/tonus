@@ -1,7 +1,7 @@
 {
   "version": 1,
   "sources": [
-    "src/lib/database.types.ts",
+    "packages/shared/src/database.types.ts",
     "supabase/config.toml",
     "supabase/functions/",
     "security/inventory-classification.json"

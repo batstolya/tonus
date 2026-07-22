@@ -1,4 +1,4 @@
-// Drift guard for src/lib/database.types.ts.
+// Drift guard for packages/shared/src/database.types.ts.
 // Regenerates types from the linked Supabase project and fails if the committed
 // file is out of date — i.e. a migration landed without running `npm run gen:types`.
 //
@@ -8,7 +8,7 @@
 import { execSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 
-const COMMITTED = 'src/lib/database.types.ts'
+const COMMITTED = 'packages/shared/src/database.types.ts'
 
 // Локально проект залинкован (Keychain) → --linked. В CI линка нет
 // (supabase/.temp в gitignore), но есть SUPABASE_ACCESS_TOKEN → адресуем проект

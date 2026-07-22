@@ -1,6 +1,6 @@
 import type { DailyMetrics } from '../types'
 import { supabase } from './supabase'
-import { computeDailyScores, avg } from '../../supabase/functions/_shared/scores'
+import { computeDailyScores, avg } from '../../../../supabase/functions/_shared/scores'
 
 // Формулы дневных оценок живут в ОДНОМ месте — supabase/functions/_shared/scores.ts
 // (чистый модуль, его же импортирует ingest-health). Этот файл — клиентский фасад:
@@ -8,7 +8,7 @@ import { computeDailyScores, avg } from '../../supabase/functions/_shared/scores
 // После правки формул задеплой ingest-health (--no-verify-jwt!).
 
 export { computeDailyScores }
-export type { DailyScore, ScoreInput } from '../../supabase/functions/_shared/scores'
+export type { DailyScore, ScoreInput } from '../../../../supabase/functions/_shared/scores'
 
 export interface BaselineDeviation {
   metric: 'hrv' | 'rhr' | 'sleep' | 'steps'

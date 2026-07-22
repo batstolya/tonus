@@ -31,7 +31,7 @@ describe('observability inventory', () => {
   })
 
   it('propagates one request ID from the browser call into its failure report', () => {
-    const source = readFileSync('src/lib/edgeFunctions.ts', 'utf8')
+    const source = readFileSync('apps/web/src/lib/edgeFunctions.ts', 'utf8')
 
     expect(source).toContain("'x-request-id': requestId")
     expect(source).toContain("captureClientFailure('web.edge_function_failure', 'edge_request_failed', requestId)")
