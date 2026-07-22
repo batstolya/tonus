@@ -5,10 +5,13 @@ import type { LabResult } from './labs'
 
 const day = (date: string, over: Partial<DailyMetrics> = {}): DailyMetrics => ({ date, ...over })
 
-// 40 дней ровных данных: rhr 60, hrv 50, сон 7.5, шаги 10000
+// 40 flat days ending today (periodSlice windows from the current date, so a
+// fixed fixture ages out of the period and the suite starts failing over time):
+// rhr 60, hrv 50, sleep 7.5h, steps 10000
 const flat40: DailyMetrics[] = Array.from({ length: 40 }, (_, i) => {
-  const d = new Date(2026, 5, 1 + i)
-  const ds = `2026-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  const d = new Date()
+  d.setDate(d.getDate() - (39 - i))
+  const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   return day(ds, { restingHeartRate: 60, hrv: 50, sleepHours: 7.5, steps: 10000 })
 })
 
