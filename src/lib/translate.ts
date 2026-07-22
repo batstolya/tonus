@@ -3,6 +3,7 @@
 // i18n.tsx строит поверх этого хук useT; файл отдельный, чтобы i18n.tsx
 // экспортировал только React-сущности (react-refresh/only-export-components).
 import { translations } from './translations'
+import { persistentStorage, getDeviceLocale } from './platform'
 
 export type Lang = 'ru' | 'uk' | 'en'
 
@@ -17,12 +18,10 @@ export const LANGS: { code: Lang; label: string; flag: string }[] = [
 export const LOCALES: Record<Lang, string> = { ru: 'ru-RU', uk: 'uk-UA', en: 'en-GB' }
 
 export function detectLang(): Lang {
-  // Вне браузера (тесты в node-проекте vitest) window-API нет — не падаем.
-  if (typeof localStorage === 'undefined') return 'en'
-  const saved = localStorage.getItem('lang') as Lang | null
-  // 'ru' больше не выбирается — старое сохранённое значение трактуем как English.
+  const saved = persistentStorage.get('lang') as Lang | null
+  // 'ru' is no longer selectable — a legacy saved value is treated as English.
   if (saved === 'uk' || saved === 'en') return saved
-  const nav = typeof navigator !== 'undefined' ? navigator.language.slice(0, 2) : 'en'
+  const nav = getDeviceLocale().slice(0, 2)
   if (nav === 'uk') return 'uk'
   return 'en'
 }
@@ -33,8 +32,8 @@ export function translate(ru: string, lang: Lang): string {
   return translations[ru]?.[lang] ?? ru
 }
 
-// Перевод вне React: язык берём из того же localStorage, что и провайдер,
-// поэтому они не расходятся.
+// Translation outside React: the language comes from the same persistent
+// storage the provider writes, so the two never diverge.
 export function translateStandalone(ru: string): string {
   return translate(ru, detectLang())
 }

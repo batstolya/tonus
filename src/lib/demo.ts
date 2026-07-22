@@ -1,17 +1,19 @@
-// Демо-режим: приложение с сгенерированными данными, без регистрации и Supabase.
-// Включается кнопкой «Посмотреть демо» на лендинге (localStorage) или VITE_DEMO=1 для разработки.
+// Demo mode: the app on generated data, no signup and no Supabase.
+// Enabled by the landing "Посмотреть демо" button (persistent storage) or
+// VITE_DEMO=1 for development.
 import { getEnv } from './env'
+import { persistentStorage } from './platform'
 
 const DEMO_KEY = 'tonus_demo'
 
 export function isDemoActive(): boolean {
-  return getEnv().demo || localStorage.getItem(DEMO_KEY) === '1'
+  return getEnv().demo || persistentStorage.get(DEMO_KEY) === '1'
 }
 
 export function enableDemo() {
-  localStorage.setItem(DEMO_KEY, '1')
+  persistentStorage.set(DEMO_KEY, '1')
 }
 
 export function disableDemo() {
-  localStorage.removeItem(DEMO_KEY)
+  persistentStorage.remove(DEMO_KEY)
 }

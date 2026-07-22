@@ -67,8 +67,11 @@ describe('language detection fallbacks', () => {
     expect(detectLang()).toBe('uk')
   })
 
-  it('treats legacy saved ru as English', () => {
+  it('ignores legacy saved ru and falls through to the device locale', () => {
     initInMemory('uk-UA')
+    persistentStorage.set('lang', 'ru')
+    expect(detectLang()).toBe('uk')
+    initInMemory('de-DE')
     persistentStorage.set('lang', 'ru')
     expect(detectLang()).toBe('en')
   })

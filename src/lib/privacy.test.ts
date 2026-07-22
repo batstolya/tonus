@@ -13,8 +13,8 @@ describe('hashPin', () => {
   })
 })
 
-describe('isUnlocked / isMasked (node: sessionStorage недоступен)', () => {
-  it('без sessionStorage считается запертым', () => {
+describe('isUnlocked / isMasked (in-memory platform)', () => {
+  it('locked until unlocked', () => {
     expect(isUnlocked()).toBe(false)
   })
   it('маскируем только приватные при заданном PIN', () => {
