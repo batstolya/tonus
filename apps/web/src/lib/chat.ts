@@ -69,13 +69,15 @@ export async function sendChatMessage(
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) throw new Error('Не авторизован')
 
-  const { supabaseUrl, supabaseAnonKey } = getEnv()
+  const { supabaseUrl } = getEnv()
+  // Auth is the user JWT only. NOT the apikey header: the _shared/cors allowlist
+  // permits authorization/content-type/x-request-id, so an apikey header makes the
+  // browser preflight fail ("Failed to fetch"). Matches edgeFunctions.ts.
   const res = await fetch(`${supabaseUrl}/functions/v1/chat-health`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${session.access_token}`,
-      'apikey': supabaseAnonKey,
     },
     body: JSON.stringify({ sessionId, message, lang }),
   })
