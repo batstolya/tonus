@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { computeDailyScores } from './scores'
-import { computeDailyScores as computeDailyScoresServer } from '../../supabase/functions/_shared/scores'
+import { computeDailyScores as computeDailyScoresServer } from '../../../../supabase/functions/_shared/scores'
 import type { DailyMetrics } from '../types'
 
 // Формулы живут в одном месте (_shared/scores.ts), клиент их re-export'ит.

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { forecastReadiness, type ForecastInput } from './forecast'
-import { forecastReadiness as forecastServer } from '../../supabase/functions/_shared/forecast'
+import { forecastReadiness as forecastServer } from '../../../../supabase/functions/_shared/forecast'
 
 const base = (over: Partial<ForecastInput> = {}): ForecastInput => ({
   readinessLast3: [70, 70, 70],

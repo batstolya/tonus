@@ -10,7 +10,7 @@ const ALLOWLIST = new Set([])
 const grep = () => {
   try {
     return execSync(
-      String.raw`grep -rln --include='*.ts' --include='*.tsx' -E "\.from\(['\"]" src/components | grep -v '\.test\.'`,
+      String.raw`grep -rln --include='*.ts' --include='*.tsx' -E "\.from\(['\"]" apps/web/src/components | grep -v '\.test\.'`,
       { encoding: 'utf8' },
     ).trim().split('\n').filter(Boolean)
   } catch {

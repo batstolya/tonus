@@ -6,7 +6,8 @@ import { describe, expect, it } from 'vitest'
 
 describe('export table inventory', () => {
   const source = readFileSync('src/lib/exportData.ts', 'utf8')
-  const inventory = JSON.parse(readFileSync('security/inventory.generated.json', 'utf8')) as {
+  // security/ stays at the repo root; the web vitest project runs from apps/web.
+  const inventory = JSON.parse(readFileSync('../../security/inventory.generated.json', 'utf8')) as {
     surfaces: { tables: Array<{ name: string; exposure: string }>; views: Array<{ name: string }> }
   }
   const queried = [...source.matchAll(/from\('([a-z_]+)'\)/g)].map(m => m[1])

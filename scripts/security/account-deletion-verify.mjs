@@ -43,7 +43,7 @@ const inventory = JSON.parse(readFileSync('security/inventory.generated.json', '
 const userOwned = inventory.surfaces.tables.filter(t => t.exposure === 'user-owned')
 
 // ── Parse Insert requirements + FK relationships from database.types.ts ─────
-const typesSource = readFileSync('src/lib/database.types.ts', 'utf8')
+const typesSource = readFileSync('packages/shared/src/database.types.ts', 'utf8')
 const file = ts.createSourceFile('database.types.ts', typesSource, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
 
 function memberByName(node, name) {

@@ -189,7 +189,7 @@ export function buildSecurityInventory(discovered, classification) {
 
   return {
     version: 1,
-    sources: ['src/lib/database.types.ts', 'supabase/config.toml', 'supabase/functions/', 'security/inventory-classification.json'],
+    sources: ['packages/shared/src/database.types.ts', 'supabase/config.toml', 'supabase/functions/', 'security/inventory-classification.json'],
     counts: {
       tables: tables.length,
       views: views.length,

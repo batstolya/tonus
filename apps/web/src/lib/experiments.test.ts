@@ -154,7 +154,7 @@ import {
   effectLabel as effectLabelServer,
   addDays as addDaysServer,
   computeBaselineStart as cbsServer,
-} from '../../supabase/functions/_shared/experiments'
+} from '../../../../supabase/functions/_shared/experiments'
 
 describe('parity клиент ↔ сервер', () => {
   it('computeResult идентичен на разных наборах', () => {

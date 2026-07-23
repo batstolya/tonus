@@ -8,7 +8,7 @@ import {
 } from './security-inventory-lib.mjs'
 
 export function generateSecurityInventory() {
-  const databaseTypes = readFileSync('src/lib/database.types.ts', 'utf8')
+  const databaseTypes = readFileSync('packages/shared/src/database.types.ts', 'utf8')
   const config = readFileSync('supabase/config.toml', 'utf8')
   const classification = JSON.parse(readFileSync('security/inventory-classification.json', 'utf8'))
   const functionNames = readdirSync('supabase/functions', { withFileTypes: true })

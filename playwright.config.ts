@@ -12,7 +12,9 @@ export default defineConfig({
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: 'npm run build && npm run preview -- --port 4173 --strictPort',
+    // Build and serve the web workspace (apps/web); playwright.config stays at
+    // the repo root and drives the production build via the tonus-web workspace.
+    command: 'npm run -w tonus-web build && npm run -w tonus-web preview -- --port 4173 --strictPort',
     url: 'http://localhost:4173',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
