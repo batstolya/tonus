@@ -18,7 +18,10 @@ describe('chat client', () => {
     expect(typeof loadNotesSummary).toBe('function')
   })
 
-  it('sends the publishable apikey with the authenticated user JWT', async () => {
+  it('authenticates with the user JWT only — no apikey header (the CORS allowlist rejects it)', async () => {
+    // The _shared/cors allowlist permits authorization + content-type + x-request-id,
+    // NOT apikey. Sending apikey makes the browser preflight fail ("Failed to fetch").
+    // The user JWT in Authorization is sufficient auth, matching edgeFunctions.ts.
     vi.stubGlobal('localStorage', { getItem: () => null })
     vi.spyOn(supabase.auth, 'getSession').mockResolvedValue({
       data: { session: { access_token: 'user-jwt' } },
@@ -38,7 +41,6 @@ describe('chat client', () => {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer user-jwt',
-          'apikey': 'test-anon-key',
         },
       }),
     )
