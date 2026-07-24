@@ -114,6 +114,13 @@ This establishes the pattern "shared owns cross-client constants" with the
 smallest possible surface. Web is untouched (it may adopt `APP_NAME` later;
 not part of this phase).
 
+`APP_NAME` is client-only, so it is born directly in `packages/shared`. Logic
+with an edge-function caller (scores, forecast, …) stays in
+`supabase/functions/_shared/` and gets a re-export facade here instead — see
+"Shared code boundary" in the parent design. Nothing in Phase 2 needs that
+facade yet; the mobile `tsconfig` will need `allowImportingTsExtensions` when
+the first one arrives.
+
 ## Integration points (where monorepo + Metro usually breaks)
 
 - **Metro config:** extend `expo/metro-config`'s `getDefaultConfig` with
