@@ -1,6 +1,6 @@
 import { execSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
-import { parseAddedLines, offendingMessages } from './lint-diff-lib.mjs'
+import { parseAddedLines, offendingMessages, groupFilesByEslintCwd } from './lint-diff-lib.mjs'
 
 // Base ref: the PR target on CI, else CLI arg, else local `main`.
 const base = process.env.GITHUB_BASE_REF
@@ -19,17 +19,10 @@ if (files.length === 0) {
   process.exit(0)
 }
 
-// Each workspace ships its own flat ESLint config. ESLint resolves the config
-// from its cwd, so lint every changed file from the directory that owns it:
-// apps/web files against apps/web/eslint.config.js, everything else (tests/,
-// e2e/, packages/, root configs) against the root eslint.config.js.
-const groups = new Map()
-for (const file of files) {
-  const cwd = file.startsWith('apps/web/') ? 'apps/web' : '.'
-  const rel = cwd === 'apps/web' ? file.slice('apps/web/'.length) : file
-  if (!groups.has(cwd)) groups.set(cwd, [])
-  groups.get(cwd).push(rel)
-}
+// Each workspace ships its own flat ESLint config, and ESLint resolves the
+// config from its cwd — see groupFilesByEslintCwd. Everything outside apps/**
+// (tests/, e2e/, packages/, root configs) lints against the root config.
+const groups = groupFilesByEslintCwd(files)
 
 const results = []
 for (const [cwd, groupFiles] of groups) {

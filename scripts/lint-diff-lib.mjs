@@ -42,3 +42,19 @@ export function offendingMessages(eslintResults, addedLines) {
   }
   return out
 }
+
+// Each app in apps/* ships its own flat ESLint config and the root config
+// ignores apps/**, so a changed file must be linted from the directory that
+// owns its config — otherwise ESLint silently reports nothing for it.
+// Returns Map<cwd, files relative to that cwd>, insertion-ordered.
+export function groupFilesByEslintCwd(files) {
+  const groups = new Map()
+  for (const file of files) {
+    const match = file.match(/^(apps\/[^/]+)\//)
+    const cwd = match ? match[1] : '.'
+    const rel = match ? file.slice(cwd.length + 1) : file
+    if (!groups.has(cwd)) groups.set(cwd, [])
+    groups.get(cwd).push(rel)
+  }
+  return groups
+}
