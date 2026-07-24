@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { parseAddedLines, offendingMessages } from './lint-diff-lib.mjs'
+import { parseAddedLines, offendingMessages, groupFilesByEslintCwd } from './lint-diff-lib.mjs'
 
 const DIFF = `diff --git a/src/x.ts b/src/x.ts
 --- a/src/x.ts
@@ -28,4 +28,22 @@ test('offendingMessages keeps only error-severity messages on added lines', () =
   const off = offendingMessages(results, added)
   assert.equal(off.length, 1)
   assert.equal(off[0].line, 11)
+})
+
+test('groupFilesByEslintCwd routes each app file to its own workspace', () => {
+  const groups = groupFilesByEslintCwd([
+    'apps/web/src/App.tsx',
+    'apps/mobile/App.tsx',
+    'packages/shared/src/index.ts',
+    'scripts/x.ts',
+  ])
+  assert.deepEqual([...groups.keys()], ['apps/web', 'apps/mobile', '.'])
+  assert.deepEqual(groups.get('apps/web'), ['src/App.tsx'])
+  assert.deepEqual(groups.get('apps/mobile'), ['App.tsx'])
+  assert.deepEqual(groups.get('.'), ['packages/shared/src/index.ts', 'scripts/x.ts'])
+})
+
+test('groupFilesByEslintCwd keeps a bare apps/ path at the root', () => {
+  const groups = groupFilesByEslintCwd(['apps/README.ts'])
+  assert.deepEqual(groups.get('.'), ['apps/README.ts'])
 })

@@ -1,0 +1,29 @@
+{
+  "name": "tonus-mobile",
+  "private": true,
+  "version": "0.0.0",
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start",
+    "ios": "expo run:ios",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0"
+  },
+  "dependencies": {
+    "@tonus/shared": "*",
+    "expo": "~57.0.8",
+    "expo-dev-client": "~57.0.9",
+    "expo-status-bar": "~57.0.1",
+    "react": "^19.2.6",
+    "react-native": "0.86.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/react": "^19.2.14",
+    "eslint": "^10.3.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.6.0",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.59.2"
+  }
+}

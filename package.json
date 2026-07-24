@@ -11,7 +11,7 @@
     "dev": "npm run -w tonus-web dev",
     "build": "npm run -w tonus-web build",
     "preview": "npm run -w tonus-web preview",
-    "lint": "npm run -w tonus-web lint && eslint . --max-warnings 0",
+    "lint": "npm run -w tonus-web lint && npm run -w tonus-mobile lint && eslint . --max-warnings 0",
     "lint:diff": "node scripts/lint-diff.mjs",
     "test": "npm run -w tonus-web test && npm run -w @tonus/shared test && vitest run",
     "test:e2e": "playwright test",
