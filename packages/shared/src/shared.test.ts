@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { Constants } from './index'
+import { Constants, APP_NAME } from './index'
 import type { Database } from './index'
 
 // Smoke test proving the workspace chain resolves end to end: the generated
@@ -18,5 +18,11 @@ describe('@tonus/shared database types', () => {
     type Row = Database['public']['Tables']['ai_analyses']['Row']
     const focusIsPresent: keyof Row extends never ? false : true = true
     expect(focusIsPresent).toBe(true)
+  })
+})
+
+describe('@tonus/shared app metadata', () => {
+  it('exports the product name for every client to render', () => {
+    expect(APP_NAME).toBe('Tonus')
   })
 })
