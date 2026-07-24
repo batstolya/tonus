@@ -1,17 +1,15 @@
-// Магнитные бури по шкале Kp — фронтовая копия чистой логики.
-// ЗЕРКАЛО supabase/functions/_shared/geoStorm.ts (stormTier) — менять синхронно.
-// Порог бури Kp ≥ 5 (G1+).
+// Магнитные бури по шкале Kp. Классификация живёт в ОДНОМ месте —
+// supabase/functions/_shared/geoStorm.ts (порог Kp ≥ 5, G1+), её же импортируют
+// edge-функции. Этот файл — клиентский фасад (паттерн scores.ts): re-export
+// расчёта + фронтовая надстройка (текст подсказки).
 
-export type StormTier = 'minor' | 'strong' | 'extreme'
+import type { StormTier } from '../../../../supabase/functions/_shared/geoStorm'
 
-export function stormTier(kp: number | null | undefined): StormTier | null {
-  if (kp == null || kp < 5) return null
-  if (kp >= 9) return 'extreme'
-  if (kp >= 7) return 'strong'
-  return 'minor'
-}
+export { stormTier } from '../../../../supabase/functions/_shared/geoStorm'
+export type { StormTier }
 
-// Ключ подсказки для i18n по уровню бури.
+// Ключ подсказки для i18n по уровню бури. Фронтовая надстройка: на сервере
+// свой текст (stormNotificationClause) — для Telegram, другой тон и формат.
 export function stormHintKey(tier: StormTier): string {
   return tier === 'extreme'
     ? 'Дай телу отдохнуть сегодня.'
