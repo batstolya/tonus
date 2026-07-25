@@ -1,0 +1,108 @@
+# Native iOS verification for apps/mobile.
+#
+# Why this exists: there is no Xcode on the dev machine, so nothing local can
+# prove the app actually builds natively and launches. GitHub's macOS runners
+# ship Xcode, and they are free for this public repository. This job does what
+# `expo run:ios` would do on a developer laptop and leaves a screenshot behind
+# as evidence.
+#
+# Deliberately NOT part of the main `ci` workflow: it costs 10-20 minutes, and
+# the everyday mobile guards (typecheck, lint, Metro export) already live there
+# and run in seconds. This one runs on mobile-touching PRs and on demand.
+name: Mobile iOS
+
+permissions: {}
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'apps/mobile/**'
+      - 'packages/shared/**'
+      - '.github/workflows/mobile-ios.yml'
+
+jobs:
+  simulator:
+    permissions:
+      contents: read
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          xcrun simctl list runtimes | tail -5
+
+      # Continuous Native Generation: ios/ is not in git, app.json is the source
+      # of truth. This is the step the HealthKit config plugin will lean on.
+      - name: Prebuild native iOS project
+        working-directory: apps/mobile
+        run: npx expo prebuild --platform ios
+
+      # Release, not Debug: a Debug dev-client build boots into the dev launcher
+      # and waits for Metro, which would prove nothing here. Release embeds the
+      # JS bundle, so launching it exercises the real app. Simulator builds need
+      # no code signing, which is why this works without an Apple account.
+      - name: Build for the simulator
+        working-directory: apps/mobile
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -workspace ios/Tonus.xcworkspace \
+            -scheme Tonus \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            | tail -40
+
+      - name: Boot a simulator
+        id: sim
+        run: |
+          # Pick the newest available iPhone rather than hardcoding a model —
+          # the runner image's device list changes with every Xcode bump.
+          udid=$(xcrun simctl list devices available --json \
+            | jq -r '.devices | to_entries | map(select(.key | test("iOS"))) | last | .value | map(select(.name | test("^iPhone"))) | last | .udid')
+          if [ -z "$udid" ] || [ "$udid" = "null" ]; then
+            echo "No iPhone simulator available on this runner"; exit 1
+          fi
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b
+
+      - name: Install and launch
+        working-directory: apps/mobile
+        run: |
+          app=$(find build/Build/Products/Release-iphonesimulator -maxdepth 1 -name '*.app' | head -1)
+          echo "app bundle: $app"
+          xcrun simctl install "${{ steps.sim.outputs.udid }}" "$app"
+          xcrun simctl launch "${{ steps.sim.outputs.udid }}" com.tonus.app
+
+      - name: Screenshot
+        working-directory: apps/mobile
+        run: |
+          # Give the app a moment to render its first frame before capturing.
+          sleep 10
+          xcrun simctl io "${{ steps.sim.outputs.udid }}" screenshot screenshot.png
+          ls -la screenshot.png
+
+      # The screenshot is the point of the job: it is the only artifact that
+      # shows the app actually rendered, rather than merely compiling.
+      - name: Upload screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-simulator-screenshot
+          path: apps/mobile/screenshot.png
+          retention-days: 14
+          if-no-files-found: warn
