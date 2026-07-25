@@ -12,3 +12,5 @@ export type {
 } from './database.types'
 export { Constants } from './database.types'
 export { APP_NAME } from './appMeta'
+export { initEnv, getEnv } from './env'
+export type { TonusEnv } from './env'
