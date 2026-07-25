@@ -1,10 +1,8 @@
 # Mobile Phase 2b — Authentication (draft)
 
 **Date:** 2026-07-25
-**Status:** **DRAFT — not approved.** Written unattended after Phase 2 merged, so
-the roadmap has something concrete to argue with. Three decisions at the bottom
-are the user's and are deliberately left open; everything else is a proposal
-grounded in what the web app actually does today.
+**Status:** **Approved** 2026-07-26 — the user accepted all three
+recommendations below. Grounded in what the web app actually does today.
 **Parent:** `2026-07-18-mobile-monorepo-design.md` (Phase 2b)
 **Depends on:** Phase 2 (#139, merged) — the Expo scaffold and the workspace chain.
 
@@ -125,20 +123,20 @@ RLS is the boundary, exactly as on the web.
 - Demo mode opens the app with no network.
 - Repo gate stays green: typecheck, lint, tests, Metro export smoke.
 
-## Open decisions (the user's, not mine)
+## Decisions (approved 2026-07-26)
 
-1. **Google sign-in in v1, or email+password only?**
-   Recommendation: **email+password only.** It drops `expo-auth-session`, the
-   OAuth redirect handling, and — importantly — App Store guideline 4.8, which
-   requires offering Sign in with Apple once you offer third-party social
-   login. That bites at submission time, not now, but adding Google now means
-   building Apple sign-in later anyway. The web keeps its Google button either
-   way; accounts are the same either way.
-2. **Does v1 need the PIN-protected private concerns (`privacy.ts`) on
-   mobile?** Recommendation: no. It guards a screen that v1 does not ship.
-3. **Biometric unlock (FaceID) for app open?** Recommendation: not in v1 —
-   there is no local sensitive data until real screens exist, and the Keychain
-   already protects the token.
+1. **Email + password only in v1. No Google sign-in.** This drops
+   `expo-auth-session` and the OAuth redirect handling, and it keeps App Store
+   guideline 4.8 out of the picture — offering third-party social login would
+   oblige us to also implement Sign in with Apple before submission. The web
+   keeps its Google button; the accounts are the same either way, so a user who
+   signed up with Google on the web will need a password set before they can
+   use the phone. **Worth surfacing in the sign-in screen's error copy** rather
+   than letting it read as "wrong password".
+2. **No PIN-protected private concerns on mobile in v1** — it guards a screen
+   v1 does not ship.
+3. **No biometric unlock in v1** — there is no local sensitive data until real
+   screens exist, and the Keychain already protects the token.
 
 ## Out of scope
 
