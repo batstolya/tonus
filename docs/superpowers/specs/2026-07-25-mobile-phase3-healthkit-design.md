@@ -1,10 +1,10 @@
 # Mobile Phase 3 — HealthKit Sync (draft)
 
 **Date:** 2026-07-25
-**Status:** **DRAFT — not approved.** Written unattended, from the actual
-`ingest-health` source and live npm data rather than from memory. The library
-question the parent design left open is now answered by evidence; two genuine
-decisions remain at the bottom.
+**Status:** **Approved** 2026-07-26 — the user accepted both recommendations
+below. Written from the actual `ingest-health` source and live npm data rather
+than from memory; the library question the parent design left open is answered
+by evidence.
 **Parent:** `2026-07-18-mobile-monorepo-design.md` (Phase 3)
 **Depends on:** Phase 2 (#139, merged) and Phase 2b auth (`#143`, draft) — sync
 needs a signed-in user to attribute samples to.
@@ -156,16 +156,18 @@ throttles it — that split is already the parent design's decision.
   (`autosync.ts` upserts a new one) would silently break whichever sender was
   not updated. Worth a note in the UI when the phone becomes a sender.
 
-## Open decisions (the user's)
+## Decisions (approved 2026-07-26)
 
-1. **Parallel-run mechanism: `ingest_raw` diffing, or a second token via
-   migration?** Recommendation: **`ingest_raw` diffing.** It needs no
-   production schema change, and the dedup rules already protect the metrics
-   where double counting matters. Take the migration only if you want the
-   phone's data provably quarantined before it touches `metrics_daily`.
-2. **When does HAE get switched off?** Recommendation: keep it running until a
-   full week of clean diffs, then turn it off in one deliberate step rather
-   than letting both linger indefinitely.
+1. **Parallel run is verified by diffing `ingest_raw`** — no migration, no
+   second token. Both senders post under the one live token; a script parses
+   the phone's and HAE's payloads for the same day and diffs them per metric.
+   The phone's data reaches production immediately, and the server's
+   max-per-source dedup protects exactly the metrics where double counting
+   would hurt. The migration route (a second token per user) stays documented
+   above as the fallback if the diffs turn out to be unreadable in practice.
+2. **HAE is switched off after a full week of clean diffs**, in one deliberate
+   step — not left running indefinitely "just in case". The week starts when
+   3c ships, and the diff script is what says whether the week was clean.
 
 ## Out of scope
 
