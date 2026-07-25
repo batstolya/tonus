@@ -102,6 +102,15 @@ jobs:
           xcrun simctl io "${{ steps.sim.outputs.udid }}" screenshot screenshot.png
           ls -la screenshot.png
 
+      # A screenshot shows *that* something is wrong but never *why*. The app's
+      # own log lines are what turn "it is stuck on a spinner" into a diagnosis.
+      - name: App log
+        if: always()
+        run: |
+          xcrun simctl spawn "${{ steps.sim.outputs.udid }}" log show \
+            --style compact --last 3m \
+            --predicate 'process == "Tonus"' 2>/dev/null | tail -60 || echo "no app log"
+
       # The screenshot is the point of the job: it is the only artifact that
       # shows the app actually rendered, rather than merely compiling.
       - name: Upload screenshot
