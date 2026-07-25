@@ -353,21 +353,24 @@ git commit -m "feat(mobile): add supabase, secure-store, mmkv and linking deps"
 - [ ] **Step 1: Write the adapters**
 
 ```ts
-import { MMKV } from 'react-native-mmkv'
-import * as Localization from 'expo-localization'
+import { createMMKV, type MMKV } from 'react-native-mmkv'
+import { getLocales } from 'expo-localization'
 import { initPlatform, type KeyValueStorage } from '@tonus/shared'
 
 // Two stores, because the contract distinguishes them: `persistent` survives
 // restarts, `ephemeral` must not. MMKV has no session scope, so the ephemeral
 // store is a plain in-memory map — on a phone the process dying is the session
 // ending, which is the same guarantee sessionStorage gives a tab.
-const persistent = new MMKV({ id: 'tonus' })
+//
+// MMKV v4 is Nitro-based and dropped the class constructor: instances come
+// from createMMKV(), and the delete method is named remove().
+const persistent = createMMKV({ id: 'tonus' })
 
 function mmkvStorage(store: MMKV): KeyValueStorage {
   return {
     get: key => store.getString(key) ?? null,
     set: (key, value) => { store.set(key, value) },
-    remove: key => { store.delete(key) },
+    remove: key => { store.remove(key) },
   }
 }
 
@@ -384,7 +387,7 @@ export function initMobilePlatform(): void {
   initPlatform({
     persistentStorage: mmkvStorage(persistent),
     ephemeralStorage: memoryStorage(),
-    getDeviceLocale: () => Localization.getLocales()[0]?.languageTag ?? 'en',
+    getDeviceLocale: () => getLocales()[0]?.languageTag ?? 'en',
   })
 }
 ```
@@ -463,31 +466,42 @@ const secureStorage = {
   removeItem: (key: string) => SecureStore.deleteItemAsync(key),
 }
 
-const { supabaseUrl, supabaseAnonKey } = getEnv()
+// Created on first use, not at module load. bootstrap.ts (Task 12) already
+// guarantees the ordering and Metro does not hoist modules the way Rollup
+// hoists chunks — but the web app paid for an eager getEnv() once already.
+let client: ReturnType<typeof createTonusClient> | null = null
 
-export const supabase = createTonusClient({
-  url: supabaseUrl,
-  anonKey: supabaseAnonKey,
-  options: {
-    auth: {
-      storage: secureStorage,
-      persistSession: true,
-      autoRefreshToken: true,
-      // There is no URL fragment to read tokens from on a phone.
-      detectSessionInUrl: false,
-    },
-  },
-})
+export function getSupabase(): ReturnType<typeof createTonusClient> {
+  if (!client) {
+    const { supabaseUrl, supabaseAnonKey } = getEnv()
+    client = createTonusClient({
+      url: supabaseUrl,
+      anonKey: supabaseAnonKey,
+      options: {
+        auth: {
+          storage: secureStorage,
+          persistSession: true,
+          autoRefreshToken: true,
+          // There is no URL fragment to read tokens from on a phone.
+          detectSessionInUrl: false,
+        },
+      },
+    })
+  }
+  return client
+}
 
 // supabase-js's refresh timer does not survive iOS backgrounding: without this
 // the token silently goes stale and the first request after a long background
 // fails. Tie it to AppState instead.
 export function startSessionRefreshLifecycle(): () => void {
-  const sub = AppState.addEventListener('change', state => {
+  const supabase = getSupabase()
+  const sync = (state: string) => {
     if (state === 'active') void supabase.auth.startAutoRefresh()
     else void supabase.auth.stopAutoRefresh()
-  })
-  if (AppState.currentState === 'active') void supabase.auth.startAutoRefresh()
+  }
+  const sub = AppState.addEventListener('change', sync)
+  sync(AppState.currentState)
   return () => { sub.remove() }
 }
 ```
@@ -782,65 +796,98 @@ git commit -m "feat(mobile): password reset over the tonus:// deep link"
 ### Task 12: Wire the shell and verify
 
 **Files:**
-- Modify: `apps/mobile/App.tsx`
+- Create: `apps/mobile/src/bootstrap.ts`
+- Modify: `apps/mobile/index.ts`, `apps/mobile/App.tsx`
 
-- [ ] **Step 1: Compose the app**
+- [ ] **Step 1: Make the wiring a side-effect module, imported first**
+
+The ordering problem is real but does not need cleverness inside `App.tsx`:
+ES imports are evaluated in order, and before the importing module's own body.
+So a side-effect module listed first in `index.ts` runs before `App` and its
+transitive imports evaluate.
+
+`apps/mobile/src/bootstrap.ts`:
+
+```ts
+// Side-effect module: wires env and platform before anything reads them.
+// MUST be the first import of index.ts — initialising inside index.ts's body
+// would run too late, since App would already have evaluated. This is the same
+// class of bug that blanked the web app in Phase 0a.
+import { initMobileEnv } from './env.native'
+import { initMobilePlatform } from './platform.native'
+
+initMobileEnv()
+initMobilePlatform()
+```
+
+and `apps/mobile/index.ts` gains it as its first line:
+
+```ts
+import './src/bootstrap';
+
+import { registerRootComponent } from 'expo';
+
+import App from './App';
+
+registerRootComponent(App);
+```
+
+- [ ] **Step 2: Compose the app**
 
 ```tsx
 import { useState } from 'react'
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
-import { APP_NAME } from '@tonus/shared'
-import { initMobileEnv } from './src/env.native'
-import { initMobilePlatform } from './src/platform.native'
-
-// Wiring first, at module load and before anything reads config — but note the
-// Phase 0a lesson: never read env at module load in the modules themselves,
-// only initialise it here.
-initMobileEnv()
-initMobilePlatform()
-
-// Imported after init on purpose: these modules construct the client.
-const { useAuth } = require('./src/useAuth') as typeof import('./src/useAuth')
-const { useResetDeepLink } = require('./src/useResetDeepLink') as typeof import('./src/useResetDeepLink')
-const { AuthScreen } = require('./src/screens/AuthScreen') as typeof import('./src/screens/AuthScreen')
-const { ResetRequestScreen } = require('./src/screens/ResetRequestScreen') as typeof import('./src/screens/ResetRequestScreen')
-const { ResetPasswordScreen } = require('./src/screens/ResetPasswordScreen') as typeof import('./src/screens/ResetPasswordScreen')
+import { APP_NAME, disableDemo } from '@tonus/shared'
+import { useAuth } from './src/useAuth'
+import { useResetDeepLink } from './src/useResetDeepLink'
+import { getSupabase } from './src/supabase'
+import { AuthScreen } from './src/screens/AuthScreen'
+import { ResetRequestScreen } from './src/screens/ResetRequestScreen'
+import { ResetPasswordScreen } from './src/screens/ResetPasswordScreen'
 
 export default function App() {
   const { user, loading, passwordRecovery, setPasswordRecovery } = useAuth()
   const [screen, setScreen] = useState<'auth' | 'reset-request'>('auth')
+  const [demo, setDemo] = useState(false)
   useResetDeepLink()
 
-  if (loading) return <View style={styles.center}><ActivityIndicator /></View>
+  if (loading) {
+    return <View style={styles.center}><ActivityIndicator /><StatusBar style="auto" /></View>
+  }
+  // Recovery wins over everything: the user arrived from an email link and the
+  // only sensible next step is setting a password.
   if (passwordRecovery) return <ResetPasswordScreen onDone={() => setPasswordRecovery(false)} />
-  if (!user) {
+  if (!user && !demo) {
     return screen === 'reset-request'
       ? <ResetRequestScreen onBack={() => setScreen('auth')} />
-      : <AuthScreen onDemo={() => setScreen('auth')} onForgotPassword={() => setScreen('reset-request')} />
+      : <AuthScreen onDemo={() => setDemo(true)} onForgotPassword={() => setScreen('reset-request')} />
   }
+  // Placeholder home; the Today screen (Phase 4) replaces it. It exists to
+  // prove the session survived and to offer a way back out.
   return (
     <View style={styles.center}>
       <Text style={styles.title}>{APP_NAME}</Text>
-      <Text style={styles.subtitle}>{user.email}</Text>
+      <Text style={styles.subtitle}>{demo ? 'демо-режим' : user?.email}</Text>
+      <Pressable onPress={() => {
+        if (demo) { disableDemo(); setDemo(false) } else void getSupabase().auth.signOut()
+      }}>
+        <Text style={styles.signOut}>Выйти</Text>
+      </Pressable>
       <StatusBar style="auto" />
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#fff' },
   title: { fontSize: 32, fontWeight: '600' },
   subtitle: { fontSize: 16, opacity: 0.6 },
+  signOut: { marginTop: 18, fontSize: 15, color: '#555' },
 })
 ```
 
-If the `require` dance offends (it exists only to keep init ahead of client
-construction), the clean alternative is to move the wiring into `index.ts`
-before `registerRootComponent` and use plain imports here. Do that if it works
-— verify by launching, not by reasoning.
-
-- [ ] **Step 2: Static gates**
+- [ ] **Step 3: Static gates**
 
 ```bash
 npm run -w tonus-mobile typecheck && npm run -w tonus-mobile lint && npm test
@@ -848,13 +895,13 @@ npm run -w tonus-mobile typecheck && npm run -w tonus-mobile lint && npm test
 
 Expected: all green.
 
-- [ ] **Step 3: Metro export smoke**
+- [ ] **Step 4: Metro export smoke**
 
 Run: `cd apps/mobile && npx expo export --platform ios`
 Expected: exits 0. Native modules are not exercised here, but a broken import
 graph is.
 
-- [ ] **Step 4: The real verification — the simulator**
+- [ ] **Step 5: The real verification — the simulator**
 
 Push the branch and let the `Mobile iOS` workflow build and launch it; download
 the screenshot artifact and confirm the **auth screen renders** (email, password,
@@ -871,7 +918,7 @@ is called done:
 **User action, required before (4) can work:** `tonus://reset` must be added to
 the Supabase project's Authentication → URL Configuration → Redirect URLs.
 
-- [ ] **Step 5: Open PR B**
+- [ ] **Step 6: Open PR B**
 
 The PR body must state which of the four manual checks were actually performed
 and on what — device or simulator — and which are still owed.
