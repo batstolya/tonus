@@ -1,33 +1,69 @@
+import { useState } from 'react'
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
-import { StyleSheet, Text, View } from 'react-native'
-import { APP_NAME } from '@tonus/shared'
+import { APP_NAME, disableDemo } from '@tonus/shared'
+import { useAuth } from './src/useAuth'
+import { useResetDeepLink } from './src/useResetDeepLink'
+import { getSupabase } from './src/supabase'
+import { AuthScreen } from './src/screens/AuthScreen'
+import { ResetRequestScreen } from './src/screens/ResetRequestScreen'
+import { ResetPasswordScreen } from './src/screens/ResetPasswordScreen'
 
-// Phase 2 scaffold: the only job of this screen is to render a value that came
-// from the shared workspace package, proving Metro resolves it at runtime and
-// not just at type level.
+// env and platform are wired by src/bootstrap.ts, imported first from index.ts.
+
 export default function App() {
+  const { user, loading, passwordRecovery, setPasswordRecovery } = useAuth()
+  const [screen, setScreen] = useState<'auth' | 'reset-request'>('auth')
+  const [demo, setDemo] = useState(false)
+  useResetDeepLink()
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator />
+        <StatusBar style="auto" />
+      </View>
+    )
+  }
+
+  // Recovery wins over everything: the user arrived here from an email link
+  // and the only sensible next step is setting a password.
+  if (passwordRecovery) {
+    return <ResetPasswordScreen onDone={() => setPasswordRecovery(false)} />
+  }
+
+  if (!user && !demo) {
+    return screen === 'reset-request'
+      ? <ResetRequestScreen onBack={() => setScreen('auth')} />
+      : (
+        <AuthScreen
+          onDemo={() => setDemo(true)}
+          onForgotPassword={() => setScreen('reset-request')}
+        />
+      )
+  }
+
+  // Placeholder home. The Today screen (Phase 4) replaces this; for now it
+  // exists to prove the session survived and to offer a way back out.
   return (
-    <View style={styles.container}>
+    <View style={styles.center}>
       <Text style={styles.title}>{APP_NAME}</Text>
-      <Text style={styles.subtitle}>mobile skeleton</Text>
+      <Text style={styles.subtitle}>{demo ? 'демо-режим' : user?.email}</Text>
+      <Pressable
+        onPress={() => {
+          if (demo) { disableDemo(); setDemo(false) } else void getSupabase().auth.signOut()
+        }}
+      >
+        <Text style={styles.signOut}>Выйти</Text>
+      </Pressable>
       <StatusBar style="auto" />
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '600',
-  },
-  subtitle: {
-    fontSize: 16,
-    opacity: 0.6,
-  },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#fff' },
+  title: { fontSize: 32, fontWeight: '600' },
+  subtitle: { fontSize: 16, opacity: 0.6 },
+  signOut: { marginTop: 18, fontSize: 15, color: '#555' },
 })

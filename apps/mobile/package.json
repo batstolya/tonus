@@ -10,12 +10,18 @@
     "lint": "eslint . --max-warnings 0"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.78.0",
     "@tonus/shared": "*",
     "expo": "~57.0.8",
     "expo-dev-client": "~57.0.9",
+    "expo-linking": "~57.0.4",
+    "expo-localization": "~57.0.1",
+    "expo-secure-store": "~57.0.1",
     "expo-status-bar": "~57.0.1",
     "react": "^19.2.6",
-    "react-native": "0.86.0"
+    "react-native": "0.86.0",
+    "react-native-mmkv": "^4.3.2",
+    "react-native-nitro-modules": "^0.36.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
