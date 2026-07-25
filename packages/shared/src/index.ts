@@ -22,3 +22,5 @@ export {
   createInMemoryStorage,
 } from './platform'
 export type { KeyValueStorage, PlatformAdapters } from './platform'
+export { createTonusClient } from './supabaseFactory'
+export type { TonusClientConfig } from './supabaseFactory'

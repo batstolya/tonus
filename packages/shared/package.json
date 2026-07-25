@@ -10,6 +10,9 @@
   "scripts": {
     "test": "vitest run"
   },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.78.0"
+  },
   "devDependencies": {
     "vitest": "^3.2.6"
   }
