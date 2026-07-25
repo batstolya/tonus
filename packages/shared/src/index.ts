@@ -24,3 +24,4 @@ export {
 export type { KeyValueStorage, PlatformAdapters } from './platform'
 export { createTonusClient } from './supabaseFactory'
 export type { TonusClientConfig } from './supabaseFactory'
+export { isDemoActive, enableDemo, disableDemo } from './demo'
