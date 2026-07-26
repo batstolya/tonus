@@ -33,6 +33,25 @@
       ]
     },
     "members": {
+      "apps/mobile": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@eslint/js@^10.0.1",
+            "npm:@tonus/shared@*",
+            "npm:@types/react@^19.2.14",
+            "npm:eslint-plugin-react-hooks@^7.1.1",
+            "npm:eslint@^10.3.0",
+            "npm:expo-dev-client@~57.0.9",
+            "npm:expo-status-bar@~57.0.1",
+            "npm:expo@~57.0.8",
+            "npm:globals@^17.6.0",
+            "npm:react-native@0.86.0",
+            "npm:react@^19.2.6",
+            "npm:typescript-eslint@^8.59.2",
+            "npm:typescript@~6.0.2"
+          ]
+        }
+      },
       "apps/web": {
         "packageJson": {
           "dependencies": [
