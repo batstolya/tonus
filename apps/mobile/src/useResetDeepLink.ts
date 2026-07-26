@@ -1,21 +1,7 @@
 import { useEffect, useState } from 'react'
 import * as Linking from 'expo-linking'
+import { parseRecoveryLink } from '@tonus/shared'
 import { getSupabase } from './supabase'
-
-// Supabase кладёт токены восстановления во фрагмент URL
-// (tonus://reset#access_token=…). detectSessionInUrl на RN выключен, поэтому
-// приложение достаёт их само и передаёт в setSession(), а тот уже поднимает
-// событие PASSWORD_RECOVERY через useAuth.
-export function recoveryTokensFrom(url: string): { access_token: string; refresh_token: string } | null {
-  const fragment = url.split('#')[1]
-  if (!fragment) return null
-  const params = new URLSearchParams(fragment)
-  const access_token = params.get('access_token')
-  const refresh_token = params.get('refresh_token')
-  return access_token && refresh_token ? { access_token, refresh_token } : null
-}
-
-const EXPIRED = 'Ссылка для сброса пароля устарела или уже использована. Запросите новую.'
 
 export interface RecoveryLinkState {
   /** Текст ошибки, если ссылка не сработала; null, пока всё в порядке. */
@@ -25,22 +11,32 @@ export interface RecoveryLinkState {
 
 /**
  * Обрабатывает ссылку восстановления и — что важнее — сообщает, когда она не
- * сработала. Раньше ошибка setSession глоталась молча: человек тапал по письму,
- * приложение открывалось, и ничего не происходило. Ссылки живут ограниченное
- * время, так что открыть просроченную — обычное дело, а не край сценария
- * (найдено ручной проверкой на симуляторе).
+ * сработала. Молчание здесь выглядит как поломка: человек тапает по письму,
+ * приложение открывается, и ничего не происходит.
+ *
+ * Разбор фрагмента живёт в @tonus/shared под тестами: форм у него две
+ * (токены либо описание ошибки), и первая версия знала только про токены —
+ * то есть на настоящей просроченной ссылке молчала. Проверено вживую.
  */
 export function useResetDeepLink(): RecoveryLinkState {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     async function handle(url: string | null) {
-      const tokens = url ? recoveryTokensFrom(url) : null
-      if (!tokens) return
-      const { error: sessionError } = await getSupabase().auth.setSession(tokens)
+      const link = parseRecoveryLink(url)
+      if (link.kind === 'unrelated') return
+      if (link.kind === 'error') {
+        console.warn(`[recovery link] ${link.message}`)
+        setError(link.message)
+        return
+      }
+      const { error: sessionError } = await getSupabase().auth.setSession({
+        access_token: link.accessToken,
+        refresh_token: link.refreshToken,
+      })
       if (sessionError) {
         console.warn(`[recovery link] setSession failed: ${sessionError.message}`)
-        setError(EXPIRED)
+        setError('Не удалось открыть ссылку для сброса пароля. Запросите новую.')
       }
     }
     // Холодный старт: приложение запустила ссылка из письма.

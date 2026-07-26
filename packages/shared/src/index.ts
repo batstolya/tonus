@@ -40,3 +40,5 @@ export {
   HEALTH_READ_TYPES,
 } from './healthMetrics'
 export type { QuantityMetric } from './healthMetrics'
+export { parseRecoveryLink } from './recoveryLink'
+export type { RecoveryLink } from './recoveryLink'
