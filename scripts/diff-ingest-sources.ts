@@ -12,11 +12,11 @@
 //
 // Ключ сервис-роли в репозитории не хранится (локально — claude-monitor/.env).
 import { createClient } from '@supabase/supabase-js'
+// Напрямую из файла, а не через '@tonus/shared': индекс пакета импортирует без
+// расширений (это годится для Vite и Metro, но не для голого ESM в Node).
+import { MOBILE_SOURCE_PREFIX } from '../packages/shared/src/haePayload.ts'
 import { parseHAE, type HaePayload, type MetricRow } from '../supabase/functions/_shared/hae.ts'
 import { diffParsedMetrics } from '../supabase/functions/_shared/ingestDiff.ts'
-
-// Мобильное приложение штампует этим значением каждую точку payload'а.
-const MOBILE_SOURCE = 'Tonus iOS'
 
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(`--${name}`)
@@ -48,9 +48,14 @@ if (error) {
 }
 
 // Разделяем архив по отправителю: у мобильных точек source = 'Tonus iOS'.
+// Сравнение по ПРЕФИКСУ, а не по точному значению: у сумм источник несёт ещё и
+// устройство — 'Tonus iOS · iPhone', 'Tonus iOS · Apple Watch'. Устройство там
+// не для красоты: сервер суммирует внутри источника и берёт максимум по
+// источникам, так что слить iPhone и Watch в одну строку значит потерять день,
+// где часы насчитали больше телефона.
 function isMobile(payload: HaePayload): boolean {
   const metrics = payload?.data?.metrics ?? payload?.metrics ?? []
-  return metrics.some(m => (m.data ?? []).some(p => p.source === MOBILE_SOURCE))
+  return metrics.some(m => (m.data ?? []).some(p => p.source?.startsWith(MOBILE_SOURCE_PREFIX)))
 }
 
 const mobile: MetricRow[] = []
