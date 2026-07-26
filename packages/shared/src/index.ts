@@ -25,3 +25,11 @@ export type { KeyValueStorage, PlatformAdapters } from './platform'
 export { createTonusClient } from './supabaseFactory'
 export type { TonusClientConfig } from './supabaseFactory'
 export { isDemoActive, enableDemo, disableDemo } from './demo'
+export { buildHaePayload, MOBILE_SOURCE_PREFIX } from './haePayload'
+export type {
+  HealthReadings,
+  DailySumReading,
+  DailyAverageReading,
+  SleepReading,
+  HaeOutboundPayload,
+} from './haePayload'
