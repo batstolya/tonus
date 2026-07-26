@@ -33,3 +33,10 @@ export type {
   SleepReading,
   HaeOutboundPayload,
 } from './haePayload'
+export {
+  SUM_QUANTITIES,
+  AVERAGE_QUANTITIES,
+  SLEEP_CATEGORY,
+  HEALTH_READ_TYPES,
+} from './healthMetrics'
+export type { QuantityMetric } from './healthMetrics'
