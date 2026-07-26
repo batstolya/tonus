@@ -12,3 +12,16 @@ export type {
 } from './database.types'
 export { Constants } from './database.types'
 export { APP_NAME } from './appMeta'
+export { initEnv, getEnv } from './env'
+export type { TonusEnv } from './env'
+export {
+  initPlatform,
+  persistentStorage,
+  ephemeralStorage,
+  getDeviceLocale,
+  createInMemoryStorage,
+} from './platform'
+export type { KeyValueStorage, PlatformAdapters } from './platform'
+export { createTonusClient } from './supabaseFactory'
+export type { TonusClientConfig } from './supabaseFactory'
+export { isDemoActive, enableDemo, disableDemo } from './demo'

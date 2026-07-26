@@ -1,18 +1,13 @@
-import { createClient, type SupabaseClient, type SupabaseClientOptions } from '@supabase/supabase-js'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { createTonusClient } from '@tonus/shared'
 import type { Database } from './database.types'
 import { getEnv } from './env'
 
-export interface TonusClientConfig {
-  url: string
-  anonKey: string
-  /** supabase-js options (auth storage, detectSessionInUrl, ...) — the mobile app injects its own. */
-  options?: SupabaseClientOptions<'public'>
-}
-
-/** Platform-agnostic factory (mobile Phase 0b). The web singleton below uses it with env config. */
-export function createTonusClient(config: TonusClientConfig): SupabaseClient<Database> {
-  return createClient<Database>(config.url, config.anonKey, config.options)
-}
+// The factory itself lives in @tonus/shared (the mobile app builds its own
+// client from it); this module owns the web singleton and re-exports the
+// factory so existing web imports keep working.
+export { createTonusClient }
+export type { TonusClientConfig } from '@tonus/shared'
 
 // The web singleton is created on FIRST USE, never at module load: in the
 // production bundle this chunk can evaluate before the entry chunk runs
