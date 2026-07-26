@@ -27,6 +27,14 @@ jobs:
       contents: read
     runs-on: macos-latest
     timeout-minutes: 45
+    env:
+      # CocoaPods normalises paths with Ruby's unicode_normalize, which raises
+      # Encoding::CompatibilityError when the locale is not UTF-8 — pod install
+      # then dies before it starts. The GitHub runner happens to set a UTF-8
+      # locale, so this job passed by luck; the same command failed in a
+      # non-interactive shell locally, which is where the problem surfaced.
+      LANG: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
     steps:
       - uses: actions/checkout@v5
 
