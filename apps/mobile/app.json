@@ -25,7 +25,14 @@
     },
     "plugins": [
       "expo-secure-store",
-      "expo-localization"
+      "expo-localization",
+      [
+        "@kingstinct/react-native-healthkit",
+        {
+          "NSHealthShareUsageDescription": "Tonus читает показатели Здоровья, чтобы считать готовность, восстановление и сон.",
+          "background": true
+        }
+      ]
     ]
   }
 }

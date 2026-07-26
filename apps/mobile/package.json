@@ -10,6 +10,7 @@
     "lint": "eslint . --max-warnings 0"
   },
   "dependencies": {
+    "@kingstinct/react-native-healthkit": "^14.0.2",
     "@supabase/supabase-js": "^2.78.0",
     "@tonus/shared": "*",
     "expo": "~57.0.8",
