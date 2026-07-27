@@ -30,6 +30,16 @@ const SLEEP_REM = 5
 
 const MS_PER_HOUR = 3_600_000
 
+/**
+ * Имя источника читается только через toJSON(). Прямой `bucket.source.name`
+ * возвращает «SourceProxy» — имя самого Nitro-объекта (HybridObject.name
+ * перекрывает Source.name), и тогда телефон и часы уезжают на сервер под одним
+ * источником: дедуп схлопнет их в один и потеряет день, где часы насчитали больше.
+ */
+function sourceName(source: { toJSON?: () => { name?: string } } | undefined): string {
+  return source?.toJSON?.()?.name || 'iPhone'
+}
+
 /** Локальная дата в формате YYYY-MM-DD: день считается по часам пользователя, а не по UTC. */
 function localDay(date: Date): string {
   const y = date.getFullYear()
@@ -76,7 +86,7 @@ async function readSums(from: Date, to: Date): Promise<DailySumReading[]> {
       ['cumulativeSum'],
       from,
       { day: 1 },
-      { filter: { date: { startDate: from, endDate: to } }, unit: metric.units } as never,
+      { filter: { date: { startDate: from, endDate: to } }, unit: metric.hkUnit } as never,
     )
     for (const bucket of buckets) {
       const value = bucket.sumQuantity?.quantity
@@ -84,9 +94,10 @@ async function readSums(from: Date, to: Date): Promise<DailySumReading[]> {
       out.push({
         hae: metric.hae,
         date: localDay(bucket.startDate),
-        device: bucket.source?.name ?? 'iPhone',
-        value,
-        units: metric.units,
+        device: sourceName(bucket.source),
+        // Запрашиваем в единицах HealthKit, отдаём в единицах сервера.
+        value: value * (metric.toHae ?? 1),
+        units: metric.haeUnit,
       })
     }
   }
@@ -102,18 +113,19 @@ async function readAverages(from: Date, to: Date): Promise<DailyAverageReading[]
       ['discreteAverage', 'discreteMin', 'discreteMax'],
       from,
       { day: 1 },
-      { filter: { date: { startDate: from, endDate: to } }, unit: metric.units } as never,
+      { filter: { date: { startDate: from, endDate: to } }, unit: metric.hkUnit } as never,
     )
     for (const bucket of buckets) {
       const avg = bucket.averageQuantity?.quantity
       if (avg == null || !bucket.startDate) continue
+      const k = metric.toHae ?? 1
       out.push({
         hae: metric.hae,
         date: localDay(bucket.startDate),
-        avg,
-        min: bucket.minimumQuantity?.quantity ?? avg,
-        max: bucket.maximumQuantity?.quantity ?? avg,
-        units: metric.units,
+        avg: avg * k,
+        min: (bucket.minimumQuantity?.quantity ?? avg) * k,
+        max: (bucket.maximumQuantity?.quantity ?? avg) * k,
+        units: metric.haeUnit,
       })
     }
   }

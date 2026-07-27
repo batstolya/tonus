@@ -44,11 +44,29 @@ describe('health metric mapping', () => {
   })
 
   it('declares the units the server heuristics expect', () => {
-    const units = Object.fromEntries([...SUM_QUANTITIES, ...AVERAGE_QUANTITIES].map(q => [q.hae, q.units]))
+    const all = [...SUM_QUANTITIES, ...AVERAGE_QUANTITIES]
+    const hae = Object.fromEntries(all.map(q => [q.hae, q.haeUnit]))
     // Метры делятся на 1000 выше 100, кДж конвертируются по units, сатурация
     // выше 1.5 делится на 100 — километры, ккал и доля оставляют всё холостым.
-    expect(units.distance_walking_running).toBe('km')
-    expect(units.active_energy).toBe('kcal')
-    expect(units.blood_oxygen_saturation).toBe('fraction')
+    expect(hae.distance_walking_running).toBe('km')
+    expect(hae.active_energy).toBe('kcal')
+    expect(hae.blood_oxygen_saturation).toBe('fraction')
+  })
+
+  it('never asks HealthKit for a unit it does not know', () => {
+    // 'fraction' — наша серверная единица, а не HKUnit. Отправленная в запрос,
+    // она валит чтение в рантайме: «Supplied invalid 'fraction' as HKUnit».
+    // Поймано только запуском на симуляторе, поэтому теперь есть тест.
+    const SERVER_ONLY = new Set(['fraction'])
+    for (const q of [...SUM_QUANTITIES, ...AVERAGE_QUANTITIES]) {
+      expect(SERVER_ONLY.has(q.hkUnit), `${q.hae}: ${q.hkUnit} — не HKUnit`).toBe(false)
+    }
+  })
+
+  it('carries a conversion wherever the two units disagree', () => {
+    for (const q of [...SUM_QUANTITIES, ...AVERAGE_QUANTITIES]) {
+      if (q.hkUnit === q.haeUnit) expect(q.toHae ?? 1).toBe(1)
+      else expect(q.toHae, `${q.hae}: единицы разные, множитель обязателен`).toBeDefined()
+    }
   })
 })
