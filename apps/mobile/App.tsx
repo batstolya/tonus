@@ -8,6 +8,7 @@ import { getSupabase } from './src/supabase'
 import { AuthScreen } from './src/screens/AuthScreen'
 import { ResetRequestScreen } from './src/screens/ResetRequestScreen'
 import { ResetPasswordScreen } from './src/screens/ResetPasswordScreen'
+import { TodayScreen } from './src/screens/TodayScreen'
 
 // env and platform are wired by src/bootstrap.ts, imported first from index.ts.
 
@@ -43,21 +44,30 @@ export default function App() {
       )
   }
 
-  // Placeholder home. The Today screen (Phase 4) replaces this; for now it
-  // exists to prove the session survived and to offer a way back out.
+  // Дом вошедшего пользователя — экран Today. Демо пока показывает ту же
+  // заглушку: фикстурные данные для него появятся вместе с демо-режимом.
+  if (demo) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.title}>{APP_NAME}</Text>
+        <Text style={styles.subtitle}>демо-режим</Text>
+        <Pressable onPress={() => { disableDemo(); setDemo(false) }}>
+          <Text style={styles.signOut}>Выйти</Text>
+        </Pressable>
+        <StatusBar style="auto" />
+      </View>
+    )
+  }
+
   return (
-    <View style={styles.center}>
-      <Text style={styles.title}>{APP_NAME}</Text>
-      <Text style={styles.subtitle}>{demo ? 'демо-режим' : user?.email}</Text>
-      <Pressable
-        onPress={() => {
-          if (demo) { disableDemo(); setDemo(false) } else void getSupabase().auth.signOut()
-        }}
-      >
-        <Text style={styles.signOut}>Выйти</Text>
-      </Pressable>
+    <>
+      <TodayScreen
+        userId={user?.id}
+        email={user?.email}
+        onSignOut={() => { void getSupabase().auth.signOut() }}
+      />
       <StatusBar style="auto" />
-    </View>
+    </>
   )
 }
 

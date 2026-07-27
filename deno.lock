@@ -52,6 +52,7 @@
             "npm:globals@^17.6.0",
             "npm:react-native-mmkv@^4.3.2",
             "npm:react-native-nitro-modules@~0.36.1",
+            "npm:react-native-svg@15.15.4",
             "npm:react-native@0.86.0",
             "npm:react@^19.2.6",
             "npm:typescript-eslint@^8.59.2",

@@ -10,6 +10,9 @@
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "noEmit": true,
+    // Модули supabase/functions/_shared написаны в стиле Deno и импортируют
+    // друг друга с явным .ts — фасады над ними без этого флага не собрать.
+    "allowImportingTsExtensions": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
