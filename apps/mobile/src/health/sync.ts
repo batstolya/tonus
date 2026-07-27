@@ -35,9 +35,21 @@ export function isSyncEnabled(): boolean {
   return persistentStorage.get(ENABLED_KEY) === '1'
 }
 
+// Переключатель живёт в хранилище, а на него завязана фоновая доставка в
+// другом углу приложения. Без оповещения она включалась бы только со
+// следующего запуска — и «включил, но ничего не происходит» выглядело бы
+// поломкой.
+const enabledListeners = new Set<() => void>()
+
 export function setSyncEnabled(enabled: boolean): void {
   if (enabled) persistentStorage.set(ENABLED_KEY, '1')
   else persistentStorage.remove(ENABLED_KEY)
+  for (const listener of enabledListeners) listener()
+}
+
+export function onSyncEnabledChange(listener: () => void): () => void {
+  enabledListeners.add(listener)
+  return () => { enabledListeners.delete(listener) }
 }
 
 export function lastSyncOutcome(): SyncOutcome | null {
@@ -79,8 +91,22 @@ export function syncEndpointHost(): string {
   }
 }
 
+/**
+ * Идёт ли отправка прямо сейчас. Триггеров несколько (открытие приложения,
+ * событие AppState, изменение в Здоровье, кнопка), и все они спрашивают «пора
+ * ли» у последнего результата — которого ещё нет, пока первая отправка не
+ * закончилась. На симуляторе это дало три одинаковых POST'а на одно открытие;
+ * на живом токене это был бы тройной трафик и лимит в 120 запросов в час.
+ */
+let inFlight: Promise<SyncOutcome> | null = null
+
 /** Читает Здоровье за SYNC_DAYS и отправляет. Ошибки возвращает, а не бросает. */
-export async function syncHealth(): Promise<SyncOutcome> {
+export function syncHealth(): Promise<SyncOutcome> {
+  inFlight ??= runSync().finally(() => { inFlight = null })
+  return inFlight
+}
+
+async function runSync(): Promise<SyncOutcome> {
   const at = new Date().toISOString()
   try {
     const supabase = getSupabase()
@@ -111,7 +137,8 @@ export async function syncHealth(): Promise<SyncOutcome> {
       return remember({ ok: false, at, message: `Сервер ответил ${response.status}. ${body}`.trim() })
     }
     const days = new Set(payload.data.metrics.flatMap(m => m.data.map(d => d.date.slice(0, 10)))).size
-    return remember({ ok: true, at, message: `Отправлено: ${payload.data.metrics.length} метрик за ${days} дн.` })
+    // Без склонений: «1 метрик» — это то, что не должно попадаться на глаза.
+    return remember({ ok: true, at, message: `Отправлено метрик: ${payload.data.metrics.length}, дней: ${days}.` })
   } catch (e) {
     return remember({ ok: false, at, message: e instanceof Error ? e.message : String(e) })
   }

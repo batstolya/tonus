@@ -625,7 +625,7 @@ layer passes plain arrays, which is what makes this testable without a phone.
 
 ### Task 8: Background delivery
 
-- [ ] `enableBackgroundDelivery` for the mapped types, `subscribeToChanges` to trigger a sync. Best-effort by design: iOS throttles it, and the on-open catch-up is what guarantees correctness.
+- [x] `enableBackgroundDelivery` for the mapped types, `subscribeToChanges` to trigger a sync. Best-effort by design: iOS throttles it, and the on-open catch-up is what guarantees correctness.
 
 ### Task 9: Prove it against HAE
 

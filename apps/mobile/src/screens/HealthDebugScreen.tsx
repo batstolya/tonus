@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
 import type { HealthReadings } from '@tonus/shared'
 import { checkAvailability, readHealthReadings, requestHealthAccess } from '../health/read'
+import { backgroundDeliveryState, onBackgroundDeliveryChange } from '../health/background'
 import {
   SYNC_DAYS,
   isSyncEnabled,
@@ -26,6 +27,11 @@ export function HealthDebugScreen({ onBack }: { onBack: () => void }) {
   const [sending, setSending] = useState(false)
   const [syncOn, setSyncOn] = useState(isSyncEnabled)
   const [lastSync, setLastSync] = useState<SyncOutcome | null>(lastSyncOutcome)
+  const [background, setBackground] = useState(backgroundDeliveryState)
+
+  // Фон включается в другом месте (useForegroundSync), поэтому экран на него
+  // подписывается, а не спрашивает один раз при открытии.
+  useEffect(() => onBackgroundDeliveryChange(() => { setBackground(backgroundDeliveryState()) }), [])
 
   async function load() {
     setBusy(true)
@@ -119,6 +125,11 @@ export function HealthDebugScreen({ onBack }: { onBack: () => void }) {
           Здоровье лежат выдуманные записи, а история — одна на всех.
         </Text>
         <Text style={styles.hint}>Получатель: {syncEndpointHost()}</Text>
+        <Text style={styles.hint}>
+          Фоновая доставка: {background
+            ? `${background.enabled} из ${background.enabled + background.failed} типов`
+            : 'выключена'}
+        </Text>
         <Pressable style={styles.secondary} onPress={confirmSend} disabled={sending}>
           {sending
             ? <ActivityIndicator />
