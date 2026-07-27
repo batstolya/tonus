@@ -15,7 +15,7 @@ export default function App() {
   const { user, loading, passwordRecovery, setPasswordRecovery } = useAuth()
   const [screen, setScreen] = useState<'auth' | 'reset-request'>('auth')
   const [demo, setDemo] = useState(false)
-  useResetDeepLink()
+  const recoveryLink = useResetDeepLink()
 
   if (loading) {
     return (
@@ -30,6 +30,18 @@ export default function App() {
   // and the only sensible next step is setting a password.
   if (passwordRecovery) {
     return <ResetPasswordScreen onDone={() => setPasswordRecovery(false)} />
+  }
+
+  // Ссылка из письма протухла. Показываем это независимо от того, вошёл ли
+  // человек: тапнуть по старому письму, уже будучи в аккаунте, — обычное дело,
+  // и молчание в этом случае выглядит как поломка.
+  if (recoveryLink.error) {
+    return (
+      <ResetRequestScreen
+        onBack={() => { recoveryLink.clearError(); setScreen('auth') }}
+        notice={recoveryLink.error}
+      />
+    )
   }
 
   if (!user && !demo) {
