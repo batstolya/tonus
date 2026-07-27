@@ -10,6 +10,7 @@ import { AuthScreen } from './src/screens/AuthScreen'
 import { ResetRequestScreen } from './src/screens/ResetRequestScreen'
 import { ResetPasswordScreen } from './src/screens/ResetPasswordScreen'
 import { HealthDebugScreen } from './src/screens/HealthDebugScreen'
+import { TodayScreen } from './src/screens/TodayScreen'
 
 // env and platform are wired by src/bootstrap.ts, imported first from index.ts.
 
@@ -59,30 +60,37 @@ export default function App() {
       )
   }
 
-  // Экран доступен и тапом с главной, и по ссылке tonus://health — вторая
-  // дорога существует ради автоматической проверки в CI.
+  // Отладочный экран Здоровья: тапом из подвала Today и по ссылке
+  // tonus://health — вторая дорога нужна, чтобы CI снимал его без человека.
   if (health || debugLink.health) {
     return <HealthDebugScreen onBack={() => { setHealth(false); debugLink.close() }} />
   }
 
-  // Placeholder home. The Today screen (Phase 4) replaces this; for now it
-  // exists to prove the session survived and to offer a way back out.
+  // Демо пока показывает заглушку: фикстурные данные для Today появятся вместе
+  // с демо-режимом, а до тех пор честнее не притворяться.
+  if (demo) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.title}>{APP_NAME}</Text>
+        <Text style={styles.subtitle}>демо-режим</Text>
+        <Pressable onPress={() => { disableDemo(); setDemo(false) }}>
+          <Text style={styles.signOut}>Выйти</Text>
+        </Pressable>
+        <StatusBar style="auto" />
+      </View>
+    )
+  }
+
   return (
-    <View style={styles.center}>
-      <Text style={styles.title}>{APP_NAME}</Text>
-      <Text style={styles.subtitle}>{demo ? 'демо-режим' : user?.email}</Text>
-      <Pressable onPress={() => setHealth(true)}>
-        <Text style={styles.action}>Здоровье: что прочитали</Text>
-      </Pressable>
-      <Pressable
-        onPress={() => {
-          if (demo) { disableDemo(); setDemo(false) } else void getSupabase().auth.signOut()
-        }}
-      >
-        <Text style={styles.signOut}>Выйти</Text>
-      </Pressable>
+    <>
+      <TodayScreen
+        userId={user?.id}
+        email={user?.email}
+        onSignOut={() => { void getSupabase().auth.signOut() }}
+        onOpenHealth={() => setHealth(true)}
+      />
       <StatusBar style="auto" />
-    </View>
+    </>
   )
 }
 
