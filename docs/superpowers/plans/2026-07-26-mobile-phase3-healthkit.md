@@ -619,13 +619,13 @@ layer passes plain arrays, which is what makes this testable without a phone.
 
 ### Task 7: Send on open
 
-- [ ] Fetch the ingest token: `select token from ingest_tokens where user_id = auth.uid()` (RLS allows the owner). Reuse the create-if-missing logic from `apps/web/src/lib/autosync.ts` — move it to `packages/shared` as part of this task rather than copying it.
-- [ ] POST the payload to `${SUPABASE_URL}/functions/v1/ingest-health?token=…` on app foreground, covering the last 7 days so a missed day self-heals.
-- [ ] Show the last sync time and outcome on the debug screen.
+- [x] Fetch the ingest token: `select token from ingest_tokens where user_id = auth.uid()` (RLS allows the owner). Reuse the create-if-missing logic from `apps/web/src/lib/autosync.ts` — move it to `packages/shared` as part of this task rather than copying it.
+- [x] POST the payload to `${SUPABASE_URL}/functions/v1/ingest-health?token=…` on app foreground, covering the last 7 days so a missed day self-heals.
+- [x] Show the last sync time and outcome on the debug screen.
 
 ### Task 8: Background delivery
 
-- [ ] `enableBackgroundDelivery` for the mapped types, `subscribeToChanges` to trigger a sync. Best-effort by design: iOS throttles it, and the on-open catch-up is what guarantees correctness.
+- [x] `enableBackgroundDelivery` for the mapped types, `subscribeToChanges` to trigger a sync. Best-effort by design: iOS throttles it, and the on-open catch-up is what guarantees correctness.
 
 ### Task 9: Prove it against HAE
 

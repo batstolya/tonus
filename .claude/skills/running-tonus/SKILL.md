@@ -65,3 +65,42 @@ error:null, count:null}`), глобальный `fetch` отдаёт пусто�
 
 Роутинг хэшовый: `http://localhost:5173/#sleep`, `#metrics`, `#supplements`,
 `#insights`, `#settings` и т.д. (список — `VIEWS` в `src/store/appStore.ts`).
+
+## Мобильное приложение (iOS)
+
+Metro поднимается из воркспейса, иначе `.env.local` приложения не подхватится
+(и в корне репо появится мусорный `tsconfig.json`):
+
+```bash
+npm run -w tonus-mobile start -- --dev-client --port 8081 --clear
+```
+
+`apps/mobile/.env.local` (gitignored) нужен всегда: `EXPO_PUBLIC_SUPABASE_URL`,
+`EXPO_PUBLIC_SUPABASE_ANON_KEY`.
+
+Экраны в симуляторе открываются диплинком — так же ходит и CI, без человека:
+
+```bash
+xcrun simctl openurl "iPhone 17 Pro" "tonus://health"
+```
+
+### Проверка отправки, не трогая боевую базу
+
+В Здоровье симулятора записи выдуманные, а база у приложения одна — боевая.
+Поэтому получателя в dev-сборке уводят на локальную заглушку:
+`EXPO_PUBLIC_INGEST_URL=http://localhost:8788/ingest` в `apps/mobile/.env.local`
+плюс любой http-сервер на 8788, который печатает тело запроса. Metro инлайнит
+`EXPO_PUBLIC_*` при сборке бандла — **после правки нужен рестарт Metro**, а
+проверять, что подмена доехала, надо по строке «Получатель: …» на экране
+«Здоровье: что прочитали», а не по содержимому `.env.local`. В релизной сборке
+переменная игнорируется.
+
+Тело, пойманное заглушкой, стоит прогнать через настоящий серверный парсер —
+это и есть доказательство, что телефон говорит на диалекте HAE:
+
+```bash
+deno run --allow-read - <<'TS'
+import { parseHAE } from './supabase/functions/_shared/hae.ts'
+console.log(parseHAE('user-1', JSON.parse(Deno.readTextFileSync('body.json'))))
+TS
+```

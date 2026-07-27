@@ -40,6 +40,14 @@ export {
   HEALTH_READ_TYPES,
 } from './healthMetrics'
 export type { QuantityMetric } from './healthMetrics'
+export {
+  loadIngestToken,
+  ensureIngestToken,
+  regenerateIngestToken,
+  setIngestMode,
+  ingestUrl,
+} from './ingestToken'
+export type { IngestToken, IngestMode } from './ingestToken'
 export { parseRecoveryLink } from './recoveryLink'
 export type { RecoveryLink } from './recoveryLink'
 export { computeDailyScores, avg } from './scores'
