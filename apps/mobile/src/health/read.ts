@@ -76,7 +76,7 @@ async function readSums(from: Date, to: Date): Promise<DailySumReading[]> {
       ['cumulativeSum'],
       from,
       { day: 1 },
-      { filter: { date: { startDate: from, endDate: to } }, unit: metric.units } as never,
+      { filter: { date: { startDate: from, endDate: to } }, unit: metric.hkUnit } as never,
     )
     for (const bucket of buckets) {
       const value = bucket.sumQuantity?.quantity
@@ -85,8 +85,9 @@ async function readSums(from: Date, to: Date): Promise<DailySumReading[]> {
         hae: metric.hae,
         date: localDay(bucket.startDate),
         device: bucket.source?.name ?? 'iPhone',
-        value,
-        units: metric.units,
+        // Запрашиваем в единицах HealthKit, отдаём в единицах сервера.
+        value: value * (metric.toHae ?? 1),
+        units: metric.haeUnit,
       })
     }
   }
@@ -102,18 +103,19 @@ async function readAverages(from: Date, to: Date): Promise<DailyAverageReading[]
       ['discreteAverage', 'discreteMin', 'discreteMax'],
       from,
       { day: 1 },
-      { filter: { date: { startDate: from, endDate: to } }, unit: metric.units } as never,
+      { filter: { date: { startDate: from, endDate: to } }, unit: metric.hkUnit } as never,
     )
     for (const bucket of buckets) {
       const avg = bucket.averageQuantity?.quantity
       if (avg == null || !bucket.startDate) continue
+      const k = metric.toHae ?? 1
       out.push({
         hae: metric.hae,
         date: localDay(bucket.startDate),
-        avg,
-        min: bucket.minimumQuantity?.quantity ?? avg,
-        max: bucket.maximumQuantity?.quantity ?? avg,
-        units: metric.units,
+        avg: avg * k,
+        min: (bucket.minimumQuantity?.quantity ?? avg) * k,
+        max: (bucket.maximumQuantity?.quantity ?? avg) * k,
+        units: metric.haeUnit,
       })
     }
   }
