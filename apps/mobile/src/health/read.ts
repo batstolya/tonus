@@ -30,6 +30,16 @@ const SLEEP_REM = 5
 
 const MS_PER_HOUR = 3_600_000
 
+/**
+ * Имя источника читается только через toJSON(). Прямой `bucket.source.name`
+ * возвращает «SourceProxy» — имя самого Nitro-объекта (HybridObject.name
+ * перекрывает Source.name), и тогда телефон и часы уезжают на сервер под одним
+ * источником: дедуп схлопнет их в один и потеряет день, где часы насчитали больше.
+ */
+function sourceName(source: { toJSON?: () => { name?: string } } | undefined): string {
+  return source?.toJSON?.()?.name || 'iPhone'
+}
+
 /** Локальная дата в формате YYYY-MM-DD: день считается по часам пользователя, а не по UTC. */
 function localDay(date: Date): string {
   const y = date.getFullYear()
@@ -84,7 +94,7 @@ async function readSums(from: Date, to: Date): Promise<DailySumReading[]> {
       out.push({
         hae: metric.hae,
         date: localDay(bucket.startDate),
-        device: bucket.source?.name ?? 'iPhone',
+        device: sourceName(bucket.source),
         // Запрашиваем в единицах HealthKit, отдаём в единицах сервера.
         value: value * (metric.toHae ?? 1),
         units: metric.haeUnit,
