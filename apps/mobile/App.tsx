@@ -5,6 +5,7 @@ import { APP_NAME, disableDemo } from '@tonus/shared'
 import { useAuth } from './src/useAuth'
 import { useResetDeepLink } from './src/useResetDeepLink'
 import { useDebugLink } from './src/useDebugLink'
+import { useForegroundSync } from './src/useHealthSync'
 import { getSupabase } from './src/supabase'
 import { AuthScreen } from './src/screens/AuthScreen'
 import { ResetRequestScreen } from './src/screens/ResetRequestScreen'
@@ -21,6 +22,9 @@ export default function App() {
   const [health, setHealth] = useState(false)
   const debugLink = useDebugLink()
   const recoveryLink = useResetDeepLink()
+  // Отправка в Здоровье → сервер работает только у вошедшего человека и только
+  // если он сам её включил (по умолчанию выключена, см. health/sync.ts).
+  useForegroundSync(!!user && !demo)
 
   if (loading) {
     return (

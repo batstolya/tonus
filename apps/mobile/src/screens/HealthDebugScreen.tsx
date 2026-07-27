@@ -1,7 +1,16 @@
 import { useEffect, useState } from 'react'
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
 import type { HealthReadings } from '@tonus/shared'
 import { checkAvailability, readHealthReadings, requestHealthAccess } from '../health/read'
+import {
+  SYNC_DAYS,
+  isSyncEnabled,
+  lastSyncOutcome,
+  setSyncEnabled,
+  syncEndpointHost,
+  syncHealth,
+  type SyncOutcome,
+} from '../health/sync'
 
 const DAYS = 7
 
@@ -14,6 +23,9 @@ export function HealthDebugScreen({ onBack }: { onBack: () => void }) {
   const [readings, setReadings] = useState<HealthReadings | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [sending, setSending] = useState(false)
+  const [syncOn, setSyncOn] = useState(isSyncEnabled)
+  const [lastSync, setLastSync] = useState<SyncOutcome | null>(lastSyncOutcome)
 
   async function load() {
     setBusy(true)
@@ -35,6 +47,30 @@ export function HealthDebugScreen({ onBack }: { onBack: () => void }) {
     }
   }
 
+  async function send() {
+    setSending(true)
+    try {
+      setLastSync(await syncHealth())
+    } finally {
+      setSending(false)
+    }
+  }
+
+  // Отправка идёт в боевую базу и попадает в общую историю здоровья — то, что
+  // потом читают отчёты и AI. Поэтому спрашиваем: на симуляторе и на чужом
+  // устройстве в Здоровье лежат выдуманные записи, и отменить их вливание
+  // одним тапом уже не выйдет.
+  function confirmSend() {
+    Alert.alert(
+      'Отправить в Tonus?',
+      `Данные Здоровья за ${SYNC_DAYS} дн. уйдут в твою боевую базу. Делай это только с настоящими данными — записи, введённые вручную для проверки, испортят историю.`,
+      [
+        { text: 'Отмена', style: 'cancel' },
+        { text: 'Отправить', style: 'destructive', onPress: () => { void send() } },
+      ],
+    )
+  }
+
   // Читаем сразу при открытии: экран отладочный, лишний тап тут только мешает,
   // в том числе автоматической проверке. Через setTimeout, потому что load()
   // первым делом ставит busy, а синхронный setState внутри эффекта — это
@@ -52,7 +88,7 @@ export function HealthDebugScreen({ onBack }: { onBack: () => void }) {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Text style={styles.title}>Здоровье: что прочитали</Text>
-      <Text style={styles.subtitle}>Последние {DAYS} дней. Ничего не отправляется.</Text>
+      <Text style={styles.subtitle}>Последние {DAYS} дней. Отправка — только по кнопке ниже.</Text>
 
       <Pressable style={styles.primary} onPress={load} disabled={busy}>
         {busy
@@ -68,6 +104,32 @@ export function HealthDebugScreen({ onBack }: { onBack: () => void }) {
           добавишь записи вручную в приложении «Здоровье».
         </Text>
       ) : null}
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Отправка на сервер</Text>
+        <View style={styles.switchRow}>
+          <Text style={styles.switchLabel}>Синхронизировать при открытии</Text>
+          <Switch
+            value={syncOn}
+            onValueChange={value => { setSyncEnabled(value); setSyncOn(value) }}
+          />
+        </View>
+        <Text style={styles.hint}>
+          Выключено по умолчанию: пока это симулятор или чужой телефон, в
+          Здоровье лежат выдуманные записи, а история — одна на всех.
+        </Text>
+        <Text style={styles.hint}>Получатель: {syncEndpointHost()}</Text>
+        <Pressable style={styles.secondary} onPress={confirmSend} disabled={sending}>
+          {sending
+            ? <ActivityIndicator />
+            : <Text style={styles.secondaryText}>Отправить сейчас</Text>}
+        </Pressable>
+        {lastSync ? (
+          <Text style={lastSync.ok ? styles.hint : styles.error}>
+            {formatTime(lastSync.at)} — {lastSync.message}
+          </Text>
+        ) : null}
+      </View>
 
       {sums.length ? (
         <View style={styles.section}>
@@ -114,6 +176,11 @@ export function HealthDebugScreen({ onBack }: { onBack: () => void }) {
   )
 }
 
+function formatTime(iso: string): string {
+  const d = new Date(iso)
+  return Number.isNaN(d.getTime()) ? iso : d.toLocaleString()
+}
+
 function round(value: number | null): string {
   if (value == null) return '—'
   return value >= 100 ? String(Math.round(value)) : value.toFixed(1)
@@ -126,6 +193,10 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 14, opacity: 0.6, marginBottom: 4 },
   primary: { backgroundColor: '#111', borderRadius: 10, padding: 16, alignItems: 'center' },
   primaryText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  secondary: { borderColor: '#111', borderWidth: 1, borderRadius: 10, padding: 14, alignItems: 'center', marginTop: 4 },
+  secondaryText: { fontSize: 15, fontWeight: '600' },
+  switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  switchLabel: { fontSize: 15, flexShrink: 1 },
   section: { marginTop: 16, gap: 4 },
   sectionTitle: { fontSize: 15, fontWeight: '600', marginBottom: 4 },
   row: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },

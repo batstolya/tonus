@@ -1,40 +1,26 @@
+import {
+  ensureIngestToken,
+  ingestUrl,
+  loadIngestToken,
+  regenerateIngestToken,
+  setIngestMode,
+  type IngestToken,
+} from '@tonus/shared'
 import { supabase } from './supabase'
 import { getEnv } from './env'
 
-export interface IngestToken { token: string; mode: 'shadow' | 'live'; last_ingest_at: string | null; last_status: string | null }
+// Работа с токеном автосинка переехала в @tonus/shared: тот же токен теперь
+// берёт мобильное приложение, а два экземпляра этой логики разошлись бы при
+// первой же правке. Здесь остались фасад с подставленным клиентом и сверка
+// staging ↔ боевое — она нужна только вебу.
 
-function randomToken(): string {
-  const a = new Uint8Array(24)
-  crypto.getRandomValues(a)
-  return Array.from(a, b => b.toString(16).padStart(2, '0')).join('')
-}
+export type { IngestToken }
 
-export async function loadToken(userId: string): Promise<IngestToken | null> {
-  const { data } = await supabase.from('ingest_tokens').select('token, mode, last_ingest_at, last_status').eq('user_id', userId).maybeSingle()
-  return (data as IngestToken) ?? null
-}
-
-export async function ensureToken(userId: string): Promise<IngestToken> {
-  const existing = await loadToken(userId)
-  if (existing) return existing
-  const token = randomToken()
-  await supabase.from('ingest_tokens').insert({ user_id: userId, token, mode: 'shadow' })
-  return { token, mode: 'shadow', last_ingest_at: null, last_status: null }
-}
-
-export async function regenerateToken(userId: string): Promise<IngestToken> {
-  const token = randomToken()
-  await supabase.from('ingest_tokens').upsert({ user_id: userId, token }, { onConflict: 'user_id' })
-  return (await loadToken(userId))!
-}
-
-export async function setMode(userId: string, mode: 'shadow' | 'live'): Promise<void> {
-  await supabase.from('ingest_tokens').update({ mode }).eq('user_id', userId)
-}
-
-export function webhookUrl(token: string): string {
-  return `${getEnv().supabaseUrl}/functions/v1/ingest-health?token=${token}`
-}
+export const loadToken = (userId: string) => loadIngestToken(supabase, userId)
+export const ensureToken = (userId: string) => ensureIngestToken(supabase, userId)
+export const regenerateToken = (userId: string) => regenerateIngestToken(supabase, userId)
+export const setMode = (userId: string, mode: 'shadow' | 'live') => setIngestMode(supabase, userId, mode)
+export const webhookUrl = (token: string) => ingestUrl(getEnv().supabaseUrl, token)
 
 export interface CompareRow { date: string; metric: string; prod: number | null; staging: number | null; match: boolean }
 

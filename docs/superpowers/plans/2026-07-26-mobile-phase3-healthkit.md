@@ -619,9 +619,9 @@ layer passes plain arrays, which is what makes this testable without a phone.
 
 ### Task 7: Send on open
 
-- [ ] Fetch the ingest token: `select token from ingest_tokens where user_id = auth.uid()` (RLS allows the owner). Reuse the create-if-missing logic from `apps/web/src/lib/autosync.ts` — move it to `packages/shared` as part of this task rather than copying it.
-- [ ] POST the payload to `${SUPABASE_URL}/functions/v1/ingest-health?token=…` on app foreground, covering the last 7 days so a missed day self-heals.
-- [ ] Show the last sync time and outcome on the debug screen.
+- [x] Fetch the ingest token: `select token from ingest_tokens where user_id = auth.uid()` (RLS allows the owner). Reuse the create-if-missing logic from `apps/web/src/lib/autosync.ts` — move it to `packages/shared` as part of this task rather than copying it.
+- [x] POST the payload to `${SUPABASE_URL}/functions/v1/ingest-health?token=…` on app foreground, covering the last 7 days so a missed day self-heals.
+- [x] Show the last sync time and outcome on the debug screen.
 
 ### Task 8: Background delivery
 
