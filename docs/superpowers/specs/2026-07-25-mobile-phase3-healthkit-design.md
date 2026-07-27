@@ -143,10 +143,15 @@ throttles it — that split is already the parent design's decision.
 
 ## Risks
 
-- **The Simulator has no useful Health data.** Samples can be injected by hand,
-  but 3a's real verification needs the physical iPhone, which needs free-team
-  provisioning (7-day re-signing). This is the first phase that genuinely
-  cannot be finished on the desk without the device.
+- **The Simulator is only half useless for HealthKit** (corrected 2026-07-27
+  against the running simulator, after this spec first claimed otherwise). The
+  Health app *is* installed in modern simulators and `HealthKit.framework`
+  ships in the simulator SDK, so permissions, queries and the screen are all
+  verifiable there — the permission sheet was confirmed on the simulator in
+  3a. What the simulator lacks is real data: samples must be entered by hand.
+  So the phase can be built and largely proven at the desk; only the
+  comparison against genuine Health data needs the physical iPhone and its
+  free-team provisioning (7-day re-signing).
 - **Background delivery is unreliable by design.** Do not let the sync's
   correctness depend on it; on-open catch-up must be able to backfill any gap.
 - **Nitro is a young native runtime.** If the library misbehaves under RN 0.86,

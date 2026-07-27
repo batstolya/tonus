@@ -40,6 +40,8 @@ export {
   HEALTH_READ_TYPES,
 } from './healthMetrics'
 export type { QuantityMetric } from './healthMetrics'
+export { parseRecoveryLink } from './recoveryLink'
+export type { RecoveryLink } from './recoveryLink'
 export { computeDailyScores, avg } from './scores'
 export type { DailyScore, ScoreInput } from './scores'
 export { loadTodayData, DISPLAY_DAYS, FETCH_DAYS } from './todayData'

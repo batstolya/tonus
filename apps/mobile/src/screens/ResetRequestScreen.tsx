@@ -8,7 +8,13 @@ import { form } from './formStyles'
 // The tonus:// scheme is declared in app.json.
 const RESET_REDIRECT = 'tonus://reset'
 
-export function ResetRequestScreen({ onBack }: { onBack: () => void }) {
+interface Props {
+  onBack: () => void
+  /** Почему человек здесь оказался: например, ссылка из письма уже протухла. */
+  notice?: string | null
+}
+
+export function ResetRequestScreen({ onBack, notice }: Props) {
   const [email, setEmail] = useState('')
   const [busy, setBusy] = useState(false)
   const [sent, setSent] = useState(false)
@@ -31,6 +37,7 @@ export function ResetRequestScreen({ onBack }: { onBack: () => void }) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <Text style={form.title}>Сброс пароля</Text>
+      {notice && !sent ? <Text style={form.error}>{notice}</Text> : null}
       {sent ? (
         <Text style={form.hint}>
           Письмо отправлено. Откройте ссылку из него на этом телефоне — приложение

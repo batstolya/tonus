@@ -7,11 +7,13 @@ interface Props {
   userId: string | undefined
   email: string | null | undefined
   onSignOut: () => void
+  /** Отладочный экран Здоровья; уедет вместе с фазой 3, когда синк заработает. */
+  onOpenHealth: () => void
 }
 
 // Экран «как я сегодня». Одна страница, без вкладок: телефон отвечает на этот
 // вопрос за десять секунд, а копать вглубь остаётся веб.
-export function TodayScreen({ userId, email, onSignOut }: Props) {
+export function TodayScreen({ userId, email, onSignOut, onOpenHealth }: Props) {
   const { data, loading, refreshing, error, refresh } = useTodayData(userId)
 
   if (loading && !data) {
@@ -46,7 +48,10 @@ export function TodayScreen({ userId, email, onSignOut }: Props) {
 
       {data?.latest ? <Scores data={data} /> : null}
 
-      <Pressable onPress={onSignOut} style={styles.footer}>
+      <Pressable onPress={onOpenHealth} style={styles.footer}>
+        <Text style={styles.footerLink}>Здоровье: что прочитали</Text>
+      </Pressable>
+      <Pressable onPress={onSignOut} style={styles.footerSignOut}>
         <Text style={styles.footerText}>{email ?? 'Выйти'} · выйти</Text>
       </Pressable>
     </ScrollView>
@@ -175,5 +180,7 @@ const styles = StyleSheet.create({
   cardValue: { fontSize: 22, fontWeight: '600', marginTop: 2 },
   cardHint: { fontSize: 13, opacity: 0.7, marginTop: 4, lineHeight: 19 },
   footer: { marginTop: 32, alignItems: 'center' },
+  footerLink: { fontSize: 13, color: '#111', fontWeight: '600' },
+  footerSignOut: { marginTop: 12, alignItems: 'center' },
   footerText: { fontSize: 13, opacity: 0.5 },
 })
