@@ -43,8 +43,32 @@ That model is Android's. On iOS it does not exist:
   HealthKit does not exist on Android: reading health data means implementing
   **Health Connect** — a second read layer behind the same payload builder.
 
+- **SideStore (free, owner's phone only).** Investigated 2026-07-28. A fork of
+  AltStore that, after a one-time setup from a computer, **renews the signature
+  on the device itself** — no cable, and no Mac awake on the network the way
+  AltStore Classic needs. The certificate is still the 7-day one; the weekly
+  chore just stops being manual. Same free-tier ceilings apply: three apps at
+  once, ten App IDs a week, a pairing file to maintain, and a setup that iOS
+  updates occasionally break.
+
 So the choice is: pay $99, or build Android, or keep the app to one phone.
 Everything in this document is unaffected by that choice **except** block D.
+
+**What the $99 actually buys.** Not the owner's convenience — SideStore covers
+that for free. It buys *the ability to hand the app to anyone else at all*:
+with a free account there is no distribution, only carrying someone's phone to
+this Mac and repeating it weekly. Since the stated point of the mobile app is
+to remove HAE as the wall in front of an invited user, the fee is part of the
+price of that goal rather than an optional upgrade. If the beta stays
+hypothetical, SideStore is enough for months.
+
+**Unverified until the first device build:** the app requests the HealthKit
+*background delivery* entitlement. HealthKit itself is available to free
+accounts (Apple's supported-capabilities table lists it for the free tier), but
+whether that entitlement survives re-signing through SideStore is not something
+the simulator can answer — it does not enforce provisioning at all. If it does
+not survive, only background delivery is lost; the on-open sync, which is the
+guarantee, keeps working.
 
 ## The work, cut into deliverable tasks
 
