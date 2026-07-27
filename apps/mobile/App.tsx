@@ -4,10 +4,12 @@ import { StatusBar } from 'expo-status-bar'
 import { APP_NAME, disableDemo } from '@tonus/shared'
 import { useAuth } from './src/useAuth'
 import { useResetDeepLink } from './src/useResetDeepLink'
+import { useDebugLink } from './src/useDebugLink'
 import { getSupabase } from './src/supabase'
 import { AuthScreen } from './src/screens/AuthScreen'
 import { ResetRequestScreen } from './src/screens/ResetRequestScreen'
 import { ResetPasswordScreen } from './src/screens/ResetPasswordScreen'
+import { HealthDebugScreen } from './src/screens/HealthDebugScreen'
 
 // env and platform are wired by src/bootstrap.ts, imported first from index.ts.
 
@@ -15,7 +17,9 @@ export default function App() {
   const { user, loading, passwordRecovery, setPasswordRecovery } = useAuth()
   const [screen, setScreen] = useState<'auth' | 'reset-request'>('auth')
   const [demo, setDemo] = useState(false)
-  useResetDeepLink()
+  const [health, setHealth] = useState(false)
+  const debugLink = useDebugLink()
+  const recoveryLink = useResetDeepLink()
 
   if (loading) {
     return (
@@ -32,6 +36,18 @@ export default function App() {
     return <ResetPasswordScreen onDone={() => setPasswordRecovery(false)} />
   }
 
+  // Ссылка из письма протухла. Показываем это независимо от того, вошёл ли
+  // человек: тапнуть по старому письму, уже будучи в аккаунте, — обычное дело,
+  // и молчание в этом случае выглядит как поломка.
+  if (recoveryLink.error) {
+    return (
+      <ResetRequestScreen
+        onBack={() => { recoveryLink.clearError(); setScreen('auth') }}
+        notice={recoveryLink.error}
+      />
+    )
+  }
+
   if (!user && !demo) {
     return screen === 'reset-request'
       ? <ResetRequestScreen onBack={() => setScreen('auth')} />
@@ -43,12 +59,21 @@ export default function App() {
       )
   }
 
+  // Экран доступен и тапом с главной, и по ссылке tonus://health — вторая
+  // дорога существует ради автоматической проверки в CI.
+  if (health || debugLink.health) {
+    return <HealthDebugScreen onBack={() => { setHealth(false); debugLink.close() }} />
+  }
+
   // Placeholder home. The Today screen (Phase 4) replaces this; for now it
   // exists to prove the session survived and to offer a way back out.
   return (
     <View style={styles.center}>
       <Text style={styles.title}>{APP_NAME}</Text>
       <Text style={styles.subtitle}>{demo ? 'демо-режим' : user?.email}</Text>
+      <Pressable onPress={() => setHealth(true)}>
+        <Text style={styles.action}>Здоровье: что прочитали</Text>
+      </Pressable>
       <Pressable
         onPress={() => {
           if (demo) { disableDemo(); setDemo(false) } else void getSupabase().auth.signOut()
@@ -65,5 +90,6 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#fff' },
   title: { fontSize: 32, fontWeight: '600' },
   subtitle: { fontSize: 16, opacity: 0.6 },
-  signOut: { marginTop: 18, fontSize: 15, color: '#555' },
+  action: { marginTop: 18, fontSize: 15, color: '#111', fontWeight: '600' },
+  signOut: { marginTop: 10, fontSize: 15, color: '#555' },
 })
