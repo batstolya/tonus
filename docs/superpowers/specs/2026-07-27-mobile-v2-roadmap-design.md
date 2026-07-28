@@ -127,6 +127,67 @@ depend on a human eyeballing a screenshot where a check could exist instead.
   payload builder, plus the app shell on Android. Large; only worth starting if
   free distribution is the actual requirement.
 
+## Block B, reconsidered: a native copy, or the web on the home screen?
+
+Added 2026-07-28, after measuring rather than guessing. The stated goal is "a
+copy of our app so the mobile version is comfortable to use" — so the question
+is what actually buys that comfort.
+
+**What production looks like on a phone today** (demo mode, 375×812, checked in
+a real browser):
+
+- The web is already a phone layout, not a shrunken desktop: bottom tab bar
+  (Dashboard / Body / Journal / Coach), stacked cards, a mobile header. Nobody
+  has to pinch and pan.
+- The dense screens are rough at that width: on **Metrics**, the chart's right
+  edge is clipped and the series legend disappears behind the tab bar.
+- A real bug surfaced while looking: the three readiness bars on the Dashboard
+  card render at zero width — `Dashboard.tsx:118–130` animates them with Motion
+  `scaleX 0 → 1`, and the enter animation does not run when the page starts
+  hidden (the same rAF-while-hidden trap this repo has hit before). It is a web
+  bug, not an argument for either option.
+
+### Option A — the full native copy (block B as written)
+
+Eight screens rewritten in React Native. Charts cannot come along (`recharts`
+is DOM-bound), so the chart layer is rebuilt on `react-native-svg`. Strings are
+redone. Every change afterwards ships as a rebuild and a reinstall, which means
+either the 7-day signature dance or the $99 account.
+
+Buys: a native feel — real gestures, instant navigation, no browser chrome,
+offline behaviour under our control.
+
+### Option B — installable web + a small native app for the sync
+
+The web app is added to the home screen: its own icon, no Safari chrome, and —
+the part that usually worries people — installed web apps are **exempt from
+Safari's 7-day storage purge**, so the session is not lost. Updates ship the
+moment CI deploys, with nothing to reinstall. The same thing works on Android
+for free.
+
+The native app then keeps the one job only it can do: read Apple Health and
+send it. That app already exists, and it stays small.
+
+Costs: the rough edges above have to be fixed (they need fixing anyway); no
+HealthKit from the web, which is why the native app stays; roughly 50 MB of
+cache; and it will feel like a very good web app rather than a native one.
+
+### Option C — a native shell wrapping the web in a WebView
+
+Rejected. It keeps every cost of A (signing, distribution, rebuilds) while
+delivering B's feel, and Apple has historically been unfriendly to apps that
+are only a website in a box.
+
+### How to decide
+
+The fork is not technical. If "comfortable" means *feels like a real app* —
+option A, and the $99 comes with it. If "comfortable" means *one tap from the
+home screen, always current, works on any phone* — option B gets there in a
+fraction of the work, and most of block B disappears.
+
+Nothing already built is wasted either way: under B the native app keeps the
+sync and the Today screen, which is exactly what v1 shipped.
+
 ## Order
 
 ```
