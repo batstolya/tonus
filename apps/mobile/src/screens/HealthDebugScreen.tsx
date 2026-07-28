@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
 import type { HealthReadings } from '@tonus/shared'
-import { checkAvailability, readHealthReadings, requestHealthAccess } from '../health/read'
+import { checkAvailability, hasBeenAsked, readHealthReadings, requestHealthAccess } from '../health/read'
 import { backgroundDeliveryState, onBackgroundDeliveryChange } from '../health/background'
 import {
   SYNC_DAYS,
@@ -28,6 +28,7 @@ export function HealthDebugScreen({ onBack }: { onBack: () => void }) {
   const [syncOn, setSyncOn] = useState(isSyncEnabled)
   const [lastSync, setLastSync] = useState<SyncOutcome | null>(lastSyncOutcome)
   const [background, setBackground] = useState(backgroundDeliveryState)
+  const [asked, setAsked] = useState<boolean | null>(null)
 
   // Фон включается в другом месте (useForegroundSync), поэтому экран на него
   // подписывается, а не спрашивает один раз при открытии.
@@ -43,10 +44,11 @@ export function HealthDebugScreen({ onBack }: { onBack: () => void }) {
         return
       }
       await requestHealthAccess()
+      // Спрашиваем ПОСЛЕ запроса: до него статус всегда «надо спросить», и по
+      // нему ничего не скажешь о том, почему пусто.
+      setAsked(await hasBeenAsked())
       setReadings(await readHealthReadings(DAYS))
     } catch (e) {
-      // Отказ в доступе и пустое разрешение выглядят одинаково — показываем
-      // текст ошибки как есть, чтобы не гадать за пользователя.
       setError(e instanceof Error ? e.message : String(e))
     } finally {
       setBusy(false)
@@ -106,8 +108,9 @@ export function HealthDebugScreen({ onBack }: { onBack: () => void }) {
 
       {isEmpty ? (
         <Text style={styles.hint}>
-          Данных нет. В симуляторе это нормально: Здоровье там пустое, пока не
-          добавишь записи вручную в приложении «Здоровье».
+          {asked === false
+            ? 'Пусто, потому что доступ ещё не выдан: нажми «Прочитать» и разреши чтение в системном запросе.'
+            : 'Пусто. Отличить «не разрешил» от «записей правда нет» iOS намеренно не даёт: статус доступа НА ЧТЕНИЕ он скрывает. Проверить и вернуть доступ: приложение «Здоровье» → нужная метрика (например «Шаги») → «Источники и доступ» → «Приложения, которым разрешено читать данные». Если Tonus там включён, а тут пусто — записей за эти дни действительно нет.'}
         </Text>
       ) : null}
 
