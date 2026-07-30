@@ -158,16 +158,22 @@ against fully-rounded controls reads as a decision, where a uniform 8–12px
 everywhere reads as a default. It also makes "this is clickable" legible
 without relying on color.
 
-Each `:root` default is chosen so that every *shared* rule keeps the exact
-radius it renders today. Only four shared classes actually cross the `.app`
-boundary — `.btn-primary`, `.btn-ghost`, `.card`, `.topbar` (verified by
-grep over `components/landing` and `components/auth`) — which fixes
-`--r-surface: 14px` (`.card` renders `var(--radius)` = 14px today) and
-`--r-control: 10px` (`.btn-primary`'s current literal). `--r-inner`'s default
-is unconstrained, since no rule outside `.app` uses it; it takes `6px`.
+Each `:root` default is chosen so that everything outside `.app` keeps the
+exact radius it renders today. The boundary is crossed in two ways, both
+enumerated by grep:
 
-`.btn-secondary`, `.nav-btn` and every dashboard-local class are used only
-inside `.app`, so converting them costs nothing outside.
+- **By class.** `.btn-primary` and `.btn-ghost` are the only app-shell
+  classes the landing and auth markup use. `.btn-primary`'s current literal
+  `10px` fixes `--r-control: 10px`; `.btn-ghost` has no radius and no accent.
+- **By token.** `Landing.css` reads `--accent`, `--bg`, `--surface`,
+  `--surface2`, `--border`, `--text`, `--text-muted`, `--topbar-bg` and
+  `--radius`. The last one (`Landing.css:195`) is what fixes
+  `--r-surface: 14px`, since `--radius` becomes its alias.
+
+`--r-inner` is unconstrained — nothing outside `.app` uses it — and takes
+`6px`. `.btn-secondary`, `.nav-btn`, `.auth-card` and every dashboard-local
+class stay on their own side of the boundary, so converting them costs
+nothing outside.
 
 Where a control visibly nests inside a card, the inner radius follows
 `outer − padding`; this only applies where the nesting is actually visible,
@@ -179,15 +185,22 @@ The pilot converts the dashboard's own CSS sections in `index.css` — by
 section marker: *Readiness Score* (996), *Stress Days Card* (1019), *Early
 Warning* (1046), *Geomagnetic storm banner* (1062), *Context Journal* (1175),
 *streak stat cards* (2075), *notification bell* (2140), *activity calendar*
-(2237), *empty state* (2286) — plus the shared surfaces the dashboard is seen
-through: `.app`, `.topbar`, `.nav-btn`, `.btn-primary`, `.btn-secondary`,
-`.card`, and the light-theme card block (1987).
+(2237), *empty state* (2286) — plus the coach-focus rules, which live outside
+those markers (`index.css:1369-1377`), and the shared surfaces the dashboard
+is seen through: `.app`, `.topbar`, `.nav-btn`, `.metric-card`,
+`.btn-primary`, `.btn-secondary`, and the light-theme card block (1987).
 
 Within that scope: replace hard-coded hex values with tokens, replace literal
 `border-radius` values with the three radius tokens, and switch
 color-named tokens to role names.
 
-Shared rules (`.btn-primary`, `.btn-secondary`, `.card`) are edited once and
+One pre-existing bug falls inside this scope and is fixed while we are in
+those rules: `--accent-border` is referenced at `index.css:2097` and `:2149`
+(the streak and bell trigger hover states) but is **defined nowhere**, so
+`border-color` computes to `currentColor` instead of an accent tint. It
+becomes `color-mix(in srgb, var(--accent) 45%, var(--border))`.
+
+Shared rules (`.btn-primary`, `.btn-secondary`, `.metric-card`) are edited once and
 affect every screen. That is intended — those are exactly the surfaces that
 must not diverge — and it is safe because the `:root`-default mechanism keeps
 the landing and auth screen on their current values.
