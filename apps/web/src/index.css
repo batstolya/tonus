@@ -2142,7 +2142,7 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 }
 .streak-card {
   display: flex; flex-direction: column; gap: 1px;
-  background: var(--surface2); border-radius: 10px; padding: 8px 10px;
+  background: var(--surface2); border-radius: var(--r-inner); padding: 8px 10px;
 }
 .streak-card-value { font-size: 15px; font-weight: 700; display: inline-flex; align-items: baseline; gap: 5px; }
 .streak-card-emoji { font-size: 13px; }
@@ -2154,7 +2154,7 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
   display: inline-flex; align-items: center; gap: 6px;
   min-height: 34px; padding: 0 10px;
   color: var(--text); background: var(--surface2);
-  border: 1px solid var(--border); border-radius: 8px;
+  border: 1px solid var(--border); border-radius: var(--r-control);
   font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
 }
@@ -2166,7 +2166,7 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
   position: absolute; z-index: 20; top: calc(100% + 10px); right: 0;
   width: min(340px, calc(100vw - 32px)); max-height: calc(100vh - 78px);
   overflow-y: auto; background: var(--surface); border: 1px solid var(--border);
-  border-radius: 12px; box-shadow: var(--card-shadow); animation: fadeIn 0.18s ease-out;
+  border-radius: var(--r-surface); box-shadow: var(--card-shadow); animation: fadeIn 0.18s ease-out;
 }
 .streak-menu-head {
   display: flex; align-items: center; justify-content: space-between;
@@ -2186,14 +2186,14 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 }
 .streak-menu-today-text { font-size: 11px; color: var(--text-muted); }
 .streak-menu-today-bar {
-  height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden;
+  height: 4px; background: var(--surface2); border-radius: var(--r-inner); overflow: hidden;
 }
 .streak-menu-today-fill {
-  height: 100%; background: var(--green); border-radius: 2px; transition: width 0.4s ease-out;
+  height: 100%; background: var(--ok); border-radius: var(--r-inner); transition: width 0.4s ease-out;
 }
 .streak-menu-close {
   width: 24px; height: 24px; display: grid; place-items: center;
-  color: var(--text-muted); background: transparent; border: none; border-radius: 6px;
+  color: var(--text-muted); background: transparent; border: none; border-radius: var(--r-control);
   font-size: 20px; line-height: 1; cursor: pointer;
 }
 .streak-menu-close:hover { color: var(--text); background: var(--surface2); }
@@ -2207,7 +2207,7 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
   position: relative;
   width: 34px; min-height: 34px; display: grid; place-items: center;
   color: var(--text); background: var(--surface2);
-  border: 1px solid var(--border); border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--border); border-radius: var(--r-control); cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
 }
 .bell-trigger:hover, .bell-trigger.active { background: var(--border); border-color: var(--accent-border); }
@@ -2215,7 +2215,7 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
   position: absolute; top: -5px; right: -5px;
   min-width: 16px; height: 16px; padding: 0 4px;
   display: flex; align-items: center; justify-content: center;
-  background: var(--red, #e5484d); color: #fff;
+  background: var(--bad); color: var(--on-accent);
   border-radius: 999px; font-size: 10px; font-weight: 700; line-height: 1;
 }
 /* Панель в духе mate.academy: белая карточка с крупным радиусом, каждое
@@ -2225,7 +2225,7 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
   position: absolute; z-index: 20; top: calc(100% + 10px); right: 0;
   width: min(372px, calc(100vw - 32px)); max-height: calc(100vh - 78px);
   overflow-y: auto; background: var(--surface); border: 1px solid var(--border);
-  border-radius: 18px; box-shadow: 0 12px 32px rgba(17, 17, 24, 0.12);
+  border-radius: var(--r-surface); box-shadow: 0 12px 32px rgba(17, 17, 24, 0.12);
   animation: fadeIn 0.18s ease-out;
 }
 .bell-head {
@@ -2240,18 +2240,18 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 }
 .bell-item {
   display: flex; align-items: flex-start; gap: 12px;
-  padding: 12px; border-radius: 14px;
+  padding: 12px; border-radius: var(--r-surface);
   background: var(--surface2);
 }
 .bell-item-icon {
   width: 38px; height: 38px; flex-shrink: 0;
   display: grid; place-items: center;
-  font-size: 18px; line-height: 1; border-radius: 12px;
+  font-size: 18px; line-height: 1; border-radius: var(--r-inner);
   background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
-.bell-item.level-red .bell-item-icon { background: color-mix(in srgb, var(--red) 15%, transparent); }
-.bell-item.level-yellow .bell-item-icon { background: color-mix(in srgb, var(--yellow) 20%, transparent); }
-.bell-item.level-streak .bell-item-icon { background: color-mix(in srgb, #ff7a1a 16%, transparent); }
+.bell-item.level-red .bell-item-icon { background: color-mix(in srgb, var(--bad) 15%, transparent); }
+.bell-item.level-yellow .bell-item-icon { background: color-mix(in srgb, var(--warn) 20%, transparent); }
+.bell-item.level-streak .bell-item-icon { background: color-mix(in srgb, var(--accent) 16%, transparent); }
 .bell-item-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .bell-item-title { font-size: 13.5px; font-weight: 700; line-height: 1.35; }
 .bell-item-body { font-size: 12.5px; line-height: 1.45; color: var(--text-muted); white-space: pre-line; }
@@ -2259,7 +2259,7 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 /* Разворот совета: текстовая кнопка в строке с датой. */
 .bell-item-more {
   border: none; background: none; padding: 0;
-  font: inherit; font-weight: 600; color: var(--accent); cursor: pointer;
+  font: inherit; font-weight: 600; color: var(--accent-text); cursor: pointer;
 }
 .bell-item-advice { white-space: pre-line; }
 .bell-item-ack {
@@ -2271,7 +2271,7 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
   box-shadow: var(--shadow);
   transition: background 0.15s, color 0.15s;
 }
-.bell-item-ack:hover { color: var(--green); }
+.bell-item-ack:hover { color: var(--ok); }
 
 /* On a phone these panels are wider than the gap between their trigger and the
    left edge of the screen, so anchoring them to the button clips them. Pin them
@@ -2301,7 +2301,7 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 /* ── Gamified home: activity calendar ───────────────────────── */
 .activity-cal {
   border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 16px 18px; margin: 12px 0;
+  border-radius: var(--r-surface); padding: 16px 18px; margin: 12px 0;
   background: var(--surface);
   box-shadow: var(--shadow);
 }
@@ -2312,7 +2312,7 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 .activity-cal-month { font-weight: 600; font-size: 13px; }
 .activity-cal-arrow {
   width: 24px; height: 24px; display: grid; place-items: center;
-  color: var(--text); background: transparent; border: none; border-radius: 6px;
+  color: var(--text); background: transparent; border: none; border-radius: var(--r-control);
   font-size: 16px; line-height: 1; cursor: pointer;
 }
 .activity-cal-arrow:hover:not(:disabled) { background: var(--surface2); }
@@ -2330,14 +2330,14 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
   display: flex; align-items: center; justify-content: center;
   font-size: 9px; justify-self: center;
 }
-.activity-cal-week.done { background: var(--green); border-color: var(--green); color: #fff; }
+.activity-cal-week.done { background: var(--ok); border-color: var(--ok); color: var(--on-accent); }
 .activity-cal-cell.adjacent { color: var(--text-muted); opacity: 0.35; font-size: 11px; }
 .activity-cal-cell {
   width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
   border-radius: 999px; font-size: 12px;
 }
 .activity-cal-cell.blank { background: transparent; }
-.activity-cal-cell.status-active { background: var(--green); color: #fff; }
+.activity-cal-cell.status-active { background: var(--ok); color: var(--on-accent); }
 .activity-cal-cell.status-frozen { background: var(--surface2); }
 /* idle: дані є, поріг руху не закритий; missed: даних нема (дірка в синку) */
 .activity-cal-cell.status-idle { background: var(--surface2); color: var(--text-muted); }
@@ -2349,7 +2349,7 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 
 /* ── Gamified home: empty state ─────────────────────────────── */
 .empty-state {
-  border: 1px dashed var(--border); border-radius: var(--radius);
+  border: 1px dashed var(--border); border-radius: var(--r-surface);
   padding: 24px; text-align: center; margin: 12px 0;
   background: var(--surface);
 }
@@ -2357,8 +2357,8 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 .empty-state-title { font-weight: 600; margin-bottom: 4px; }
 .empty-state-text { font-size: 13px; color: var(--text-muted); margin: 0 0 12px; }
 .empty-state-cta {
-  border: none; border-radius: 999px; padding: 8px 16px; cursor: pointer;
-  background: var(--accent); color: #fff; font-weight: 600;
+  border: none; border-radius: var(--r-control); padding: 8px 16px; cursor: pointer;
+  background: var(--accent); color: var(--on-accent); font-weight: 600;
 }
 
 /* ── Отчёт для врача (SPEC-DOCTOR-REPORT) ─────────────────────────────────── */

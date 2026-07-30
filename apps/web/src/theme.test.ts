@@ -192,3 +192,46 @@ describe('dashboard status surfaces use tokens', () => {
     expect(rule(css, '.r-bar-fill')).toMatch(/border-radius:\s*var\(--r-inner\)/)
   })
 })
+
+describe('gamified home surfaces use tokens', () => {
+  it.each(['.streak-menu-panel', '.bell-panel', '.bell-item', '.activity-cal', '.empty-state'])(
+    '%s uses the surface radius token',
+    selector => {
+      expect(rule(css, selector)).toMatch(/border-radius:\s*var\(--r-surface\)/)
+    },
+  )
+
+  it.each(['.streak-menu-trigger', '.bell-trigger', '.empty-state-cta'])(
+    '%s uses the control radius token',
+    selector => {
+      expect(rule(css, selector)).toMatch(/border-radius:\s*var\(--r-control\)/)
+    },
+  )
+
+  it('every accent-filled surface pairs its text with on-accent', () => {
+    for (const selector of ['.empty-state-cta', '.bell-badge', '.activity-cal-week.done', '.activity-cal-cell.status-active']) {
+      const decls = rule(css, selector)
+      expect(decls).toMatch(/color:\s*var\(--on-accent\)/)
+      expect(decls).not.toMatch(/#fff/)
+    }
+  })
+
+  it('the streak level tint is derived from a token, not a stray orange', () => {
+    expect(rule(css, '.bell-item.level-streak .bell-item-icon')).not.toMatch(/#ff7a1a/)
+  })
+
+  it('bell-item level tints keep their percentages when moved onto role tokens', () => {
+    // Pinning the percentage as a literal number bound to its selector and
+    // role token, per Task 3's postmortem: a bare "some color-mix, some
+    // percentage" match would stay green even if a conversion silently
+    // changed e.g. 15% to 50%.
+    const tints: Array<[string, RegExp]> = [
+      ['.bell-item.level-red .bell-item-icon', /background:\s*color-mix\(in srgb,\s*var\(--bad\)\s+15%,\s*transparent\)/],
+      ['.bell-item.level-yellow .bell-item-icon', /background:\s*color-mix\(in srgb,\s*var\(--warn\)\s+20%,\s*transparent\)/],
+      ['.bell-item.level-streak .bell-item-icon', /background:\s*color-mix\(in srgb,\s*var\(--accent\)\s+16%,\s*transparent\)/],
+    ]
+    for (const [selector, pattern] of tints) {
+      expect(rule(css, selector)).toMatch(pattern)
+    }
+  })
+})
