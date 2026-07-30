@@ -1,3 +1,8 @@
+/* Design tokens.
+   :root holds the legacy palette: it is what the landing and the auth screen
+   render, and both live outside .app (App.tsx:99-100). The .app blocks below
+   carry the current design. When the landing is brought onto the new palette,
+   the .app blocks move up into :root and these defaults are deleted. */
 :root {
   --bg: #0f0f12;
   --surface: #1a1a20;
@@ -6,10 +11,19 @@
   --text: #e8e8f0;
   --text-muted: #8888a0;
   --accent: #6c8fff;
-  --green: #5bc896;
-  --red: #ff6b6b;
-  --yellow: #ffd166;
-  --radius: 14px;
+  --accent-text: var(--accent);
+  --accent-border: color-mix(in srgb, var(--accent) 45%, var(--border));
+  --on-accent: #fff;
+  --ok: #5bc896;
+  --warn: #ffd166;
+  --bad: #ff6b6b;
+  --green: var(--ok);
+  --red: var(--bad);
+  --yellow: var(--warn);
+  --r-surface: 14px;
+  --r-control: 10px;
+  --r-inner: 6px;
+  --radius: var(--r-surface);
   --card-shadow: none;
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --topbar-bg: rgba(15,15,18,0.92);
@@ -24,12 +38,62 @@
   --text: #111118;
   --text-muted: #6e6e80;
   --accent: #4a6fff;
-  --green: #34c678;
-  --red: #e53935;
-  --yellow: #f59e0b;
+  --ok: #34c678;
+  --warn: #f59e0b;
+  --bad: #e53935;
   --topbar-bg: rgba(255,255,255,0.92);
   --shadow: 0 1px 0 rgba(0,0,0,0.08);
   --card-shadow: 0 4px 16px rgba(17, 17, 24, 0.06);
+}
+
+/* Night indigo + brass. Scoped to the app shell; see the comment on :root. */
+.app {
+  --bg: #0F1422;
+  --surface: #161C2D;
+  --surface2: #1E2538;
+  --border: #2A3247;
+  --text: #E6E9F2;
+  --text-muted: #8B93AB;
+  --accent: #C9A227;
+  --accent-text: var(--accent);
+  --accent-border: color-mix(in srgb, var(--accent) 45%, var(--border));
+  --on-accent: #0F1422;
+  --ok: #3FA68A;
+  --warn: #E08A3C;
+  --bad: #E36A64;
+  --green: var(--ok);
+  --red: var(--bad);
+  --yellow: var(--warn);
+  --r-surface: 4px;
+  --r-control: 999px;
+  --r-inner: 2px;
+  --radius: var(--r-surface);
+  --topbar-bg: rgba(15,20,34,0.92);
+  --shadow: 0 1px 0 rgba(255,255,255,0.04);
+}
+
+[data-theme="light"] .app {
+  --bg: #F4F5F9;
+  --surface: #FFFFFF;
+  --surface2: #EDEFF6;
+  --border: #E2E5EE;
+  --text: #141826;
+  --text-muted: #5D667F;
+  --accent: #B08A15;
+  /* The brass fill is too light to read as text on white (4.00:1), so accent
+     text and links get their own darker value. */
+  --accent-text: #6E550A;
+  --accent-border: color-mix(in srgb, var(--accent) 45%, var(--border));
+  --on-accent: #141826;
+  --ok: #27735F;
+  --warn: #96521A;
+  --bad: #C2403C;
+  --green: var(--ok);
+  --red: var(--bad);
+  --yellow: var(--warn);
+  --topbar-bg: rgba(244,245,249,0.92);
+  --shadow: 0 1px 0 rgba(0,0,0,0.08);
+  --card-shadow: 0 4px 16px rgba(20, 24, 38, 0.06);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -45,7 +109,7 @@ body {
   overflow-x: clip;
 }
 
-.app { display: flex; flex-direction: column; min-height: 100vh; }
+.app { display: flex; flex-direction: column; min-height: 100vh; background: var(--bg); color: var(--text); }
 
 .topbar {
   display: flex;
