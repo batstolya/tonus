@@ -150,3 +150,35 @@ describe('shared shell rules use tokens', () => {
     expect(rule(css, '.logo-btn')).toMatch(/color:\s*var\(--accent-text\)/)
   })
 })
+
+describe('dashboard status surfaces use tokens', () => {
+  it.each(['.readiness-card', '.stress-days-card', '.early-warning', '.geostorm-banner', '.context-journal', '.coach-focus-card'])(
+    '%s uses the surface radius token',
+    selector => {
+      expect(rule(css, selector)).toMatch(/border-radius:\s*var\(--r-surface\)/)
+    },
+  )
+
+  it('status tints are derived from role tokens, not literal rgba', () => {
+    for (const selector of ['.sd-item.sd-bad', '.sd-item.sd-good', '.early-warning']) {
+      const decls = rule(css, selector)
+      expect(decls).toMatch(/color-mix\(in srgb, var\(--(ok|bad)\)/)
+      expect(decls).not.toMatch(/rgba\(\s*\d/)
+    }
+  })
+
+  it('the accent link colour uses the readable accent, not the fill', () => {
+    expect(rule(css, '.link-btn')).toMatch(/color:\s*var\(--accent-text\)/)
+    expect(rule(css, '.coach-focus-label')).toMatch(/color:\s*var\(--accent-text\)/)
+  })
+
+  it('the done state of the focus button pairs its fill with on-accent', () => {
+    expect(rule(css, '.coach-focus-btn.done')).toMatch(/color:\s*var\(--on-accent\)/)
+  })
+
+  it('inputs and inner bars use the control and inner radii', () => {
+    expect(rule(css, '.cj-textarea')).toMatch(/border-radius:\s*var\(--r-control\)/)
+    expect(rule(css, '.r-bar-track')).toMatch(/border-radius:\s*var\(--r-inner\)/)
+    expect(rule(css, '.r-bar-fill')).toMatch(/border-radius:\s*var\(--r-inner\)/)
+  })
+})
