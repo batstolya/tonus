@@ -160,9 +160,19 @@ describe('dashboard status surfaces use tokens', () => {
   )
 
   it('status tints are derived from role tokens, not literal rgba', () => {
-    for (const selector of ['.sd-item.sd-bad', '.sd-item.sd-good', '.early-warning']) {
+    // Each tint's percentage is pinned to its own selector: a plain
+    // "some color-mix, some percentage" match would stay green even if a
+    // conversion silently changed 5% to 50%, which is the exact class of
+    // regression this test exists to catch.
+    const tints: Array<[string, RegExp]> = [
+      ['.sd-item.sd-bad', /background:\s*color-mix\(in srgb,\s*var\(--bad\)\s+5%,\s*transparent\)/],
+      ['.sd-item.sd-good', /background:\s*color-mix\(in srgb,\s*var\(--ok\)\s+5%,\s*transparent\)/],
+      ['.early-warning', /background:\s*color-mix\(in srgb,\s*var\(--bad\)\s+8%,\s*transparent\)/],
+      ['.early-warning', /border:\s*1px solid color-mix\(in srgb,\s*var\(--bad\)\s+30%,\s*transparent\)/],
+    ]
+    for (const [selector, pattern] of tints) {
       const decls = rule(css, selector)
-      expect(decls).toMatch(/color-mix\(in srgb, var\(--(ok|bad)\)/)
+      expect(decls).toMatch(pattern)
       expect(decls).not.toMatch(/rgba\(\s*\d/)
     }
   })
