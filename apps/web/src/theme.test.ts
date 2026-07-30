@@ -127,3 +127,26 @@ describe.each([
     expect(contrast(resolveToken(t, fg), resolveToken(t, bg))).toBeGreaterThanOrEqual(4.5)
   })
 })
+
+describe('shared shell rules use tokens', () => {
+  it('primary button reads its label colour from the accent pair', () => {
+    const decls = rule(css, '.btn-primary')
+    expect(decls).toMatch(/color:\s*var\(--on-accent\)/)
+    expect(decls).not.toMatch(/#fff/)
+  })
+
+  it.each(['.btn-primary', '.btn-secondary', '.nav-btn', '.theme-toggle'])(
+    '%s uses the control radius token',
+    selector => {
+      expect(rule(css, selector)).toMatch(/border-radius:\s*var\(--r-control\)/)
+    },
+  )
+
+  it('metric card uses the surface radius token', () => {
+    expect(rule(css, '.metric-card')).toMatch(/border-radius:\s*var\(--r-surface\)/)
+  })
+
+  it('the wordmark is accent text, so it takes the readable accent', () => {
+    expect(rule(css, '.logo-btn')).toMatch(/color:\s*var\(--accent-text\)/)
+  })
+})
