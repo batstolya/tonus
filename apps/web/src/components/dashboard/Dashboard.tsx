@@ -245,14 +245,14 @@ function CoachFocusCard({ user, daily }: { user: User; daily: DailyMetrics[] }) 
     return (
       <div className="coach-focus-card">
         <div className="coach-focus-head">
-          <span className="coach-focus-label"><Icon name="focus" /> {t('Фокус недели')}</span>
+          <span className="coach-focus-label"><Icon name="focus" size={14} /> {t('Фокус недели')}</span>
           <span className="coach-focus-count">{count}</span>
         </div>
         <div className="coach-focus-text">{focus.text}</div>
         <div className="coach-focus-dots" style={{ display: 'flex', gap: 6, marginTop: 8 }}>
           {p.perDay.map((d, i) => (
             <span key={i} style={{ opacity: d.future ? 0.3 : 1 }}>
-              <Icon name={d.met ? 'dayMet' : 'dayMissed'} size={14} title={d.date} />
+              <Icon name={d.met ? 'dayMet' : 'dayMissed'} size={14} title={`${d.date} — ${d.met ? t('выполнено') : t('не выполнено')}`} />
             </span>
           ))}
         </div>
@@ -275,7 +275,7 @@ function CoachFocusCard({ user, daily }: { user: User; daily: DailyMetrics[] }) 
   return (
     <div className="coach-focus-card">
       <div className="coach-focus-head">
-        <span className="coach-focus-label"><Icon name="focus" /> {t('Фокус недели')}</span>
+        <span className="coach-focus-label"><Icon name="focus" size={14} /> {t('Фокус недели')}</span>
         <span className="coach-focus-count">{checkins.length} {t('из 7 дней')}</span>
       </div>
       <div className="coach-focus-text">{focus.text}</div>

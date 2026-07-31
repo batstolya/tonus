@@ -84,7 +84,6 @@ describe('NotificationBell', () => {
 
     const body = await screen.findByText(/4,200/)
     const text = body.textContent ?? ''
-    expect(text.indexOf('4,200')).toBeGreaterThanOrEqual(0)
     expect(text.indexOf('4,200')).toBeLessThan(text.indexOf('·'))
     expect(text.indexOf('·')).toBeLessThan(text.indexOf('12'))
     expect(text).toMatch(/30 min\.\s*Otherwise a freeze burns \(1 left\)/)

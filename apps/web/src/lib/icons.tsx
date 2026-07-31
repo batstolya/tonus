@@ -1,7 +1,7 @@
 import {
-  ArrowsClockwise, Broadcast, CalendarBlank, CheckCircle, Circle, Eye, Fire,
-  Heartbeat, Lightning, PersonSimpleRun, PersonSimpleWalk, Snowflake, Sparkle,
-  SmileyMeh, SmileyNervous, Target, ThumbsUp, Warning, type Icon as PhosphorIcon,
+  ArrowsClockwise, Barbell, Broadcast, CalendarBlank, CheckCircle, Circle, Eye, Fire,
+  Heartbeat, Lightning, PersonSimpleRun, PersonSimpleWalk, Snowflake, SoccerBall, Sparkle,
+  SmileyMeh, SmileyNervous, Target, ThumbsUp, Volleyball, Warning, type Icon as PhosphorIcon,
 } from '@phosphor-icons/react'
 
 // Every entry keeps the emoji it replaces so VITE_ICONS=0 restores the old
@@ -31,6 +31,9 @@ export const ICONS = {
   steps:      { icon: PersonSimpleWalk, emoji: '🚶' },
   exercise:   { icon: PersonSimpleRun,  emoji: '🏃' },
   allClear:   { icon: ThumbsUp,         emoji: '👌' },
+  sportVolleyball: { icon: Volleyball, emoji: '🏐' },
+  sportFootball:   { icon: SoccerBall, emoji: '⚽' },
+  sportGym:        { icon: Barbell,    emoji: '🏋️' },
 } as const satisfies Record<string, Entry>
 
 export type IconName = keyof typeof ICONS

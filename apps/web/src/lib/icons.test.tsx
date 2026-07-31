@@ -31,6 +31,9 @@ const expectedComponentName: Record<IconName, string> = {
   steps: 'PersonSimpleWalkIcon',
   exercise: 'PersonSimpleRunIcon',
   allClear: 'ThumbsUpIcon',
+  sportVolleyball: 'VolleyballIcon',
+  sportFootball: 'SoccerBallIcon',
+  sportGym: 'BarbellIcon',
 }
 
 afterEach(() => {

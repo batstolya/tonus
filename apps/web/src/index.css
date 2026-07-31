@@ -1035,6 +1035,8 @@ body {
 }
 .sd-item.sd-bad { background: rgba(255, 107, 107, 0.05); }
 .sd-item.sd-good { background: rgba(91, 200, 150, 0.05); }
+/* font-size looks unused now that Icon's `size` prop drives SVG dimensions —
+   it isn't: it sizes the VITE_ICONS=0 emoji fallback (see lib/icons.tsx). */
 .sd-icon { font-size: 24px; flex-shrink: 0; }
 .sd-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 2px; }
 .sd-date { font-size: 15px; font-weight: 700; color: var(--text); }
@@ -1054,6 +1056,7 @@ body {
   margin-bottom: 16px;
   align-items: flex-start;
 }
+/* font-size sizes the VITE_ICONS=0 emoji fallback, not the SVG (see .sd-icon above). */
 .ew-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
 .early-warning strong { font-size: 14px; color: var(--red); display: block; margin-bottom: 4px; }
 .ew-list { margin: 4px 0 6px 16px; font-size: 13px; color: var(--text); line-height: 1.6; }
@@ -1369,6 +1372,9 @@ body {
 .coach-focus-card { background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 14%, var(--surface)), var(--surface)); border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border)); border-radius: 14px; padding: 16px; margin-bottom: 16px; }
 .coach-focus-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .coach-focus-label { font-size: 13px; font-weight: 700; color: var(--accent); }
+/* Inline icons sit on the text baseline where the replaced emoji used to
+   sit — nudge them up so they read centered in the sentence, not low. */
+.coach-focus-label svg { vertical-align: -0.15em; }
 .coach-focus-count { font-size: 12px; color: var(--text-muted); }
 .coach-focus-text { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
 .coach-focus-btn { border: 1px solid var(--accent); background: transparent; color: var(--accent); border-radius: 10px; padding: 8px 16px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
@@ -2081,6 +2087,7 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
   background: var(--surface2); border-radius: 10px; padding: 8px 10px;
 }
 .streak-card-value { font-size: 15px; font-weight: 700; display: inline-flex; align-items: baseline; gap: 5px; }
+/* font-size sizes the VITE_ICONS=0 emoji fallback, not the SVG (see .sd-icon above). */
 .streak-card-emoji { font-size: 13px; }
 .streak-card-label { font-size: 11px; color: var(--text-muted); }
 
@@ -2095,6 +2102,7 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
   transition: background 0.15s, border-color 0.15s;
 }
 .streak-menu-trigger:hover, .streak-menu-trigger.active { background: var(--border); border-color: var(--accent-border); }
+/* font-size sizes the VITE_ICONS=0 emoji fallback, not the SVG (see .sd-icon above). */
 .streak-menu-flame { font-size: 17px; line-height: 1; }
 .streak-menu-count { font-size: 15px; font-variant-numeric: tabular-nums; }
 .streak-menu-label { color: var(--text-muted); font-weight: 500; }
@@ -2121,6 +2129,9 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
   display: flex; flex-direction: column; gap: 4px; padding: 6px 14px 0;
 }
 .streak-menu-today-text { font-size: 11px; color: var(--text-muted); }
+/* Inline icons sit on the text baseline where the replaced emoji used to
+   sit — nudge them up so they read centered in the sentence, not low. */
+.streak-menu-today-text svg { vertical-align: -0.15em; }
 .streak-menu-today-bar {
   height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden;
 }
@@ -2191,6 +2202,9 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 .bell-item-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .bell-item-title { font-size: 13.5px; font-weight: 700; line-height: 1.35; }
 .bell-item-body { font-size: 12.5px; line-height: 1.45; color: var(--text-muted); white-space: pre-line; }
+/* Inline icons sit on the text baseline where the replaced emoji used to
+   sit — nudge them up so they read centered in the sentence, not low. */
+.bell-item-body svg { vertical-align: -0.15em; }
 .bell-item-time { margin-top: 2px; font-size: 11px; color: var(--text-muted); opacity: 0.8; display: flex; align-items: center; gap: 10px; }
 /* Разворот совета: текстовая кнопка в строке с датой. */
 .bell-item-more {
@@ -2289,6 +2303,7 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
   padding: 24px; text-align: center; margin: 12px 0;
   background: var(--surface);
 }
+/* font-size sizes the VITE_ICONS=0 emoji fallback, not the SVG (see .sd-icon above). */
 .empty-state-icon { font-size: 32px; margin-bottom: 8px; }
 .empty-state-title { font-weight: 600; margin-bottom: 4px; }
 .empty-state-text { font-size: 13px; color: var(--text-muted); margin: 0 0 12px; }

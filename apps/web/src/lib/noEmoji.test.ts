@@ -1,9 +1,13 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { readFileSync, readdirSync } from 'node:fs'
+import { join, relative } from 'node:path'
 import { ICONS } from './icons'
 
 // Files the icon pilot has converted. Later tasks append to this list.
+// Kept as a literal list (rather than deriving it inline) so a removed call
+// site is a visible diff here too — but derivePilotFiles() below cross-checks
+// it against the real source tree, so a call site added without updating
+// this list fails loudly instead of slipping through unguarded.
 const PILOT_FILES = [
   'components/dashboard/Dashboard.tsx',
   'components/dashboard/StreakStats.tsx',
@@ -17,11 +21,54 @@ const PILOT_FILES = [
 
 const REPLACED = Object.values(ICONS).map(e => e.emoji)
 
+// Scans components/** for non-test source files that import the icon
+// registry — those are the files that render icons and so must carry no
+// leftover emoji. Test files are excluded: they import Icon to build props
+// for the component under test, not to render emoji-replacing UI themselves.
+function derivePilotFiles(): string[] {
+  const componentsDir = join(__dirname, '..', 'components')
+  const out: string[] = []
+  function walk(dir: string) {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name)
+      if (entry.isDirectory()) { walk(full); continue }
+      if (!/\.tsx?$/.test(entry.name) || entry.name.includes('.test.')) continue
+      const source = readFileSync(full, 'utf8')
+      if (/from\s+['"][^'"]*\/lib\/icons['"]/.test(source)) {
+        out.push(relative(join(__dirname, '..'), full).split('\\').join('/'))
+      }
+    }
+  }
+  walk(componentsDir)
+  return out.sort()
+}
+
 describe('converted files carry no emoji', () => {
   for (const file of PILOT_FILES) {
     it(file, () => {
       const source = readFileSync(join(__dirname, '..', file), 'utf8')
       const found = REPLACED.filter(emoji => source.includes(emoji))
+      expect(found, `${file} still contains ${found.join(' ')}`).toEqual([])
+    })
+  }
+
+  // A ninth converted file (or a removed one) must show up here, not just
+  // silently go unguarded because PILOT_FILES above wasn't updated.
+  it('PILOT_FILES matches every non-test component that imports the icon registry', () => {
+    expect(derivePilotFiles()).toEqual([...PILOT_FILES].sort())
+  })
+
+  // The registry-emoji check above only rejects the 19 emoji ICONS already
+  // replaced, so a brand-new emoji (or a variation-selector mismatch, e.g.
+  // '❄️' vs a bare '❄') would slip through silently. Sweep every pictographic
+  // codepoint instead, excluding the two typographic glyphs ('✓' U+2713 and
+  // '✕' U+2715) this branch deliberately keeps outside the icon registry.
+  const PICTOGRAPHIC = /\p{Extended_Pictographic}/gu
+  const ALLOWED = new Set(['\u2713', '\u2715'])
+  for (const file of PILOT_FILES) {
+    it(`${file} carries no unregistered pictographic character`, () => {
+      const source = readFileSync(join(__dirname, '..', file), 'utf8')
+      const found = [...source.matchAll(PICTOGRAPHIC)].map(m => m[0]).filter(ch => !ALLOWED.has(ch))
       expect(found, `${file} still contains ${found.join(' ')}`).toEqual([])
     })
   }

@@ -117,6 +117,8 @@ export const dashboard: Record<string, Translation> = {
   'Отметить сегодня': { uk: 'Відмітити сьогодні', en: 'Mark today' },
   'за неделю': { uk: 'за тиждень', en: 'this week' },
   'по данным': { uk: 'за даними', en: 'from data' },
+  'выполнено': { uk: 'виконано', en: 'met' },
+  'не выполнено': { uk: 'не виконано', en: 'missed' },
   'ЧСС': { uk: 'ЧСС', en: 'HR' },
   'мс': { uk: 'мс', en: 'ms' },
   'Самый стрессовый': { uk: 'Найстресовіший', en: 'Most stressful' },
@@ -183,7 +185,7 @@ export const dashboard: Record<string, Translation> = {
   // ── Колокольчик уведомлений ────────────────────────────────
   'Уведомления': { uk: 'Сповіщення', en: 'Notifications' },
   'Высокий сигнал': { uk: 'Високий сигнал', en: 'High-severity alert' },
-  'Наблюдение': { uk: 'Спостереження', en: 'Watch' },
+  'Наблюдение': { uk: 'Спостереження', en: 'Monitoring' },
   'Все спокойно — сигналов нет': { uk: 'Все спокійно — сигналів немає', en: 'All clear — no signals' },
   'Стрик {n} дн. под угрозой': { uk: 'Стрік {n} дн. під загрозою', en: '{n}-day streak at risk' },
   'Иначе сгорит заморозка (осталось {n})': { uk: 'Інакше згорить заморозка (лишилось {n})', en: 'Otherwise a freeze burns ({n} left)' },

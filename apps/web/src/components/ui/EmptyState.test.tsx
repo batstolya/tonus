@@ -12,7 +12,7 @@ describe('EmptyState', () => {
 
   it('fires the cta onClick when the button is pressed', () => {
     const onClick = vi.fn()
-    render(<EmptyState icon={<Icon name="warning" />} title="Locked" cta={{ label: 'Unlock', onClick }} />)
+    render(<EmptyState icon={<Icon name="warning" />} title="Warning" cta={{ label: 'Unlock', onClick }} />)
     fireEvent.click(screen.getByRole('button', { name: 'Unlock' }))
     expect(onClick).toHaveBeenCalledOnce()
   })
