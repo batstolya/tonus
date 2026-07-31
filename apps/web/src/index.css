@@ -2251,7 +2251,7 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 }
 .bell-item.level-red .bell-item-icon { background: color-mix(in srgb, var(--bad) 15%, transparent); }
 .bell-item.level-yellow .bell-item-icon { background: color-mix(in srgb, var(--warn) 20%, transparent); }
-.bell-item.level-streak .bell-item-icon { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.bell-item.level-streak .bell-item-icon { background: color-mix(in srgb, var(--accent) 32%, transparent); }
 .bell-item-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .bell-item-title { font-size: 13.5px; font-weight: 700; line-height: 1.35; }
 .bell-item-body { font-size: 12.5px; line-height: 1.45; color: var(--text-muted); white-space: pre-line; }

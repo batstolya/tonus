@@ -228,7 +228,11 @@ describe('gamified home surfaces use tokens', () => {
     const tints: Array<[string, RegExp]> = [
       ['.bell-item.level-red .bell-item-icon', /background:\s*color-mix\(in srgb,\s*var\(--bad\)\s+15%,\s*transparent\)/],
       ['.bell-item.level-yellow .bell-item-icon', /background:\s*color-mix\(in srgb,\s*var\(--warn\)\s+20%,\s*transparent\)/],
-      ['.bell-item.level-streak .bell-item-icon', /background:\s*color-mix\(in srgb,\s*var\(--accent\)\s+16%,\s*transparent\)/],
+      // 32%, not 16%: the streak row shares --accent with the base
+      // .bell-item-icon tint (12%), so it needs enough density to still
+      // read as a distinct row rather than nearly duplicating the base —
+      // see the fix-report entry in task-4-report.md for the review finding.
+      ['.bell-item.level-streak .bell-item-icon', /background:\s*color-mix\(in srgb,\s*var\(--accent\)\s+32%,\s*transparent\)/],
     ]
     for (const [selector, pattern] of tints) {
       expect(rule(css, selector)).toMatch(pattern)
