@@ -10,6 +10,9 @@ const PILOT_FILES = [
   'components/dashboard/WorkoutPlanCard.tsx',
   'components/dashboard/NotificationBell.tsx',
   'components/dashboard/StreakMenu.tsx',
+  'components/dashboard/ActivityCalendar.tsx',
+  'components/dashboard/AiAnalysisBlock.tsx',
+  'components/ui/DataGaps.tsx',
 ]
 
 const REPLACED = Object.values(ICONS).map(e => e.emoji)
