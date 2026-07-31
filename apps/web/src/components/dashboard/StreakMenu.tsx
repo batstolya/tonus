@@ -5,6 +5,7 @@ import {
   ACTIVE_STEPS_MIN, ACTIVE_EXERCISE_MIN,
 } from '../../lib/streak'
 import { useT } from '../../lib/i18n'
+import { Icon } from '../../lib/icons'
 import { ActivityCalendar } from './ActivityCalendar'
 import { StreakStats } from './StreakStats'
 import { WorkoutPlanCard } from './WorkoutPlanCard'
@@ -79,7 +80,7 @@ export function StreakMenu({ daily }: Props) {
         aria-controls="streak-menu-panel"
         onClick={togglePanel}
       >
-        <span className="streak-menu-flame" aria-hidden>🔥</span>
+        <span className="streak-menu-flame"><Icon name="streak" size={17} /></span>
         <span className="streak-menu-count">{streak.current}</span>
         <span className="streak-menu-label">{t('Дней подряд')}</span>
       </button>
@@ -90,10 +91,10 @@ export function StreakMenu({ daily }: Props) {
             <span className="streak-menu-title">{t('Текущий стрик')}</span>
             <div className="streak-menu-counters">
               <span className="streak-menu-counter" title={t('Дней подряд')}>
-                <span aria-hidden>🔥</span>{streak.current}
+                <Icon name="streak" size={14} />{streak.current}
               </span>
               <span className="streak-menu-counter" title={t('Недель подряд')}>
-                <span aria-hidden>⚡</span>{streak.weekly}
+                <Icon name="weekly" size={14} />{streak.weekly}
               </span>
               <button type="button" className="streak-menu-close" onClick={() => setOpen(false)} aria-label={t('Закрыть')}>×</button>
             </div>
@@ -101,8 +102,8 @@ export function StreakMenu({ daily }: Props) {
           {!todayActive && todayHasData && (
             <div className="streak-menu-today">
               <span className="streak-menu-today-text">
-                {t('Сегодня')}: 🚶 {todaySteps.toLocaleString(locale)} / {ACTIVE_STEPS_MIN.toLocaleString(locale)}
-                {' · '}🏃 {todayExercise} / {ACTIVE_EXERCISE_MIN} {t('мин')}
+                {t('Сегодня')}: <Icon name="steps" size={14} /> {todaySteps.toLocaleString(locale)} / {ACTIVE_STEPS_MIN.toLocaleString(locale)}
+                {' · '}<Icon name="exercise" size={14} /> {todayExercise} / {ACTIVE_EXERCISE_MIN} {t('мин')}
               </span>
               <div className="streak-menu-today-bar">
                 <div className="streak-menu-today-fill" style={{ width: `${todayPercent}%` }} />

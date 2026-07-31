@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { DailyMetrics } from '../../types'
 import { getOpenHealthAlerts, acknowledgeHealthAlert, type HealthAlert } from '../../lib/api/dashboard'
 import { demoList, demoUpdate } from '../../lib/demoDb'
 import { buildBellItems, parseAlertMessage, splitAlertBody, localizeAlertText, type BellItem } from '../../lib/notifications'
 import { ACTIVE_STEPS_MIN, ACTIVE_EXERCISE_MIN } from '../../lib/streak'
 import { useT } from '../../lib/i18n'
+import { Icon, type IconName } from '../../lib/icons'
 
 interface Props {
   daily: DailyMetrics[]
@@ -101,20 +102,24 @@ export function NotificationBell({ daily, userId, demo }: Props) {
     })
   }
 
-  const derivedText = (item: BellItem): { icon: string; title: string; body: string } => {
+  const derivedText = (item: BellItem): { icon: IconName; title: string; body: ReactNode } => {
     if (item.kind === 'streak-risk') {
       return {
-        icon: '🔥',
+        icon: 'streak',
         title: t('Стрик {n} дн. под угрозой', { n: item.streak }),
-        body: `${t('Сегодня')}: 🚶 ${item.steps.toLocaleString(locale)} / ${ACTIVE_STEPS_MIN.toLocaleString(locale)}`
-          + ` · 🏃 ${item.exercise} / ${ACTIVE_EXERCISE_MIN} ${t('мин')}. `
-          + (item.freezes > 0
-            ? t('Иначе сгорит заморозка (осталось {n})', { n: item.freezes })
-            : t('Заморозок нет — стрик обнулится в полночь')),
+        body: (
+          <>
+            {t('Сегодня')}: <Icon name="steps" size={14} /> {item.steps.toLocaleString(locale)} / {ACTIVE_STEPS_MIN.toLocaleString(locale)}
+            {' · '}<Icon name="exercise" size={14} /> {item.exercise} / {ACTIVE_EXERCISE_MIN} {t('мин')}.{' '}
+            {item.freezes > 0
+              ? t('Иначе сгорит заморозка (осталось {n})', { n: item.freezes })
+              : t('Заморозок нет — стрик обнулится в полночь')}
+          </>
+        ),
       }
     }
     return {
-      icon: '📡',
+      icon: 'noData',
       title: t('Нет данных {n} дн.', { n: item.days }),
       body: t('Проверь авто-синхронизацию на iPhone'),
     }
@@ -146,7 +151,7 @@ export function NotificationBell({ daily, userId, demo }: Props) {
             <span className="bell-title">{t('Уведомления')}</span>
           </div>
           {count === 0 ? (
-            <div className="bell-empty">{t('Все спокойно — сигналов нет')} 👌</div>
+            <div className="bell-empty">{t('Все спокойно — сигналов нет')} <Icon name="allClear" size={16} /></div>
           ) : (
             <ul className="bell-list">
               {alerts.map(a => {
@@ -157,7 +162,11 @@ export function NotificationBell({ daily, userId, demo }: Props) {
                 const isOpen = expanded.has(a.id)
                 return (
                   <li key={a.id} className={`bell-item level-${a.level}`}>
-                    <span className="bell-item-icon" aria-hidden>{a.level === 'red' ? '🫀' : '👀'}</span>
+                    <span className="bell-item-icon">
+                      {a.level === 'red'
+                        ? <Icon name="alertHigh" size={18} title={t('Высокий сигнал')} />
+                        : <Icon name="alertWatch" size={18} title={t('Наблюдение')} />}
+                    </span>
                     <div className="bell-item-text">
                       <span className="bell-item-title">{localizeAlertText(title, t)}</span>
                       {facts && <span className="bell-item-body">{localizeAlertText(facts, t)}</span>}
@@ -179,7 +188,7 @@ export function NotificationBell({ daily, userId, demo }: Props) {
                 const { icon, title, body } = derivedText(item)
                 return (
                   <li key={item.id} className={`bell-item level-${item.kind === 'streak-risk' ? 'streak' : 'info'}`}>
-                    <span className="bell-item-icon" aria-hidden>{icon}</span>
+                    <span className="bell-item-icon"><Icon name={icon} size={18} /></span>
                     <div className="bell-item-text">
                       <span className="bell-item-title">{title}</span>
                       <span className="bell-item-body">{body}</span>
