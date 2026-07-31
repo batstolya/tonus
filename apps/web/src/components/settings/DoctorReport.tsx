@@ -25,6 +25,7 @@ interface Props {
 
 const EMPTY_SOURCES: ReportSources = {
   labs: [], supplements: [], supplementLogs: [], concerns: [], concernLogs: [], notes: [],
+  profile: null,
 }
 
 const STATUS_TEXT: Record<string, string> = {
@@ -197,7 +198,11 @@ export function DoctorReport({ user, daily, onClose }: Props) {
         <p className="dr-meta">
           {rt('Период')}: {model.period.start} — {model.period.end} · {rt('Сформировано')}: {model.period.end}
         </p>
-        <p className="dr-meta">{rt('Пациент')}: ________________</p>
+        <p className="dr-meta">
+          {model.patient.age != null
+            ? `${rt('Пациент')}: ${rt('Возраст (по году рождения)')}: ${model.patient.age}${model.patient.sex ? ` · ${rt('Пол')}: ${rt(model.patient.sex === 'male' ? 'Мужской' : 'Женский')}` : ''}`
+            : `${rt('Пациент')}: ________________`}
+        </p>
         <p className="dr-disclaimer">{rt('Это не медицинские измерения. Значения собраны бытовым носимым устройством, точность ниже клинической, часть дней может отсутствовать. Отчёт содержит только измеренные значения и не содержит диагнозов.')}</p>
 
         {sections.metrics && scores.length > 0 && (

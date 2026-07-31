@@ -11,6 +11,7 @@ import { buildLabs, type LabsSection } from './labs'
 import { buildSupplements, type SupplementLine } from './supplements'
 import { buildConcerns, buildJournal, type ConcernLine, type JournalSection } from './journal'
 import type { ReportSources } from './load'
+import type { Sex } from '../api/settings'
 
 export interface ScoreSummary {
   key: 'sleep_score' | 'recovery_score' | 'stress_score'
@@ -22,6 +23,8 @@ export interface ScoreSummary {
 
 export interface DoctorReportModel {
   period: { start: string; end: string; days: number }
+  /** Age is coarse by design: only the birth year is stored. */
+  patient: { birthYear: number | null; sex: Sex | null; age: number | null }
   scores: ScoreSummary[]
   metrics: MetricSummary[]
   avgBedtime: string | null
@@ -86,8 +89,15 @@ export function buildReportModel({
   const visibleConcerns = sources.concerns.filter(c =>
     !c.is_private && (!pickedConcernIds || pickedConcernIds.has(c.id)))
 
+  const birthYear = sources.profile?.birth_year ?? null
+
   return {
     period: { start, end: today, days: periodDays },
+    patient: {
+      birthYear,
+      sex: sources.profile?.sex ?? null,
+      age: birthYear ? Number(today.slice(0, 4)) - birthYear : null,
+    },
     scores,
     metrics: summarizeMetrics(daily, periodDays, today, baselines),
     avgBedtime: avgTimeOfDay(slice.map(d => d.sleepBedtime).filter((v): v is string => !!v)),
