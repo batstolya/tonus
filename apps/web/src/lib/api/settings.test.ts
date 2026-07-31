@@ -26,6 +26,7 @@ import {
   getCalSyncStatus,
   getProfileLocation, saveProfileLocation, updateLocationLabel,
   syncProfileTimezone,
+  loadProfileBasics, saveProfileBasics,
   getSupplementLogsSince,
 } from './settings'
 
@@ -139,6 +140,23 @@ describe('cal sync + profile location', () => {
     expect(state.calls[0].table).toBe('profiles')
     expect(state.calls[0].steps).toContainEqual(['update', [{ location_label: 'Kyiv' }]])
     expect(state.calls[0].steps).toContainEqual(['eq', ['id', 'u1']])
+  })
+
+  it('loadProfileBasics selects birth year and sex by profile id', async () => {
+    state.response = { data: { birth_year: 1988, sex: 'male' }, error: null }
+    expect(await loadProfileBasics('u1')).toEqual({ birth_year: 1988, sex: 'male' })
+    expect(state.calls[0].table).toBe('profiles')
+    expect(state.calls[0].steps).toContainEqual(['eq', ['id', 'u1']])
+  })
+
+  it('loadProfileBasics returns nulls when the profile row is empty', async () => {
+    state.response = { data: null, error: null }
+    expect(await loadProfileBasics('u1')).toEqual({ birth_year: null, sex: null })
+  })
+
+  it('saveProfileBasics updates only the patched keys', async () => {
+    expect(await saveProfileBasics('u1', { birth_year: 1990 })).toBe(true)
+    expect(state.calls[0].steps).toContainEqual(['update', [{ birth_year: 1990 }]])
   })
 })
 
