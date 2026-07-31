@@ -7,12 +7,16 @@ const api = vi.hoisted(() => ({
   acknowledgeHealthAlert: vi.fn().mockResolvedValue(undefined),
 }))
 vi.mock('../../lib/api/dashboard', () => api)
+// Default stays [] for the existing tests below; the streak-risk fragment
+// test overrides it once via mockReturnValueOnce to render a real item
+// without reverse-engineering buildBellItems' date math.
 vi.mock('../../lib/notifications', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/notifications')>()),
-  buildBellItems: () => [],
+  buildBellItems: vi.fn(() => []),
 }))
 
 import { NotificationBell } from './NotificationBell'
+import { buildBellItems } from '../../lib/notifications'
 
 const daily = [{ date: '2026-07-17' } as DailyMetrics]
 
@@ -63,5 +67,26 @@ describe('NotificationBell', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Less' }))
     expect(screen.queryByText(/Advice:/)).not.toBeInTheDocument()
+  })
+
+  // derivedText's streak-risk body is a JSX fragment (icons inlined into a
+  // sentence, not a template string) — nothing else renders it, since every
+  // other test in this file mocks buildBellItems back to []. This exercises
+  // that fragment for real, asserting on text content so it survives an icon
+  // swap but still catches a dropped separator or trailing period.
+  it('renders the streak-risk body with the steps/exercise split and the follow-on sentence', async () => {
+    api.getOpenHealthAlerts.mockResolvedValue([])
+    vi.mocked(buildBellItems).mockReturnValueOnce([
+      { kind: 'streak-risk', id: 'streak-risk:test', streak: 5, steps: 4200, exercise: 12, freezes: 1 },
+    ])
+    renderWithProviders(<NotificationBell daily={daily} userId="u1" demo={false} />)
+    fireEvent.click(await screen.findByRole('button', { name: /Notifications/ }))
+
+    const body = await screen.findByText(/4,200/)
+    const text = body.textContent ?? ''
+    expect(text.indexOf('4,200')).toBeGreaterThanOrEqual(0)
+    expect(text.indexOf('4,200')).toBeLessThan(text.indexOf('·'))
+    expect(text.indexOf('·')).toBeLessThan(text.indexOf('12'))
+    expect(text).toMatch(/30 min\.\s*Otherwise a freeze burns \(1 left\)/)
   })
 })
