@@ -1,25 +1,21 @@
 import type { User } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
 import type { DailyMetrics } from '../../types'
-import { summarizeMetrics, weeklyRows, latestLabs, type LabLine } from '../../lib/doctorReport'
-import { loadLabResults } from '../../lib/labs'
-import { loadSupplements, type Supplement } from '../../lib/supplements'
-import { loadConcerns, STATUS_LABELS, type HealthConcern } from '../../lib/concerns'
-import { computeAdherence } from '../../lib/adherence'
+import {
+  METRIC_DEFS, buildReportModel, loadReportSources, periodStart, localDate, toMarkdown,
+  type DoctorReportModel, type ReportSources,
+} from '../../lib/doctorReport'
 import { isUnlocked } from '../../lib/privacy'
-import { getSupplementLogsSince, type SupplementAdherenceLog } from '../../lib/api/settings'
 import { callFunction } from '../../lib/edgeFunctions'
-import { isDemoActive } from '../../lib/demo'
-import { demoList } from '../../lib/demoDb'
-import { localDate, addDays } from '../../lib/experiments'
 import { translations } from '../../lib/translations'
 import { useT } from '../../lib/i18n'
 
-// «Отчёт для врача» (SPEC-DOCTOR-REPORT): экран подготовки + печатное
-// представление. Тело отчёта — только факты; ИИ-блок вопросов опционален
-// и визуально отделён. Язык отчёта (ru/en) не зависит от языка интерфейса.
+// «Отчёт для врача» (SPEC-DOCTOR-REPORT, ревизия v2): экран подготовки +
+// печатное представление. Тело отчёта — только измеренные значения; ИИ-блок
+// вопросов опционален и визуально отделён. Язык отчёта (ru/en) не зависит от
+// языка интерфейса. Печать и markdown рендерятся из одной модели.
 
-type SectionKey = 'metrics' | 'labs' | 'supplements' | 'concerns' | 'ai'
+type SectionKey = 'metrics' | 'sleep' | 'labs' | 'supplements' | 'concerns' | 'journal' | 'ai'
 
 interface Props {
   user?: User
@@ -27,12 +23,25 @@ interface Props {
   onClose: () => void
 }
 
-const METRIC_NAMES: Record<string, string> = {
-  restingHeartRate: 'Пульс покоя',
-  hrv: 'HRV',
-  sleepHours: 'Сон, ч',
-  steps: 'Шаги',
+const EMPTY_SOURCES: ReportSources = {
+  labs: [], supplements: [], supplementLogs: [], concerns: [], concernLogs: [], notes: [],
 }
+
+const STATUS_TEXT: Record<string, string> = {
+  active: 'активна', improving: 'улучшается', resolved: 'разрешилась',
+}
+
+const MISSING_LINES = [
+  'Артериального давления, веса, роста, температуры тела',
+  'Диагнозов, назначений врача и рецептурных препаратов (учитываются только добавки, отмеченные пациентом)',
+  'Питания и алкоголя',
+  'ЭКГ, аритмий и любых клинических измерений',
+  'Всё перечисленное отсутствует, а не равно нулю: не делай выводов о том, чего здесь нет.',
+]
+
+const dash = '—'
+const signed = (n: number) => `${n > 0 ? '+' : ''}${n}`
+const METRIC_LABELS = new Map(METRIC_DEFS.map(m => [m.key, m.label]))
 
 export function DoctorReport({ user, daily, onClose }: Props) {
   const { t } = useT()
@@ -40,56 +49,51 @@ export function DoctorReport({ user, daily, onClose }: Props) {
   const [period, setPeriod] = useState<30 | 90 | 365>(90)
   const [lang, setLang] = useState<'ru' | 'en'>('ru')
   const [sections, setSections] = useState<Record<SectionKey, boolean>>({
-    metrics: true, labs: true, supplements: true, concerns: true, ai: false,
+    metrics: true, sleep: true, labs: true, supplements: true, concerns: true, journal: true, ai: false,
   })
-  const [labs, setLabs] = useState<LabLine[]>([])
-  const [supplements, setSupplements] = useState<Supplement[]>([])
-  // Демо: логи приёма ленивым инициализатором (эффект в демо в БД не ходит).
-  const [adhLogs, setAdhLogs] = useState<SupplementAdherenceLog[]>(
-    () => isDemoActive()
-      ? demoList('supplement_logs').filter(l => l.date >= addDays(localDate(), -365)) as SupplementAdherenceLog[]
-      : [])
-  const [concerns, setConcerns] = useState<HealthConcern[]>([])
+  const [sources, setSources] = useState<ReportSources>(EMPTY_SOURCES)
   const [pickedConcerns, setPickedConcerns] = useState<Set<string>>(new Set())
   const [aiQuestions, setAiQuestions] = useState<string[] | null>(null)
   const [building, setBuilding] = useState(false)
   const [aiError, setAiError] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   // Язык отчёта: ru — исходные ключи, en — словарь переводов.
   const rt = (key: string) => (lang === 'ru' ? key : translations[key]?.en ?? key)
 
+  // Источники грузятся один раз на самый широкий период, поэтому переключение
+  // 30/90/365 пересобирает модель без повторного запроса.
   useEffect(() => {
-    if (!user) return
-    // Каждый источник — независимо и терпимо к сбоям (в демо запросы падают → секции пустые).
-    loadLabResults(user.id).then(rs => setLabs(latestLabs(rs))).catch(() => {})
-    loadSupplements(user.id).then(setSupplements).catch(() => {})
-    if (!isDemoActive()) {
-      getSupplementLogsSince(user.id, addDays(localDate(), -365)).then(setAdhLogs)
-    }
-    loadConcerns(user.id).then(cs => {
-      setConcerns(cs)
-      // приватные — вне отчёта по умолчанию (и вне списка выбора без PIN)
-      setPickedConcerns(new Set(cs.filter(c => !c.is_private).map(c => c.id)))
-    }).catch(() => {})
+    loadReportSources(user?.id ?? '', periodStart(365))
+      .then(s => {
+        setSources(s)
+        // приватные — вне отчёта по умолчанию (и вне списка выбора без PIN)
+        setPickedConcerns(new Set(s.concerns.filter(c => !c.is_private).map(c => c.id)))
+      })
+      .catch(() => setSources(EMPTY_SOURCES))
   }, [user])
 
-  const visibleConcerns = concerns.filter(c => !c.is_private || isUnlocked())
+  const visibleConcerns = sources.concerns.filter(c => !c.is_private || isUnlocked())
+
+  const model: DoctorReportModel = buildReportModel({
+    daily, sources, periodDays: period, today: localDate(), pickedConcernIds: pickedConcerns,
+  })
+
+  async function copyForAi() {
+    await navigator.clipboard.writeText(toMarkdown(model, lang))
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   async function build() {
     setBuilding(true)
     setAiError(false)
     if (sections.ai) {
       try {
-        const digestLines = [
-          ...summarizeMetrics(daily, period)
-            .filter(m => m.avg != null)
-            .map(m => `${METRIC_NAMES[m.key]}: среднее ${m.avg}, мин ${m.min}, макс ${m.max}${m.baselinePct != null ? `, к базлайну ${m.baselinePct}%` : ''}`),
-          ...labs.map(l => `${l.marker}: ${l.value} ${l.unit ?? ''} (реф. ${l.refRange ?? '—'})${l.flag ? ` ${l.flag}` : ''} от ${l.date}`),
-        ]
         const res = await callFunction<{ questions: string[] }>('analyze-health', {
-          digest: digestLines.join('\n'),
-          periodStart: addDays(localDate(), -period),
-          periodEnd: localDate(),
+          digest: toMarkdown(model, lang),
+          periodStart: model.period.start,
+          periodEnd: model.period.end,
           mode: 'doctor-questions',
           lang,
         })
@@ -129,9 +133,11 @@ export function DoctorReport({ user, daily, onClose }: Props) {
           <span>{t('Секции отчёта')}</span>
           {([
             ['metrics', t('Метрики за период')],
+            ['sleep', t('Сон по дням')],
             ['labs', t('Анализы')],
             ['supplements', t('Добавки и приём')],
             ['concerns', t('Проблемы')],
+            ['journal', t('Самочувствие и дневник')],
             ['ai', t('Вопросы для обсуждения (ИИ)')],
           ] as [SectionKey, string][]).map(([key, label]) => (
             <label key={key} className="dr-check">
@@ -156,7 +162,7 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                 {c.name}
               </label>
             ))}
-            {concerns.some(c => c.is_private) && !isUnlocked() && (
+            {sources.concerns.some(c => c.is_private) && !isUnlocked() && (
               <p className="dr-setup-hint">{t('Приватные проблемы скрыты — разблокируй их PIN-кодом на экране «Проблемы», если нужно включить')}</p>
             )}
           </div>
@@ -173,18 +179,15 @@ export function DoctorReport({ user, daily, onClose }: Props) {
   }
 
   // ── Печатное представление ──────────────────────────────────────────────────
-  const metrics = summarizeMetrics(daily, period).filter(m => m.avg != null)
-  const weeks = weeklyRows(daily, period)
-  const adherence = computeAdherence(
-    supplements.map(s => ({ id: s.id, name: s.name })),
-    adhLogs, period,
-  )
-  const reportConcerns = visibleConcerns.filter(c => pickedConcerns.has(c.id))
+  const { scores, metrics, weekly, sleep, coverage, deviations, labs, supplements, concerns, journal } = model
 
   return (
     <div className="dr-print-root">
       <div className="dr-toolbar">
         <button className="dr-btn" onClick={() => setStage('setup')}>{t('Назад')}</button>
+        <button className="dr-btn" onClick={copyForAi}>
+          {copied ? t('Скопировано') : t('Скопировать для ИИ')}
+        </button>
         <button className="dr-btn dr-btn-primary" onClick={() => window.print()}>{t('Печать')}</button>
       </div>
       {aiError && <p className="dr-ai-error">{t('Не удалось получить ИИ-вопросы — отчёт сформирован без них')}</p>}
@@ -192,39 +195,76 @@ export function DoctorReport({ user, daily, onClose }: Props) {
       <div className="dr-doc">
         <h1>{rt('Сводка данных здоровья')}</h1>
         <p className="dr-meta">
-          {rt('Период')}: {addDays(localDate(), -period)} — {localDate()} · {rt('Сформировано')}: {localDate()}
+          {rt('Период')}: {model.period.start} — {model.period.end} · {rt('Сформировано')}: {model.period.end}
         </p>
-        <p className="dr-disclaimer">{rt('Источник: приложение Tonus, данные носимых устройств. Не является медицинскими измерениями и не заменяет обследование.')}</p>
+        <p className="dr-meta">{rt('Пациент')}: ________________</p>
+        <p className="dr-disclaimer">{rt('Это не медицинские измерения. Значения собраны бытовым носимым устройством, точность ниже клинической, часть дней может отсутствовать. Отчёт содержит только измеренные значения и не содержит диагнозов.')}</p>
+
+        {sections.metrics && scores.length > 0 && (
+          <section>
+            <h2>{rt('Оценки Tonus (0–100, расчёт приложения)')}</h2>
+            <table>
+              <thead><tr>
+                <th>{rt('Оценка')}</th><th>{rt('Среднее за период')}</th>
+                <th>{rt('Начало периода')}</th><th>{rt('Конец периода')}</th>
+              </tr></thead>
+              <tbody>
+                {scores.map(s => (
+                  <tr key={s.key}>
+                    <td>{rt(s.label)}</td><td>{s.avg}</td><td>{s.first}</td><td>{s.last}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        )}
 
         {sections.metrics && metrics.length > 0 && (
           <section>
             <h2>{rt('Метрики за период')}</h2>
             <table>
               <thead><tr>
-                <th>{rt('Метрика')}</th><th>{rt('Среднее')}</th><th>{rt('Мин')}</th><th>{rt('Макс')}</th><th>{rt('К базлайну')}</th>
+                <th>{rt('Метрика')}</th><th>{rt('Среднее')}</th><th>{rt('Мин')}</th>
+                <th>{rt('Макс')}</th><th>{rt('К личной норме')}</th><th>{rt('Дней с данными')}</th>
               </tr></thead>
               <tbody>
                 {metrics.map(m => (
                   <tr key={m.key}>
-                    <td>{rt(METRIC_NAMES[m.key])}</td>
-                    <td>{m.avg}</td><td>{m.min}</td><td>{m.max}</td>
-                    <td>{m.baselinePct != null ? `${m.baselinePct > 0 ? '+' : ''}${m.baselinePct}%` : '—'}</td>
+                    <td>{rt(m.label)}</td>
+                    <td>{m.avg.toFixed(m.digits)}</td>
+                    <td>{m.min.toFixed(m.digits)}</td>
+                    <td>{m.max.toFixed(m.digits)}</td>
+                    <td>{m.baselinePct != null ? `${signed(m.baselinePct)}%` : dash}</td>
+                    <td>{m.daysWithData} {rt('из')} {m.daysInPeriod}</td>
                   </tr>
                 ))}
+                {model.avgBedtime && (
+                  <tr><td>{rt('Время отбоя (среднее)')}</td><td>{model.avgBedtime}</td>
+                    <td>{dash}</td><td>{dash}</td><td>{dash}</td><td>{dash}</td></tr>
+                )}
+                {model.avgWakeTime && (
+                  <tr><td>{rt('Время подъёма (среднее)')}</td><td>{model.avgWakeTime}</td>
+                    <td>{dash}</td><td>{dash}</td><td>{dash}</td><td>{dash}</td></tr>
+                )}
               </tbody>
             </table>
-            {weeks.length > 1 && (
+            <p className="dr-note">{rt('«Личная норма» — скользящая базовая линия за 30 дней до текущего дня, расчёт приложения.')}</p>
+
+            {weekly.rows.length > 1 && (
               <>
                 <h3>{rt('Динамика по неделям')}</h3>
                 <table>
                   <thead><tr>
-                    <th>{rt('Неделя с')}</th><th>{rt('Пульс покоя')}</th><th>HRV</th><th>{rt('Сон, ч')}</th><th>{rt('Шаги')}</th>
+                    <th>{rt('Неделя с')}</th>
+                    {weekly.keys.map(k => <th key={k}>{rt(METRIC_LABELS.get(k) ?? k)}</th>)}
+                    <th>{rt('Дней')}</th>
                   </tr></thead>
                   <tbody>
-                    {weeks.map(w => (
+                    {weekly.rows.map(w => (
                       <tr key={w.weekStart}>
                         <td>{w.weekStart}</td>
-                        <td>{w.rhr ?? '—'}</td><td>{w.hrv ?? '—'}</td><td>{w.sleep ?? '—'}</td><td>{w.steps ?? '—'}</td>
+                        {weekly.keys.map(k => <td key={k}>{w.values[k] ?? dash}</td>)}
+                        <td>{w.days}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -234,26 +274,140 @@ export function DoctorReport({ user, daily, onClose }: Props) {
           </section>
         )}
 
+        {sections.sleep && sleep && (
+          <section>
+            <h2>{rt('Сон по дням')}</h2>
+            <p className="dr-note">{rt('Все ночи периода без агрегации. В таблице только измеренные значения: доли фаз — арифметика от них же, производных показателей нет.')}</p>
+            <table className="dr-sleep-table">
+              <thead><tr>
+                <th>{rt('Дата')}</th><th>{rt('День')}</th><th>{rt('Отбой')}</th><th>{rt('Подъём')}</th>
+                <th>{rt('Сон, ч')}</th><th>{rt('Глубокий, ч')}</th><th>{rt('REM, ч')}</th>
+                <th>{rt('Лёгкий, ч')}</th><th>{rt('Глубокий, %')}</th><th>{rt('REM, %')}</th>
+              </tr></thead>
+              <tbody>
+                {sleep.nights.map(n => (
+                  <tr key={n.date}>
+                    <td>{n.date}</td><td>{rt(n.weekday)}</td>
+                    <td>{n.bedtime ?? dash}</td><td>{n.wakeTime ?? dash}</td>
+                    <td>{n.hours.toFixed(1)}</td>
+                    <td>{n.deep?.toFixed(1) ?? dash}</td>
+                    <td>{n.rem?.toFixed(1) ?? dash}</td>
+                    <td>{n.core?.toFixed(1) ?? dash}</td>
+                    <td>{n.deepPct != null ? `${n.deepPct}%` : dash}</td>
+                    <td>{n.remPct != null ? `${n.remPct}%` : dash}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="dr-note">
+              {rt('Ночей в периоде')}: {sleep.total}. {rt('Короче 6 ч')}: {sleep.under6}. {rt('От 8 ч')}: {sleep.over8}. {rt('Без записи сна')}: {sleep.missing}.
+            </p>
+            {sleep.implausible > 0 && (
+              <p className="dr-note">
+                {rt('Ночей, где между отбоем и подъёмом прошло меньше времени, чем длился сон')}: {sleep.implausible}. {rt('Время пробуждения в этих строках записано источником неверно; значения показаны как есть, без правки.')}
+              </p>
+            )}
+          </section>
+        )}
+
+        {sections.metrics && (
+          <section>
+            <h2>{rt('Покрытие данных и пробелы')}</h2>
+            {coverage.gaps.length > 0 ? (
+              <>
+                <p>{rt('Метрики с существенными пропусками')}:</p>
+                <ul>
+                  {coverage.gaps.map(g => (
+                    <li key={g.key}>
+                      {rt(g.label)}: {g.daysWithData} {rt('из')} {g.daysInPeriod} {rt('дней')} ({rt('пропущено')} {g.missingPct}%)
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <p>{rt('Существенных пропусков по метрикам нет: каждая метрика покрывает не менее 90% дней периода.')}</p>
+            )}
+            <p>
+              {coverage.missingDates.length > 0
+                ? `${rt('Дней без единой записи')}: ${coverage.missingDates.length} (${coverage.missingDates.join(', ')}).`
+                : rt('Дней без единой записи нет — период покрыт полностью.')}
+            </p>
+          </section>
+        )}
+
+        {sections.metrics && deviations.length > 0 && (
+          <section>
+            <h2>{rt('Отклонения, замеченные в периоде')}</h2>
+            <p className="dr-note">{rt('Полные недели (от 5 дней с данными), где среднее ушло от медианы недель дальше 2 MAD и дальше порога, своего для каждой метрики. Только факт отклонения, без интерпретации.')}</p>
+            {deviations.map(w => (
+              <div key={w.weekStart} className="dr-deviation">
+                <h3>{rt('Неделя с')} {w.weekStart} ({w.days} {rt('дн. с данными')})</h3>
+                <ul>
+                  {w.items.map(d => (
+                    <li key={d.key}>
+                      {rt(d.label)} — {d.weekMean.toFixed(d.digits)} {rt('против')} {d.median.toFixed(d.digits)} {rt('по медиане недель')} ({d.relPct > 0 ? rt('выше') : rt('ниже')} {rt('на')} {Math.abs(d.relPct)}%)
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </section>
+        )}
+
         {sections.labs && (
           <section>
-            <h2>{rt('Анализы (последние значения)')}</h2>
-            {labs.length === 0 ? <p>{rt('Нет данных за период')}</p> : (
-              <table>
-                <thead><tr>
-                  <th>{rt('Показатель')}</th><th>{rt('Значение')}</th><th>{rt('Реф. диапазон')}</th><th>{rt('Пред.')}</th><th>{rt('Дата')}</th>
-                </tr></thead>
-                <tbody>
-                  {labs.map(l => (
-                    <tr key={l.marker} className={l.flag ? 'dr-flagged' : undefined}>
-                      <td>{l.marker}</td>
-                      <td>{l.value} {l.unit ?? ''} {l.flag ?? ''}</td>
-                      <td>{l.refRange ?? '—'}</td>
-                      <td>{l.prevValue ?? '—'}</td>
-                      <td>{l.date}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <h2>{rt('Анализы')}</h2>
+            {labs.lines.length === 0 ? <p>{rt('Нет данных за период')}</p> : (
+              <>
+                <table>
+                  <thead><tr>
+                    <th>{rt('Показатель')}</th><th>{rt('Значение')}</th><th>{rt('Реф. диапазон')}</th>
+                    <th>{rt('Вне нормы')}</th><th>{rt('Предыдущее')}</th><th>{rt('Динамика')}</th><th>{rt('Дата')}</th>
+                  </tr></thead>
+                  <tbody>
+                    {labs.lines.map(l => (
+                      <tr key={l.marker} className={l.flag ? 'dr-flagged' : undefined}>
+                        <td>{l.marker}</td>
+                        <td>{l.value} {l.unit ?? ''}</td>
+                        <td>{l.refRange ?? dash}</td>
+                        <td>{l.flag === '↑' ? rt('выше нормы') : l.flag === '↓' ? rt('ниже нормы') : rt('в норме')}</td>
+                        <td>{l.prevValue != null ? `${l.prevValue} (${l.prevDate})` : dash}</td>
+                        <td>{l.delta != null ? `${signed(l.delta)} ${rt('к')} ${l.prevDate}` : dash}</td>
+                        <td>{l.date}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p className="dr-note">
+                  {labs.outOfPeriod.length > 0
+                    ? `${rt('Последнее измерение раньше периода отчёта')}: ${labs.outOfPeriod.join(', ')}.`
+                    : rt('Все показатели сданы внутри периода отчёта.')}
+                </p>
+                {labs.series.length > 0 && (
+                  <>
+                    <h3>{rt('Все измерения по показателям')}</h3>
+                    <table>
+                      <thead><tr>
+                        <th>{rt('Показатель')}</th>
+                        <th>{rt('Все значения по датам (от старых к новым)')}</th>
+                        <th>{rt('Реф. диапазон')}</th>
+                      </tr></thead>
+                      <tbody>
+                        {labs.series.map(s => (
+                          <tr key={s.marker}>
+                            <td>{s.marker}</td>
+                            <td>{s.points.map(pt => `${pt.date}: ${pt.value}`).join(' → ')} {s.unit ?? ''}</td>
+                            <td>{s.refRange ?? dash}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </>
+                )}
+                <p className="dr-note">
+                  {rt('Всего измерений в базе')}: {labs.totalMeasurements} {rt('по')} {labs.markerCount} {rt('показателям')}.
+                </p>
+              </>
             )}
           </section>
         )}
@@ -262,44 +416,103 @@ export function DoctorReport({ user, daily, onClose }: Props) {
           <section>
             <h2>{rt('Добавки и приём')}</h2>
             {supplements.length === 0 ? <p>{rt('Нет данных за период')}</p> : (
-              <table>
-                <thead><tr>
-                  <th>{rt('Название')}</th><th>{rt('Доза')}</th><th>{rt('Соблюдение за период')}</th>
-                </tr></thead>
-                <tbody>
-                  {supplements.map(s => {
-                    const a = adherence.items.find(i => i.id === s.id)
-                    return (
+              <>
+                <table>
+                  <thead><tr>
+                    <th>{rt('Название')}</th><th>{rt('Доза')}</th><th>{rt('Статус')}</th>
+                    <th>{rt('Приём с')}</th><th>{rt('Соблюдение в периоде')}</th>
+                  </tr></thead>
+                  <tbody>
+                    {supplements.map(s => (
                       <tr key={s.id}>
                         <td>{s.name}</td>
-                        <td>{s.default_dose ? `${s.default_dose} ${s.unit ?? ''}` : '—'}</td>
-                        <td>{a ? `${a.pct}% (${a.taken}/${a.days})` : '—'}</td>
+                        <td>{s.dose ? `${s.dose} ${s.unit ?? ''}` : dash}</td>
+                        <td>{s.active ? rt('принимает') : rt('не принимает')}</td>
+                        <td>{s.firstIntake ?? dash}</td>
+                        <td>{s.pct != null ? `${s.pct}% (${s.taken} ${rt('из')} ${s.windowDays} ${rt('дней')})` : dash}</td>
                       </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+                    ))}
+                  </tbody>
+                </table>
+                <p className="dr-note">{rt('Соблюдение считается от первого отмеченного приёма внутри периода, а не от всей длины периода.')}</p>
+              </>
             )}
           </section>
         )}
 
-        {sections.concerns && reportConcerns.length > 0 && (
+        {sections.concerns && concerns.length > 0 && (
           <section>
-            <h2>{rt('Проблемы')}</h2>
-            <table>
-              <thead><tr><th>{rt('Название')}</th><th>{rt('С')}</th><th>{rt('Статус')}</th></tr></thead>
-              <tbody>
-                {reportConcerns.map(c => (
-                  <tr key={c.id}>
-                    <td>{c.name}</td>
-                    <td>{c.started_at ?? '—'}</td>
-                    <td>{rt(STATUS_LABELS[c.status]?.label ?? c.status)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <h2>{rt('Проблемы и жалобы')}</h2>
+            {concerns.map(c => (
+              <div key={c.id} className="dr-concern">
+                <h3>{c.name}</h3>
+                <p className="dr-note">
+                  {rt('Категория')}: {c.category}
+                  {c.startedAt ? ` · ${rt('с')} ${c.startedAt}` : ''}
+                  {` · ${rt('статус')}: ${rt(STATUS_TEXT[c.status] ?? c.status)}`}
+                </p>
+                {c.note && <p>{rt('Заметка')}: {c.note}</p>}
+                {c.severity && (
+                  <p>
+                    {rt('Тяжесть (шкала 1–5, самооценка)')}: {c.severity.count} {rt('записей')}, {rt('среднее')} {c.severity.avg}; {rt('первая половина периода')} {c.severity.firstHalf} → {rt('вторая')} {c.severity.secondHalf}
+                  </p>
+                )}
+                {c.recentLogs.length > 0 && (
+                  <>
+                    <p>{rt('Последние записи')}:</p>
+                    <ul>
+                      {c.recentLogs.map(l => (
+                        <li key={l.date}>
+                          {l.date}{l.severity != null ? ` (${rt('тяжесть')} ${l.severity}/5)` : ''}: {l.note}
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </div>
+            ))}
           </section>
         )}
+
+        {sections.journal && (journal.wellbeingCount > 0 || journal.notes.length > 0) && (
+          <section>
+            <h2>{rt('Самочувствие и дневник')}</h2>
+            {journal.wellbeingAvg != null && (
+              <p>{rt('Самооценка самочувствия (1–5)')}: {journal.wellbeingCount} {rt('записей')}, {rt('среднее')} {journal.wellbeingAvg}.</p>
+            )}
+            {journal.weeks.length > 0 && (
+              <table>
+                <thead><tr>
+                  <th>{rt('Неделя с')}</th><th>{rt('Самочувствие')}</th><th>{rt('Записей')}</th>
+                </tr></thead>
+                <tbody>
+                  {journal.weeks.map(w => (
+                    <tr key={w.weekStart}><td>{w.weekStart}</td><td>{w.avg}</td><td>{w.count}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            {journal.notes.length > 0 && (
+              <>
+                <p>{rt('Записи пациента (последние 12)')}:</p>
+                <ul>
+                  {journal.notes.map(n => (
+                    <li key={n.date}>
+                      {n.date}{n.wellbeing != null ? ` [${rt('самочувствие')} ${n.wellbeing}/5]` : ''}: {n.note}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </section>
+        )}
+
+        <section>
+          <h2>{rt('Чего в этих данных нет')}</h2>
+          <ul>
+            {MISSING_LINES.map(line => <li key={line}>{rt(line)}</li>)}
+          </ul>
+        </section>
 
         {sections.ai && aiQuestions && aiQuestions.length > 0 && (
           <section className="dr-ai-block">
