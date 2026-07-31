@@ -2151,7 +2151,9 @@ Append a section to `docs/specs/SPEC-DOCTOR-REPORT.md`:
 Отчёт перестроен по `docs/superpowers/specs/2026-07-31-doctor-report-v2-design.md`:
 все метрики вместо четырёх, посуточный сон, покрытие и пробелы, отклонения по
 неделям, полная история анализов, соблюдение добавок от первого приёма,
-динамика тяжести проблем, дневник и кнопка «Скопировать для ИИ». Вес из §2.2
+динамика тяжести проблем, дневник и кнопка «Скопировать для ИИ». Возраст и пол
+пациента — из профиля в Настройках
+(`docs/superpowers/specs/2026-07-31-profile-basics-design.md`). Вес из §2.2
 не реализован: источника данных о весе в приложении нет.
 ```
 
@@ -2164,9 +2166,380 @@ git commit -m "docs(spec): record the doctor report v2 revision"
 
 ---
 
+### Task 13: Profile basics in Settings
+
+Spec: `docs/superpowers/specs/2026-07-31-profile-basics-design.md`. The columns
+and the loaders already exist; what is missing is a place to enter the values.
+
+**Files:**
+- Modify: `apps/web/src/lib/api/settings.ts` (receive the moved loaders)
+- Modify: `apps/web/src/lib/api/settings.test.ts` (tests for them)
+- Modify: `apps/web/src/lib/supplements.ts:125-152` (remove the moved code)
+- Create: `apps/web/src/components/settings/sections/ProfileSection.tsx`
+- Create: `apps/web/src/components/settings/sections/ProfileSection.test.tsx`
+- Modify: `apps/web/src/components/settings/SettingsScreen.tsx` (render it first)
+- Modify: `apps/web/src/components/supplements/SupplementSchedule.tsx` (drop the inline form, the `colMissing` banner and its state)
+- Modify: `apps/web/src/lib/translations/settings.ts`
+
+**Interfaces:**
+- Produces: `loadProfileBasics(userId): Promise<ProfileBasics | null>`, `saveProfileBasics(userId, patch: Partial<ProfileBasics>): Promise<boolean>`, `type Sex = 'male' | 'female'`, `interface ProfileBasics { birth_year: number | null; sex: Sex | null }` — all from `src/lib/api/settings`.
+
+- [ ] **Step 1: Write the failing API test**
+
+Add to `apps/web/src/lib/api/settings.test.ts`, inside the `cal sync + profile location` describe block (import the two functions at the top of the file):
+
+```ts
+it('loadProfileBasics selects birth year and sex by profile id', async () => {
+  state.response = { data: { birth_year: 1988, sex: 'male' }, error: null }
+  expect(await loadProfileBasics('u1')).toEqual({ birth_year: 1988, sex: 'male' })
+  expect(state.calls[0].table).toBe('profiles')
+  expect(state.calls[0].steps).toContainEqual(['eq', ['id', 'u1']])
+})
+
+it('loadProfileBasics returns nulls when the profile row is empty', async () => {
+  state.response = { data: null, error: null }
+  expect(await loadProfileBasics('u1')).toEqual({ birth_year: null, sex: null })
+})
+
+it('saveProfileBasics updates only the patched keys', async () => {
+  expect(await saveProfileBasics('u1', { birth_year: 1990 })).toBe(true)
+  expect(state.calls[0].steps).toContainEqual(['update', [{ birth_year: 1990 }]])
+})
+```
+
+- [ ] **Step 2: Run it and watch it fail**
+
+```bash
+cd apps/web && VITE_DEMO= npx vitest run --project node src/lib/api/settings.test.ts
+```
+
+Expected: FAIL — `loadProfileBasics is not exported`.
+
+- [ ] **Step 3: Move the loaders into the settings API**
+
+Cut the `Profile basics` block from `src/lib/supplements.ts:125-152` and paste it into `src/lib/api/settings.ts` after `syncProfileTimezone`, adding a demo branch:
+
+```ts
+// ── Profile basics (age + sex) ───────────────────────────────────────────────
+
+export type Sex = 'male' | 'female'
+
+export interface ProfileBasics {
+  birth_year: number | null
+  sex: Sex | null
+}
+
+export async function loadProfileBasics(userId: string): Promise<ProfileBasics | null> {
+  // Demo has no profiles table; without this the section and the doctor report
+  // header render empty on the screenshot stand.
+  if (isDemoActive()) return { birth_year: 1988, sex: 'male' }
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('birth_year, sex')
+    .eq('id', userId)
+    .maybeSingle()
+  if (error) return null
+  return { birth_year: data?.birth_year ?? null, sex: (data?.sex as Sex | null) ?? null }
+}
+
+export async function saveProfileBasics(userId: string, patch: Partial<ProfileBasics>): Promise<boolean> {
+  if (isDemoActive()) return true
+  const { error } = await supabase.from('profiles').update({ ...patch }).eq('id', userId)
+  return !error
+}
+```
+
+Add `import { isDemoActive } from '../demo'` to `settings.ts` if it is not there already. In `supplements.ts` delete the moved block and its now-unused `Sex`/`ProfileBasics` exports.
+
+- [ ] **Step 4: Run the API test**
+
+```bash
+cd apps/web && VITE_DEMO= npx vitest run --project node src/lib/api/settings.test.ts
+```
+
+Expected: PASS.
+
+- [ ] **Step 5: Write the failing component test**
+
+Create `apps/web/src/components/settings/sections/ProfileSection.test.tsx`:
+
+```tsx
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { screen, fireEvent, waitFor } from '@testing-library/react'
+import { renderWithProviders } from '../../../test/utils'
+import { ProfileSection } from './ProfileSection'
+import type { User } from '@supabase/supabase-js'
+
+const save = vi.fn(() => Promise.resolve(true))
+vi.mock('../../../lib/api/settings', () => ({
+  loadProfileBasics: () => Promise.resolve({ birth_year: 1988, sex: 'male' }),
+  saveProfileBasics: (...args: unknown[]) => save(...args),
+}))
+
+const user = { id: 'u1' } as User
+
+beforeEach(() => save.mockClear())
+
+describe('ProfileSection', () => {
+  it('shows the stored birth year', async () => {
+    renderWithProviders(<ProfileSection user={user} onArchive={() => {}} />)
+    await waitFor(() => expect((screen.getByLabelText('Год рождения') as HTMLInputElement).value).toBe('1988'))
+  })
+
+  it('saves a new birth year', async () => {
+    renderWithProviders(<ProfileSection user={user} onArchive={() => {}} />)
+    const input = await screen.findByLabelText('Год рождения')
+    fireEvent.change(input, { target: { value: '1990' } })
+    fireEvent.blur(input)
+    await waitFor(() => expect(save).toHaveBeenCalledWith('u1', { birth_year: 1990 }))
+  })
+
+  it('keeps non-digits out of the year field', async () => {
+    renderWithProviders(<ProfileSection user={user} onArchive={() => {}} />)
+    const input = await screen.findByLabelText('Год рождения') as HTMLInputElement
+    fireEvent.change(input, { target: { value: '19x9' } })
+    expect(input.value).toBe('199')
+  })
+})
+```
+
+- [ ] **Step 6: Run it and watch it fail**
+
+```bash
+cd apps/web && VITE_DEMO= npx vitest run --project jsdom src/components/settings/sections/ProfileSection.test.tsx
+```
+
+Expected: FAIL — `Failed to resolve import "./ProfileSection"`.
+
+- [ ] **Step 7: Write the component**
+
+Create `apps/web/src/components/settings/sections/ProfileSection.tsx`:
+
+```tsx
+import { useEffect, useState } from 'react'
+import type { User } from '@supabase/supabase-js'
+import { useT } from '../../../lib/i18n'
+import { loadProfileBasics, saveProfileBasics, type Sex } from '../../../lib/api/settings'
+import { ArchiveBtn, type SectionProps } from './ArchiveBtn'
+
+interface Props extends SectionProps { user?: User }
+
+// Birth year rather than age: an age would silently rot, and a full birth date
+// is more identifying data than the doctor report needs.
+export function ProfileSection({ archived, onArchive, user }: Props) {
+  const { t } = useT()
+  const [year, setYear] = useState('')
+  const [sex, setSex] = useState<Sex | ''>('')
+
+  useEffect(() => {
+    if (!user) return
+    loadProfileBasics(user.id).then(p => {
+      if (!p) return
+      setYear(p.birth_year ? String(p.birth_year) : '')
+      setSex(p.sex ?? '')
+    })
+  }, [user])
+
+  function commitYear() {
+    if (!user) return
+    const n = year.length === 4 ? Number(year) : null
+    void saveProfileBasics(user.id, { birth_year: n })
+  }
+
+  function commitSex(value: Sex | '') {
+    setSex(value)
+    if (user) void saveProfileBasics(user.id, { sex: value || null })
+  }
+
+  return (
+    <section className={`settings-section${archived ? ' is-archived' : ''}`}>
+      <ArchiveBtn id="profile" onArchive={onArchive} />
+      <h3 className="settings-section-title">{t('Профиль')}</h3>
+      <p className="settings-hint">{t('Возраст и пол попадают в отчёт для врача — по ним читаются референсные диапазоны анализов.')}</p>
+      <div className="rep-seg" style={{ gap: 8 }}>
+        <label>
+          {t('Год рождения')}
+          <input
+            className="supp-input supp-input-sm"
+            type="text"
+            inputMode="numeric"
+            aria-label={t('Год рождения')}
+            value={year}
+            onChange={e => setYear(e.target.value.replace(/\D/g, '').slice(0, 4))}
+            onBlur={commitYear}
+          />
+        </label>
+        <label>
+          {t('Пол')}
+          <select
+            className="supp-input supp-input-sm"
+            aria-label={t('Пол')}
+            value={sex}
+            onChange={e => commitSex(e.target.value as Sex | '')}
+          >
+            <option value="">{t('Не указан')}</option>
+            <option value="male">{t('Мужской')}</option>
+            <option value="female">{t('Женский')}</option>
+          </select>
+        </label>
+      </div>
+    </section>
+  )
+}
+```
+
+- [ ] **Step 8: Wire it into Settings and strip the old editor**
+
+In `SettingsScreen.tsx`, import `ProfileSection` and render it as the first section, above `LanguageSection`:
+
+```tsx
+<ProfileSection archived={isArchived('profile')} onArchive={archiveSection} user={user} />
+```
+
+In `SupplementSchedule.tsx`: delete the `colMissing` state and its banner, delete the `showProfileForm` block with the year input and sex select, and delete the `loadProfileBasics`/`saveProfileBasics` imports. Where the form used to be, when the profile has no birth year, render:
+
+```tsx
+<p className="supp-hint">{t('Укажи год рождения и пол в Настройках — расписание подбирается по возрасту')}</p>
+```
+
+Read the profile through `loadProfileBasics` from `../../lib/api/settings` for that check only.
+
+- [ ] **Step 9: Add the dictionary strings**
+
+Already in the dictionary, do **not** re-add: `'Год рождения'`, `'Пол'`, `'Мужской'`, `'Женский'` (`translations/health.ts:21-24`) and `'Профиль'` (`translations/onboarding.ts:75`). A duplicate key across domain files is silently overwritten by the merge order in `translations/index.ts`, so adding them again is a real bug, not noise.
+
+Add to `src/lib/translations/settings.ts` only the genuinely new strings: `'Возраст и пол попадают в отчёт для врача — по ним читаются референсные диапазоны анализов.'`, `'Не указан'`, `'Укажи год рождения и пол в Настройках — расписание подбирается по возрасту'`.
+
+- [ ] **Step 10: Run everything**
+
+```bash
+cd apps/web && VITE_DEMO= npx vitest run && npm run lint
+```
+
+Expected: PASS, zero warnings.
+
+- [ ] **Step 11: Commit**
+
+```bash
+git add -A apps/web/src
+git commit -m "feat(web): profile section with birth year and sex in settings"
+```
+
+---
+
+### Task 14: Age in the doctor report header
+
+**Files:**
+- Modify: `apps/web/src/lib/doctorReport/model.ts` (add `patient` to the model)
+- Modify: `apps/web/src/lib/doctorReport/model.test.ts`
+- Modify: `apps/web/src/lib/doctorReport/load.ts` (load the profile with the other sources)
+- Modify: `apps/web/src/lib/doctorReport/markdown.ts` (header line)
+- Modify: `apps/web/src/components/settings/DoctorReport.tsx` (print header)
+- Modify: `apps/web/src/lib/translations/settings.ts`, `apps/web/src/components/settings/DoctorReport.test.ts`
+
+**Interfaces:**
+- Consumes: `loadProfileBasics`, `ProfileBasics` from `src/lib/api/settings`.
+- Produces: `DoctorReportModel.patient: { birthYear: number | null; sex: Sex | null; age: number | null }`.
+
+- [ ] **Step 1: Write the failing test**
+
+Add to `apps/web/src/lib/doctorReport/model.test.ts`:
+
+```ts
+it('computes age from the birth year', () => {
+  const m = buildReportModel({
+    daily, sources: { ...emptySources, profile: { birth_year: 1988, sex: 'male' } },
+    periodDays: 30, today,
+  })
+  expect(m.patient).toEqual({ birthYear: 1988, sex: 'male', age: 38 })
+})
+
+it('leaves the patient block empty when the profile is unset', () => {
+  const m = buildReportModel({
+    daily, sources: { ...emptySources, profile: null }, periodDays: 30, today,
+  })
+  expect(m.patient).toEqual({ birthYear: null, sex: null, age: null })
+})
+```
+
+Update the shared `emptySources` in that file to include `profile: null`.
+
+- [ ] **Step 2: Run it and watch it fail**
+
+```bash
+cd apps/web && VITE_DEMO= npx vitest run --project node src/lib/doctorReport/model.test.ts
+```
+
+Expected: FAIL — `m.patient` is undefined.
+
+- [ ] **Step 3: Implement**
+
+In `load.ts`, add `profile: ProfileBasics | null` to `ReportSources` and load it alongside the rest:
+
+```ts
+loadProfileBasics(userId).catch(() => null),
+```
+
+In `model.ts`, add to `DoctorReportModel`:
+
+```ts
+patient: { birthYear: number | null; sex: Sex | null; age: number | null }
+```
+
+and build it. The age is deliberately coarse — only the year is stored, so the
+report labels it as such:
+
+```ts
+const birthYear = sources.profile?.birth_year ?? null
+const patient = {
+  birthYear,
+  sex: sources.profile?.sex ?? null,
+  age: birthYear ? Number(today.slice(0, 4)) - birthYear : null,
+}
+```
+
+In `markdown.ts`, replace the blank patient line when an age is known:
+
+```ts
+p(model.patient.age != null
+  ? `- **${t('Пациент')}:** ${t('Возраст (по году рождения)')}: ${model.patient.age}${model.patient.sex ? ` · ${t('Пол')}: ${t(model.patient.sex === 'male' ? 'Мужской' : 'Женский')}` : ''}`
+  : `- **${t('Пациент')}:** ________________`)
+```
+
+Mirror the same line in the print header in `DoctorReport.tsx`.
+
+- [ ] **Step 4: Run the tests**
+
+```bash
+cd apps/web && VITE_DEMO= npx vitest run --project node src/lib/doctorReport/
+```
+
+Expected: PASS.
+
+- [ ] **Step 5: Add the string and the key**
+
+Add `'Возраст (по году рождения)'` to `translations/settings.ts` and to the `KEYS` array in `DoctorReport.test.ts`.
+
+- [ ] **Step 6: Run everything and verify in the browser**
+
+```bash
+cd apps/web && VITE_DEMO= npx vitest run && npm run lint && npm run build
+```
+
+Then open the demo report and confirm the header reads `Возраст (по году рождения): 38 · Пол: мужской`.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add -A apps/web/src
+git commit -m "feat(web): patient age in the doctor report header"
+```
+
+---
+
 ## Self-Review
 
-**Spec coverage.** Every numbered section of spec §3 maps to a task: header/scores/metrics → Tasks 1 and 9; weekly → Task 2; sleep → Task 4; coverage → Task 2; deviations → Task 3; labs → Task 5; supplements → Task 6; concerns and journal → Task 7; "what is missing" → Task 10. Spec §2 (architecture) is the file structure above. Spec §5 (UX, copy button, AI digest) → Task 11. Spec §6 (testing) is distributed across the per-task tests. Spec §7 (out of scope) needs no task.
+**Spec coverage.** Tasks 13 and 14 cover `2026-07-31-profile-basics-design.md`: §2 storage and the Settings section → Task 13, §2 report header → Task 14, §3 testing → the tests in both. Every numbered section of spec §3 maps to a task: header/scores/metrics → Tasks 1 and 9; weekly → Task 2; sleep → Task 4; coverage → Task 2; deviations → Task 3; labs → Task 5; supplements → Task 6; concerns and journal → Task 7; "what is missing" → Task 10. Spec §2 (architecture) is the file structure above. Spec §5 (UX, copy button, AI digest) → Task 11. Spec §6 (testing) is distributed across the per-task tests. Spec §7 (out of scope) needs no task.
 
 **Placeholders.** Task 10 Step 3 intentionally shows the pattern for two sections and names the remaining nine headings plus their reference rendering, rather than reprinting ~200 lines of near-identical table code; the sample file is the exact acceptance target and must be copied into `docs/superpowers/plans/assets/` before that task starts. Every other step carries complete code.
 
