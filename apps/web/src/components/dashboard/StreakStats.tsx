@@ -3,6 +3,7 @@ import { getMonthlyStats } from '../../lib/streak-stats'
 import { getWeeklyRecord } from '../../lib/streak'
 import { useT } from '../../lib/i18n'
 import { CountUp } from '../common/CountUp'
+import { Icon } from '../../lib/icons'
 
 interface Props {
   daily: DailyMetrics[]
@@ -23,14 +24,14 @@ export function StreakStats({ daily, year, month }: Props) {
     <div className="streak-cards">
       <div className="streak-card">
         <span className="streak-card-value">
-          <span className="streak-card-emoji" aria-hidden>⚡</span>
+          <span className="streak-card-emoji"><Icon name="weekly" size={14} /></span>
           <CountUp value={weeklyRecord} />
         </span>
         <span className="streak-card-label">{t('Недельный рекорд')}</span>
       </div>
       <div className="streak-card">
         <span className="streak-card-value">
-          <span className="streak-card-emoji" aria-hidden>📅</span>
+          <span className="streak-card-emoji"><Icon name="calendar" size={14} /></span>
           <CountUp value={monthly.activeDays} /> / {monthly.totalDays}
         </span>
         <span className="streak-card-label">{t('Активные дни · {m}', { m: monthName })}</span>

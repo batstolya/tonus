@@ -5,6 +5,7 @@ import { isDemoActive } from '../../lib/demo'
 import { makeDemoWorkoutSchedule } from '../../lib/demoFixture'
 import { plannedDaysInRange, attendance, nextPlannedWorkout, scheduleWeekdays, sportEmoji, type WorkoutScheduleRow } from '../../lib/workoutPlan'
 import { useT } from '../../lib/i18n'
+import { Icon } from '../../lib/icons'
 
 // Карточка расписания тренировок: ближайшая плановая + соблюдение за месяц.
 // Скрыта, пока расписание не задано в настройках (или выключено).
@@ -58,7 +59,7 @@ export function WorkoutPlanCard({ daily }: { daily: DailyMetrics[] }) {
       </div>
       <div className="streak-card">
         <span className="streak-card-value">
-          <span className="streak-card-emoji" aria-hidden>✅</span>
+          <span className="streak-card-emoji"><Icon name="planDone" size={14} /></span>
           {a.done} / {a.total}
         </span>
         <span className="streak-card-label">{t('Месяц: по плану')}</span>
