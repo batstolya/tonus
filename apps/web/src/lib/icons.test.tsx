@@ -4,6 +4,35 @@ import { ICONS, Icon, type IconName } from './icons'
 
 const names = Object.keys(ICONS) as IconName[]
 
+// Independent restatement of the spec's name -> Phosphor component mapping,
+// NOT derived from ICONS: a transposed registry (e.g. focus <-> streak) would
+// still be internally self-consistent, so the expected values must come from
+// somewhere other than the file under test. Phosphor v2 components set a
+// stable displayName of the form `${ComponentName}Icon` (verified against the
+// installed @phosphor-icons/react@2.1.10 package), which lets us check
+// identity without importing all 18 components individually.
+const expectedComponentName: Record<IconName, string> = {
+  stressed: 'SmileyNervousIcon',
+  calm: 'SmileyMehIcon',
+  warning: 'WarningIcon',
+  focus: 'TargetIcon',
+  auto: 'ArrowsClockwiseIcon',
+  dayMet: 'CheckCircleIcon',
+  dayMissed: 'CircleIcon',
+  streak: 'FireIcon',
+  weekly: 'LightningIcon',
+  calendar: 'CalendarBlankIcon',
+  planDone: 'CheckCircleIcon',
+  frozen: 'SnowflakeIcon',
+  analyze: 'SparkleIcon',
+  noData: 'BroadcastIcon',
+  alertHigh: 'HeartbeatIcon',
+  alertWatch: 'EyeIcon',
+  steps: 'PersonSimpleWalkIcon',
+  exercise: 'PersonSimpleRunIcon',
+  allClear: 'ThumbsUpIcon',
+}
+
 afterEach(() => {
   cleanup()
   vi.unstubAllEnvs()
@@ -24,6 +53,15 @@ describe('icon registry', () => {
       const { container, unmount } = render(<Icon name={name} />)
       expect(container.querySelector('svg'), `${name} should render an svg`).not.toBeNull()
       unmount()
+    }
+  })
+
+  it('renders the Phosphor component the spec assigns to each name', () => {
+    // expect.soft: keep checking after a mismatch so a transposition that
+    // touches multiple keys (e.g. focus <-> streak) names all of them in one
+    // failure, instead of stopping at the first.
+    for (const name of names) {
+      expect.soft(ICONS[name].icon.displayName, `${name}.icon`).toBe(expectedComponentName[name])
     }
   })
 
