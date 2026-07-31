@@ -8,10 +8,10 @@ import type { User } from '@supabase/supabase-js'
 // Labels follow the UI language, which the harness detects as en.
 const ui = (ru: string) => translations[ru]?.en ?? ru
 
-const save = vi.fn(() => Promise.resolve(true))
+const save = vi.fn((_userId: string, _patch: Record<string, unknown>) => Promise.resolve(true))
 vi.mock('../../../lib/api/settings', () => ({
   loadProfileBasics: () => Promise.resolve({ birth_year: 1988, sex: 'male' }),
-  saveProfileBasics: (...args: unknown[]) => save(...args),
+  saveProfileBasics: (userId: string, patch: Record<string, unknown>) => save(userId, patch),
 }))
 
 const user = { id: 'u1' } as User

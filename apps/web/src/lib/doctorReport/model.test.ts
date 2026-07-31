@@ -12,6 +12,7 @@ const daily: DailyMetrics[] = Array.from({ length: 60 }, (_, i) => ({
 
 const emptySources = {
   labs: [], supplements: [], supplementLogs: [], concerns: [], concernLogs: [], notes: [],
+  profile: null,
 }
 
 describe('buildReportModel', () => {
@@ -32,6 +33,21 @@ describe('buildReportModel', () => {
     expect(m.labs.lines).toEqual([])
     expect(m.supplements).toEqual([])
     expect(m.deviations).toEqual([])
+  })
+
+  it('computes age from the birth year', () => {
+    const m = buildReportModel({
+      daily, sources: { ...emptySources, profile: { birth_year: 1988, sex: 'male' } },
+      periodDays: 30, today,
+    })
+    expect(m.patient).toEqual({ birthYear: 1988, sex: 'male', age: 38 })
+  })
+
+  it('leaves the patient block empty when the profile is unset', () => {
+    const m = buildReportModel({
+      daily, sources: { ...emptySources, profile: null }, periodDays: 30, today,
+    })
+    expect(m.patient).toEqual({ birthYear: null, sex: null, age: null })
   })
 
   it('excludes private concerns even when they are passed in', () => {

@@ -9,7 +9,10 @@ const daily: DailyMetrics[] = Array.from({ length: 30 }, (_, i) => ({
   date: addDays(today, -29 + i),
   restingHeartRate: 58, sleepHours: 7, steps: 9000,
 }))
-const sources = { labs: [], supplements: [], supplementLogs: [], concerns: [], concernLogs: [], notes: [] }
+const sources = {
+  labs: [], supplements: [], supplementLogs: [], concerns: [], concernLogs: [], notes: [],
+  profile: null,
+}
 const model = buildReportModel({ daily, sources, periodDays: 30, today })
 
 describe('toMarkdown', () => {

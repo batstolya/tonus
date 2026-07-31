@@ -3,7 +3,10 @@ import { isDemoActive } from '../demo'
 import { demoList } from '../demoDb'
 import { loadConcerns, type ConcernLog, type HealthConcern } from '../concerns'
 import { loadLabResults, type LabResult } from '../labs'
-import { getSupplementLogsSince, type SupplementAdherenceLog } from '../api/settings'
+import {
+  getSupplementLogsSince, loadProfileBasics,
+  type SupplementAdherenceLog, type ProfileBasics,
+} from '../api/settings'
 import type { Supplement } from '../supplements'
 import type { JournalNote } from './journal'
 
@@ -70,6 +73,7 @@ export interface ReportSources {
   concerns: HealthConcern[]
   concernLogs: ConcernLog[]
   notes: JournalNote[]
+  profile: ProfileBasics | null
 }
 
 /**
@@ -77,13 +81,14 @@ export interface ReportSources {
  * table leaves its section empty instead of killing the whole report.
  */
 export async function loadReportSources(userId: string, since: string): Promise<ReportSources> {
-  const [labs, supplements, supplementLogs, concerns, concernLogs, notes] = await Promise.all([
+  const [labs, supplements, supplementLogs, concerns, concernLogs, notes, profile] = await Promise.all([
     loadLabResults(userId).catch(() => [] as LabResult[]),
     loadAllSupplements(userId).catch(() => [] as Supplement[]),
     loadSupplementLogs(userId, since).catch(() => [] as SupplementAdherenceLog[]),
     loadConcerns(userId).catch(() => [] as HealthConcern[]),
     loadAllConcernLogs(userId, since).catch(() => [] as ConcernLog[]),
     loadNotesWithWellbeing(userId, since).catch(() => [] as JournalNote[]),
+    loadProfileBasics(userId).catch(() => null),
   ])
-  return { labs, supplements, supplementLogs, concerns, concernLogs, notes }
+  return { labs, supplements, supplementLogs, concerns, concernLogs, notes, profile }
 }
