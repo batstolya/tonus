@@ -57,7 +57,7 @@ export function Icon({ name, size = 18, title, className }: Props) {
     : { 'aria-hidden': true }
 
   if (!iconsEnabled()) {
-    return <span className={className} {...a11y}>{emoji}</span>
+    return <span className={className} title={title} {...a11y}>{emoji}</span>
   }
-  return <Glyph size={size} weight="duotone" className={className} {...a11y} />
+  return <Glyph size={size} weight="duotone" className={className} alt={title} {...a11y} />
 }

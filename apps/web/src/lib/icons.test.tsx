@@ -97,4 +97,19 @@ describe('icon registry', () => {
     expect(span.getAttribute('role')).toBe('img')
     expect(span.getAttribute('aria-label')).toBe('Серия')
   })
+
+  it('renders a real tooltip alongside the label, not just the accessible name', () => {
+    const { container } = render(<Icon name="streak" title="Серия" />)
+    const svg = container.querySelector('svg')!
+    const titleEl = svg.querySelector('title')
+    expect(titleEl, 'svg should contain a <title> child').not.toBeNull()
+    expect(titleEl!.textContent).toBe('Серия')
+  })
+
+  it('gives the emoji fallback a title attribute too', () => {
+    vi.stubEnv('VITE_ICONS', '0')
+    const { container } = render(<Icon name="streak" title="Серия" />)
+    const span = container.querySelector('span')!
+    expect(span.getAttribute('title')).toBe('Серия')
+  })
 })
