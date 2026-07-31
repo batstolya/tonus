@@ -11,6 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
     "@supabase/supabase-js": "^2.78.0",
     "@tonus/shared": "*",
     "ical.js": "^2.2.1",
