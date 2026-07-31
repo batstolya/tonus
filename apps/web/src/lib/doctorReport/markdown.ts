@@ -32,8 +32,10 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
   p(`- **${t('Период')}:** ${model.period.start} — ${model.period.end} (${model.period.days} ${t('дней')})`)
   p(`- **${t('Сформировано')}:** ${model.period.end}`)
   p(`- **${t('Источник')}:** ${t('приложение Tonus, данные носимых устройств')}`)
+  // The "Пациент" label belongs to the blank line the doctor fills in by hand;
+  // once the age is known the line names what it actually carries.
   p(model.patient.age != null
-    ? `- **${t('Пациент')}:** ${t('Возраст (по году рождения)')}: ${model.patient.age}${model.patient.sex ? ` · ${t('Пол')}: ${t(model.patient.sex === 'male' ? 'Мужской' : 'Женский')}` : ''}`
+    ? `- **${t('Возраст (по году рождения)')}:** ${model.patient.age}${model.patient.sex ? ` · ${t('Пол')}: ${t(model.patient.sex === 'male' ? 'мужской' : 'женский')}` : ''}`
     : `- **${t('Пациент')}:** ________________`)
   p()
   p(`> ${t('Это не медицинские измерения. Значения собраны бытовым носимым устройством, точность ниже клинической, часть дней может отсутствовать. Отчёт содержит только измеренные значения и не содержит диагнозов.')}`)

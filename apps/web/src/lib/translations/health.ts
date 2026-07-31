@@ -22,6 +22,9 @@ export const health: Record<string, Translation> = {
   'Пол': { uk: 'Стать', en: 'Sex' },
   'Мужской': { uk: 'Чоловіча', en: 'Male' },
   'Женский': { uk: 'Жіноча', en: 'Female' },
+  // Lowercase twins for mid-sentence use (the doctor report header).
+  'мужской': { uk: 'чоловіча', en: 'male' },
+  'женский': { uk: 'жіноча', en: 'female' },
   'Сохранить и подобрать': { uk: 'Зберегти та підібрати', en: 'Save & suggest' },
   'Пропустить': { uk: 'Пропустити', en: 'Skip' },
   'Применить к напоминаниям': { uk: 'Застосувати до нагадувань', en: 'Apply to reminders' },
