@@ -7,9 +7,9 @@ import { plannedDaysInRange, attendance, nextPlannedWorkout, scheduleWeekdays, t
 import { useT } from '../../lib/i18n'
 import { Icon, type IconName } from '../../lib/icons'
 
-// Тот же матчинг, что sportEmoji (src/lib/workoutPlan.ts, зеркало
-// supabase/functions/_shared/workoutPlan.ts) — но на имя реестра иконок,
-// а не на эмодзи-литерал, чтобы карточка проходила guard noEmoji.test.ts.
+// Same matching rules as sportEmoji (src/lib/workoutPlan.ts, mirrored from
+// supabase/functions/_shared/workoutPlan.ts), but returns a registry name
+// instead of an emoji literal, so the card passes the noEmoji guard.
 function sportIconName(label?: string | null): IconName {
   const l = (label ?? '').toLowerCase()
   if (l.includes('волейб') || l.includes('volley')) return 'sportVolleyball'
