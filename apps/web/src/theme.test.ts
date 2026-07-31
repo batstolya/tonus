@@ -83,8 +83,10 @@ const appLight = tokens(css, '[data-theme="light"] .app')
 
 describe('token isolation from the landing', () => {
   it('every token overridden in .app has a :root default', () => {
-    const missing = Object.keys(appDark).filter(t => !(t in rootTokens))
-    expect(missing).toEqual([])
+    for (const scope of [appDark, appLight]) {
+      const missing = Object.keys(scope).filter(t => !(t in rootTokens))
+      expect(missing).toEqual([])
+    }
   })
 
   it('preserves the legacy values the landing renders today', () => {
@@ -92,8 +94,14 @@ describe('token isolation from the landing', () => {
     expect(rootTokens['--radius']).toBe('var(--r-surface)')
     expect(rootTokens['--r-surface']).toBe('14px')
     expect(rootTokens['--r-control']).toBe('10px')
+    expect(rootTokens['--r-inner']).toBe('6px')
     expect(rootTokens['--on-accent']).toBe('#fff')
+    expect(rootTokens['--on-ok']).toBe('#fff')
+    expect(rootTokens['--on-bad']).toBe('#fff')
     expect(rootTokens['--accent']).toBe('#6c8fff')
+    expect(rootTokens['--ok']).toBe('#5bc896')
+    expect(rootTokens['--warn']).toBe('#ffd166')
+    expect(rootTokens['--bad']).toBe('#ff6b6b')
   })
 })
 
@@ -121,6 +129,8 @@ describe.each([
     ['ok on surface', '--ok', '--surface'],
     ['warn on surface', '--warn', '--surface'],
     ['bad on surface', '--bad', '--surface'],
+    ['on-ok label on ok fill', '--on-ok', '--ok'],
+    ['on-bad label on bad fill', '--on-bad', '--bad'],
   ]
 
   it.each(pairs)('%s clears 4.5:1', (_label, fg, bg) => {
@@ -180,10 +190,11 @@ describe('dashboard status surfaces use tokens', () => {
   it('the accent link colour uses the readable accent, not the fill', () => {
     expect(rule(css, '.link-btn')).toMatch(/color:\s*var\(--accent-text\)/)
     expect(rule(css, '.coach-focus-label')).toMatch(/color:\s*var\(--accent-text\)/)
+    expect(rule(css, '.coach-focus-btn')).toMatch(/color:\s*var\(--accent-text\)/)
   })
 
-  it('the done state of the focus button pairs its fill with on-accent', () => {
-    expect(rule(css, '.coach-focus-btn.done')).toMatch(/color:\s*var\(--on-accent\)/)
+  it('the done state of the focus button pairs its fill with on-ok', () => {
+    expect(rule(css, '.coach-focus-btn.done')).toMatch(/color:\s*var\(--on-ok\)/)
   })
 
   it('inputs and inner bars use the control and inner radii', () => {
@@ -209,15 +220,24 @@ describe('gamified home surfaces use tokens', () => {
   )
 
   it('every accent-filled surface pairs its text with on-accent', () => {
-    for (const selector of ['.empty-state-cta', '.bell-badge', '.activity-cal-week.done', '.activity-cal-cell.status-active']) {
+    for (const selector of ['.empty-state-cta']) {
       const decls = rule(css, selector)
       expect(decls).toMatch(/color:\s*var\(--on-accent\)/)
       expect(decls).not.toMatch(/#fff/)
     }
   })
 
-  it('the streak level tint is derived from a token, not a stray orange', () => {
-    expect(rule(css, '.bell-item.level-streak .bell-item-icon')).not.toMatch(/#ff7a1a/)
+  it('every role-filled surface pairs its text with the matching on-role token', () => {
+    const roleFills: Array<[string, string]> = [
+      ['.bell-badge', '--on-bad'],
+      ['.activity-cal-week.done', '--on-ok'],
+      ['.activity-cal-cell.status-active', '--on-ok'],
+    ]
+    for (const [selector, onToken] of roleFills) {
+      const decls = rule(css, selector)
+      expect(decls).toMatch(new RegExp(`color:\\s*var\\(${onToken}\\)`))
+      expect(decls).not.toMatch(/#fff/)
+    }
   })
 
   it('bell-item level tints keep their percentages when moved onto role tokens', () => {

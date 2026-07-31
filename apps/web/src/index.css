@@ -14,6 +14,8 @@
   --accent-text: var(--accent);
   --accent-border: color-mix(in srgb, var(--accent) 45%, var(--border));
   --on-accent: #fff;
+  --on-ok: #fff;
+  --on-bad: #fff;
   --ok: #5bc896;
   --warn: #ffd166;
   --bad: #ff6b6b;
@@ -58,6 +60,8 @@
   --accent-text: var(--accent);
   --accent-border: color-mix(in srgb, var(--accent) 45%, var(--border));
   --on-accent: #0F1422;
+  --on-ok: #0F1422;
+  --on-bad: #0F1422;
   --ok: #3FA68A;
   --warn: #E08A3C;
   --bad: #E36A64;
@@ -80,11 +84,13 @@
   --text: #141826;
   --text-muted: #5D667F;
   --accent: #B08A15;
-  /* The brass fill is too light to read as text on white (4.00:1), so accent
+  /* The brass fill is too light to read as text on white (3.23:1), so accent
      text and links get their own darker value. */
   --accent-text: #6E550A;
   --accent-border: color-mix(in srgb, var(--accent) 45%, var(--border));
   --on-accent: #141826;
+  --on-ok: #FFFFFF;
+  --on-bad: #FFFFFF;
   --ok: #27735F;
   --warn: #96521A;
   --bad: #C2403C;
@@ -205,7 +211,7 @@ body {
   transition: background 0.15s, color 0.15s;
 }
 .subnav-btn:hover { background: var(--surface2); color: var(--text); }
-.subnav-btn.active { background: var(--accent); color: #fff; font-weight: 500; }
+.subnav-btn.active { background: var(--accent); color: var(--on-accent); font-weight: 500; }
 
 /* Concerns/Hair sub-tabs (nested within concerns screen) */
 .concerns-subtabs {
@@ -390,7 +396,7 @@ body {
   transition: all 0.15s;
 }
 .preset:hover { border-color: var(--accent); color: var(--text); }
-.preset.active { border-color: var(--accent); background: var(--accent); color: #fff; }
+.preset.active { border-color: var(--accent); background: var(--accent); color: var(--on-accent); }
 
 .stat-row { display: flex; gap: 32px; flex-wrap: wrap; margin-bottom: 8px; }
 .stat { font-size: 13px; color: var(--text-muted); display: flex; flex-direction: column; gap: 2px; }
@@ -686,7 +692,7 @@ body {
 .quick-log-header h3 { font-size: 15px; font-weight: 600; }
 .btn-add {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   border: none;
   border-radius: 8px;
   padding: 6px 14px;
@@ -790,7 +796,7 @@ body {
 .stress-header h2 { margin-bottom: 4px; }
 .stress-sort-tabs { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 3px; gap: 2px; }
 .stress-sort-btn { background: none; border: none; padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--text-muted); cursor: pointer; transition: background 0.15s, color 0.15s; white-space: nowrap; }
-.stress-sort-btn.active { background: var(--accent); color: #fff; }
+.stress-sort-btn.active { background: var(--accent); color: var(--on-accent); }
 
 .source-toggle { display: flex; align-items: center; gap: 10px; cursor: pointer; flex-shrink: 0; margin-top: 8px; }
 .source-toggle-label { font-size: 13px; color: var(--text-muted); white-space: nowrap; }
@@ -1304,7 +1310,7 @@ body {
 .rem-time-add button:hover { background: var(--border); }
 .rem-weekdays { display: flex; gap: 4px; flex-wrap: wrap; }
 .rem-wd { font-size: 12px; font-weight: 600; width: 32px; height: 30px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text-muted); cursor: pointer; transition: all 0.15s; }
-.rem-wd.on { background: var(--green); color: #fff; border-color: var(--green); }
+.rem-wd.on { background: var(--green); color: var(--on-ok); border-color: var(--green); }
 .rem-quiet { flex-wrap: wrap; }
 
 /* Report settings */
@@ -1435,8 +1441,8 @@ body {
 .coach-focus-label { font-size: 13px; font-weight: 700; color: var(--accent-text); }
 .coach-focus-count { font-size: 12px; color: var(--text-muted); }
 .coach-focus-text { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
-.coach-focus-btn { border: 1px solid var(--accent); background: transparent; color: var(--accent); border-radius: var(--r-control); padding: 8px 16px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
-.coach-focus-btn.done { background: var(--ok); border-color: var(--ok); color: var(--on-accent); }
+.coach-focus-btn { border: 1px solid var(--accent); background: transparent; color: var(--accent-text); border-radius: var(--r-control); padding: 8px 16px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+.coach-focus-btn.done { background: var(--ok); border-color: var(--ok); color: var(--on-ok); }
 .coach-focus-btn:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 .coach-focus-btn.done:hover { background: var(--ok); opacity: 0.9; }
 
@@ -1540,7 +1546,7 @@ body {
   height: 52px;
   border-radius: 50%;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   border: none;
   cursor: pointer;
   display: flex;
@@ -1602,7 +1608,7 @@ body {
   cursor: pointer;
   transition: all 0.15s;
 }
-.chat-period-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.chat-period-btn.active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 
 .chat-messages {
   flex: 1;
@@ -1634,7 +1640,7 @@ body {
 .chat-bubble ul { margin: 8px 0 0; padding-left: 18px; }
 .chat-bubble li { margin: 2px 0; }
 .chat-bubble strong { font-weight: 600; }
-.chat-bubble.user { align-self: flex-end; background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
+.chat-bubble.user { align-self: flex-end; background: var(--accent); color: var(--on-accent); border-bottom-right-radius: 4px; }
 .chat-bubble.assistant { align-self: flex-start; background: var(--surface2); color: var(--text); border-bottom-left-radius: 4px; }
 
 .chat-debug {
@@ -1680,7 +1686,7 @@ body {
   height: 36px;
   border-radius: 50%;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   border: none;
   cursor: pointer;
   display: flex;
@@ -1723,7 +1729,7 @@ body {
 .goals-baseline-hint { font-weight: 400; color: var(--text-muted); font-size: 11px; }
 .goals-duration-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
 .goals-dur-btn { padding: 7px 14px; border-radius: 20px; border: 1px solid var(--border); background: none; color: var(--text-muted); font-size: 13px; cursor: pointer; transition: all 0.15s; }
-.goals-dur-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.goals-dur-btn.active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 
 /* Recommendation cards */
 .goals-recs-section { margin-bottom: 8px; }
@@ -1768,6 +1774,10 @@ body {
 
 /* Severity buttons */
 .severity-btn { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--border); background: none; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; color: var(--text-muted); }
+/* --sev-color is set inline per concern severity (SEVERITY_COLOR in
+   ConcernsScreen.tsx) and can resolve to literals other than --accent, so
+   there is no single on-* token guaranteed readable against it here.
+   Left as #fff deliberately — not an oversight. */
 .severity-btn.active { border-color: var(--sev-color, var(--accent)); background: var(--sev-color, var(--accent)); color: #fff; }
 .severity-btn:hover:not(.active) { border-color: var(--accent); }
 
@@ -1986,7 +1996,7 @@ input[type="date"].settings-input::-webkit-calendar-picker-indicator { cursor: p
 .meal-logger { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 20px; }
 .meal-logger-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
 .meal-tab { flex: 1; padding: 7px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface2); color: var(--text-muted); cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.15s; }
-.meal-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.meal-tab.active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .meal-drop { border: 2px dashed var(--border); border-radius: 10px; cursor: pointer; min-height: 120px; display: flex; align-items: center; justify-content: center; transition: border-color 0.15s; overflow: hidden; }
 .meal-drop:hover { border-color: var(--accent); }
 .meal-drop-hint { display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--text-muted); font-size: 13px; }
@@ -2215,7 +2225,7 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
   position: absolute; top: -5px; right: -5px;
   min-width: 16px; height: 16px; padding: 0 4px;
   display: flex; align-items: center; justify-content: center;
-  background: var(--bad); color: var(--on-accent);
+  background: var(--bad); color: var(--on-bad);
   border-radius: 999px; font-size: 10px; font-weight: 700; line-height: 1;
 }
 /* Панель в духе mate.academy: белая карточка с крупным радиусом, каждое
@@ -2330,14 +2340,14 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
   display: flex; align-items: center; justify-content: center;
   font-size: 9px; justify-self: center;
 }
-.activity-cal-week.done { background: var(--ok); border-color: var(--ok); color: var(--on-accent); }
+.activity-cal-week.done { background: var(--ok); border-color: var(--ok); color: var(--on-ok); }
 .activity-cal-cell.adjacent { color: var(--text-muted); opacity: 0.35; font-size: 11px; }
 .activity-cal-cell {
   width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
   border-radius: 999px; font-size: 12px;
 }
 .activity-cal-cell.blank { background: transparent; }
-.activity-cal-cell.status-active { background: var(--ok); color: var(--on-accent); }
+.activity-cal-cell.status-active { background: var(--ok); color: var(--on-ok); }
 .activity-cal-cell.status-frozen { background: var(--surface2); }
 /* idle: дані є, поріг руху не закритий; missed: даних нема (дірка в синку) */
 .activity-cal-cell.status-idle { background: var(--surface2); color: var(--text-muted); }
@@ -2368,13 +2378,13 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 .dr-setup-row { display: flex; align-items: center; gap: 8px; margin: 14px 0; font-size: 14px; }
 .dr-setup-row > span { min-width: 120px; color: var(--text-muted); }
 .dr-chip { padding: 6px 14px; border-radius: 999px; border: 1px solid var(--border, #ccc); background: transparent; cursor: pointer; color: inherit; }
-.dr-chip-on { background: var(--accent, #4f6ef7); color: #fff; border-color: transparent; }
+.dr-chip-on { background: var(--accent, #4f6ef7); color: var(--on-accent); border-color: transparent; }
 .dr-setup-sections { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; font-size: 14px; }
 .dr-setup-sections > span { color: var(--text-muted); }
 .dr-check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .dr-setup-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
 .dr-btn { padding: 8px 18px; border-radius: 10px; border: 1px solid var(--border, #ccc); background: transparent; cursor: pointer; color: inherit; }
-.dr-btn-primary { background: var(--accent, #4f6ef7); color: #fff; border-color: transparent; }
+.dr-btn-primary { background: var(--accent, #4f6ef7); color: var(--on-accent); border-color: transparent; }
 .dr-toolbar { display: flex; gap: 10px; justify-content: flex-end; padding: 12px 24px; }
 .dr-ai-error { text-align: center; font-size: 13px; color: var(--red); }
 

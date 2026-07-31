@@ -92,7 +92,7 @@ export default function App() {
     ? state.events
     : state.events.filter(e => e.source !== 'google')
 
-  if (loading) return <DashboardSkeleton />
+  if (loading) return <div className="app"><DashboardSkeleton /></div>
   if (!user) {
     const view = unauthedView({ isResetUrl: isResetUrl(window.location.search), showAuth })
     return view === 'auth'

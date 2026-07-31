@@ -129,11 +129,11 @@ Every ratio above was computed against WCAG 2.1 relative luminance and clears
 
 - **`--on-accent` is required, not cosmetic.** `.btn-primary` currently
   hard-codes `color: #fff` over `background: var(--accent)`. White on brass
-  is 2.42:1 (dark) / 4.00:1 (light) — a real accessibility failure. The rule
+  is 2.42:1 (dark) / 3.23:1 (light) — a real accessibility failure. The rule
   becomes `color: var(--on-accent)`, with `:root { --on-accent: #fff }`
   preserving today's landing rendering.
 - **Light theme needs a separate `--accent-text`.** The brass *fill*
-  (`#B08A15`) is too light to sit on white as text (4.00:1). Accent-colored
+  (`#B08A15`) is too light to sit on white as text (3.23:1). Accent-colored
   text and links in light theme use `--accent-text`. In dark theme
   `--accent-text` equals `--accent`, so the token exists in both.
 
@@ -192,7 +192,10 @@ is seen through: `.app`, `.topbar`, `.nav-btn`, `.metric-card`,
 
 Within that scope: replace hard-coded hex values with tokens, replace literal
 `border-radius` values with the three radius tokens, and switch
-color-named tokens to role names.
+color-named tokens to role names. Carve-out: `.geostorm-banner`/`.geostorm-badge`
+per-level colors (`.minor`/`.strong`/`.extreme`, `index.css:1143-1184`) stay
+as literals — Kp geomagnetic storm severity is a published scale, not app
+state, so its colors do not belong on the app's own palette tokens.
 
 One pre-existing bug falls inside this scope and is fixed while we are in
 those rules: `--accent-border` is referenced at `index.css:2097` and `:2149`
