@@ -207,8 +207,10 @@ export function DoctorReport({ user, daily, onClose }: Props) {
           {rt('Из Apple Health импортируются 14 показателей: шаги, дистанция, активные калории, минуты упражнений, этажи, пульс (средний, покоя, при ходьбе), HRV, SpO₂, частота дыхания, температура запястья, VO₂max и сон. Тренировки, события пульса, ЭКГ и метрики походки не импортируются.')}
         </p>
         <p className="dr-meta">
+          {/* The "Пациент" label belongs to the blank handwriting line; once the
+              age is known the line names what it actually carries. */}
           {model.patient.age != null
-            ? `${rt('Пациент')}: ${rt('Возраст (по году рождения)')}: ${model.patient.age}${model.patient.sex ? ` · ${rt('Пол')}: ${rt(model.patient.sex === 'male' ? 'Мужской' : 'Женский')}` : ''}`
+            ? `${rt('Возраст (по году рождения)')}: ${model.patient.age}${model.patient.sex ? ` · ${rt('Пол')}: ${rt(model.patient.sex === 'male' ? 'мужской' : 'женский')}` : ''}`
             : `${rt('Пациент')}: ________________`}
         </p>
         <p className="dr-disclaimer">{rt('Это не медицинские измерения. Значения собраны бытовым носимым устройством, точность ниже клинической, часть дней может отсутствовать. Отчёт содержит только измеренные значения и не содержит диагнозов.')}</p>
