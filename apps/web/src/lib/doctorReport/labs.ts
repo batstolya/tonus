@@ -13,18 +13,22 @@ export function parseRefRange(s: string | null | undefined): { lo: number; hi: n
   return null
 }
 
-export type LabStatus = 'above' | 'below' | 'in-range' | 'unknown'
+export type LabStatus = 'above' | 'below' | 'in-range' | 'unknown' | 'unparsed'
 
 /**
  * Same dictionary in both renderers (markdown.ts and DoctorReport.tsx) — the
  * whole point of `status` is that it never states more than the data
- * supports, so both surfaces must say it in the same words.
+ * supports, so both surfaces must say it in the same words. `unknown` and
+ * `unparsed` must stay separate texts: the report can see whether the lab
+ * sent no reference at all versus sent one it could not read, and must never
+ * claim the former when it was actually the latter.
  */
 export const LAB_STATUS_TEXT: Record<LabStatus, string> = {
   above: 'выше диапазона лаборатории',
   below: 'ниже диапазона лаборатории',
   'in-range': 'в диапазоне лаборатории',
   unknown: 'статус не определён: лаборатория не указала референс',
+  unparsed: 'статус не определён: референс лаборатории не распознан',
 }
 
 /** Appended to the status cell when it came from the lab's own flag, not a parsed range. */
@@ -110,9 +114,13 @@ export function buildLabs(results: LabResult[], periodStartDate: string): LabsSe
 
     // A verdict needs a source outside the app's own judgement: either the
     // lab's reference range, parsed, or the flag the lab itself transcribed.
-    // With neither, the status is unknown — never guessed as "in range".
+    // With neither, the status is unknown — never guessed as "in range". The
+    // wording still has to distinguish "the lab gave no reference" from "the
+    // lab gave one this app couldn't parse" — printing the range next to a
+    // claim that none was given would be its own kind of false statement.
     const range = parseRefRange(cur.ref_range)
-    let status: LabStatus = 'unknown'
+    const hasRefRangeText = !!(cur.ref_range && cur.ref_range.trim())
+    let status: LabStatus = hasRefRangeText ? 'unparsed' : 'unknown'
     let statusSource: LabLine['statusSource'] = null
     if (range) {
       status = cur.value > range.hi ? 'above' : cur.value < range.lo ? 'below' : 'in-range'

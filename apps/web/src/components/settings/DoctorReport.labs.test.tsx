@@ -54,6 +54,23 @@ describe('DoctorReport labs status — printed page', () => {
     expect(row?.textContent).toContain('статус не определён')
   })
 
+  it('never prints an unparsed reference range next to a claim that none was given', async () => {
+    vi.mocked(loadReportSources).mockResolvedValue({
+      ...EMPTY_SOURCES,
+      labs: [{ id: '1', lab_file_id: 'f', marker: 'TSH', value: 2.1, unit: 'мЕд/л', ref_range: '0.4-4.0 мЕд/л', date: '2026-07-20' }],
+    })
+    const { container } = renderWithProviders(
+      <DoctorReport user={user} daily={daily} onClose={() => {}} />)
+    fireEvent.click(screen.getByText(ui('Сформировать')))
+    await waitFor(() => expect(screen.getByText('TSH')).toBeTruthy())
+
+    const row = Array.from(container.querySelectorAll('table tbody tr'))
+      .find(tr => tr.textContent?.includes('TSH'))
+    expect(row?.textContent).toContain('0.4-4.0 мЕд/л')
+    expect(row?.textContent).toContain('референс лаборатории не распознан')
+    expect(row?.textContent).not.toContain('лаборатория не указала референс')
+  })
+
   it('names the range as the source, and the lab flag when the range does not parse', async () => {
     vi.mocked(loadReportSources).mockResolvedValue({
       ...EMPTY_SOURCES,

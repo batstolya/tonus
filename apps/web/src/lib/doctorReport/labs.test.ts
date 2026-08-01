@@ -71,6 +71,20 @@ describe('buildLabs', () => {
     expect(s.lines[0].statusSource).toBeNull()
   })
 
+  it('never claims the lab gave no reference when it gave one the app could not parse', () => {
+    // 'unknown' means "the lab sent nothing"; a range that failed to parse is
+    // a different fact and needs its own status, or the row would print the
+    // unparsed range in one column and "no reference given" in the next.
+    const s = buildLabs([r({ marker: 'X', value: 5, ref_range: 'муж 130-170' })], '2026-01-01')
+    expect(s.lines[0].status).toBe('unparsed')
+    expect(s.lines[0].statusSource).toBeNull()
+  })
+
+  it('still says "no reference given" for a blank or whitespace-only ref_range', () => {
+    const s = buildLabs([r({ marker: 'X', value: 5, ref_range: '   ' })], '2026-01-01')
+    expect(s.lines[0].status).toBe('unknown')
+  })
+
   it('uses the range when it parses and names the source', () => {
     const s = buildLabs([r({ marker: 'LDL', value: 147, ref_range: '0-115' })], '2026-01-01')
     expect(s.lines[0].status).toBe('above')
