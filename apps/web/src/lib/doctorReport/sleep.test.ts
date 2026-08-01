@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildSleep, isDaytimeEpisode, withoutDaytimeSleep } from './sleep'
+import { buildSleep, isDaytimeEpisode, withoutDaytimeSleep, timeOfDayStats } from './sleep'
 import { periodFrame } from './metrics'
 import type { DailyMetrics } from '../../types'
 
@@ -68,12 +68,43 @@ describe('buildSleep', () => {
     expect(s.phaseCoveragePct).toBeNull()
   })
 
-  it('never reports negative unclassified time when phases overshoot', () => {
+  it('signs unclassified negative when phases overshoot the total, instead of flooring at 0', () => {
     const daily: DailyMetrics[] = [{
       date: '2026-07-25', sleepHours: 6, sleepDeep: 3, sleepREM: 3, sleepCore: 1,
     }]
     const s = buildSleep(daily, periodFrame(daily, 30, '2026-07-31'))!
-    expect(s.nights[0].unclassified).toBe(0)
+    // 3 + 3 + 1 = 7 of 6 h: the source recorded phases and total independently
+    // and never reconciled them — flooring at 0 would print a false "phases
+    // fully accounted for" instead of the real -1 h discrepancy.
+    expect(s.nights[0].unclassified).toBe(-1)
+    expect(s.phasesOverTotal).toBe(1)
+  })
+
+  it('counts phasesOverTotal only for nights whose phases actually overshoot', () => {
+    const daily: DailyMetrics[] = [
+      { date: '2026-07-24', sleepHours: 8, sleepDeep: 2, sleepREM: 1.6, sleepCore: 4.4 }, // exact
+      { date: '2026-07-25', sleepHours: 6, sleepDeep: 3, sleepREM: 3, sleepCore: 1 },     // overshoot
+      { date: '2026-07-26', sleepHours: 7 },                                              // no phases
+    ]
+    const s = buildSleep(daily, periodFrame(daily, 30, '2026-07-31'))!
+    expect(s.phasesOverTotal).toBe(1)
+  })
+
+  it('excludes a daytime episode from phasesOverTotal even when its phases overshoot', () => {
+    const daily: DailyMetrics[] = [
+      { date: '2026-07-16', sleepHours: 7, sleepDeep: 2, sleepREM: 1.6, sleepCore: 3.4, sleepBedtime: '2026-07-16T01:10:00' },
+      // A daytime nap whose phases overshoot its own tiny total — still not a night.
+      { date: '2026-07-15', sleepHours: 1, sleepDeep: 0.8, sleepREM: 0.8, sleepCore: 0.2, sleepBedtime: '2026-07-15T09:08:00' },
+    ]
+    const s = buildSleep(daily, periodFrame(daily, 30, '2026-07-31'))!
+    expect(s.nights.find(n => n.daytime)).toBeDefined()
+    expect(s.phasesOverTotal).toBe(0)
+  })
+
+  it('returns null phase coverage instead of NaN when the phase-carrying nights sum to zero sleep', () => {
+    const daily: DailyMetrics[] = [{ date: '2026-07-25', sleepHours: 0, sleepDeep: 0, sleepREM: 0, sleepCore: 0 }]
+    const s = buildSleep(daily, periodFrame(daily, 30, '2026-07-31'))!
+    expect(s.phaseCoveragePct).toBeNull()
   })
 
   it('excludes a daytime episode from phaseCoveragePct even when it carries phase data', () => {
@@ -146,5 +177,26 @@ describe('daytime episodes', () => {
     expect(clean.sleepHours).toBeUndefined()
     expect(clean.sleepBedtime).toBeUndefined()
     expect(clean.date).toBe('2026-07-15')
+  })
+})
+
+describe('timeOfDayStats', () => {
+  it('puts the median of times straddling midnight at midnight', () => {
+    const s = timeOfDayStats(['2026-07-30T23:40:00', '2026-07-31T00:20:00'])!
+    expect(s.median).toBe('00:00')
+  })
+
+  it('reports quartiles around the median bedtime', () => {
+    const s = timeOfDayStats([
+      '2026-07-29T01:00:00', '2026-07-30T02:00:00', '2026-07-31T03:00:00',
+    ])!
+    expect(s.median).toBe('02:00')
+    expect(s.q1).toBe('01:30')
+    expect(s.q3).toBe('02:30')
+    expect(s.count).toBe(3)
+  })
+
+  it('is null without times', () => {
+    expect(timeOfDayStats([])).toBeNull()
   })
 })

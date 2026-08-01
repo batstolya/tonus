@@ -1,5 +1,6 @@
 import type { DailyMetrics } from '../../types'
-import { frameSlice, timeOfDayStats, type PeriodFrame, type TimeStat } from './metrics'
+import { quantile } from './math'
+import { frameSlice, type PeriodFrame } from './metrics'
 
 const WEEKDAYS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
 
@@ -23,7 +24,10 @@ export interface SleepNight {
   core: number | null
   /**
    * Sleep the source did not attribute to any phase — `total` minus the
-   * classified phases, floored at 0. `null` when the source reported no
+   * classified phases, signed. Negative when the source's phases overshoot
+   * its own total (two independently recorded numbers, not reconciled — see
+   * `phasesOverTotal`); never floored at 0, or an overshoot night would print
+   * a false "phases fully accounted for". `null` when the source reported no
    * phase at all, so a dash prints instead of a claimed zero.
    */
   unclassified: number | null
@@ -53,6 +57,14 @@ export interface SleepSection {
    * count). `null` when no night in the period reports a phase at all.
    */
   phaseCoveragePct: number | null
+  /**
+   * Nights (daytime episodes excluded) whose reported phases sum to more
+   * than the night's own total — the phases and the total come from
+   * independently recorded numbers the source never reconciles (see
+   * `unclassifiedHours`). Printed as its own caveat when non-zero, so a
+   * negative "unclassified" figure never reads as a silent oddity.
+   */
+  phasesOverTotal: number
 }
 
 /**
@@ -91,6 +103,39 @@ export function withoutDaytimeSleep(daily: DailyMetrics[]): DailyMetrics[] {
 
 const pad = (n: number): string => String(n).padStart(2, '0')
 
+/**
+ * Circular statistics for a clock time. Times map to minutes since 18:00
+ * before ordering, which keeps a cluster around midnight contiguous — with
+ * daytime episodes excluded upstream, no realistic bedtime or wake time sits
+ * near the 18:00 seam. A plain mean puts 23:50 and 00:10 at noon.
+ */
+const ORIGIN_MIN = 18 * 60
+
+export interface TimeStat {
+  median: string
+  q1: string
+  q3: string
+  count: number
+}
+
+export function timeOfDayStats(isoList: string[]): TimeStat | null {
+  const shifted = isoList
+    .map(iso => new Date(iso))
+    .filter(d => !isNaN(d.getTime()))
+    .map(d => (d.getHours() * 60 + d.getMinutes() - ORIGIN_MIN + 1440) % 1440)
+  if (!shifted.length) return null
+  const back = (m: number): string => {
+    const t = Math.round(m + ORIGIN_MIN) % 1440
+    return `${pad(Math.floor(t / 60))}:${pad(t % 60)}`
+  }
+  return {
+    median: back(quantile(shifted, 0.5)),
+    q1: back(quantile(shifted, 0.25)),
+    q3: back(quantile(shifted, 0.75)),
+    count: shifted.length,
+  }
+}
+
 const hhmm = (iso?: string): string | null => {
   if (!iso) return null
   const d = new Date(iso)
@@ -118,20 +163,25 @@ const windowHours = (d: DailyMetrics): number | null =>
  * Sleep the source did not attribute to any phase. The XML importer derives
  * the total from the same intervals as the phases, so its arithmetic closes;
  * `_shared/hae.ts` copies four independent numbers from Health Auto Export and
- * reconciles nothing, so an auto-synced night can leave hours unexplained.
- * Printing the remainder is the only way the four columns add up on the page.
+ * reconciles nothing, so an auto-synced night can leave hours unexplained —
+ * or, just as independently, have its phases overshoot the total. Printing
+ * the signed remainder (never floored) is the only way the four columns add
+ * up on the page, negative included.
  */
 const unclassifiedHours = (d: DailyMetrics, total: number): number | null => {
   const parts = [d.sleepDeep, d.sleepREM, d.sleepCore].filter((v): v is number => v != null)
   if (!parts.length) return null
   const classified = parts.reduce((a, b) => a + b, 0)
-  return +Math.max(0, total - classified).toFixed(1)
+  return +(total - classified).toFixed(1)
 }
 
 /**
  * Over the nights that reported at least one phase (daytime episodes never
  * count): summed classified hours divided by those nights' summed total
- * sleep, rounded. `null` when no night in the period reports a phase.
+ * sleep, rounded. `null` when no night in the period reports a phase, or
+ * when the phase-carrying nights' total sleep sums to zero — the division
+ * would otherwise print `NaN%`, which both renderers' `!= null` guards let
+ * straight through.
  */
 const phaseCoverage = (nights: DailyMetrics[]): number | null => {
   const withPhase = nights.filter(d => d.sleepDeep != null || d.sleepREM != null || d.sleepCore != null)
@@ -139,6 +189,7 @@ const phaseCoverage = (nights: DailyMetrics[]): number | null => {
   const classified = withPhase.reduce((sum, d) =>
     sum + [d.sleepDeep, d.sleepREM, d.sleepCore].filter((v): v is number => v != null).reduce((a, b) => a + b, 0), 0)
   const total = withPhase.reduce((sum, d) => sum + d.sleepHours!, 0)
+  if (total <= 0) return null
   return Math.round((classified / total) * 100)
 }
 
@@ -195,5 +246,9 @@ export function buildSleep(
     bedtime: timeOfDayStats(nightly.map(d => d.sleepBedtime).filter((v): v is string => !!v)),
     wake: timeOfDayStats(nightly.map(d => d.sleepWakeTime).filter((v): v is string => !!v)),
     phaseCoveragePct: phaseCoverage(nightly),
+    phasesOverTotal: nightly.filter(d => {
+      const u = unclassifiedHours(d, d.sleepHours!)
+      return u != null && u < 0
+    }).length,
   }
 }

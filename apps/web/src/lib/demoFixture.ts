@@ -51,9 +51,14 @@ export function makeDemoDaily(days = 90): DailyMetrics[] {
       sleepHours,
       sleepBedtime: bed.toISOString(),
       sleepWakeTime: wake.toISOString(),
+      // Deep + REM + core must stay a little under sleepHours — the doctor
+      // report prints the gap as "unclassified" sleep, and any combination
+      // that sums past sleepHours prints a negative remainder there (see
+      // apps/web/src/lib/doctorReport/sleep.ts). Max share here is
+      // 0.25 + 0.28 + 0.45 = 0.98, always leaving a small realistic gap.
       sleepDeep: sleepHours * (0.15 + r(14) * 0.1),
       sleepREM: sleepHours * (0.2 + r(15) * 0.08),
-      sleepCore: sleepHours * 0.55,
+      sleepCore: sleepHours * 0.45,
       steps,
       distance: 3 + r(17) * 7,
       activeEnergy: 300 + r(18) * 500,
