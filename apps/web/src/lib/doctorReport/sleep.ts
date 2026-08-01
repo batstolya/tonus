@@ -1,6 +1,8 @@
 import type { DailyMetrics } from '../../types'
-import { quantile } from './math'
+import { timeOfDayStats, type TimeStat } from './math'
 import { frameSlice, type PeriodFrame } from './metrics'
+
+export type { TimeStat }
 
 const WEEKDAYS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
 
@@ -35,6 +37,14 @@ export interface SleepNight {
   remPct: number | null
   /** A short episode starting during the daytime window — not counted as a night. */
   daytime: boolean
+  /** Wake minus bedtime. `null` when either timestamp is missing. */
+  windowHours: number | null
+  /**
+   * The bed window cannot hold the night it reports: non-positive, longer than
+   * `MAX_BED_WINDOW_HOURS`, or shorter than the sleep total itself. The sleep
+   * duration stays trustworthy; the two timestamps do not.
+   */
+  suspicious: boolean
 }
 
 export interface SleepSection {
@@ -44,8 +54,8 @@ export interface SleepSection {
   over8: number
   /** Days in the period with no night-sleep record at all (including daytime-only days). */
   missing: number
-  /** Nights whose wake time precedes bedtime plus sleep duration. */
-  implausible: number
+  /** Nights whose bed window cannot hold the sleep they report, in either direction. */
+  suspiciousNights: number
   /** Short episodes that started during the day — shown, but excluded from every other count. */
   daytimeCount: number
   /** Circular median/quartiles of nightly bedtimes and wake times — daytime episodes excluded. */
@@ -101,40 +111,10 @@ export function withoutDaytimeSleep(daily: DailyMetrics[]): DailyMetrics[] {
   })
 }
 
+/** Bedtimes and wake times cluster around midnight; 18:00 is their empty hour. */
+export const SLEEP_ORIGIN_MIN = 18 * 60
+
 const pad = (n: number): string => String(n).padStart(2, '0')
-
-/**
- * Circular statistics for a clock time. Times map to minutes since 18:00
- * before ordering, which keeps a cluster around midnight contiguous — with
- * daytime episodes excluded upstream, no realistic bedtime or wake time sits
- * near the 18:00 seam. A plain mean puts 23:50 and 00:10 at noon.
- */
-const ORIGIN_MIN = 18 * 60
-
-export interface TimeStat {
-  median: string
-  q1: string
-  q3: string
-  count: number
-}
-
-export function timeOfDayStats(isoList: string[]): TimeStat | null {
-  const shifted = isoList
-    .map(iso => new Date(iso))
-    .filter(d => !isNaN(d.getTime()))
-    .map(d => (d.getHours() * 60 + d.getMinutes() - ORIGIN_MIN + 1440) % 1440)
-  if (!shifted.length) return null
-  const back = (m: number): string => {
-    const t = Math.round(m + ORIGIN_MIN) % 1440
-    return `${pad(Math.floor(t / 60))}:${pad(t % 60)}`
-  }
-  return {
-    median: back(quantile(shifted, 0.5)),
-    q1: back(quantile(shifted, 0.25)),
-    q3: back(quantile(shifted, 0.75)),
-    count: shifted.length,
-  }
-}
 
 const hhmm = (iso?: string): string | null => {
   if (!iso) return null
@@ -158,6 +138,27 @@ const windowHours = (d: DailyMetrics): number | null =>
   d.sleepBedtime && d.sleepWakeTime
     ? (Date.parse(d.sleepWakeTime) - Date.parse(d.sleepBedtime)) / 3600000
     : null
+
+/**
+ * Past this, a single sleep opportunity stops being plausible for an adult.
+ * A threshold, not a truth: the production data clusters either under 14 hours
+ * or over 20, so 16 separates merged or mis-paired sessions from long nights
+ * without touching either cluster.
+ */
+export const MAX_BED_WINDOW_HOURS = 16
+
+/**
+ * The window is wrong in one of three ways: it runs backwards or to zero, it
+ * is too long to be one night, or it is shorter than the sleep it supposedly
+ * contains. 80 of 525 stored sessions fail this — almost all of them by being
+ * far too long, which the previous check (sleep longer than window) missed
+ * entirely.
+ */
+const isSuspicious = (d: DailyMetrics): boolean => {
+  const w = windowHours(d)
+  if (w == null) return false
+  return w <= 0 || w > MAX_BED_WINDOW_HOURS || (d.sleepHours != null && d.sleepHours > w)
+}
 
 /**
  * Sleep the source did not attribute to any phase. The XML importer derives
@@ -227,10 +228,16 @@ export function buildSleep(
       deepPct: share(d.sleepDeep, hours),
       remPct: share(d.sleepREM, hours),
       daytime: isDaytimeEpisode(d),
+      windowHours: (w => w == null ? null : +w.toFixed(2))(windowHours(d)),
+      suspicious: isSuspicious(d),
     }
   })
 
   const nightly = withSleep.filter(d => !isDaytimeEpisode(d))
+  // A 23-hour window contributes a bedtime that is not a bedtime, so the
+  // medians take only the nights whose timestamps can be believed. Their
+  // `count` prints as "N из M", which makes the exclusion visible.
+  const timed = nightly.filter(d => !isSuspicious(d))
 
   return {
     nights,
@@ -239,12 +246,9 @@ export function buildSleep(
     over8: nightly.filter(d => d.sleepHours! >= 8).length,
     missing: frame.calendarDays - nightly.length,
     daytimeCount: withSleep.length - nightly.length,
-    implausible: nightly.filter(d => {
-      const w = windowHours(d)
-      return w != null && d.sleepHours! > w
-    }).length,
-    bedtime: timeOfDayStats(nightly.map(d => d.sleepBedtime).filter((v): v is string => !!v)),
-    wake: timeOfDayStats(nightly.map(d => d.sleepWakeTime).filter((v): v is string => !!v)),
+    suspiciousNights: nightly.filter(isSuspicious).length,
+    bedtime: timeOfDayStats(timed.map(d => d.sleepBedtime).filter((v): v is string => !!v), SLEEP_ORIGIN_MIN),
+    wake: timeOfDayStats(timed.map(d => d.sleepWakeTime).filter((v): v is string => !!v), SLEEP_ORIGIN_MIN),
     phaseCoveragePct: phaseCoverage(nightly),
     phasesOverTotal: nightly.filter(d => {
       const u = unclassifiedHours(d, d.sleepHours!)

@@ -10,7 +10,7 @@ const daily: DailyMetrics[] = Array.from({ length: 30 }, (_, i) => ({
   restingHeartRate: 58, sleepHours: 7, steps: 9000,
 }))
 const sources = {
-  labs: [], supplements: [], supplementLogs: [], concerns: [], concernLogs: [], notes: [],
+  labs: [], supplements: [], supplementLogs: [], concerns: [], concernLogs: [], notes: [], intake: [],
   profile: null,
 }
 const model = buildReportModel({ daily, sources, periodDays: 30, today })
@@ -70,8 +70,14 @@ describe('toMarkdown', () => {
 
   it('names the data the app holds but the report leaves out', () => {
     const md = toMarkdown(model, 'ru')
-    expect(md).toContain('Кофе, алкоголь, лекарства')
+    expect(md).toContain('События (болезнь, стресс, поездки), еду и воду')
     expect(md).toContain('Время и длительность')
+  })
+
+  it('no longer lists the intake it now prints', () => {
+    const md = toMarkdown(model, 'ru')
+    const closing = md.slice(md.indexOf('## Чего в этих данных нет'))
+    expect(closing).not.toContain('Кофе, алкоголь, лекарства и события')
   })
 
   it('holds exactly these nine lines — a bad merge that drops one should fail here first', () => {
@@ -85,7 +91,7 @@ describe('toMarkdown', () => {
       'Время и длительность эпизодов низкого или высокого пульса: в отчёте есть только суточные минимум, максимум и среднее',
       'Тип тренировки и пульс во время неё: есть только минуты упражнений и активные калории',
       'Время в постели, засыпание, ночные пробуждения и эффективность сна',
-      'Кофе, алкоголь, лекарства и события (болезнь, стресс, поездки) пациент отмечает в приложении, но в этот отчёт они не включены',
+      'События (болезнь, стресс, поездки), еду и воду пациент отмечает в приложении, но в этот отчёт они не включены; кофе, алкоголь и лекарства — включены отдельной секцией',
       'Всё перечисленное отсутствует, а не равно нулю: не делай выводов о том, чего здесь нет.',
     ])
   })
@@ -225,22 +231,20 @@ describe('toMarkdown', () => {
   })
 
   it('dates a bedtime that spans midnight and reports median bed/wake times', () => {
-    // Same fixture as sleep.test.ts: a night that ran 02:14 -> 01:55, dated
-    // against the row's own calendar day (no 'Z' suffix — local time, same
-    // as the daytime-episode fixtures use).
+    // A real midnight-spanning night: to bed at 23:40, up at 07:10 next day.
     const nightDaily: DailyMetrics[] = [{
       date: '2026-06-13', sleepHours: 7.3,
-      sleepBedtime: '2026-06-12T02:14:00', sleepWakeTime: '2026-06-13T01:55:00',
+      sleepBedtime: '2026-06-12T23:40:00', sleepWakeTime: '2026-06-13T07:10:00',
     }]
     const nightModel = buildReportModel({ daily: nightDaily, sources, periodDays: 1, today: '2026-06-13' })
 
     const md = toMarkdown(nightModel, 'ru')
     const row = md.split('\n').find(l => l.startsWith('| 2026-06-13 |'))!
-    expect(row).toContain('02:14 (12.06)') // bedtime lands on the previous day
-    expect(row).not.toContain('01:55 (')   // wake time is the row's own day
+    expect(row).toContain('23:40 (12.06)') // bedtime lands on the previous day
+    expect(row).not.toContain('07:10 (')   // wake time is the row's own day
 
-    expect(md).toContain('Время отбоя (медиана) | 02:14 | половина ночей 02:14–02:14')
-    expect(md).toContain('Время подъёма (медиана) | 01:55 | половина ночей 01:55–01:55')
+    expect(md).toContain('Время отбоя (медиана) | 23:40 | половина ночей 23:40–23:40')
+    expect(md).toContain('Время подъёма (медиана) | 07:10 | половина ночей 07:10–07:10')
 
     // The bedtime/wake rows carry coverage too, same as every metric row —
     // "N из M" against the period's calendar days, not a dash.
@@ -248,6 +252,30 @@ describe('toMarkdown', () => {
     const wakeRow = md.split('\n').find(l => l.startsWith('| Время подъёма (медиана) |'))!
     expect(bedtimeRow).toContain('1 из 1')
     expect(wakeRow).toContain('1 из 1')
+  })
+
+  it('marks the night whose bed window cannot hold it, and leaves it out of the medians', () => {
+    // The production row for 2026-06-13: bedtime 02:14, wake 01:55 the next
+    // day — a 23h41m window around 7.3h of sleep. Printing a median bedtime
+    // of 02:14 from it would launder a broken session into a sleep habit.
+    const broken: DailyMetrics = {
+      date: '2026-06-13', sleepHours: 7.3,
+      sleepBedtime: '2026-06-12T02:14:00', sleepWakeTime: '2026-06-13T01:55:00',
+    }
+    const sane: DailyMetrics = {
+      date: '2026-06-14', sleepHours: 7.1,
+      sleepBedtime: '2026-06-13T23:30:00', sleepWakeTime: '2026-06-14T06:40:00',
+    }
+    const m = buildReportModel({ daily: [broken, sane], sources, periodDays: 2, today: '2026-06-14' })
+
+    expect(m.sleep!.suspiciousNights).toBe(1)
+    expect(m.sleep!.bedtime!.count).toBe(1)
+
+    const md = toMarkdown(m, 'ru')
+    expect(md.split('\n').find(l => l.startsWith('| 2026-06-13 |'))).toContain('⚠')
+    expect(md.split('\n').find(l => l.startsWith('| 2026-06-14 |'))).not.toContain('⚠')
+    expect(md).toContain('Ночей, где промежуток между отбоем и подъёмом не может вместить записанный сон')
+    expect(md).toContain('Время отбоя (медиана) | 23:30')
   })
 
   it('describes recovery renormalising around a missing input, instead of claiming the day is excluded', () => {

@@ -14,3 +14,6 @@ export {
 export type { LabStatus, LabLine, LabSeries, LabsSection } from './labs'
 export { BAND_TEXT, POSITION_TEXT, bandOf, baselineOf, reliabilityOf, supportsClaims } from './reliability'
 export type { Band, Baseline, Reliability } from './reliability'
+export { buildIntake, INTAKE_LABELS, REPORTED_TYPES, INTAKE_ORIGIN_MIN } from './intake'
+export type { IntakeLine, IntakeName, ReportedIntakeType } from './intake'
+export { MAX_BED_WINDOW_HOURS } from './sleep'
