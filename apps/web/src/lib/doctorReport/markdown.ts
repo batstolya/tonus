@@ -106,12 +106,12 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
         s.first != null ? String(s.first) : dash,
         s.last != null ? String(s.last) : dash,
         scoreTrendText(s, t),
-        String(s.days),
+        `${s.days} ${t('из')} ${model.period.calendarDays}`,
       ]),
     )
     p(t('Сон: часы сна к 8 ч; 8 ч и больше — 100.'))
     p(t('Восстановление: HRV к личной базе (вес 60%) и пульс покоя к личной базе (вес 40%). База — скользящее среднее за 30 дней.'))
-    p(t('Оценки считаются только по дням, где есть исходные данные: день без HRV не занижает восстановление, он в него не входит.'))
+    p(t('Если одного из показателей не хватает, вес пересчитывается на оставшиеся: день с одним лишь пульсом покоя (без HRV) всё равно даёт оценку восстановления.'))
     p()
   }
 
@@ -126,18 +126,20 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
     ])
     if (model.sleep?.bedtime) {
       const b = model.sleep.bedtime
-      rows.push([t('Время отбоя (медиана)'), b.median, `${t('половина ночей')} ${b.q1}–${b.q3}`, dash, dash, dash, dash])
+      rows.push([t('Время отбоя (медиана)'), b.median, `${t('половина ночей')} ${b.q1}–${b.q3}`, dash, dash,
+        `${b.count} ${t('из')} ${model.period.calendarDays}`, dash])
     }
     if (model.sleep?.wake) {
       const w = model.sleep.wake
-      rows.push([t('Время подъёма (медиана)'), w.median, `${t('половина ночей')} ${w.q1}–${w.q3}`, dash, dash, dash, dash])
+      rows.push([t('Время подъёма (медиана)'), w.median, `${t('половина ночей')} ${w.q1}–${w.q3}`, dash, dash,
+        `${w.count} ${t('из')} ${model.period.calendarDays}`, dash])
     }
     table([t('Метрика'), t('Среднее'), t('Мин'), t('Макс'), t('Личная норма (медиана и обычный диапазон)'), t('Дней с данными'), t('Надёжность')], rows)
     p(t('«Личная норма» — медиана за 28 дней до начала периода и её межквартильный диапазон. Считается только при покрытии от 60% и минимум 14 днях в этом окне. Оценки Tonus выше используют другую базу — скользящее среднее за 30 дней.'))
     p()
   }
 
-  if (model.weekly.rows.length) {
+  if (model.weekly.rows.length > 1) {
     p(`## ${t('Динамика по неделям')}`)
     p()
     table(
@@ -182,6 +184,10 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
     }
     if (s.implausible) {
       p(`${t('Ночей, где между отбоем и подъёмом прошло меньше времени, чем длился сон')}: ${s.implausible}. ${t('Время пробуждения в этих строках записано источником неверно; значения показаны как есть, без правки.')}`)
+      p()
+    }
+    if (s.phasesOverTotal > 0) {
+      p(`${t('Ночей, где сумма фаз больше общего сна')}: ${s.phasesOverTotal}. ${t('Источник записал фазы и общий сон независимо; значения показаны как есть, без правки.')}`)
       p()
     }
     if (s.phaseCoveragePct != null) {

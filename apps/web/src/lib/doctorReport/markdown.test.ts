@@ -173,6 +173,25 @@ describe('toMarkdown', () => {
     expect(md).toContain('Разложено по фазам: 69% измеренного ночного сна.')
   })
 
+  it('prints negative unclassified hours and the overshoot note when phases sum past the total', () => {
+    const nightDaily: DailyMetrics[] = [
+      { date: '2026-07-24', sleepHours: 8, sleepDeep: 2, sleepREM: 1.6, sleepCore: 4.4 }, // exact, no overshoot
+      { date: '2026-07-25', sleepHours: 6, sleepDeep: 3, sleepREM: 3, sleepCore: 1 },     // 7 of 6 h — overshoots
+    ]
+    const nightModel = buildReportModel({ daily: nightDaily, sources, periodDays: 30, today: '2026-07-31' })
+    expect(nightModel.sleep!.phasesOverTotal).toBe(1)
+
+    const md = toMarkdown(nightModel, 'ru')
+    const row = md.split('\n').find(l => l.startsWith('| 2026-07-25 |'))!
+    expect(row).toContain('-1.0') // signed, not floored at 0
+    expect(md).toContain('Ночей, где сумма фаз больше общего сна: 1. Источник записал фазы и общий сон независимо; значения показаны как есть, без правки.')
+  })
+
+  it('never mentions phase overshoot when no night has one', () => {
+    const md = toMarkdown(model, 'ru')
+    expect(md).not.toContain('Ночей, где сумма фаз больше общего сна')
+  })
+
   it('shows the "Доля дней с отметкой" adherence header and note when the supplements section actually renders', () => {
     // markdown.test.ts's shared fixture always passes supplements: [] — the
     // `if (model.supplements.length)` branch has never executed here. A
@@ -212,6 +231,23 @@ describe('toMarkdown', () => {
 
     expect(md).toContain('Время отбоя (медиана) | 02:14 | половина ночей 02:14–02:14')
     expect(md).toContain('Время подъёма (медиана) | 01:55 | половина ночей 01:55–01:55')
+
+    // The bedtime/wake rows carry coverage too, same as every metric row —
+    // "N из M" against the period's calendar days, not a dash.
+    const bedtimeRow = md.split('\n').find(l => l.startsWith('| Время отбоя (медиана) |'))!
+    const wakeRow = md.split('\n').find(l => l.startsWith('| Время подъёма (медиана) |'))!
+    expect(bedtimeRow).toContain('1 из 1')
+    expect(wakeRow).toContain('1 из 1')
+  })
+
+  it('describes recovery renormalising around a missing input, instead of claiming the day is excluded', () => {
+    // The old wording ("a day without HRV does not lower recovery, it's
+    // simply not in it") was false: _shared/scores.ts renormalises the
+    // remaining weight, so a day with only resting heart rate still yields a
+    // recovery score — it's counted, just on a smaller input set.
+    const md = toMarkdown(model, 'ru')
+    expect(md).toContain('Если одного из показателей не хватает, вес пересчитывается на оставшиеся: день с одним лишь пульсом покоя (без HRV) всё равно даёт оценку восстановления.')
+    expect(md).not.toContain('он в него не входит')
   })
 
   it('drops the load row and prints day counts on the scores that remain', () => {
@@ -221,7 +257,10 @@ describe('toMarkdown', () => {
     const sleepRow = md.split('\n').find(l => l.startsWith('| Сон |'))!
     const cells = sleepRow.split('|').map(c => c.trim())
     expect(cells[1]).toBe('Сон')
-    expect(Number(cells[6])).toBeGreaterThan(0) // "Дней с данными" column
+    // "Дней с данными" column — printed as "N из M" against the period's
+    // calendar days, same as every metric row.
+    expect(cells[6]).toMatch(/^\d+ из \d+$/)
+    expect(Number(cells[6].split(' из ')[0])).toBeGreaterThan(0)
   })
 
   it('refuses a score trend and prints "не рассчитан" when the last third of the period is mostly empty', () => {
@@ -281,6 +320,19 @@ describe('toMarkdown', () => {
     expect(row).not.toContain('по флагу лаборатории')
   })
 
+  it('never prints an unparsed reference range next to a claim that none was given', () => {
+    const withLabs = buildReportModel({
+      daily,
+      sources: { ...sources, labs: [{ id: '1', lab_file_id: 'f', marker: 'TSH', value: 2.1, unit: 'мЕд/л', ref_range: '0.4-4.0 мЕд/л', date: '2026-07-20' }] },
+      periodDays: 30, today,
+    })
+    const md = toMarkdown(withLabs, 'ru')
+    const row = md.split('\n').find(l => l.startsWith('| TSH |'))!
+    expect(row).toContain('0.4-4.0 мЕд/л') // the range still prints in its own column
+    expect(row).toContain('референс лаборатории не распознан')
+    expect(row).not.toContain('лаборатория не указала референс')
+  })
+
   it('names the lab flag as the source when the range does not parse', () => {
     const withLabs = buildReportModel({
       daily,
@@ -290,6 +342,32 @@ describe('toMarkdown', () => {
     const md = toMarkdown(withLabs, 'ru')
     const row = md.split('\n').find(l => l.startsWith('| LDL |'))!
     expect(row).toContain('выше диапазона лаборатории (по флагу лаборатории)')
+  })
+
+  it('hides the weekly table for a single week and shows a formatted one for two or more', () => {
+    // '2026-07-20' is a Monday, so 7 consecutive days is exactly one ISO
+    // week and 14 is exactly two — no ambiguity from where the week starts.
+    const oneWeek: DailyMetrics[] = Array.from({ length: 7 }, (_, i) => ({
+      date: addDays('2026-07-20', i), sleepHours: 7, restingHeartRate: 58,
+    }))
+    const oneWeekModel = buildReportModel({ daily: oneWeek, sources, periodDays: 7, today: '2026-07-26' })
+    expect(oneWeekModel.weekly.rows).toHaveLength(1)
+    expect(toMarkdown(oneWeekModel, 'ru')).not.toContain('## Динамика по неделям')
+
+    const twoWeeks: DailyMetrics[] = Array.from({ length: 14 }, (_, i) => ({
+      date: addDays('2026-07-20', i), sleepHours: 7, restingHeartRate: 58,
+    }))
+    const twoWeekModel = buildReportModel({ daily: twoWeeks, sources, periodDays: 14, today: '2026-08-02' })
+    expect(twoWeekModel.weekly.rows.length).toBeGreaterThan(1)
+    const mdTwo = toMarkdown(twoWeekModel, 'ru')
+    expect(mdTwo).toContain('## Динамика по неделям')
+
+    // weeklyRows() pre-rounds to the metric's own digits (sleep: 1) — the
+    // cell has to print through the same toFixed, or a value the model
+    // already rounded to 7 would print bare instead of "7.0".
+    const weeklySection = mdTwo.split('## Сон по дням')[0]
+    const weekRow = weeklySection.split('\n').find(l => l.startsWith('| 2026-07-20 |'))!
+    expect(weekRow).toContain('7.0')
   })
 
   it('never merges a percentage and an absolute count of the same marker into one delta', () => {

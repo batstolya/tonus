@@ -36,6 +36,10 @@ const STATUS_TEXT: Record<string, string> = {
 const dash = '—'
 const signed = (n: number) => `${n > 0 ? '+' : ''}${n}`
 const METRIC_LABELS = new Map(METRIC_DEFS.map(m => [m.key, m.label]))
+// weeklyRows() already rounds each value to the metric's own digits; render
+// through the same toFixed the markdown twin uses, or "7" and "7.0" disagree
+// on a value the model already agreed on.
+const DIGITS = new Map(METRIC_DEFS.map(m => [m.key, m.digits]))
 
 export function DoctorReport({ user, daily, onClose }: Props) {
   const { t } = useT()
@@ -223,14 +227,14 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                   <tr key={s.key}>
                     <td>{rt(s.label)}</td><td>{s.avg}</td>
                     <td>{s.first ?? dash}</td><td>{s.last ?? dash}</td>
-                    <td>{scoreTrendText(s, rt)}</td><td>{s.days}</td>
+                    <td>{scoreTrendText(s, rt)}</td><td>{s.days} {rt('из')} {model.period.calendarDays}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
             <p className="dr-note">{rt('Сон: часы сна к 8 ч; 8 ч и больше — 100.')}</p>
             <p className="dr-note">{rt('Восстановление: HRV к личной базе (вес 60%) и пульс покоя к личной базе (вес 40%). База — скользящее среднее за 30 дней.')}</p>
-            <p className="dr-note">{rt('Оценки считаются только по дням, где есть исходные данные: день без HRV не занижает восстановление, он в него не входит.')}</p>
+            <p className="dr-note">{rt('Если одного из показателей не хватает, вес пересчитывается на оставшиеся: день с одним лишь пульсом покоя (без HRV) всё равно даёт оценку восстановления.')}</p>
           </section>
         )}
 
@@ -261,12 +265,14 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                 {sleep?.bedtime && (
                   <tr><td>{rt('Время отбоя (медиана)')}</td><td>{sleep.bedtime.median}</td>
                     <td>{rt('половина ночей')} {sleep.bedtime.q1}–{sleep.bedtime.q3}</td>
-                    <td>{dash}</td><td>{dash}</td><td>{dash}</td><td>{dash}</td></tr>
+                    <td>{dash}</td><td>{dash}</td>
+                    <td>{sleep.bedtime.count} {rt('из')} {model.period.calendarDays}</td><td>{dash}</td></tr>
                 )}
                 {sleep?.wake && (
                   <tr><td>{rt('Время подъёма (медиана)')}</td><td>{sleep.wake.median}</td>
                     <td>{rt('половина ночей')} {sleep.wake.q1}–{sleep.wake.q3}</td>
-                    <td>{dash}</td><td>{dash}</td><td>{dash}</td><td>{dash}</td></tr>
+                    <td>{dash}</td><td>{dash}</td>
+                    <td>{sleep.wake.count} {rt('из')} {model.period.calendarDays}</td><td>{dash}</td></tr>
                 )}
               </tbody>
             </table>
@@ -285,7 +291,10 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                     {weekly.rows.map(w => (
                       <tr key={w.weekStart}>
                         <td>{w.weekStart}</td>
-                        {weekly.keys.map(k => <td key={k}>{w.values[k] ?? dash}</td>)}
+                        {weekly.keys.map(k => {
+                          const v = w.values[k]
+                          return <td key={k}>{v == null ? dash : v.toFixed(DIGITS.get(k) ?? 1)}</td>
+                        })}
                         <td>{w.days}</td>
                       </tr>
                     ))}
@@ -336,6 +345,11 @@ export function DoctorReport({ user, daily, onClose }: Props) {
             {sleep.implausible > 0 && (
               <p className="dr-note">
                 {rt('Ночей, где между отбоем и подъёмом прошло меньше времени, чем длился сон')}: {sleep.implausible}. {rt('Время пробуждения в этих строках записано источником неверно; значения показаны как есть, без правки.')}
+              </p>
+            )}
+            {sleep.phasesOverTotal > 0 && (
+              <p className="dr-note">
+                {rt('Ночей, где сумма фаз больше общего сна')}: {sleep.phasesOverTotal}. {rt('Источник записал фазы и общий сон независимо; значения показаны как есть, без правки.')}
               </p>
             )}
             {sleep.phaseCoveragePct != null && (
