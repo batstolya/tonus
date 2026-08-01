@@ -151,6 +151,21 @@ describe('toMarkdown', () => {
     expect(md).toContain('Дневные эпизоды (короче 3 ч, начались между 08:00 и 20:00) показаны в таблице, но не входят в подсчёт ночей, в средние времена и в оценку сна.')
   })
 
+  it('prints the sleep time no phase accounts for, and the phase-coverage line', () => {
+    // Same fixture as sleep.test.ts: 9.1 h total, 1.8 deep + 2.1 REM + 2.4 core
+    // classify only 6.3 h — 2.8 h are sleep the source never attributed to a phase.
+    const nightDaily: DailyMetrics[] = [{
+      date: '2026-07-25', sleepHours: 9.1, sleepDeep: 1.8, sleepREM: 2.1, sleepCore: 2.4,
+      sleepBedtime: '2026-07-25T01:00:00',
+    }]
+    const nightModel = buildReportModel({ daily: nightDaily, sources, periodDays: 30, today: '2026-07-31' })
+
+    const md = toMarkdown(nightModel, 'ru')
+    const row = md.split('\n').find(l => l.startsWith('| 2026-07-25 |'))!
+    expect(row).toContain('2.8')
+    expect(md).toContain('Разложено по фазам: 69% измеренного ночного сна.')
+  })
+
   it('dates a bedtime that spans midnight and reports median bed/wake times', () => {
     // Same fixture as sleep.test.ts: a night that ran 02:14 -> 01:55, dated
     // against the row's own calendar day (no 'Z' suffix — local time, same

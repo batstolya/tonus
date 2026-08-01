@@ -89,6 +89,34 @@ describe('DoctorReport copy for AI', () => {
     expect(screen.getByText(/Дневные эпизоды \(короче 3 ч/)).toBeTruthy()
   })
 
+  it('shows the sleep time no phase accounts for, and the phase-coverage line — in the DOM, not the model', async () => {
+    // Same fixture as the markdown-level test: 9.1 h total, 1.8 deep + 2.1
+    // REM + 2.4 core classify only 6.3 h, leaving 2.8 h unclassified.
+    const base = new Date()
+    const dateAt = (daysAgo: number) => {
+      const d = new Date(base)
+      d.setDate(d.getDate() - daysAgo)
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    }
+    const nightDate = dateAt(0)
+    const nightDaily: DailyMetrics[] = [{
+      date: nightDate, sleepHours: 9.1, sleepDeep: 1.8, sleepREM: 2.1, sleepCore: 2.4,
+      sleepBedtime: `${nightDate}T01:00:00`,
+    }]
+
+    const { container } = renderWithProviders(
+      <DoctorReport user={user} daily={nightDaily} onClose={() => {}} />)
+    fireEvent.click(screen.getByText('30'))
+    fireEvent.click(screen.getByText(ui('Сформировать')))
+    await waitFor(() => expect(container.querySelector('.dr-sleep-table')).toBeTruthy())
+
+    const nightRow = Array.from(container.querySelectorAll('.dr-sleep-table tbody tr'))
+      .find(tr => tr.textContent?.includes(nightDate))
+    expect(nightRow?.textContent).toContain('2.8')
+
+    expect(screen.getByText(/Разложено по фазам: 69%/)).toBeTruthy()
+  })
+
   it('dates a bedtime that spans midnight and shows the median bed/wake rows — in the DOM, not the model', async () => {
     // Same shape as the markdown-level test: a night that ran 02:14 (previous
     // calendar day) -> 01:55 (the row's own day), rendered through the print

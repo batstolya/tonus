@@ -50,6 +50,31 @@ describe('buildSleep', () => {
     expect(s.nights[0].bedtimeDate).toBe('12.06')
     expect(s.nights[0].wakeDate).toBeNull() // same day as the row
   })
+
+  it('shows the sleep time no phase accounts for', () => {
+    const daily: DailyMetrics[] = [{
+      date: '2026-07-25', sleepHours: 9.1, sleepDeep: 1.8, sleepREM: 2.1, sleepCore: 2.4,
+      sleepBedtime: '2026-07-25T01:00:00',
+    }]
+    const s = buildSleep(daily, periodFrame(daily, 30, '2026-07-31'))!
+    expect(s.nights[0].unclassified).toBe(2.8)
+    expect(s.phaseCoveragePct).toBe(69) // 6.3 of 9.1
+  })
+
+  it('leaves unclassified null when the source reported no phases at all', () => {
+    const daily: DailyMetrics[] = [{ date: '2026-07-25', sleepHours: 7 }]
+    const s = buildSleep(daily, periodFrame(daily, 30, '2026-07-31'))!
+    expect(s.nights[0].unclassified).toBeNull()
+    expect(s.phaseCoveragePct).toBeNull()
+  })
+
+  it('never reports negative unclassified time when phases overshoot', () => {
+    const daily: DailyMetrics[] = [{
+      date: '2026-07-25', sleepHours: 6, sleepDeep: 3, sleepREM: 3, sleepCore: 1,
+    }]
+    const s = buildSleep(daily, periodFrame(daily, 30, '2026-07-31'))!
+    expect(s.nights[0].unclassified).toBe(0)
+  })
 })
 
 describe('daytime episodes', () => {

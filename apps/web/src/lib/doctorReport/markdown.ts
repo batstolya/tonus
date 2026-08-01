@@ -87,6 +87,7 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
   }
   p(`- **${t('Сформировано')}:** ${model.period.end}`)
   p(`- **${t('Источник')}:** ${t('приложение Tonus, данные носимых устройств')}`)
+  p(`- ${t('Из Apple Health импортируются 14 показателей: шаги, дистанция, активные калории, минуты упражнений, этажи, пульс (средний, покоя, при ходьбе), HRV, SpO₂, частота дыхания, температура запястья, VO₂max и сон. Тренировки, события пульса, ЭКГ и метрики походки не импортируются.')}`)
   p(model.patient.age != null
     ? `- **${t('Пациент')}:** ${t('Возраст (по году рождения)')}: ${model.patient.age}${model.patient.sex ? ` · ${t('Пол')}: ${t(model.patient.sex === 'male' ? 'Мужской' : 'Женский')}` : ''}`
     : `- **${t('Пациент')}:** ________________`)
@@ -156,17 +157,18 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
     const s = model.sleep
     p(`## ${t('Сон по дням')}`)
     p()
-    p(t('Все ночи периода без агрегации. В таблице только измеренные значения: доли фаз — арифметика от них же, производных показателей нет.'))
+    p(t('Все ночи периода без агрегации. В таблице только измеренные значения: доли фаз считаются от общего сна за ночь; время, не отнесённое ни к одной фазе, показано отдельной колонкой.'))
     p()
     table(
       [t('Дата'), t('День'), t('Отбой'), t('Подъём'), t('Сон, ч'), t('Глубокий, ч'),
-        t('REM, ч'), t('Лёгкий, ч'), t('Глубокий, %'), t('REM, %'), t('Тип')],
+        t('REM, ч'), t('Лёгкий, ч'), t('Не классифицировано, ч'), t('Глубокий, %'), t('REM, %'), t('Тип')],
       s.nights.map(n => [
         n.date, t(n.weekday),
         n.bedtime ? n.bedtime + (n.bedtimeDate ? ` (${n.bedtimeDate})` : '') : dash,
         n.wakeTime ? n.wakeTime + (n.wakeDate ? ` (${n.wakeDate})` : '') : dash,
         n.hours.toFixed(1),
         n.deep?.toFixed(1) ?? dash, n.rem?.toFixed(1) ?? dash, n.core?.toFixed(1) ?? dash,
+        n.unclassified != null ? n.unclassified.toFixed(1) : dash,
         n.deepPct != null ? `${n.deepPct}%` : dash,
         n.remPct != null ? `${n.remPct}%` : dash,
         n.daytime ? t('дневной эпизод') : '',
@@ -180,6 +182,10 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
     }
     if (s.implausible) {
       p(`${t('Ночей, где между отбоем и подъёмом прошло меньше времени, чем длился сон')}: ${s.implausible}. ${t('Время пробуждения в этих строках записано источником неверно; значения показаны как есть, без правки.')}`)
+      p()
+    }
+    if (s.phaseCoveragePct != null) {
+      p(`${t('Разложено по фазам')}: ${s.phaseCoveragePct}% ${t('измеренного ночного сна. Остальное время источник записал как сон, но не отнёс ни к одной фазе.')}`)
       p()
     }
   }
@@ -264,7 +270,7 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
     p(`## ${t('Добавки и приём')}`)
     p()
     table(
-      [t('Название'), t('Доза'), t('Статус'), t('Приём с'), t('Соблюдение в периоде')],
+      [t('Название'), t('Доза'), t('Статус'), t('Приём с'), t('Доля дней с отметкой')],
       model.supplements.map(s => [
         s.name,
         s.dose ? `${s.dose}${s.unit ? ` ${s.unit}` : ''}` : dash,
@@ -273,7 +279,7 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
         s.pct != null ? `${s.pct}% (${s.taken} ${t('из')} ${s.windowDays} ${t('дней')})` : dash,
       ]),
     )
-    p(t('Соблюдение считается от первого отмеченного приёма внутри периода, а не от всей длины периода.'))
+    p(t('Показана доля дней с отметкой о приёме, считая от первого отмеченного приёма внутри периода. Отсутствие отметки не означает, что приём не состоялся.'))
     p()
   }
 

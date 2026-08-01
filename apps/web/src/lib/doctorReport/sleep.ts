@@ -21,6 +21,12 @@ export interface SleepNight {
   deep: number | null
   rem: number | null
   core: number | null
+  /**
+   * Sleep the source did not attribute to any phase — `total` minus the
+   * classified phases, floored at 0. `null` when the source reported no
+   * phase at all, so a dash prints instead of a claimed zero.
+   */
+  unclassified: number | null
   deepPct: number | null
   remPct: number | null
   /** A short episode starting during the daytime window — not counted as a night. */
@@ -41,6 +47,12 @@ export interface SleepSection {
   /** Circular median/quartiles of nightly bedtimes and wake times — daytime episodes excluded. */
   bedtime: TimeStat | null
   wake: TimeStat | null
+  /**
+   * Share of measured night sleep the source attributed to a phase, over only
+   * the nights that reported at least one phase (daytime episodes never
+   * count). `null` when no night in the period reports a phase at all.
+   */
+  phaseCoveragePct: number | null
 }
 
 /**
@@ -103,6 +115,34 @@ const windowHours = (d: DailyMetrics): number | null =>
     : null
 
 /**
+ * Sleep the source did not attribute to any phase. The XML importer derives
+ * the total from the same intervals as the phases, so its arithmetic closes;
+ * `_shared/hae.ts` copies four independent numbers from Health Auto Export and
+ * reconciles nothing, so an auto-synced night can leave hours unexplained.
+ * Printing the remainder is the only way the four columns add up on the page.
+ */
+const unclassifiedHours = (d: DailyMetrics, total: number): number | null => {
+  const parts = [d.sleepDeep, d.sleepREM, d.sleepCore].filter((v): v is number => v != null)
+  if (!parts.length) return null
+  const classified = parts.reduce((a, b) => a + b, 0)
+  return +Math.max(0, total - classified).toFixed(1)
+}
+
+/**
+ * Over the nights that reported at least one phase (daytime episodes never
+ * count): summed classified hours divided by those nights' summed total
+ * sleep, rounded. `null` when no night in the period reports a phase.
+ */
+const phaseCoverage = (nights: DailyMetrics[]): number | null => {
+  const withPhase = nights.filter(d => d.sleepDeep != null || d.sleepREM != null || d.sleepCore != null)
+  if (!withPhase.length) return null
+  const classified = withPhase.reduce((sum, d) =>
+    sum + [d.sleepDeep, d.sleepREM, d.sleepCore].filter((v): v is number => v != null).reduce((a, b) => a + b, 0), 0)
+  const total = withPhase.reduce((sum, d) => sum + d.sleepHours!, 0)
+  return Math.round((classified / total) * 100)
+}
+
+/**
  * Measured values only. Time in bed and sleep efficiency are deliberately
  * absent: no ingest path supplies them, and bedtime/wake_time mean different
  * things depending on whether the night arrived via the XML importer or the
@@ -132,6 +172,7 @@ export function buildSleep(
       deep: d.sleepDeep != null ? +d.sleepDeep.toFixed(1) : null,
       rem: d.sleepREM != null ? +d.sleepREM.toFixed(1) : null,
       core: d.sleepCore != null ? +d.sleepCore.toFixed(1) : null,
+      unclassified: unclassifiedHours(d, hours),
       deepPct: share(d.sleepDeep, hours),
       remPct: share(d.sleepREM, hours),
       daytime: isDaytimeEpisode(d),
@@ -153,5 +194,6 @@ export function buildSleep(
     }).length,
     bedtime: timeOfDayStats(nightly.map(d => d.sleepBedtime).filter((v): v is string => !!v)),
     wake: timeOfDayStats(nightly.map(d => d.sleepWakeTime).filter((v): v is string => !!v)),
+    phaseCoveragePct: phaseCoverage(nightly),
   }
 }

@@ -200,6 +200,9 @@ export function DoctorReport({ user, daily, onClose }: Props) {
           </p>
         )}
         <p className="dr-meta">
+          {rt('Из Apple Health импортируются 14 показателей: шаги, дистанция, активные калории, минуты упражнений, этажи, пульс (средний, покоя, при ходьбе), HRV, SpO₂, частота дыхания, температура запястья, VO₂max и сон. Тренировки, события пульса, ЭКГ и метрики походки не импортируются.')}
+        </p>
+        <p className="dr-meta">
           {model.patient.age != null
             ? `${rt('Пациент')}: ${rt('Возраст (по году рождения)')}: ${model.patient.age}${model.patient.sex ? ` · ${rt('Пол')}: ${rt(model.patient.sex === 'male' ? 'Мужской' : 'Женский')}` : ''}`
             : `${rt('Пациент')}: ________________`}
@@ -296,12 +299,13 @@ export function DoctorReport({ user, daily, onClose }: Props) {
         {sections.sleep && sleep && (
           <section>
             <h2>{rt('Сон по дням')}</h2>
-            <p className="dr-note">{rt('Все ночи периода без агрегации. В таблице только измеренные значения: доли фаз — арифметика от них же, производных показателей нет.')}</p>
+            <p className="dr-note">{rt('Все ночи периода без агрегации. В таблице только измеренные значения: доли фаз считаются от общего сна за ночь; время, не отнесённое ни к одной фазе, показано отдельной колонкой.')}</p>
             <table className="dr-sleep-table">
               <thead><tr>
                 <th>{rt('Дата')}</th><th>{rt('День')}</th><th>{rt('Отбой')}</th><th>{rt('Подъём')}</th>
                 <th>{rt('Сон, ч')}</th><th>{rt('Глубокий, ч')}</th><th>{rt('REM, ч')}</th>
-                <th>{rt('Лёгкий, ч')}</th><th>{rt('Глубокий, %')}</th><th>{rt('REM, %')}</th><th>{rt('Тип')}</th>
+                <th>{rt('Лёгкий, ч')}</th><th>{rt('Не классифицировано, ч')}</th>
+                <th>{rt('Глубокий, %')}</th><th>{rt('REM, %')}</th><th>{rt('Тип')}</th>
               </tr></thead>
               <tbody>
                 {sleep.nights.map(n => (
@@ -313,6 +317,7 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                     <td>{n.deep?.toFixed(1) ?? dash}</td>
                     <td>{n.rem?.toFixed(1) ?? dash}</td>
                     <td>{n.core?.toFixed(1) ?? dash}</td>
+                    <td>{n.unclassified != null ? n.unclassified.toFixed(1) : dash}</td>
                     <td>{n.deepPct != null ? `${n.deepPct}%` : dash}</td>
                     <td>{n.remPct != null ? `${n.remPct}%` : dash}</td>
                     <td>{n.daytime ? rt('дневной эпизод') : ''}</td>
@@ -331,6 +336,11 @@ export function DoctorReport({ user, daily, onClose }: Props) {
             {sleep.implausible > 0 && (
               <p className="dr-note">
                 {rt('Ночей, где между отбоем и подъёмом прошло меньше времени, чем длился сон')}: {sleep.implausible}. {rt('Время пробуждения в этих строках записано источником неверно; значения показаны как есть, без правки.')}
+              </p>
+            )}
+            {sleep.phaseCoveragePct != null && (
+              <p className="dr-note">
+                {rt('Разложено по фазам')}: {sleep.phaseCoveragePct}% {rt('измеренного ночного сна. Остальное время источник записал как сон, но не отнёс ни к одной фазе.')}
               </p>
             )}
           </section>
@@ -449,7 +459,7 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                 <table>
                   <thead><tr>
                     <th>{rt('Название')}</th><th>{rt('Доза')}</th><th>{rt('Статус')}</th>
-                    <th>{rt('Приём с')}</th><th>{rt('Соблюдение в периоде')}</th>
+                    <th>{rt('Приём с')}</th><th>{rt('Доля дней с отметкой')}</th>
                   </tr></thead>
                   <tbody>
                     {supplements.map(s => (
@@ -463,7 +473,7 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                     ))}
                   </tbody>
                 </table>
-                <p className="dr-note">{rt('Соблюдение считается от первого отмеченного приёма внутри периода, а не от всей длины периода.')}</p>
+                <p className="dr-note">{rt('Показана доля дней с отметкой о приёме, считая от первого отмеченного приёма внутри периода. Отсутствие отметки не означает, что приём не состоялся.')}</p>
               </>
             )}
           </section>
