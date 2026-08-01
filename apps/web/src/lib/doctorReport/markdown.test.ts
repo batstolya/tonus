@@ -161,9 +161,38 @@ describe('toMarkdown', () => {
     const nightModel = buildReportModel({ daily: nightDaily, sources, periodDays: 30, today: '2026-07-31' })
 
     const md = toMarkdown(nightModel, 'ru')
+    const header = md.split('\n').find(l => l.startsWith('| Дата |'))!
+    const headerCells = header.split('|').map(c => c.trim())
+    expect(headerCells[headerCells.indexOf('Не классифицировано, ч')]).toBe('Не классифицировано, ч')
+
     const row = md.split('\n').find(l => l.startsWith('| 2026-07-25 |'))!
-    expect(row).toContain('2.8')
+    const cells = row.split('|').map(c => c.trim())
+    // Same column index as the header's "Не классифицировано, ч" — pinned so
+    // a column reorder fails here instead of a loose substring match passing.
+    expect(cells[headerCells.indexOf('Не классифицировано, ч')]).toBe('2.8')
     expect(md).toContain('Разложено по фазам: 69% измеренного ночного сна.')
+  })
+
+  it('shows the "Доля дней с отметкой" adherence header and note when the supplements section actually renders', () => {
+    // markdown.test.ts's shared fixture always passes supplements: [] — the
+    // `if (model.supplements.length)` branch has never executed here. A
+    // logged intake exercises the real branch and pins the new wording.
+    const supplementsSources = {
+      ...sources,
+      supplements: [{
+        id: 's1', user_id: 'u1', name: 'Магний', default_dose: '400', unit: 'мг',
+        active: true, sort_order: 0, created_at: '2026-07-01', stock_count: null,
+      }],
+      supplementLogs: [{ supplement_id: 's1', date: today, taken: true }],
+    }
+    const supplementsModel = buildReportModel({ daily, sources: supplementsSources, periodDays: 30, today })
+    expect(supplementsModel.supplements.length).toBeGreaterThan(0) // the branch actually runs
+
+    const md = toMarkdown(supplementsModel, 'ru')
+    expect(md).toContain('Магний')
+    expect(md).toContain('Доля дней с отметкой')
+    expect(md).toContain('Показана доля дней с отметкой о приёме, считая от первого отмеченного приёма внутри периода. Отсутствие отметки не означает, что приём не состоялся.')
+    expect(md).not.toContain('Соблюдение в периоде')
   })
 
   it('dates a bedtime that spans midnight and reports median bed/wake times', () => {

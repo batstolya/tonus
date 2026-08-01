@@ -75,6 +75,21 @@ describe('buildSleep', () => {
     const s = buildSleep(daily, periodFrame(daily, 30, '2026-07-31'))!
     expect(s.nights[0].unclassified).toBe(0)
   })
+
+  it('excludes a daytime episode from phaseCoveragePct even when it carries phase data', () => {
+    const daily: DailyMetrics[] = [
+      // A real night whose phases close exactly: 2 + 1.6 + 4.4 = 8 of 8 h -> 100% alone.
+      { date: '2026-07-16', sleepHours: 8, sleepDeep: 2, sleepREM: 1.6, sleepCore: 4.4, sleepBedtime: '2026-07-16T01:10:00' },
+      // A daytime nap that also reports phases. If phaseCoverage() were ever
+      // fed `withSleep` instead of `nightly`, this would pull the section
+      // percentage down to 91% (9 classified of 9.9 total) — a regression
+      // this test exists to catch.
+      { date: '2026-07-15', sleepHours: 1.9, sleepDeep: 0.5, sleepREM: 0.3, sleepCore: 0.2, sleepBedtime: '2026-07-15T09:08:00' },
+    ]
+    const s = buildSleep(daily, periodFrame(daily, 30, '2026-07-31'))!
+    expect(s.nights.find(n => n.daytime)).toBeDefined() // the nap is still in the table
+    expect(s.phaseCoveragePct).toBe(100) // only the real night counts
+  })
 })
 
 describe('daytime episodes', () => {

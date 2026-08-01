@@ -110,9 +110,16 @@ describe('DoctorReport copy for AI', () => {
     fireEvent.click(screen.getByText(ui('Сформировать')))
     await waitFor(() => expect(container.querySelector('.dr-sleep-table')).toBeTruthy())
 
+    const headerCells = Array.from(container.querySelectorAll('.dr-sleep-table thead th')).map(th => th.textContent)
+    const unclassifiedCol = headerCells.indexOf('Не классифицировано, ч')
+    expect(unclassifiedCol).toBeGreaterThanOrEqual(0)
+
     const nightRow = Array.from(container.querySelectorAll('.dr-sleep-table tbody tr'))
-      .find(tr => tr.textContent?.includes(nightDate))
-    expect(nightRow?.textContent).toContain('2.8')
+      .find(tr => tr.textContent?.includes(nightDate))!
+    // Same column index as the header's "Не классифицировано, ч" — pinned so
+    // a column reorder fails here instead of a loose substring match passing.
+    const cells = Array.from(nightRow.querySelectorAll('td')).map(td => td.textContent)
+    expect(cells[unclassifiedCol]).toBe('2.8')
 
     expect(screen.getByText(/Разложено по фазам: 69%/)).toBeTruthy()
   })
