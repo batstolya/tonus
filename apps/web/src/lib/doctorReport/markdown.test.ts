@@ -124,6 +124,25 @@ describe('toMarkdown', () => {
     expect(md).toContain('Дневные эпизоды (короче 3 ч, начались между 08:00 и 20:00) показаны в таблице, но не входят в подсчёт ночей, в средние времена и в оценку сна.')
   })
 
+  it('dates a bedtime that spans midnight and reports median bed/wake times', () => {
+    // Same fixture as sleep.test.ts: a night that ran 02:14 -> 01:55, dated
+    // against the row's own calendar day (no 'Z' suffix — local time, same
+    // as the daytime-episode fixtures use).
+    const nightDaily: DailyMetrics[] = [{
+      date: '2026-06-13', sleepHours: 7.3,
+      sleepBedtime: '2026-06-12T02:14:00', sleepWakeTime: '2026-06-13T01:55:00',
+    }]
+    const nightModel = buildReportModel({ daily: nightDaily, sources, periodDays: 1, today: '2026-06-13' })
+
+    const md = toMarkdown(nightModel, 'ru')
+    const row = md.split('\n').find(l => l.startsWith('| 2026-06-13 |'))!
+    expect(row).toContain('02:14 (12.06)') // bedtime lands on the previous day
+    expect(row).not.toContain('01:55 (')   // wake time is the row's own day
+
+    expect(md).toContain('Время отбоя (медиана) | 02:14 | половина ночей 02:14–02:14')
+    expect(md).toContain('Время подъёма (медиана) | 01:55 | половина ночей 01:55–01:55')
+  })
+
   it('prints the reliability band and longest gap for a metric with a hole', () => {
     // Steps miss five consecutive days in the middle of the period; rhr and
     // sleep stay complete so only the steps row should carry a gap note.

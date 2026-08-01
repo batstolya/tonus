@@ -2,7 +2,7 @@
 // stores, so adding a metric to DailyMetrics means adding one row here.
 import type { DailyMetrics } from '../../types'
 import { addDays, daysBetween, localDate } from './dates'
-import { avg } from './math'
+import { avg, quantile } from './math'
 import {
   BASELINE_WINDOW_DAYS, baselineOf, reliabilityOf, supportsClaims, type Baseline, type Reliability,
 } from './reliability'
@@ -146,16 +146,37 @@ export function summarizeMetrics(daily: DailyMetrics[], frame: PeriodFrame): Met
   return out
 }
 
-// Average time of day. Times straddling midnight are shifted past 24:00 before
-// averaging, otherwise 23:40 and 00:20 average to noon instead of midnight.
-export function avgTimeOfDay(isoList: string[]): string | null {
-  if (!isoList.length) return null
-  const mins = isoList.map(iso => {
-    const d = new Date(iso)
-    return d.getHours() * 60 + d.getMinutes()
-  })
-  const straddles = Math.max(...mins) - Math.min(...mins) > 720
-  const use = straddles ? mins.map(m => (m < 720 ? m + 1440 : m)) : mins
-  const m = Math.round(avg(use)) % 1440
-  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
+/**
+ * Circular statistics for a clock time. Times map to minutes since 18:00
+ * before ordering, which keeps a cluster around midnight contiguous — with
+ * daytime episodes excluded upstream, no realistic bedtime or wake time sits
+ * near the 18:00 seam. A plain mean puts 23:50 and 00:10 at noon.
+ */
+const ORIGIN_MIN = 18 * 60
+
+export interface TimeStat {
+  median: string
+  q1: string
+  q3: string
+  count: number
+}
+
+const pad = (n: number): string => String(n).padStart(2, '0')
+
+export function timeOfDayStats(isoList: string[]): TimeStat | null {
+  const shifted = isoList
+    .map(iso => new Date(iso))
+    .filter(d => !isNaN(d.getTime()))
+    .map(d => (d.getHours() * 60 + d.getMinutes() - ORIGIN_MIN + 1440) % 1440)
+  if (!shifted.length) return null
+  const back = (m: number): string => {
+    const t = Math.round(m + ORIGIN_MIN) % 1440
+    return `${pad(Math.floor(t / 60))}:${pad(t % 60)}`
+  }
+  return {
+    median: back(quantile(shifted, 0.5)),
+    q1: back(quantile(shifted, 0.25)),
+    q3: back(quantile(shifted, 0.75)),
+    count: shifted.length,
+  }
 }

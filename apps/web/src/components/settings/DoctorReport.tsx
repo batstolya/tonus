@@ -256,13 +256,15 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                     </td>
                   </tr>
                 ))}
-                {model.avgBedtime && (
-                  <tr><td>{rt('Время отбоя (среднее)')}</td><td>{model.avgBedtime}</td>
-                    <td>{dash}</td><td>{dash}</td><td>{dash}</td><td>{dash}</td><td>{dash}</td></tr>
+                {sleep?.bedtime && (
+                  <tr><td>{rt('Время отбоя (медиана)')}</td><td>{sleep.bedtime.median}</td>
+                    <td>{rt('половина ночей')} {sleep.bedtime.q1}–{sleep.bedtime.q3}</td>
+                    <td>{dash}</td><td>{dash}</td><td>{dash}</td><td>{dash}</td></tr>
                 )}
-                {model.avgWakeTime && (
-                  <tr><td>{rt('Время подъёма (среднее)')}</td><td>{model.avgWakeTime}</td>
-                    <td>{dash}</td><td>{dash}</td><td>{dash}</td><td>{dash}</td><td>{dash}</td></tr>
+                {sleep?.wake && (
+                  <tr><td>{rt('Время подъёма (медиана)')}</td><td>{sleep.wake.median}</td>
+                    <td>{rt('половина ночей')} {sleep.wake.q1}–{sleep.wake.q3}</td>
+                    <td>{dash}</td><td>{dash}</td><td>{dash}</td><td>{dash}</td></tr>
                 )}
               </tbody>
             </table>
@@ -306,7 +308,8 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                 {sleep.nights.map(n => (
                   <tr key={n.date}>
                     <td>{n.date}</td><td>{rt(n.weekday)}</td>
-                    <td>{n.bedtime ?? dash}</td><td>{n.wakeTime ?? dash}</td>
+                    <td>{n.bedtime ? n.bedtime + (n.bedtimeDate ? ` (${n.bedtimeDate})` : '') : dash}</td>
+                    <td>{n.wakeTime ? n.wakeTime + (n.wakeDate ? ` (${n.wakeDate})` : '') : dash}</td>
                     <td>{n.hours.toFixed(1)}</td>
                     <td>{n.deep?.toFixed(1) ?? dash}</td>
                     <td>{n.rem?.toFixed(1) ?? dash}</td>

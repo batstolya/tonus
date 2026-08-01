@@ -2,7 +2,7 @@ import type { DailyMetrics } from '../../types'
 import { computeDailyScores } from '../scores'
 import { localDate } from './dates'
 import {
-  avgTimeOfDay, frameSlice, periodFrame, summarizeMetrics,
+  periodFrame, summarizeMetrics,
   type MetricSummary, type PeriodFrame,
 } from './metrics'
 import { supportsClaims } from './reliability'
@@ -29,8 +29,6 @@ export interface DoctorReportModel {
   patient: { birthYear: number | null; sex: Sex | null; age: number | null }
   scores: ScoreSummary[]
   metrics: MetricSummary[]
-  avgBedtime: string | null
-  avgWakeTime: string | null
   weekly: { keys: typeof WEEKLY_KEYS; rows: WeeklyRow[] }
   sleep: SleepSection | null
   coverage: { gaps: CoverageGap[]; missingDates: string[] }
@@ -64,7 +62,6 @@ export function buildReportModel({
   // one filtered copy feeds metrics, weeks, coverage, deviations and scores.
   const clean = withoutDaytimeSleep(daily)
   const frame = periodFrame(clean, periodDays, today)
-  const slice = frameSlice(clean, frame)
 
   const scoreRows = computeDailyScores(clean)
   const inPeriod = scoreRows.filter(s => s.date >= frame.start && s.date <= today)
@@ -100,8 +97,6 @@ export function buildReportModel({
     },
     scores,
     metrics,
-    avgBedtime: avgTimeOfDay(slice.map(d => d.sleepBedtime).filter((v): v is string => !!v)),
-    avgWakeTime: avgTimeOfDay(slice.map(d => d.sleepWakeTime).filter((v): v is string => !!v)),
     weekly: { keys: WEEKLY_KEYS, rows: weeklyRows(clean, frame) },
     sleep: buildSleep(daily, frame),
     coverage: coverage(clean, frame),

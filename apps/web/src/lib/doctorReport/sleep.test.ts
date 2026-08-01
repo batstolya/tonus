@@ -39,6 +39,17 @@ describe('buildSleep', () => {
   it('is null when no night has sleep data', () => {
     expect(buildSleep([{ date: today }], periodFrame([{ date: today }], 30, today))).toBeNull()
   })
+
+  it('qualifies a bedtime that falls on the previous calendar day', () => {
+    const daily: DailyMetrics[] = [{
+      date: '2026-06-13', sleepHours: 7.3,
+      sleepBedtime: '2026-06-12T02:14:00', sleepWakeTime: '2026-06-13T01:55:00',
+    }]
+    const s = buildSleep(daily, periodFrame(daily, 90, '2026-07-31'))!
+    expect(s.nights[0].bedtime).toBe('02:14')
+    expect(s.nights[0].bedtimeDate).toBe('12.06')
+    expect(s.nights[0].wakeDate).toBeNull() // same day as the row
+  })
 })
 
 describe('daytime episodes', () => {

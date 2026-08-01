@@ -78,6 +78,44 @@ describe('DoctorReport copy for AI', () => {
     expect(screen.getByText(/Дневные эпизоды \(короче 3 ч/)).toBeTruthy()
   })
 
+  it('dates a bedtime that spans midnight and shows the median bed/wake rows — in the DOM, not the model', async () => {
+    // Same shape as the markdown-level test: a night that ran 02:14 (previous
+    // calendar day) -> 01:55 (the row's own day), rendered through the print
+    // view so a renderer that dropped the date suffix would be caught here too.
+    const base = new Date()
+    const dateAt = (daysAgo: number) => {
+      const d = new Date(base)
+      d.setDate(d.getDate() - daysAgo)
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    }
+    const nightDate = dateAt(0)
+    const prevDate = dateAt(1)
+    const ddmm = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}`
+    const nightDaily: DailyMetrics[] = [{
+      date: nightDate, sleepHours: 7.3,
+      sleepBedtime: `${prevDate}T02:14:00`, sleepWakeTime: `${nightDate}T01:55:00`,
+    }]
+
+    const { container } = renderWithProviders(
+      <DoctorReport user={user} daily={nightDaily} onClose={() => {}} />)
+    fireEvent.click(screen.getByText('30'))
+    fireEvent.click(screen.getByText(ui('Сформировать')))
+    await waitFor(() => expect(container.querySelector('.dr-sleep-table')).toBeTruthy())
+
+    const nightRow = Array.from(container.querySelectorAll('.dr-sleep-table tbody tr'))
+      .find(tr => tr.textContent?.includes(nightDate))
+    expect(nightRow?.textContent).toContain(`02:14 (${ddmm(prevDate)})`)
+    expect(nightRow?.textContent).not.toContain('01:55 (')
+
+    const metricRows = Array.from(container.querySelectorAll('table tbody tr'))
+    const bedtimeRow = metricRows.find(tr => tr.textContent?.includes('Время отбоя (медиана)'))
+    const wakeRow = metricRows.find(tr => tr.textContent?.includes('Время подъёма (медиана)'))
+    expect(bedtimeRow?.textContent).toContain('02:14')
+    expect(bedtimeRow?.textContent).toContain('половина ночей 02:14–02:14')
+    expect(wakeRow?.textContent).toContain('01:55')
+    expect(wakeRow?.textContent).toContain('половина ночей 01:55–01:55')
+  })
+
   it('shows the reliability band and longest gap for a metric with a hole', async () => {
     // Steps miss five consecutive days in the middle; rhr and sleep stay
     // complete, so only the steps row should carry a gap note. The report

@@ -79,8 +79,14 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
       `${m.daysWithData} ${t('из')} ${m.daysInPeriod}`,
       `${t(BAND_TEXT[m.reliability.band])}${m.reliability.maxGap > 1 ? `, ${t('макс. пробел')} ${m.reliability.maxGap} ${t('дн.')}` : ''}`,
     ])
-    if (model.avgBedtime) rows.push([t('Время отбоя (среднее)'), model.avgBedtime, dash, dash, dash, dash, dash])
-    if (model.avgWakeTime) rows.push([t('Время подъёма (среднее)'), model.avgWakeTime, dash, dash, dash, dash, dash])
+    if (model.sleep?.bedtime) {
+      const b = model.sleep.bedtime
+      rows.push([t('Время отбоя (медиана)'), b.median, `${t('половина ночей')} ${b.q1}–${b.q3}`, dash, dash, dash, dash])
+    }
+    if (model.sleep?.wake) {
+      const w = model.sleep.wake
+      rows.push([t('Время подъёма (медиана)'), w.median, `${t('половина ночей')} ${w.q1}–${w.q3}`, dash, dash, dash, dash])
+    }
     table([t('Метрика'), t('Среднее'), t('Мин'), t('Макс'), t('Личная норма (медиана и обычный диапазон)'), t('Дней с данными'), t('Надёжность')], rows)
     p(t('«Личная норма» — медиана за 28 дней до начала периода и её межквартильный диапазон. Считается только при покрытии от 60% и минимум 14 днях в этом окне. Оценки Tonus выше используют другую базу — скользящее среднее за 30 дней.'))
     p()
@@ -112,7 +118,10 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
       [t('Дата'), t('День'), t('Отбой'), t('Подъём'), t('Сон, ч'), t('Глубокий, ч'),
         t('REM, ч'), t('Лёгкий, ч'), t('Глубокий, %'), t('REM, %'), t('Тип')],
       s.nights.map(n => [
-        n.date, t(n.weekday), n.bedtime ?? dash, n.wakeTime ?? dash, n.hours.toFixed(1),
+        n.date, t(n.weekday),
+        n.bedtime ? n.bedtime + (n.bedtimeDate ? ` (${n.bedtimeDate})` : '') : dash,
+        n.wakeTime ? n.wakeTime + (n.wakeDate ? ` (${n.wakeDate})` : '') : dash,
+        n.hours.toFixed(1),
         n.deep?.toFixed(1) ?? dash, n.rem?.toFixed(1) ?? dash, n.core?.toFixed(1) ?? dash,
         n.deepPct != null ? `${n.deepPct}%` : dash,
         n.remPct != null ? `${n.remPct}%` : dash,

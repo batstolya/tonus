@@ -1,5 +1,5 @@
 import type { DailyMetrics } from '../../types'
-import { frameSlice, type PeriodFrame } from './metrics'
+import { frameSlice, timeOfDayStats, type PeriodFrame, type TimeStat } from './metrics'
 
 const WEEKDAYS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
 
@@ -14,6 +14,9 @@ export interface SleepNight {
   /** Local HH:MM, or null when the source sent no timestamp. */
   bedtime: string | null
   wakeTime: string | null
+  /** 'DD.MM' when the timestamp lands on a different calendar day than `date`, null otherwise. */
+  bedtimeDate: string | null
+  wakeDate: string | null
   hours: number
   deep: number | null
   rem: number | null
@@ -35,6 +38,9 @@ export interface SleepSection {
   implausible: number
   /** Short episodes that started during the day — shown, but excluded from every other count. */
   daytimeCount: number
+  /** Circular median/quartiles of nightly bedtimes and wake times — daytime episodes excluded. */
+  bedtime: TimeStat | null
+  wake: TimeStat | null
 }
 
 /**
@@ -71,11 +77,24 @@ export function withoutDaytimeSleep(daily: DailyMetrics[]): DailyMetrics[] {
   })
 }
 
+const pad = (n: number): string => String(n).padStart(2, '0')
+
 const hhmm = (iso?: string): string | null => {
   if (!iso) return null
   const d = new Date(iso)
   if (isNaN(d.getTime())) return null
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+const localDay = (d: Date): string =>
+  `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+
+/** 'DD.MM' when the timestamp lands on another calendar day, null otherwise. */
+const dateQualifier = (iso: string | undefined, rowDate: string): string | null => {
+  if (!iso) return null
+  const d = new Date(iso)
+  if (isNaN(d.getTime()) || localDay(d) === rowDate) return null
+  return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}`
 }
 
 const windowHours = (d: DailyMetrics): number | null =>
@@ -107,6 +126,8 @@ export function buildSleep(
       weekday: WEEKDAYS[new Date(d.date + 'T00:00:00Z').getUTCDay()],
       bedtime: hhmm(d.sleepBedtime),
       wakeTime: hhmm(d.sleepWakeTime),
+      bedtimeDate: dateQualifier(d.sleepBedtime, d.date),
+      wakeDate: dateQualifier(d.sleepWakeTime, d.date),
       hours: +hours.toFixed(1),
       deep: d.sleepDeep != null ? +d.sleepDeep.toFixed(1) : null,
       rem: d.sleepREM != null ? +d.sleepREM.toFixed(1) : null,
@@ -130,5 +151,7 @@ export function buildSleep(
       const w = windowHours(d)
       return w != null && d.sleepHours! > w
     }).length,
+    bedtime: timeOfDayStats(nightly.map(d => d.sleepBedtime).filter((v): v is string => !!v)),
+    wake: timeOfDayStats(nightly.map(d => d.sleepWakeTime).filter((v): v is string => !!v)),
   }
 }
