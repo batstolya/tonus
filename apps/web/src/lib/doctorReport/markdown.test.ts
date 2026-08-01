@@ -23,6 +23,16 @@ describe('toMarkdown', () => {
     expect(md).toContain('**Пациент:** ________________')
   })
 
+  it('names the age line instead of doubling the patient label', () => {
+    const filled = buildReportModel({
+      daily, periodDays: 30, today,
+      sources: { ...sources, profile: { birth_year: 1988, sex: 'male' } },
+    })
+    const md = toMarkdown(filled, 'ru')
+    expect(md).toContain('**Возраст (по году рождения):** 38 · Пол: мужской')
+    expect(md).not.toContain('**Пациент:**')
+  })
+
   it('always closes with what the data does not contain', () => {
     expect(toMarkdown(model, 'ru')).toContain('## Чего в этих данных нет')
   })
