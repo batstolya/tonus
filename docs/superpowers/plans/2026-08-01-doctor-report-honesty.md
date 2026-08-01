@@ -1174,8 +1174,10 @@ volume.
 
 **Interfaces:**
 - Consumes: `PeriodFrame` (Task 1), `addDays` (Task 1).
-- Produces: `ScoreSummary { key: 'sleep_score' | 'recovery_score'; label; avg;
-  first; last; days: number; trend: boolean }`.
+- Produces: `ScoreSummary { key: 'sleep_score' | 'recovery_score'; label;
+  avg: number; first: number | null; last: number | null; days: number;
+  trend: boolean }`. `first` and `last` are `null` — never a sentinel `0` —
+  when `trend` is false, so a renderer cannot print a fabricated score.
 
 - [ ] **Step 1: Write the failing test**
 
