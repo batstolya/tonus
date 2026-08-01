@@ -58,6 +58,28 @@ describe('daytime episodes', () => {
     expect(isDaytimeEpisode({ date: '2026-07-15', sleepHours: 1.9 })).toBe(false)
   })
 
+  it('draws the boundary at exactly 3 hours and exactly 08:00/20:00', () => {
+    // Rule as implemented: shorter than 3 h (>= 3 h is excluded), starting in
+    // the half-open window [08:00, 20:00) (20:00 itself is excluded).
+    const exactlyThreeHoursAtMidday: DailyMetrics =
+      { date: '2026-07-19', sleepHours: 3.0, sleepBedtime: '2026-07-19T12:00:00' }
+    const notQuiteThreeHoursAt0800: DailyMetrics =
+      { date: '2026-07-20', sleepHours: 2.9, sleepBedtime: '2026-07-20T08:00:00' }
+    const notQuiteThreeHoursAt2000: DailyMetrics =
+      { date: '2026-07-21', sleepHours: 2.9, sleepBedtime: '2026-07-21T20:00:00' }
+    const notQuiteThreeHoursAt1959: DailyMetrics =
+      { date: '2026-07-22', sleepHours: 2.9, sleepBedtime: '2026-07-22T19:59:00' }
+
+    // 3.0 h is not "shorter than 3 h" -> not a daytime episode, even at midday.
+    expect(isDaytimeEpisode(exactlyThreeHoursAtMidday)).toBe(false)
+    // 08:00 is inside the window (>= 8) -> daytime episode.
+    expect(isDaytimeEpisode(notQuiteThreeHoursAt0800)).toBe(true)
+    // 20:00 is outside the window (< 20 fails) -> not a daytime episode.
+    expect(isDaytimeEpisode(notQuiteThreeHoursAt2000)).toBe(false)
+    // 19:59 is still inside the window (< 20) -> daytime episode.
+    expect(isDaytimeEpisode(notQuiteThreeHoursAt1959)).toBe(true)
+  })
+
   it('keeps the row but drops it from every night count', () => {
     const daily = [nap, night]
     const s = buildSleep(daily, periodFrame(daily, 30, '2026-07-31'))!
