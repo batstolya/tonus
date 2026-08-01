@@ -84,7 +84,11 @@ export function buildReportModel({
     if (!vals.length) continue
     const firstVals = has(inPeriod.filter(s => s.date <= firstEnd))
     const lastVals = has(inPeriod.filter(s => s.date >= lastStart))
-    const trend = firstVals.length >= thirdDays / 2 && lastVals.length >= thirdDays / 2
+    // On a one- or two-day period the first and last third collapse onto the
+    // same day(s): without this guard a single score gets counted as both
+    // "first" and "last", printing a trend — even "без изменений" — from one
+    // data point instead of no evidence at all.
+    const trend = firstEnd < lastStart && firstVals.length >= thirdDays / 2 && lastVals.length >= thirdDays / 2
     scores.push({
       key: def.key,
       label: def.label,

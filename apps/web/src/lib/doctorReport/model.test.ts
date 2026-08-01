@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { buildReportModel } from './model'
 import { addDays } from './dates'
+import { periodFrame } from './metrics'
+import { detectDeviations } from './deviations'
 import type { DailyMetrics } from '../../types'
 
 const today = '2026-07-31'
@@ -85,6 +87,75 @@ describe('buildReportModel', () => {
     const hrv = m.metrics.find(x => x.key === 'hrv')!
     expect(hrv.daysWithData).toBeGreaterThan(0)
     expect(hrv.baseline).toBeNull()
+  })
+
+  it('refuses a trend when the period is a single day, instead of counting one score as both ends', () => {
+    // 5 days of history feed computeDailyScores' own baseline gate, so the
+    // last day of the 6 actually gets a score; a 1-day period then makes
+    // firstEnd and lastStart the same date.
+    const daily6: DailyMetrics[] = Array.from({ length: 6 }, (_, i) => ({
+      date: addDays(today, -5 + i), restingHeartRate: 58, hrv: 45, sleepHours: 7, steps: 9000,
+    }))
+    const m = buildReportModel({ daily: daily6, sources: emptySources, periodDays: 1, today })
+    expect(m.period.calendarDays).toBe(1)
+    const sleep = m.scores.find(s => s.key === 'sleep_score')!
+    expect(sleep.days).toBe(1)
+    expect(sleep.trend).toBe(false)
+    expect(sleep.first).toBeNull()
+    expect(sleep.last).toBeNull()
+  })
+
+  it('gates both the baseline and the deviation weeks on the reliability band, not merely on the pre-period window depth', () => {
+    // Regression for a mutation the reviewer proved survives the existing
+    // suite: deleting the `supportsClaims(rel.band) ? … : null` guard at
+    // metrics.ts, or widening deviations.ts's "reliable" set to every metric
+    // key, left all tests green — because every existing fixture starves the
+    // pre-period window and the in-period coverage together, so baselineOf's
+    // own 14-day gate (and detectDeviations' own 5-week gate) produces the
+    // same null/empty result regardless of the band gate. This fixture keeps
+    // the pre-period window fully populated (28 of 28 days) and only starves
+    // in-period coverage, isolating the band gate as the actual cause.
+    const start = '2026-06-01' // Monday — aligns weekly buckets to 7-day blocks
+    const today70 = addDays(start, 69) // 70-day period, 10 full weeks
+    const preStart = addDays(start, -28)
+
+    const preDays: DailyMetrics[] = Array.from({ length: 28 }, (_, i) => ({
+      date: addDays(preStart, i), restingHeartRate: 50,
+    }))
+
+    // 5 populated weeks (Mon–Fri only, 5 of 7 days) with weekly means
+    // 54/55/56/57/80, then 5 fully empty weeks. Coverage: 25 of 70 days
+    // (~36%) — below the 40% "insufficient" line. The weekly means still
+    // clear both of detectDeviations' own thresholds: 5 qualifying weeks
+    // (MIN_WEEKS) and the 80-mean week sits far past 2 MAD from the median.
+    const weekRhr = [54, 55, 56, 57, 80, null, null, null, null, null]
+    const periodDays: DailyMetrics[] = Array.from({ length: 70 }, (_, i) => {
+      const date = addDays(start, i)
+      const week = Math.floor(i / 7)
+      const dayOfWeek = i % 7
+      const val = weekRhr[week]
+      return val != null && dayOfWeek < 5 ? { date, restingHeartRate: val } : { date }
+    })
+
+    const allDaily = [...preDays, ...periodDays]
+    const m = buildReportModel({ daily: allDaily, sources: emptySources, periodDays: 70, today: today70 })
+
+    const rhr = m.metrics.find(x => x.key === 'rhr')!
+    expect(rhr.daysWithData).toBe(25)
+    expect(rhr.reliability.band).toBe('insufficient') // sanity: thin in-period coverage
+
+    // (a) the band gate — not the 14-day baseline-window depth — is what
+    // suppresses the baseline: the pre-period window itself has 28 of 28 days.
+    expect(rhr.baseline).toBeNull()
+
+    // (b) the same band gate keeps rhr out of every deviation week...
+    expect(m.deviations.some(w => w.items.some(it => it.key === 'rhr'))).toBe(false)
+
+    // ...even though its weekly pattern really would clear detectDeviations'
+    // own thresholds absent the gate:
+    const frame = periodFrame(allDaily, 70, today70)
+    const unrestricted = detectDeviations(allDaily, frame, new Set(['rhr']))
+    expect(unrestricted.some(w => w.items.some(it => it.key === 'rhr'))).toBe(true)
   })
 
   it('excludes private concerns even when they are passed in', () => {
