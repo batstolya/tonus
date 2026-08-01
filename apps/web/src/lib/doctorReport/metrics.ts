@@ -2,7 +2,7 @@
 // stores, so adding a metric to DailyMetrics means adding one row here.
 import type { DailyMetrics } from '../../types'
 import { addDays, daysBetween, localDate } from './dates'
-import { avg, quantile } from './math'
+import { avg } from './math'
 import {
   BASELINE_WINDOW_DAYS, baselineOf, reliabilityOf, supportsClaims, type Baseline, type Reliability,
 } from './reliability'
@@ -125,16 +125,22 @@ export function summarizeMetrics(daily: DailyMetrics[], frame: PeriodFrame): Met
     const dates = new Set(slice.filter(d => typeof m.get(d) === 'number').map(d => d.date))
     const rel = reliabilityOf(dates, frame.effectiveStart, frame.end)
 
+    // The printed row shows the rounded average, never the raw mean — the
+    // baseline verdict has to be judged against that same rounded number, or
+    // a row can print e.g. "51 · median 51 · 50–51 · above range": the raw
+    // mean sits fractionally past the (rounded) upper bound while the two
+    // numbers shown to the reader are identical.
+    const roundedAvg = +a.toFixed(m.digits)
     const windowStart = addDays(frame.effectiveStart, -BASELINE_WINDOW_DAYS)
     const before = daily.filter(d => d.date >= windowStart && d.date < frame.effectiveStart)
     const baseValues = before.map(m.get).filter((v): v is number => typeof v === 'number')
-    const baseline = supportsClaims(rel.band) ? baselineOf(baseValues, a, m.digits) : null
+    const baseline = supportsClaims(rel.band) ? baselineOf(baseValues, roundedAvg, m.digits) : null
 
     out.push({
       key: m.key,
       label: m.label,
       digits: m.digits,
-      avg: +a.toFixed(m.digits),
+      avg: roundedAvg,
       min: +Math.min(...vals).toFixed(m.digits),
       max: +Math.max(...vals).toFixed(m.digits),
       baseline,
@@ -144,39 +150,4 @@ export function summarizeMetrics(daily: DailyMetrics[], frame: PeriodFrame): Met
     })
   }
   return out
-}
-
-/**
- * Circular statistics for a clock time. Times map to minutes since 18:00
- * before ordering, which keeps a cluster around midnight contiguous — with
- * daytime episodes excluded upstream, no realistic bedtime or wake time sits
- * near the 18:00 seam. A plain mean puts 23:50 and 00:10 at noon.
- */
-const ORIGIN_MIN = 18 * 60
-
-export interface TimeStat {
-  median: string
-  q1: string
-  q3: string
-  count: number
-}
-
-const pad = (n: number): string => String(n).padStart(2, '0')
-
-export function timeOfDayStats(isoList: string[]): TimeStat | null {
-  const shifted = isoList
-    .map(iso => new Date(iso))
-    .filter(d => !isNaN(d.getTime()))
-    .map(d => (d.getHours() * 60 + d.getMinutes() - ORIGIN_MIN + 1440) % 1440)
-  if (!shifted.length) return null
-  const back = (m: number): string => {
-    const t = Math.round(m + ORIGIN_MIN) % 1440
-    return `${pad(Math.floor(t / 60))}:${pad(t % 60)}`
-  }
-  return {
-    median: back(quantile(shifted, 0.5)),
-    q1: back(quantile(shifted, 0.25)),
-    q3: back(quantile(shifted, 0.75)),
-    count: shifted.length,
-  }
 }

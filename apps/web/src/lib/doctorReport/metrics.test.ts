@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { addDays, daysBetween } from './dates'
-import { METRIC_DEFS, summarizeMetrics, timeOfDayStats, periodFrame } from './metrics'
+import { METRIC_DEFS, summarizeMetrics, periodFrame } from './metrics'
 import type { DailyMetrics } from '../../types'
 
 const today = '2026-07-31'
@@ -85,26 +85,5 @@ describe('periodFrame', () => {
   it('measures inclusive spans', () => {
     expect(daysBetween('2026-07-31', '2026-07-31')).toBe(1)
     expect(daysBetween('2026-07-01', '2026-07-31')).toBe(31)
-  })
-})
-
-describe('timeOfDayStats', () => {
-  it('puts the median of times straddling midnight at midnight', () => {
-    const s = timeOfDayStats(['2026-07-30T23:40:00', '2026-07-31T00:20:00'])!
-    expect(s.median).toBe('00:00')
-  })
-
-  it('reports quartiles around the median bedtime', () => {
-    const s = timeOfDayStats([
-      '2026-07-29T01:00:00', '2026-07-30T02:00:00', '2026-07-31T03:00:00',
-    ])!
-    expect(s.median).toBe('02:00')
-    expect(s.q1).toBe('01:30')
-    expect(s.q3).toBe('02:30')
-    expect(s.count).toBe(3)
-  })
-
-  it('is null without times', () => {
-    expect(timeOfDayStats([])).toBeNull()
   })
 })
