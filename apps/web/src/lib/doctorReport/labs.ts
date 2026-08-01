@@ -76,8 +76,10 @@ export interface LabsSection {
 const unitKey = (u: string | null | undefined): string =>
   (u ?? '').trim().toLowerCase().replace(/\s+/g, '')
 
+// JSON-encoded pair, not a joined string — a marker name that happens to
+// contain the separator must never collide with a different marker/unit pair.
 const groupKey = (marker: string, unit: string | null | undefined): string =>
-  `${marker} ${unitKey(unit)}`
+  JSON.stringify([marker, unitKey(unit)])
 
 const byMarkerThenUnit = (a: { marker: string; unit: string | null }, b: { marker: string; unit: string | null }): number =>
   a.marker.localeCompare(b.marker, 'ru') || (a.unit ?? '').localeCompare(b.unit ?? '', 'ru')
