@@ -7,7 +7,10 @@ export { quantile } from './math'
 export { METRIC_DEFS, periodStart } from './metrics'
 export type { MetricKey, MetricSummary } from './metrics'
 export { WEEKLY_KEYS } from './weekly'
-export { toMarkdown, baselineCell, scoreTrendText } from './markdown'
-export { parseRefRange } from './labs'
+export { toMarkdown, baselineCell, scoreTrendText, labStatusCell } from './markdown'
+export {
+  parseRefRange, LAB_STATUS_TEXT, LAB_FLAG_SUFFIX, LAB_UNIT_CAVEAT, LAB_DATE_CAVEAT,
+} from './labs'
+export type { LabStatus, LabLine, LabSeries, LabsSection } from './labs'
 export { BAND_TEXT, POSITION_TEXT, bandOf, baselineOf, reliabilityOf, supportsClaims } from './reliability'
 export type { Band, Baseline, Reliability } from './reliability'

@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react'
 import type { DailyMetrics } from '../../types'
 import {
   METRIC_DEFS, buildReportModel, loadReportSources, periodStart, localDate, toMarkdown, baselineCell,
-  scoreTrendText, BAND_TEXT, type DoctorReportModel, type ReportSources,
+  scoreTrendText, BAND_TEXT, labStatusCell, LAB_UNIT_CAVEAT, LAB_DATE_CAVEAT,
+  type DoctorReportModel, type ReportSources,
 } from '../../lib/doctorReport'
 import { isUnlocked } from '../../lib/privacy'
 import { callFunction } from '../../lib/edgeFunctions'
@@ -395,15 +396,16 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                 <table>
                   <thead><tr>
                     <th>{rt('Показатель')}</th><th>{rt('Значение')}</th><th>{rt('Реф. диапазон')}</th>
-                    <th>{rt('Вне нормы')}</th><th>{rt('Предыдущее')}</th><th>{rt('Динамика')}</th><th>{rt('Дата')}</th>
+                    <th>{rt('Статус')}</th><th>{rt('Предыдущее')}</th><th>{rt('Динамика')}</th><th>{rt('Дата')}</th>
                   </tr></thead>
                   <tbody>
                     {labs.lines.map(l => (
-                      <tr key={l.marker} className={l.flag ? 'dr-flagged' : undefined}>
+                      <tr key={`${l.marker} ${l.unit ?? ''}`}
+                        className={l.status === 'above' || l.status === 'below' ? 'dr-flagged' : undefined}>
                         <td>{l.marker}</td>
                         <td>{l.value} {l.unit ?? ''}</td>
                         <td>{l.refRange ?? dash}</td>
-                        <td>{l.flag === '↑' ? rt('выше нормы') : l.flag === '↓' ? rt('ниже нормы') : rt('в норме')}</td>
+                        <td>{labStatusCell(l, rt)}</td>
                         <td>{l.prevValue != null ? `${l.prevValue} (${l.prevDate})` : dash}</td>
                         <td>{l.delta != null ? `${signed(l.delta)} ${rt('к')} ${l.prevDate}` : dash}</td>
                         <td>{l.date}</td>
@@ -416,6 +418,8 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                     ? `${rt('Последнее измерение раньше периода отчёта')}: ${labs.outOfPeriod.join(', ')}.`
                     : rt('Все показатели сданы внутри периода отчёта.')}
                 </p>
+                <p className="dr-note">{rt(LAB_UNIT_CAVEAT)}</p>
+                <p className="dr-note">{rt(LAB_DATE_CAVEAT)}</p>
                 {labs.series.length > 0 && (
                   <>
                     <h3>{rt('Все измерения по показателям')}</h3>
@@ -427,7 +431,7 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                       </tr></thead>
                       <tbody>
                         {labs.series.map(s => (
-                          <tr key={s.marker}>
+                          <tr key={`${s.marker} ${s.unit ?? ''}`}>
                             <td>{s.marker}</td>
                             <td>{s.points.map(pt => `${pt.date}: ${pt.value}`).join(' → ')} {s.unit ?? ''}</td>
                             <td>{s.refRange ?? dash}</td>

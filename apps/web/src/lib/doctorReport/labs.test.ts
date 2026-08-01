@@ -7,6 +7,10 @@ const lab = (marker: string, value: number, date: string, over: Partial<LabResul
   marker, value, unit: 'ng/ml', ref_range: '30-100', flag: null, date, ...over,
 } as LabResult)
 
+const r = (over: Partial<LabResult>): LabResult => ({
+  id: '1', lab_file_id: 'f', marker: 'X', value: 1, unit: null, date: '2026-06-20', ...over,
+})
+
 describe('parseRefRange', () => {
   it('parses ranges, comparisons and comma decimals', () => {
     expect(parseRefRange('3.5-5.5')).toEqual({ lo: 3.5, hi: 5.5 })
@@ -48,14 +52,63 @@ describe('buildLabs', () => {
     ])
   })
 
-  it('flags values outside the reference range', () => {
+  it('reads the status from a range that parses', () => {
     const { lines } = buildLabs([lab('Ферритин', 12, '2026-07-10')], '2026-05-01')
-    expect(lines[0].flag).toBe('↓')
+    expect(lines[0].status).toBe('below')
+    expect(lines[0].statusSource).toBe('range')
   })
 
   it('falls back to the source flag when the range does not parse', () => {
     const { lines } = buildLabs(
       [lab('X', 5, '2026-07-10', { ref_range: 'по возрасту', flag: 'H' })], '2026-05-01')
-    expect(lines[0].flag).toBe('↑')
+    expect(lines[0].status).toBe('above')
+    expect(lines[0].statusSource).toBe('lab-flag')
+  })
+
+  it('refuses a verdict without a reference range or a lab flag', () => {
+    const s = buildLabs([r({ marker: 'LDL', value: 147, unit: 'mg/dL' })], '2026-01-01')
+    expect(s.lines[0].status).toBe('unknown')
+    expect(s.lines[0].statusSource).toBeNull()
+  })
+
+  it('uses the range when it parses and names the source', () => {
+    const s = buildLabs([r({ marker: 'LDL', value: 147, ref_range: '0-115' })], '2026-01-01')
+    expect(s.lines[0].status).toBe('above')
+    expect(s.lines[0].statusSource).toBe('range')
+  })
+
+  it('falls back to the laboratory flag and says so', () => {
+    const s = buildLabs([r({ marker: 'LDL', value: 147, flag: 'high' })], '2026-01-01')
+    expect(s.lines[0].status).toBe('above')
+    expect(s.lines[0].statusSource).toBe('lab-flag')
+  })
+
+  it('keeps a percentage and an absolute count apart', () => {
+    const s = buildLabs([
+      r({ marker: 'LINFOCITOS', value: 42.2, unit: '%', date: '2026-06-20' }),
+      r({ marker: 'LINFOCITOS', value: 2.16, unit: '10E3/µL', date: '2026-06-20' }),
+    ], '2026-01-01')
+    expect(s.lines).toHaveLength(2)
+    expect(s.lines.every(l => l.delta === null)).toBe(true)
+    // Two rows, but one marker: the closing count still says "1 marker".
+    expect(s.markerCount).toBe(1)
+  })
+
+  it('treats the same unit written differently as one series', () => {
+    const s = buildLabs([
+      r({ marker: 'Ferritin', value: 85, unit: 'ng/mL', date: '2026-01-10' }),
+      r({ marker: 'Ferritin', value: 68, unit: ' NG/ML ', date: '2026-06-20' }),
+    ], '2026-01-01')
+    expect(s.lines).toHaveLength(1)
+    expect(s.lines[0].delta).toBe(-17)
+  })
+
+  it('never treats genuinely different units as one series', () => {
+    const s = buildLabs([
+      r({ marker: 'Ferritin', value: 85, unit: 'µg/dL', date: '2026-01-10' }),
+      r({ marker: 'Ferritin', value: 68, unit: 'µmol/L', date: '2026-06-20' }),
+    ], '2026-01-01')
+    expect(s.lines).toHaveLength(2)
+    expect(s.lines.every(l => l.delta === null)).toBe(true)
   })
 })

@@ -185,4 +185,66 @@ describe('toMarkdown', () => {
     expect(md).toContain('Надёжность') // the column header
     expect(md).toContain('высокая, макс. пробел 5 дн.') // the steps row's reliability cell
   })
+
+  it('never calls a lab result normal on its own authority', () => {
+    const withLabs = buildReportModel({
+      daily,
+      sources: { ...sources, labs: [{ id: '1', lab_file_id: 'f', marker: 'LDL', value: 147, unit: 'mg/dL', date: '2026-07-20' }] },
+      periodDays: 30, today,
+    })
+    const md = toMarkdown(withLabs, 'ru')
+    expect(md).toContain('статус не определён')
+    expect(md).not.toContain('в норме')
+    expect(md).not.toContain('Нагрузка')
+  })
+
+  it('names the range as the source when a lab result has a parseable reference', () => {
+    const withLabs = buildReportModel({
+      daily,
+      sources: { ...sources, labs: [{ id: '1', lab_file_id: 'f', marker: 'LDL', value: 147, unit: 'mg/dL', ref_range: '0-115', date: '2026-07-20' }] },
+      periodDays: 30, today,
+    })
+    const md = toMarkdown(withLabs, 'ru')
+    const row = md.split('\n').find(l => l.startsWith('| LDL |'))!
+    expect(row).toContain('выше диапазона лаборатории')
+    expect(row).not.toContain('по флагу лаборатории')
+  })
+
+  it('names the lab flag as the source when the range does not parse', () => {
+    const withLabs = buildReportModel({
+      daily,
+      sources: { ...sources, labs: [{ id: '1', lab_file_id: 'f', marker: 'LDL', value: 147, unit: 'mg/dL', flag: 'high', date: '2026-07-20' }] },
+      periodDays: 30, today,
+    })
+    const md = toMarkdown(withLabs, 'ru')
+    const row = md.split('\n').find(l => l.startsWith('| LDL |'))!
+    expect(row).toContain('выше диапазона лаборатории (по флагу лаборатории)')
+  })
+
+  it('never merges a percentage and an absolute count of the same marker into one delta', () => {
+    const withLabs = buildReportModel({
+      daily,
+      sources: {
+        ...sources,
+        labs: [
+          { id: '1', lab_file_id: 'f', marker: 'LINFOCITOS', value: 42.2, unit: '%', date: '2026-06-01' },
+          { id: '2', lab_file_id: 'f', marker: 'LINFOCITOS', value: 40.1, unit: '%', date: '2026-06-20' },
+          { id: '3', lab_file_id: 'f', marker: 'LINFOCITOS', value: 2.16, unit: '10E3/µL', date: '2026-06-20' },
+        ],
+      },
+      periodDays: 30, today,
+    })
+    const md = toMarkdown(withLabs, 'ru')
+    // Scope to the main labs table only — the "all measurements" table below
+    // it also lists one row per series and would double-count the percentage.
+    const mainTable = md.split('### ')[0]
+    const rows = mainTable.split('\n').filter(l => l.startsWith('| LINFOCITOS |'))
+    expect(rows).toHaveLength(2) // percentage and count stay two rows, never merged
+    const countRow = rows.find(r => r.includes('10E3/µL'))!
+    expect(countRow).not.toContain(' к ') // single measurement in its own unit — no delta to print
+    const pctRow = rows.find(r => r.includes('%'))!
+    expect(pctRow).toContain('к 2026-06-01') // the percentage series still gets its own real delta
+    expect(md).toContain('Показатели с одинаковым названием в разных единицах показаны отдельными строками и не сравниваются между собой.')
+    expect(md).toContain('Дата берётся из формы загрузки файла')
+  })
 })

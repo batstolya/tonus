@@ -1,6 +1,7 @@
 import { translations } from '../translations'
 import { METRIC_DEFS, type MetricSummary } from './metrics'
 import { BAND_TEXT, POSITION_TEXT } from './reliability'
+import { LAB_STATUS_TEXT, LAB_FLAG_SUFFIX, LAB_UNIT_CAVEAT, LAB_DATE_CAVEAT, type LabLine } from './labs'
 import type { DoctorReportModel, ScoreSummary } from './model'
 
 const STATUS_TEXT: Record<string, string> = {
@@ -33,6 +34,15 @@ export const scoreTrendText = (s: ScoreSummary, t: (key: string) => string): str
   const delta = s.last - s.first
   return Math.abs(delta) < 1 ? t('без изменений') : `${delta > 0 ? '↑' : '↓'} ${signed(delta)}`
 }
+
+/**
+ * Same cell in both renderers: the labs status column. `l.status` already
+ * refuses to guess when there is no reference range or lab flag (see
+ * labs.ts); this only names where a real verdict came from, so a value read
+ * off the lab's own flag is never presented as if a range confirmed it.
+ */
+export const labStatusCell = (l: Pick<LabLine, 'status' | 'statusSource'>, t: (key: string) => string): string =>
+  `${t(LAB_STATUS_TEXT[l.status])}${l.statusSource === 'lab-flag' ? ` (${t(LAB_FLAG_SUFFIX)})` : ''}`
 
 /**
  * The markdown twin of the printed page: same model, same sections, same
@@ -195,12 +205,12 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
     p(`## ${t('Анализы')}`)
     p()
     table(
-      [t('Показатель'), t('Значение'), t('Реф. диапазон'), t('Вне нормы'), t('Предыдущее'), t('Динамика'), t('Дата')],
+      [t('Показатель'), t('Значение'), t('Реф. диапазон'), t('Статус'), t('Предыдущее'), t('Динамика'), t('Дата')],
       model.labs.lines.map(l => [
         l.marker,
         `${l.value}${l.unit ? ` ${l.unit}` : ''}`,
         l.refRange ?? dash,
-        l.flag === '↑' ? t('выше нормы') : l.flag === '↓' ? t('ниже нормы') : t('в норме'),
+        labStatusCell(l, t),
         l.prevValue != null ? `${l.prevValue} (${l.prevDate})` : dash,
         l.delta != null ? `${signed(l.delta, Number.isInteger(l.delta) ? 0 : 1)} ${t('к')} ${l.prevDate}` : dash,
         l.date,
@@ -211,6 +221,9 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
     } else {
       p(t('Все показатели сданы внутри периода отчёта.'))
     }
+    p()
+    p(t(LAB_UNIT_CAVEAT))
+    p(t(LAB_DATE_CAVEAT))
     p()
 
     if (model.labs.series.length) {
