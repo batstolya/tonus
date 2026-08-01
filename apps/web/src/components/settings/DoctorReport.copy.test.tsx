@@ -64,4 +64,46 @@ describe('DoctorReport copy for AI', () => {
     expect(stepsRow?.textContent).toContain('высокая')
     expect(stepsRow?.textContent).toContain('макс. пробел 5 дн.')
   })
+
+  it('prints the median and range for a well-covered metric, and refuses one below the coverage band — in the DOM, not the model', async () => {
+    // Same fixture shape as the model/markdown-level tests (28 pre-period
+    // days shaped 44..53 -> median 48, range 46-50), but rendered through the
+    // actual print view so a hand-rolled TSX cell that regressed to a
+    // percentage would be caught here too.
+    const base = new Date()
+    const dateAt = (daysAgo: number) => {
+      const d = new Date(base)
+      d.setDate(d.getDate() - daysAgo)
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    }
+    // 28 days feeding the pre-period baseline window, then 30 days in the
+    // period: rhr fully covered and well above that range, hrv present only
+    // every fourth day so its coverage stays below the claims band.
+    const preDays: DailyMetrics[] = Array.from({ length: 28 }, (_, i) => ({
+      date: dateAt(30 + i),
+      restingHeartRate: 44 + (i % 10),
+    }))
+    const periodDays: DailyMetrics[] = Array.from({ length: 30 }, (_, i) => ({
+      date: dateAt(29 - i),
+      restingHeartRate: 60,
+      hrv: i % 4 === 0 ? 45 : undefined,
+    }))
+    const baselineDaily = [...preDays, ...periodDays]
+
+    const { container } = renderWithProviders(
+      <DoctorReport user={user} daily={baselineDaily} onClose={() => {}} />)
+    fireEvent.click(screen.getByText('30'))
+    fireEvent.click(screen.getByText(ui('Сформировать')))
+    await waitFor(() => expect(screen.getByText('Метрики за период')).toBeTruthy())
+
+    const rows = Array.from(container.querySelectorAll('table tbody tr'))
+    const rhrRow = rows.find(tr => tr.textContent?.includes('Пульс покоя'))
+    const rhrCell = rhrRow?.querySelectorAll('td')[4]
+    expect(rhrCell?.textContent).toBe('медиана 48 · 46–50 · выше диапазона')
+    expect(rhrCell?.textContent).not.toMatch(/%/)
+
+    const hrvRow = rows.find(tr => tr.textContent?.includes('HRV'))
+    const hrvCell = hrvRow?.querySelectorAll('td')[4]
+    expect(hrvCell?.textContent).toBe('данных недостаточно')
+  })
 })
