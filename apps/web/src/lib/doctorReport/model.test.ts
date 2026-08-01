@@ -18,7 +18,10 @@ const emptySources = {
 describe('buildReportModel', () => {
   it('describes the period it covers', () => {
     const m = buildReportModel({ daily, sources: emptySources, periodDays: 30, today })
-    expect(m.period).toEqual({ start: addDays(today, -29), end: today, days: 30 })
+    expect(m.period.effectiveStart).toBe(addDays(today, -29))
+    expect(m.period.end).toBe(today)
+    expect(m.period.calendarDays).toBe(30)
+    expect(m.period.emptyDays).toBe(0)
   })
 
   it('reports sleep, recovery and load but never readiness', () => {

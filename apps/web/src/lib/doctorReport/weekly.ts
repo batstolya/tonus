@@ -1,5 +1,5 @@
 import type { DailyMetrics } from '../../types'
-import { METRIC_DEFS, addDays, avg, localDate, periodSlice, periodStart, type MetricKey } from './metrics'
+import { METRIC_DEFS, addDays, avg, frameSlice, type MetricKey, type PeriodFrame } from './metrics'
 
 /** Metrics dense enough to be worth a column in the weekly table. */
 export const WEEKLY_KEYS: MetricKey[] = ['rhr', 'hrv', 'sleep', 'deep', 'rem', 'spo2', 'resp', 'steps', 'exer']
@@ -11,9 +11,9 @@ export function mondayOf(date: string): string {
 
 export interface WeekBucket { weekStart: string; rows: DailyMetrics[] }
 
-export function weekBuckets(daily: DailyMetrics[], periodDays: number, today: string = localDate()): WeekBucket[] {
+export function weekBuckets(daily: DailyMetrics[], frame: PeriodFrame): WeekBucket[] {
   const weeks = new Map<string, DailyMetrics[]>()
-  for (const d of periodSlice(daily, periodDays, today)) {
+  for (const d of frameSlice(daily, frame)) {
     const wk = mondayOf(d.date)
     weeks.set(wk, [...(weeks.get(wk) ?? []), d])
   }
@@ -28,8 +28,8 @@ export interface WeeklyRow {
   values: Partial<Record<MetricKey, number>>
 }
 
-export function weeklyRows(daily: DailyMetrics[], periodDays: number, today: string = localDate()): WeeklyRow[] {
-  return weekBuckets(daily, periodDays, today).map(({ weekStart, rows }) => {
+export function weeklyRows(daily: DailyMetrics[], frame: PeriodFrame): WeeklyRow[] {
+  return weekBuckets(daily, frame).map(({ weekStart, rows }) => {
     const values: Partial<Record<MetricKey, number>> = {}
     for (const m of METRIC_DEFS) {
       const v = rows.map(m.get).filter((x): x is number => typeof x === 'number')
@@ -53,25 +53,21 @@ export interface CoverageGap {
  */
 export function coverage(
   daily: DailyMetrics[],
-  periodDays: number,
-  today: string = localDate(),
+  frame: PeriodFrame,
 ): { gaps: CoverageGap[]; missingDates: string[] } {
-  const slice = periodSlice(daily, periodDays, today)
+  const slice = frameSlice(daily, frame)
   const gaps: CoverageGap[] = []
   for (const m of METRIC_DEFS) {
     const withData = slice.filter(d => typeof m.get(d) === 'number').length
-    if (!withData || !slice.length) continue
-    const missingPct = Math.round((1 - withData / slice.length) * 100)
+    if (!withData) continue
+    const missingPct = Math.round((1 - withData / frame.calendarDays) * 100)
     if (missingPct >= 10) {
-      gaps.push({ key: m.key, label: m.label, daysWithData: withData, daysInPeriod: slice.length, missingPct })
+      gaps.push({ key: m.key, label: m.label, daysWithData: withData, daysInPeriod: frame.calendarDays, missingPct })
     }
   }
   const have = new Set(slice.map(d => d.date))
-  const start = periodStart(periodDays, today)
   const missingDates: string[] = []
-  for (let i = 0; i < periodDays; i++) {
-    const date = addDays(start, i)
-    if (date > today) break
+  for (let date = frame.effectiveStart; date <= frame.end; date = addDays(date, 1)) {
     if (!have.has(date)) missingDates.push(date)
   }
   return { gaps, missingDates }

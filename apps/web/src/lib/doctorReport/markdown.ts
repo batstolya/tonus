@@ -29,7 +29,11 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
 
   p(`# ${t('Сводка данных здоровья')}`)
   p()
-  p(`- **${t('Период')}:** ${model.period.start} — ${model.period.end} (${model.period.days} ${t('дней')})`)
+  p(`- **${t('Период')}:** ${model.period.effectiveStart} — ${model.period.end} (${model.period.calendarDays} ${t('дней')})`)
+  p(`- **${t('Качество данных')}:** ${t('календарных дней')} ${model.period.calendarDays} · ${t('дней хотя бы с одной записью')} ${model.period.daysWithAnyRecord} · ${t('полностью пустых дней')} ${model.period.emptyDays}`)
+  if (model.period.clamped) {
+    p(`- **${t('Запрошенный период')}:** ${model.period.nominalDays} ${t('дней')}, ${t('но данные начинаются')} ${model.period.effectiveStart} — ${t('знаменатель считается от этой даты')}`)
+  }
   p(`- **${t('Сформировано')}:** ${model.period.end}`)
   p(`- **${t('Источник')}:** ${t('приложение Tonus, данные носимых устройств')}`)
   p(model.patient.age != null

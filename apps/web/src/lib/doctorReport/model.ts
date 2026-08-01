@@ -1,8 +1,8 @@
 import type { DailyMetrics } from '../../types'
 import { computeDailyScores } from '../scores'
 import {
-  avgTimeOfDay, localDate, periodSlice, periodStart, summarizeMetrics,
-  type BaselineKey, type MetricSummary,
+  avgTimeOfDay, frameSlice, localDate, periodFrame, summarizeMetrics,
+  type BaselineKey, type MetricSummary, type PeriodFrame,
 } from './metrics'
 import { WEEKLY_KEYS, coverage, weeklyRows, type CoverageGap, type WeeklyRow } from './weekly'
 import { detectDeviations, type DeviationWeek } from './deviations'
@@ -22,7 +22,7 @@ export interface ScoreSummary {
 }
 
 export interface DoctorReportModel {
-  period: { start: string; end: string; days: number }
+  period: PeriodFrame
   /** Age is coarse by design: only the birth year is stored. */
   patient: { birthYear: number | null; sex: Sex | null; age: number | null }
   scores: ScoreSummary[]
@@ -58,8 +58,8 @@ const SCORE_DEFS: { key: ScoreSummary['key']; label: string }[] = [
 export function buildReportModel({
   daily, sources, periodDays, today = localDate(), pickedConcernIds,
 }: ReportInput): DoctorReportModel {
-  const start = periodStart(periodDays, today)
-  const slice = periodSlice(daily, periodDays, today)
+  const frame = periodFrame(daily, periodDays, today)
+  const slice = frameSlice(daily, frame)
 
   const scoreRows = computeDailyScores(daily)
   const lastScore = scoreRows[scoreRows.length - 1]
@@ -70,7 +70,7 @@ export function buildReportModel({
     steps: lastScore?.steps_baseline ?? null,
   }
 
-  const inPeriod = scoreRows.filter(s => s.date >= start && s.date <= today)
+  const inPeriod = scoreRows.filter(s => s.date >= frame.start && s.date <= today)
   const third = Math.max(1, Math.floor(inPeriod.length / 3))
   const mean = (v: number[]) => v.reduce((a, b) => a + b, 0) / v.length
   const scores: ScoreSummary[] = []
@@ -92,23 +92,23 @@ export function buildReportModel({
   const birthYear = sources.profile?.birth_year ?? null
 
   return {
-    period: { start, end: today, days: periodDays },
+    period: frame,
     patient: {
       birthYear,
       sex: sources.profile?.sex ?? null,
       age: birthYear ? Number(today.slice(0, 4)) - birthYear : null,
     },
     scores,
-    metrics: summarizeMetrics(daily, periodDays, today, baselines),
+    metrics: summarizeMetrics(daily, frame, baselines),
     avgBedtime: avgTimeOfDay(slice.map(d => d.sleepBedtime).filter((v): v is string => !!v)),
     avgWakeTime: avgTimeOfDay(slice.map(d => d.sleepWakeTime).filter((v): v is string => !!v)),
-    weekly: { keys: WEEKLY_KEYS, rows: weeklyRows(daily, periodDays, today) },
+    weekly: { keys: WEEKLY_KEYS, rows: weeklyRows(daily, frame) },
     sleep: buildSleep(daily, periodDays, today),
-    coverage: coverage(daily, periodDays, today),
-    deviations: detectDeviations(daily, periodDays, today),
-    labs: buildLabs(sources.labs, start),
-    supplements: buildSupplements(sources.supplements, sources.supplementLogs, start, today),
-    concerns: buildConcerns(visibleConcerns, sources.concernLogs, start),
-    journal: buildJournal(sources.notes, start),
+    coverage: coverage(daily, frame),
+    deviations: detectDeviations(daily, frame),
+    labs: buildLabs(sources.labs, frame.effectiveStart),
+    supplements: buildSupplements(sources.supplements, sources.supplementLogs, frame.effectiveStart, today),
+    concerns: buildConcerns(visibleConcerns, sources.concernLogs, frame.effectiveStart),
+    journal: buildJournal(sources.notes, frame.effectiveStart),
   }
 }

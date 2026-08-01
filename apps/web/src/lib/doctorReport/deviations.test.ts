@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { median, mad, detectDeviations } from './deviations'
-import { addDays } from './metrics'
+import { addDays, periodFrame } from './metrics'
 import type { DailyMetrics } from '../../types'
 
 const today = '2026-07-31'
@@ -30,24 +30,25 @@ describe('detectDeviations', () => {
     const daily = fixture(i => (i >= 58 && i < 65
       ? { restingHeartRate: 69, sleepHours: 5, steps: 3000 }
       : null))
-    const weeks = detectDeviations(daily, 90, today)
+    const weeks = detectDeviations(daily, periodFrame(daily, 90, today))
     expect(weeks).toHaveLength(1)
     expect(weeks[0].items.map(x => x.key).sort()).toEqual(['rhr', 'sleep', 'steps'])
   })
 
   it('stays silent on flat data', () => {
-    expect(detectDeviations(fixture(() => null), 90, today)).toEqual([])
+    const daily = fixture(() => null)
+    expect(detectDeviations(daily, periodFrame(daily, 90, today))).toEqual([])
   })
 
   it('ignores a shift smaller than the metric threshold', () => {
     // steps 8% down: statistically lonely, practically nothing (minRel 25)
     const daily = fixture(i => (i >= 58 && i < 65 ? { steps: 8280 } : null))
-    expect(detectDeviations(daily, 90, today)).toEqual([])
+    expect(detectDeviations(daily, periodFrame(daily, 90, today))).toEqual([])
   })
 
   it('ignores weeks with fewer than five days of data', () => {
     const daily = fixture(i => (i >= 58 && i < 65 ? { restingHeartRate: 69 } : null))
       .filter(d => !(d.date >= addDays(today, -27) && d.date <= addDays(today, -24)))
-    for (const w of detectDeviations(daily, 90, today)) expect(w.days).toBeGreaterThanOrEqual(5)
+    for (const w of detectDeviations(daily, periodFrame(daily, 90, today))) expect(w.days).toBeGreaterThanOrEqual(5)
   })
 })

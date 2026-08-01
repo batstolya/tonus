@@ -1,5 +1,5 @@
 import type { DailyMetrics } from '../../types'
-import { METRIC_DEFS, avg, localDate, type MetricKey } from './metrics'
+import { METRIC_DEFS, avg, type MetricKey, type PeriodFrame } from './metrics'
 import { weekBuckets } from './weekly'
 
 export function median(v: number[]): number {
@@ -48,10 +48,9 @@ const MIN_Z = 2
  */
 export function detectDeviations(
   daily: DailyMetrics[],
-  periodDays: number,
-  today: string = localDate(),
+  frame: PeriodFrame,
 ): DeviationWeek[] {
-  const buckets = weekBuckets(daily, periodDays, today)
+  const buckets = weekBuckets(daily, frame)
   const found: (Deviation & { weekStart: string; days: number })[] = []
 
   for (const m of METRIC_DEFS) {

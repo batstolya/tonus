@@ -76,13 +76,64 @@ export function periodSlice(daily: DailyMetrics[], periodDays: number, today: st
   return daily.filter(d => d.date >= from && d.date <= today).sort((a, b) => a.date.localeCompare(b.date))
 }
 
-export function summarizeMetrics(
+export interface PeriodFrame {
+  /** Nominal start: today − periodDays + 1. */
+  start: string
+  /** Where counting begins — clamped forward to the first day with any record. */
+  effectiveStart: string
+  end: string
+  nominalDays: number
+  /** The one denominator: days from effectiveStart to end, inclusive. */
+  calendarDays: number
+  clamped: boolean
+  daysWithAnyRecord: number
+  emptyDays: number
+}
+
+export function daysBetween(from: string, to: string): number {
+  return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86400000) + 1
+}
+
+/**
+ * The denominator every coverage figure divides by. Clamped to the first day
+ * with a record: a three-month-old account asked for 365 days would otherwise
+ * report ~25% coverage on everything and be unreadable. The header prints both
+ * numbers, so the clamp is never silent.
+ */
+export function periodFrame(
   daily: DailyMetrics[],
   periodDays: number,
   today: string = localDate(),
+): PeriodFrame {
+  const start = periodStart(periodDays, today)
+  const dates = daily.filter(d => d.date >= start && d.date <= today).map(d => d.date).sort()
+  const effectiveStart = dates.length && dates[0] > start ? dates[0] : start
+  const calendarDays = daysBetween(effectiveStart, today)
+  const daysWithAnyRecord = new Set(dates.filter(d => d >= effectiveStart)).size
+  return {
+    start,
+    effectiveStart,
+    end: today,
+    nominalDays: periodDays,
+    calendarDays,
+    clamped: effectiveStart !== start,
+    daysWithAnyRecord,
+    emptyDays: calendarDays - daysWithAnyRecord,
+  }
+}
+
+export function frameSlice(daily: DailyMetrics[], frame: PeriodFrame): DailyMetrics[] {
+  return daily
+    .filter(d => d.date >= frame.effectiveStart && d.date <= frame.end)
+    .sort((a, b) => a.date.localeCompare(b.date))
+}
+
+export function summarizeMetrics(
+  daily: DailyMetrics[],
+  frame: PeriodFrame,
   baselines: Partial<Record<BaselineKey, number | null>> = {},
 ): MetricSummary[] {
-  const slice = periodSlice(daily, periodDays, today)
+  const slice = frameSlice(daily, frame)
   const out: MetricSummary[] = []
   for (const m of METRIC_DEFS) {
     const vals = slice.map(m.get).filter((v): v is number => typeof v === 'number')
@@ -98,7 +149,7 @@ export function summarizeMetrics(
       max: +Math.max(...vals).toFixed(m.digits),
       baselinePct: base != null && base > 0 ? Math.round(((a - base) / base) * 100) : null,
       daysWithData: vals.length,
-      daysInPeriod: slice.length,
+      daysInPeriod: frame.calendarDays,
     })
   }
   return out

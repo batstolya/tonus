@@ -196,8 +196,16 @@ export function DoctorReport({ user, daily, onClose }: Props) {
       <div className="dr-doc">
         <h1>{rt('Сводка данных здоровья')}</h1>
         <p className="dr-meta">
-          {rt('Период')}: {model.period.start} — {model.period.end} · {rt('Сформировано')}: {model.period.end}
+          {rt('Период')}: {model.period.effectiveStart} — {model.period.end} · {rt('Сформировано')}: {model.period.end}
         </p>
+        <p className="dr-meta">
+          {rt('Качество данных')}: {rt('календарных дней')} {model.period.calendarDays} · {rt('дней хотя бы с одной записью')} {model.period.daysWithAnyRecord} · {rt('полностью пустых дней')} {model.period.emptyDays}
+        </p>
+        {model.period.clamped && (
+          <p className="dr-meta">
+            {rt('Запрошенный период')}: {model.period.nominalDays} {rt('дней')}, {rt('но данные начинаются')} {model.period.effectiveStart} — {rt('знаменатель считается от этой даты')}
+          </p>
+        )}
         <p className="dr-meta">
           {model.patient.age != null
             ? `${rt('Пациент')}: ${rt('Возраст (по году рождения)')}: ${model.patient.age}${model.patient.sex ? ` · ${rt('Пол')}: ${rt(model.patient.sex === 'male' ? 'Мужской' : 'Женский')}` : ''}`
