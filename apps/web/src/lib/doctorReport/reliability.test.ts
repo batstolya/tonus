@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { bandOf, reliabilityOf, supportsClaims } from './reliability'
+import { bandOf, baselineOf, MIN_BASELINE_DAYS, reliabilityOf, supportsClaims } from './reliability'
 
 describe('bandOf', () => {
   it('draws the boundaries at 80, 60 and 40 percent', () => {
@@ -35,5 +35,28 @@ describe('reliabilityOf', () => {
     expect(r.coveragePct).toBe(0)
     expect(r.band).toBe('insufficient')
     expect(r.maxGap).toBe(5)
+  })
+})
+
+describe('baselineOf', () => {
+  const window = Array.from({ length: 28 }, (_, i) => 44 + (i % 10)) // 44..53
+
+  it('reports median, the usual range and where the value sits', () => {
+    const b = baselineOf(window, 50, 0)!
+    expect(b.days).toBe(28)
+    expect(b.median).toBe(48)
+    expect(b.lo).toBe(46)
+    expect(b.hi).toBe(50) // 50.25 interpolated, rounded to the metric's digits
+    expect(b.position).toBe('inside')
+  })
+
+  it('places a value past the quartiles above or below', () => {
+    expect(baselineOf(window, 60, 0)!.position).toBe('above')
+    expect(baselineOf(window, 40, 0)!.position).toBe('below')
+  })
+
+  it('refuses a baseline built on fewer than fourteen days', () => {
+    expect(MIN_BASELINE_DAYS).toBe(14)
+    expect(baselineOf(window.slice(0, 13), 50, 0)).toBeNull()
   })
 })

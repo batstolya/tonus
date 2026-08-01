@@ -78,6 +78,34 @@ describe('toMarkdown', () => {
     expect(rows.length).toBeGreaterThanOrEqual(30)
   })
 
+  it('shows a median and range for a metric with a full pre-period window, and refuses one for a metric below the coverage band', () => {
+    // 28 days before the period, feeding the baseline window — same shape the
+    // reliability.test.ts baselineOf tests use: median 48, range 46–50.
+    const preDays: DailyMetrics[] = Array.from({ length: 28 }, (_, i) => ({
+      date: addDays(today, -29 - 28 + i),
+      restingHeartRate: 44 + (i % 10),
+    }))
+    // 30 days in the period: rhr fully covered (well above the pre-period
+    // range), hrv present on only every fourth day — below the coverage band.
+    const periodDays: DailyMetrics[] = Array.from({ length: 30 }, (_, i) => ({
+      date: addDays(today, -29 + i),
+      restingHeartRate: 60,
+      hrv: i % 4 === 0 ? 45 : undefined,
+    }))
+    const m = buildReportModel({ daily: [...preDays, ...periodDays], sources, periodDays: 30, today })
+
+    const rhr = m.metrics.find(x => x.key === 'rhr')!
+    expect(rhr.baseline).toEqual({ median: 48, lo: 46, hi: 50, days: 28, position: 'above' })
+    const hrv = m.metrics.find(x => x.key === 'hrv')!
+    expect(hrv.baseline).toBeNull()
+
+    const md = toMarkdown(m, 'ru')
+    expect(md).toContain('медиана 48 · 46–50 · выше диапазона')
+    const hrvRow = md.split('\n').find(l => l.startsWith('| HRV, мс |'))
+    expect(hrvRow).toBeDefined()
+    expect(hrvRow).toContain('данных недостаточно')
+  })
+
   it('prints the reliability band and longest gap for a metric with a hole', () => {
     // Steps miss five consecutive days in the middle of the period; rhr and
     // sleep stay complete so only the steps row should carry a gap note.

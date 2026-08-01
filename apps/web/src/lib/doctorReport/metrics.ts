@@ -2,14 +2,15 @@
 // stores, so adding a metric to DailyMetrics means adding one row here.
 import type { DailyMetrics } from '../../types'
 import { addDays, daysBetween, localDate } from './dates'
-import { reliabilityOf, type Reliability } from './reliability'
+import { avg } from './math'
+import {
+  BASELINE_WINDOW_DAYS, baselineOf, reliabilityOf, supportsClaims, type Baseline, type Reliability,
+} from './reliability'
 
 export type MetricKey =
   | 'rhr' | 'hrv' | 'hrAvg' | 'hrMin' | 'hrMax' | 'walkHr' | 'spo2' | 'resp'
   | 'temp' | 'vo2' | 'sleep' | 'deep' | 'rem' | 'core' | 'steps' | 'dist'
   | 'kcal' | 'exer' | 'floors'
-
-export type BaselineKey = 'rhr' | 'hrv' | 'sleep' | 'steps'
 
 export interface MetricDef {
   key: MetricKey
@@ -19,12 +20,11 @@ export interface MetricDef {
   digits: number
   /** Minimum relative shift worth reporting as a deviation, in percent. */
   minRel: number
-  baseline?: BaselineKey
 }
 
 export const METRIC_DEFS: MetricDef[] = [
-  { key: 'rhr', label: 'Пульс покоя, уд/мин', get: d => d.restingHeartRate, digits: 0, minRel: 5, baseline: 'rhr' },
-  { key: 'hrv', label: 'HRV, мс', get: d => d.hrv, digits: 0, minRel: 12, baseline: 'hrv' },
+  { key: 'rhr', label: 'Пульс покоя, уд/мин', get: d => d.restingHeartRate, digits: 0, minRel: 5 },
+  { key: 'hrv', label: 'HRV, мс', get: d => d.hrv, digits: 0, minRel: 12 },
   { key: 'hrAvg', label: 'Пульс средний, уд/мин', get: d => d.heartRate?.avg, digits: 0, minRel: 5 },
   { key: 'hrMin', label: 'Пульс минимальный, уд/мин', get: d => d.heartRate?.min, digits: 0, minRel: 6 },
   { key: 'hrMax', label: 'Пульс максимальный, уд/мин', get: d => d.heartRate?.max, digits: 0, minRel: 8 },
@@ -33,11 +33,11 @@ export const METRIC_DEFS: MetricDef[] = [
   { key: 'resp', label: 'Частота дыхания, /мин', get: d => d.respiratoryRate, digits: 1, minRel: 8 },
   { key: 'temp', label: 'Температура запястья, °C', get: d => d.wristTemperature, digits: 2, minRel: 1 },
   { key: 'vo2', label: 'VO₂max, мл/кг/мин', get: d => d.vo2max, digits: 1, minRel: 8 },
-  { key: 'sleep', label: 'Сон общий, ч', get: d => d.sleepHours, digits: 1, minRel: 10, baseline: 'sleep' },
+  { key: 'sleep', label: 'Сон общий, ч', get: d => d.sleepHours, digits: 1, minRel: 10 },
   { key: 'deep', label: 'Глубокий сон, ч', get: d => d.sleepDeep, digits: 1, minRel: 20 },
   { key: 'rem', label: 'REM-сон, ч', get: d => d.sleepREM, digits: 1, minRel: 20 },
   { key: 'core', label: 'Лёгкий сон, ч', get: d => d.sleepCore, digits: 1, minRel: 15 },
-  { key: 'steps', label: 'Шаги', get: d => d.steps, digits: 0, minRel: 25, baseline: 'steps' },
+  { key: 'steps', label: 'Шаги', get: d => d.steps, digits: 0, minRel: 25 },
   { key: 'dist', label: 'Дистанция, км', get: d => d.distance, digits: 1, minRel: 25 },
   { key: 'kcal', label: 'Активные ккал', get: d => d.activeEnergy, digits: 0, minRel: 25 },
   { key: 'exer', label: 'Минуты упражнений', get: d => d.exerciseMinutes, digits: 0, minRel: 40 },
@@ -51,22 +51,12 @@ export interface MetricSummary {
   avg: number
   min: number
   max: number
-  /** Deviation of the period average from the personal baseline, percent. */
-  baselinePct: number | null
+  /** Median and usual range of the 28 days before the period, or null when
+   *  either the period or that window is too thin to support the claim. */
+  baseline: Baseline | null
   daysWithData: number
   daysInPeriod: number
   reliability: Reliability
-}
-
-export const avg = (v: number[]): number => v.reduce((a, b) => a + b, 0) / v.length
-
-/** Linear-interpolated quantile; p is 0..1 over the sorted values. */
-export function quantile(values: number[], p: number): number {
-  const s = [...values].sort((a, b) => a - b)
-  const i = (s.length - 1) * p
-  const lo = Math.floor(i)
-  const hi = Math.ceil(i)
-  return lo === hi ? s[lo] : s[lo] + (s[hi] - s[lo]) * (i - lo)
 }
 
 export const periodStart = (periodDays: number, today: string = localDate()): string =>
@@ -125,20 +115,21 @@ export function frameSlice(daily: DailyMetrics[], frame: PeriodFrame): DailyMetr
     .sort((a, b) => a.date.localeCompare(b.date))
 }
 
-export function summarizeMetrics(
-  daily: DailyMetrics[],
-  frame: PeriodFrame,
-  baselines: Partial<Record<BaselineKey, number | null>> = {},
-): MetricSummary[] {
+export function summarizeMetrics(daily: DailyMetrics[], frame: PeriodFrame): MetricSummary[] {
   const slice = frameSlice(daily, frame)
   const out: MetricSummary[] = []
   for (const m of METRIC_DEFS) {
     const vals = slice.map(m.get).filter((v): v is number => typeof v === 'number')
     if (!vals.length) continue
     const a = avg(vals)
-    const base = m.baseline ? baselines[m.baseline] ?? null : null
     const dates = new Set(slice.filter(d => typeof m.get(d) === 'number').map(d => d.date))
     const rel = reliabilityOf(dates, frame.effectiveStart, frame.end)
+
+    const windowStart = addDays(frame.effectiveStart, -BASELINE_WINDOW_DAYS)
+    const before = daily.filter(d => d.date >= windowStart && d.date < frame.effectiveStart)
+    const baseValues = before.map(m.get).filter((v): v is number => typeof v === 'number')
+    const baseline = supportsClaims(rel.band) ? baselineOf(baseValues, a, m.digits) : null
+
     out.push({
       key: m.key,
       label: m.label,
@@ -146,7 +137,7 @@ export function summarizeMetrics(
       avg: +a.toFixed(m.digits),
       min: +Math.min(...vals).toFixed(m.digits),
       max: +Math.max(...vals).toFixed(m.digits),
-      baselinePct: base != null && base > 0 ? Math.round(((a - base) / base) * 100) : null,
+      baseline,
       daysWithData: rel.daysWithData,
       daysInPeriod: rel.daysInPeriod,
       reliability: rel,

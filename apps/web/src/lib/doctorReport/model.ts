@@ -3,7 +3,7 @@ import { computeDailyScores } from '../scores'
 import { localDate } from './dates'
 import {
   avgTimeOfDay, frameSlice, periodFrame, summarizeMetrics,
-  type BaselineKey, type MetricSummary, type PeriodFrame,
+  type MetricSummary, type PeriodFrame,
 } from './metrics'
 import { WEEKLY_KEYS, coverage, weeklyRows, type CoverageGap, type WeeklyRow } from './weekly'
 import { detectDeviations, type DeviationWeek } from './deviations'
@@ -63,14 +63,6 @@ export function buildReportModel({
   const slice = frameSlice(daily, frame)
 
   const scoreRows = computeDailyScores(daily)
-  const lastScore = scoreRows[scoreRows.length - 1]
-  const baselines: Partial<Record<BaselineKey, number | null>> = {
-    rhr: lastScore?.rhr_baseline ?? null,
-    hrv: lastScore?.hrv_baseline ?? null,
-    sleep: lastScore?.sleep_baseline ?? null,
-    steps: lastScore?.steps_baseline ?? null,
-  }
-
   const inPeriod = scoreRows.filter(s => s.date >= frame.start && s.date <= today)
   const third = Math.max(1, Math.floor(inPeriod.length / 3))
   const mean = (v: number[]) => v.reduce((a, b) => a + b, 0) / v.length
@@ -100,7 +92,7 @@ export function buildReportModel({
       age: birthYear ? Number(today.slice(0, 4)) - birthYear : null,
     },
     scores,
-    metrics: summarizeMetrics(daily, frame, baselines),
+    metrics: summarizeMetrics(daily, frame),
     avgBedtime: avgTimeOfDay(slice.map(d => d.sleepBedtime).filter((v): v is string => !!v)),
     avgWakeTime: avgTimeOfDay(slice.map(d => d.sleepWakeTime).filter((v): v is string => !!v)),
     weekly: { keys: WEEKLY_KEYS, rows: weeklyRows(daily, frame) },

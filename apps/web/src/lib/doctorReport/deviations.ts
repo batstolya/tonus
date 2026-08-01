@@ -1,5 +1,6 @@
 import type { DailyMetrics } from '../../types'
-import { METRIC_DEFS, avg, type MetricKey, type PeriodFrame } from './metrics'
+import { avg } from './math'
+import { METRIC_DEFS, type MetricKey, type PeriodFrame } from './metrics'
 import { weekBuckets } from './weekly'
 
 export function median(v: number[]): number {

@@ -1,6 +1,6 @@
 import { translations } from '../translations'
-import { METRIC_DEFS } from './metrics'
-import { BAND_TEXT } from './reliability'
+import { METRIC_DEFS, type MetricSummary } from './metrics'
+import { BAND_TEXT, POSITION_TEXT } from './reliability'
 import type { DoctorReportModel } from './model'
 
 const STATUS_TEXT: Record<string, string> = {
@@ -11,6 +11,16 @@ const DIGITS = new Map(METRIC_DEFS.map(m => [m.key, m.digits]))
 const LABELS = new Map(METRIC_DEFS.map(m => [m.key, m.label]))
 
 const signed = (n: number, digits = 0): string => `${n > 0 ? '+' : ''}${n.toFixed(digits)}`
+
+/**
+ * Same cell in both renderers: markdown.ts and DoctorReport.tsx print this
+ * exact string for the "personal baseline" column, given the model's own
+ * translate function (t for markdown's ru/en switch, rt for the printed page).
+ */
+export const baselineCell = (m: MetricSummary, t: (key: string) => string): string =>
+  m.baseline
+    ? `${t('медиана')} ${m.baseline.median.toFixed(m.digits)} · ${m.baseline.lo.toFixed(m.digits)}–${m.baseline.hi.toFixed(m.digits)} · ${t(POSITION_TEXT[m.baseline.position])}`
+    : t('данных недостаточно')
 
 /**
  * The markdown twin of the printed page: same model, same sections, same
@@ -65,14 +75,14 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
     p()
     const rows = model.metrics.map(m => [
       t(m.label), m.avg.toFixed(m.digits), m.min.toFixed(m.digits), m.max.toFixed(m.digits),
-      m.baselinePct != null ? `${signed(m.baselinePct)}%` : dash,
+      baselineCell(m, t),
       `${m.daysWithData} ${t('из')} ${m.daysInPeriod}`,
       `${t(BAND_TEXT[m.reliability.band])}${m.reliability.maxGap > 1 ? `, ${t('макс. пробел')} ${m.reliability.maxGap} ${t('дн.')}` : ''}`,
     ])
     if (model.avgBedtime) rows.push([t('Время отбоя (среднее)'), model.avgBedtime, dash, dash, dash, dash, dash])
     if (model.avgWakeTime) rows.push([t('Время подъёма (среднее)'), model.avgWakeTime, dash, dash, dash, dash, dash])
-    table([t('Метрика'), t('Среднее'), t('Мин'), t('Макс'), t('К личной норме'), t('Дней с данными'), t('Надёжность')], rows)
-    p(t('«Личная норма» — скользящая базовая линия за 30 дней до текущего дня, расчёт приложения.'))
+    table([t('Метрика'), t('Среднее'), t('Мин'), t('Макс'), t('Личная норма (медиана и обычный диапазон)'), t('Дней с данными'), t('Надёжность')], rows)
+    p(t('«Личная норма» — медиана за 28 дней до начала периода и её межквартильный диапазон. Считается только при покрытии от 60% и минимум 14 днях в этом окне. Оценки Tonus выше используют другую базу — скользящее среднее за 30 дней.'))
     p()
   }
 

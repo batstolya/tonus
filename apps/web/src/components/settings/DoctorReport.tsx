@@ -2,7 +2,7 @@ import type { User } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
 import type { DailyMetrics } from '../../types'
 import {
-  METRIC_DEFS, buildReportModel, loadReportSources, periodStart, localDate, toMarkdown,
+  METRIC_DEFS, buildReportModel, loadReportSources, periodStart, localDate, toMarkdown, baselineCell,
   BAND_TEXT, type DoctorReportModel, type ReportSources,
 } from '../../lib/doctorReport'
 import { isUnlocked } from '../../lib/privacy'
@@ -238,7 +238,7 @@ export function DoctorReport({ user, daily, onClose }: Props) {
             <table>
               <thead><tr>
                 <th>{rt('Метрика')}</th><th>{rt('Среднее')}</th><th>{rt('Мин')}</th>
-                <th>{rt('Макс')}</th><th>{rt('К личной норме')}</th><th>{rt('Дней с данными')}</th>
+                <th>{rt('Макс')}</th><th>{rt('Личная норма (медиана и обычный диапазон)')}</th><th>{rt('Дней с данными')}</th>
                 <th>{rt('Надёжность')}</th>
               </tr></thead>
               <tbody>
@@ -248,7 +248,7 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                     <td>{m.avg.toFixed(m.digits)}</td>
                     <td>{m.min.toFixed(m.digits)}</td>
                     <td>{m.max.toFixed(m.digits)}</td>
-                    <td>{m.baselinePct != null ? `${signed(m.baselinePct)}%` : dash}</td>
+                    <td>{baselineCell(m, rt)}</td>
                     <td>{m.daysWithData} {rt('из')} {m.daysInPeriod}</td>
                     <td>
                       {rt(BAND_TEXT[m.reliability.band])}
@@ -266,7 +266,7 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                 )}
               </tbody>
             </table>
-            <p className="dr-note">{rt('«Личная норма» — скользящая базовая линия за 30 дней до текущего дня, расчёт приложения.')}</p>
+            <p className="dr-note">{rt('«Личная норма» — медиана за 28 дней до начала периода и её межквартильный диапазон. Считается только при покрытии от 60% и минимум 14 днях в этом окне. Оценки Tonus выше используют другую базу — скользящее среднее за 30 дней.')}</p>
 
             {weekly.rows.length > 1 && (
               <>

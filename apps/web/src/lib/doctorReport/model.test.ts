@@ -53,6 +53,14 @@ describe('buildReportModel', () => {
     expect(m.patient).toEqual({ birthYear: null, sex: null, age: null })
   })
 
+  it('prints no baseline comparison for a metric below the coverage band', () => {
+    const sparse = daily.map((d, i) => (i % 4 === 0 ? d : { ...d, hrv: undefined }))
+    const m = buildReportModel({ daily: sparse, sources: emptySources, periodDays: 30, today })
+    const hrv = m.metrics.find(x => x.key === 'hrv')!
+    expect(hrv.daysWithData).toBeGreaterThan(0)
+    expect(hrv.baseline).toBeNull()
+  })
+
   it('excludes private concerns even when they are passed in', () => {
     const m = buildReportModel({
       daily,

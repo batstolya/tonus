@@ -1,6 +1,7 @@
 import type { DailyMetrics } from '../../types'
 import { addDays } from './dates'
-import { METRIC_DEFS, avg, frameSlice, type MetricKey, type PeriodFrame } from './metrics'
+import { avg } from './math'
+import { METRIC_DEFS, frameSlice, type MetricKey, type PeriodFrame } from './metrics'
 
 /** Metrics dense enough to be worth a column in the weekly table. */
 export const WEEKLY_KEYS: MetricKey[] = ['rhr', 'hrv', 'sleep', 'deep', 'rem', 'spo2', 'resp', 'steps', 'exer']

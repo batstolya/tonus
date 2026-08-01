@@ -1,4 +1,5 @@
 import { addDays } from './dates'
+import { quantile } from './math'
 
 // How much of the period a metric covers, and what that permits the report to
 // say. Measured values print at every band; only derived claims are gated.
@@ -41,4 +42,41 @@ export function reliabilityOf(datesWithValue: Set<string>, start: string, end: s
 
 export const BAND_TEXT: Record<Band, string> = {
   high: 'высокая', medium: 'средняя', low: 'низкая', insufficient: 'недостаточная',
+}
+
+/** Days before the period start the baseline is built from. */
+export const BASELINE_WINDOW_DAYS = 28
+/** Values that window must hold before the comparison is printed at all. */
+export const MIN_BASELINE_DAYS = 14
+
+export interface Baseline {
+  median: number
+  /** 25th and 75th percentile of the same window — the usual spread. */
+  lo: number
+  hi: number
+  days: number
+  position: 'inside' | 'above' | 'below'
+}
+
+/**
+ * A median and a range, not a percentage: +4% on a resting heart rate of 48 is
+ * two beats and noise, the same +4% on HRV is not. A range says which one the
+ * reader is looking at.
+ */
+export function baselineOf(values: number[], current: number, digits: number): Baseline | null {
+  if (values.length < MIN_BASELINE_DAYS) return null
+  const round = (n: number) => +n.toFixed(digits)
+  const lo = round(quantile(values, 0.25))
+  const hi = round(quantile(values, 0.75))
+  return {
+    median: round(quantile(values, 0.5)),
+    lo,
+    hi,
+    days: values.length,
+    position: current > hi ? 'above' : current < lo ? 'below' : 'inside',
+  }
+}
+
+export const POSITION_TEXT: Record<Baseline['position'], string> = {
+  inside: 'внутри диапазона', above: 'выше диапазона', below: 'ниже диапазона',
 }
