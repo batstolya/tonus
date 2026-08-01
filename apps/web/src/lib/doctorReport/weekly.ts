@@ -4,6 +4,9 @@ import { METRIC_DEFS, addDays, avg, frameSlice, type MetricKey, type PeriodFrame
 /** Metrics dense enough to be worth a column in the weekly table. */
 export const WEEKLY_KEYS: MetricKey[] = ['rhr', 'hrv', 'sleep', 'deep', 'rem', 'spo2', 'resp', 'steps', 'exer']
 
+/** Days of a metric a week needs before its mean is printed as a weekly value. */
+export const MIN_WEEK_DAYS = 3
+
 export function mondayOf(date: string): string {
   const d = new Date(date + 'T00:00:00Z')
   return addDays(date, -((d.getUTCDay() + 6) % 7))
@@ -33,7 +36,7 @@ export function weeklyRows(daily: DailyMetrics[], frame: PeriodFrame): WeeklyRow
     const values: Partial<Record<MetricKey, number>> = {}
     for (const m of METRIC_DEFS) {
       const v = rows.map(m.get).filter((x): x is number => typeof x === 'number')
-      if (v.length) values[m.key] = +avg(v).toFixed(m.digits)
+      if (v.length >= MIN_WEEK_DAYS) values[m.key] = +avg(v).toFixed(m.digits)
     }
     return { weekStart, days: rows.length, values }
   })

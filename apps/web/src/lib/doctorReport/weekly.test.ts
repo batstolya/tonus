@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { mondayOf, weeklyRows, coverage } from './weekly'
+import { MIN_WEEK_DAYS, mondayOf, weeklyRows, coverage } from './weekly'
 import { addDays, periodFrame } from './metrics'
 import type { DailyMetrics } from '../../types'
 
@@ -18,13 +18,26 @@ describe('weeklyRows', () => {
     const daily = [
       day('2026-07-27', { restingHeartRate: 58, steps: 8000 }),
       day('2026-07-28', { restingHeartRate: 62, steps: 10000 }),
+      day('2026-07-29', { restingHeartRate: 60, steps: 11000 }),
     ]
     const rows = weeklyRows(daily, periodFrame(daily, 30, today))
     expect(rows).toHaveLength(1)
     expect(rows[0].weekStart).toBe('2026-07-27')
-    expect(rows[0].days).toBe(2)
+    expect(rows[0].days).toBe(3)
     expect(rows[0].values.rhr).toBe(60)
-    expect(rows[0].values.steps).toBe(9000)
+    expect(rows[0].values.steps).toBe(9667)
+  })
+
+  it('leaves a weekly cell empty below three days of that metric', () => {
+    const daily = [
+      { date: '2026-07-27', hrv: 40 },
+      { date: '2026-07-28', hrv: 60 },
+      { date: '2026-07-29', steps: 9000 },
+    ]
+    const rows = weeklyRows(daily, periodFrame(daily, 30, '2026-07-31'))
+    expect(MIN_WEEK_DAYS).toBe(3)
+    expect(rows[0].values.hrv).toBeUndefined()
+    expect(rows[0].days).toBe(3)
   })
 })
 
