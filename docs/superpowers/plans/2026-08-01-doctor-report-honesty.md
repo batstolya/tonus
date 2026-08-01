@@ -1545,7 +1545,154 @@ git commit -m "docs(report): name the data the app holds but the report omits"
 
 ---
 
-### Task 11: Whole-suite verification
+### Task 11: Sleep phases that do not add up, and two labels that overpromise
+
+Added from a second external review (spec §12). On 2026-07-25 the report prints
+9.1 hours of sleep with 1.8 deep, 2.1 REM and 2.4 core — 2.8 hours vanish, and
+the section text claims the shares are arithmetic over the total. Nights that
+arrive through `_shared/hae.ts` carry four independent numbers that reconcile
+with nothing.
+
+**Files:**
+- Modify: `apps/web/src/lib/doctorReport/sleep.ts`
+- Modify: `apps/web/src/lib/doctorReport/markdown.ts`, `apps/web/src/components/settings/DoctorReport.tsx`
+- Modify: `apps/web/src/lib/translations/settings.ts`
+- Test: `apps/web/src/lib/doctorReport/sleep.test.ts`, `markdown.test.ts`, and the printed-DOM test file
+
+**Interfaces:**
+- Consumes: `SleepNight`, `SleepSection`, `isDaytimeEpisode` (Task 6).
+- Produces: `SleepNight.unclassified: number | null` and
+  `SleepSection.phaseCoveragePct: number | null`.
+
+- [ ] **Step 1: Write the failing tests**
+
+```ts
+it('shows the sleep time no phase accounts for', () => {
+  const daily: DailyMetrics[] = [{
+    date: '2026-07-25', sleepHours: 9.1, sleepDeep: 1.8, sleepREM: 2.1, sleepCore: 2.4,
+    sleepBedtime: '2026-07-25T01:00:00',
+  }]
+  const s = buildSleep(daily, periodFrame(daily, 30, '2026-07-31'))!
+  expect(s.nights[0].unclassified).toBe(2.8)
+  expect(s.phaseCoveragePct).toBe(69) // 6.3 of 9.1
+})
+
+it('leaves unclassified null when the source reported no phases at all', () => {
+  const daily: DailyMetrics[] = [{ date: '2026-07-25', sleepHours: 7 }]
+  const s = buildSleep(daily, periodFrame(daily, 30, '2026-07-31'))!
+  expect(s.nights[0].unclassified).toBeNull()
+  expect(s.phaseCoveragePct).toBeNull()
+})
+
+it('never reports negative unclassified time when phases overshoot', () => {
+  const daily: DailyMetrics[] = [{
+    date: '2026-07-25', sleepHours: 6, sleepDeep: 3, sleepREM: 3, sleepCore: 1,
+  }]
+  const s = buildSleep(daily, periodFrame(daily, 30, '2026-07-31'))!
+  expect(s.nights[0].unclassified).toBe(0)
+})
+```
+
+- [ ] **Step 2: Run them and watch them fail**
+
+Run: `npm test -w tonus-web -- src/lib/doctorReport/sleep.test.ts`
+Expected: FAIL — `unclassified` is undefined.
+
+- [ ] **Step 3: Implement in `sleep.ts`**
+
+```ts
+/**
+ * Sleep the source did not attribute to any phase. The XML importer derives
+ * the total from the same intervals as the phases, so its arithmetic closes;
+ * `_shared/hae.ts` copies four independent numbers from Health Auto Export and
+ * reconciles nothing, so an auto-synced night can leave hours unexplained.
+ * Printing the remainder is the only way the four columns add up on the page.
+ */
+const unclassifiedHours = (d: DailyMetrics, total: number): number | null => {
+  const parts = [d.sleepDeep, d.sleepREM, d.sleepCore].filter((v): v is number => v != null)
+  if (!parts.length) return null
+  const classified = parts.reduce((a, b) => a + b, 0)
+  return +Math.max(0, total - classified).toFixed(1)
+}
+```
+
+`phaseCoveragePct` is computed over the nights (daytime episodes excluded) that
+report at least one phase: the summed classified hours divided by those nights'
+summed total, rounded; `null` when no night reports a phase.
+
+Phase percentages stay shares of the whole night. With the remainder printed as
+its own column the four values close to 100% on the page, and no number already
+in the report changes meaning.
+
+- [ ] **Step 4: Run the tests**
+
+Run: `npm test -w tonus-web -- src/lib/doctorReport/sleep.test.ts`
+Expected: PASS.
+
+- [ ] **Step 5: Render the column and the coverage line**
+
+Both renderers: the sleep table gains a `t('Не классифицировано, ч')` column
+after `t('Лёгкий, ч')`, printing a dash when `unclassified` is null. When
+`phaseCoveragePct` is not null, the section's closing notes gain:
+
+```
+Разложено по фазам: {phaseCoveragePct}% измеренного ночного сна. Остальное
+время источник записал как сон, но не отнёс ни к одной фазе.
+```
+
+Replace the existing sentence «доли фаз — арифметика от них же, производных
+показателей нет» with «доли фаз считаются от общего сна за ночь; время, не
+отнесённое ни к одной фазе, показано отдельной колонкой» — the old wording
+promises the arithmetic closes.
+
+- [ ] **Step 6: Fix the two labels that overpromise**
+
+In both renderers, the supplements table header `t('Соблюдение в периоде')`
+becomes `t('Доля дней с отметкой')`, and the note under it becomes:
+
+```
+Показана доля дней с отметкой о приёме, считая от первого отмеченного приёма
+внутри периода. Отсутствие отметки не означает, что приём не состоялся.
+```
+
+In the header, after the source bullet, add:
+
+```
+Из Apple Health импортируются 14 показателей: шаги, дистанция, активные
+калории, минуты упражнений, этажи, пульс (средний, покоя, при ходьбе), HRV,
+SpO₂, частота дыхания, температура запястья, VO₂max и сон. Тренировки, события
+пульса, ЭКГ и метрики походки не импортируются.
+```
+
+- [ ] **Step 7: Add the translation keys**
+
+Every string above needs an entry with both `uk` and `en` in the
+`// ── Doctor report v2` block, and the replaced keys deleted after grepping
+that nothing else references them. Keep the key list in
+`apps/web/src/components/settings/DoctorReport.test.ts` in step.
+
+- [ ] **Step 8: Add the rendered-output assertions**
+
+`markdown.test.ts`: the 9.1-hour fixture renders `2.8` in its night row and the
+«Разложено по фазам: 69%» line. The printed-DOM test file: the same night shows
+the same unclassified value, and the supplements header reads «Доля дней с
+отметкой».
+
+- [ ] **Step 9: Run the suite, the lint and the build**
+
+Run: `npm test -w tonus-web && npm run lint && npm run build`
+Expected: PASS.
+
+- [ ] **Step 10: Commit**
+
+```bash
+git add apps/web/src
+git commit -m "fix(report): print the sleep no phase accounts for, and stop calling ticks adherence"
+```
+
+---
+
+### Task 12: Whole-suite verification
 
 **Files:** none — this task only runs and reports.
 

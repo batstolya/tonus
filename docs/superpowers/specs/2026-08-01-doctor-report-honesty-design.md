@@ -239,7 +239,44 @@ metric prints its values and no baseline comparison), `DoctorReport.test.tsx`
 11. The closing block names the intake data the app holds but the report omits.
 12. Demo mode renders every section, including the damaged fixture.
 
-## 12. The queue behind this
+## 12. Added after a second review
+
+A second external review of the same report, read on 2026-08-01 while this
+design was being implemented, found one defect of the same class as the labs
+verdict and two labels that overpromise. All three are in scope here because
+they are the same failure: printing something that looks complete without
+saying what is missing from it.
+
+**Sleep phases do not add up.** On 2026-07-25 the report shows 9.1 hours of
+sleep with 1.8 deep, 2.1 REM and 2.4 core — 2.8 hours unaccounted for, printed
+as if the breakdown were complete. Worse, §3.5 of the v2 design asserts "phase
+shares are arithmetic over them", which reads as a guarantee that they close.
+The cause is the ingest path: the XML importer derives the total as the union
+of the same intervals it derives the phases from, so its arithmetic closes by
+construction, but `_shared/hae.ts` copies `totalSleep`, `deep`, `rem` and
+`core` from Health Auto Export as four independent numbers and reconciles
+nothing. Nights that arrived by auto-sync can therefore leave a gap.
+
+The report gains an **«не классифицировано»** column — total minus the phases
+that were reported — and a line stating what share of measured night sleep
+carries a phase breakdown at all. Phase percentages stay shares of the whole
+night rather than of classified time: with the remainder now printed as its own
+column, the four values close to 100% visibly, and no existing number changes
+meaning.
+
+**"Соблюдение 13%" is not adherence.** Six ticks over 48 days proves the
+patient ticked six times, not that they took the supplement six times. The
+column becomes «Доля дней с отметкой» and the note says what the number can and
+cannot show.
+
+**The report never names what it imports.** "Данные носимых устройств" invites
+a reader — human or model — to assume a complete Apple Health export. The
+header now lists the fourteen metric types the app actually requests and names
+the notable types it does not: workouts, heart-rate events, ECG, gait metrics.
+The second reviewer read the gaps as a broken import; they are a deliberate
+subset, and only the report can say so.
+
+## 13. The queue behind this
 
 Ordered by value against cost, to be specced separately:
 
