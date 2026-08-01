@@ -83,7 +83,7 @@ describe('computeReadiness', () => {
 
 function make(partial: Partial<ReadinessScore>): ReadinessScore {
   return {
-    score: 0, label: 'Средняя', color: '',
+    score: 0, label: 'Средняя', color: '', fill: '',
     components: { hrv: null, rhr: null, sleep: null },
     baseline: { hrv: null, rhr: null, sleep: null },
     today: { hrv: null, rhr: null, sleep: null },

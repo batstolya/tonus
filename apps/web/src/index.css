@@ -19,6 +19,9 @@
   --ok: #5bc896;
   --warn: #ffd166;
   --bad: #ff6b6b;
+  --ok-fill: var(--ok);
+  --warn-fill: var(--warn);
+  --bad-fill: var(--bad);
   --green: var(--ok);
   --red: var(--bad);
   --yellow: var(--warn);
@@ -65,6 +68,12 @@
   --ok: #3FA68A;
   --warn: #E08A3C;
   --bad: #E36A64;
+  /* -fill variants: bare fills (progress bars) carry no text, so they are
+     free of the 4.5:1 contrast floor that binds --ok/--warn/--bad. In dark
+     theme the text tokens are already bright enough to double as fills. */
+  --ok-fill: #3FA68A;
+  --warn-fill: #E08A3C;
+  --bad-fill: #E36A64;
   --green: var(--ok);
   --red: var(--bad);
   --yellow: var(--warn);
@@ -95,6 +104,9 @@
   --ok: #27735F;
   --warn: #96521A;
   --bad: #C2403C;
+  --ok-fill: #3FA68A;
+  --warn-fill: #E0A33E;
+  --bad-fill: #E36A64;
   --green: var(--ok);
   --red: var(--bad);
   --yellow: var(--warn);
@@ -2200,7 +2212,7 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
   height: 4px; background: var(--surface2); border-radius: var(--r-inner); overflow: hidden;
 }
 .streak-menu-today-fill {
-  height: 100%; background: var(--ok); border-radius: var(--r-inner); transition: width 0.4s ease-out;
+  height: 100%; background: var(--ok-fill); border-radius: var(--r-inner); transition: width 0.4s ease-out;
 }
 .streak-menu-close {
   width: 24px; height: 24px; display: grid; place-items: center;

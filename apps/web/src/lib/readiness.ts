@@ -3,7 +3,8 @@ import type { DailyMetrics } from '../types'
 export interface ReadinessScore {
   score: number        // 0-100
   label: string        // 'Отличная' | 'Хорошая' | 'Средняя' | 'Низкая'
-  color: string
+  color: string         // text-safe (4.5:1 on surface): sublabel only
+  fill: string          // bright variant for bare fills (bars): no text on it, no contrast floor
   components: {
     hrv: number | null      // 0-40
     rhr: number | null      // 0-30
@@ -84,11 +85,13 @@ export function computeReadiness(daily: DailyMetrics[]): ReadinessScore | null {
 
   const label = score >= 80 ? 'Отличная' : score >= 60 ? 'Хорошая' : score >= 40 ? 'Средняя' : 'Низкая'
   const color = score >= 80 ? 'var(--green)' : score >= 60 ? 'var(--yellow)' : 'var(--red)'
+  const fill = score >= 80 ? 'var(--ok-fill)' : score >= 60 ? 'var(--warn-fill)' : 'var(--bad-fill)'
 
   return {
     score,
     label,
     color,
+    fill,
     components,
     baseline: { hrv: baseHRV, rhr: baseRHR, sleep: baseSleep },
     today: { hrv: recentHRV, rhr: recentRHR, sleep: recentSleep },

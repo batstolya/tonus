@@ -132,6 +132,9 @@ still lives on the sublabel underneath it and on the three progress bars.
 | `--ok` | `#3FA68A` | 6.15 on bg, 5.68 on surface |
 | `--warn` | `#E08A3C` | 6.88 on bg, 6.36 on surface |
 | `--bad` | `#E36A64` | 5.26 on surface |
+| `--ok-fill` | `#3FA68A` | fill only, no contrast floor — see "Fill tokens" below |
+| `--warn-fill` | `#E08A3C` | fill only |
+| `--bad-fill` | `#E36A64` | fill only |
 
 **Light (`[data-theme="light"] .app`)**
 
@@ -149,6 +152,9 @@ still lives on the sublabel underneath it and on the three progress bars.
 | `--ok` | `#27735F` | 5.67 on surface |
 | `--warn` | `#96521A` | 5.97 on surface |
 | `--bad` | `#C2403C` | 5.13 on surface |
+| `--ok-fill` | `#3FA68A` | fill only, no contrast floor — see "Fill tokens" below |
+| `--warn-fill` | `#E0A33E` | fill only — marginally lighter than dark's `--warn-fill` |
+| `--bad-fill` | `#E36A64` | fill only |
 
 Every ratio above was computed against WCAG 2.1 relative luminance and clears
 4.5:1 for text use. Two consequences worth stating explicitly:
@@ -172,6 +178,33 @@ Every ratio above was computed against WCAG 2.1 relative luminance and clears
 so that ~200 existing references keep working untouched. New and migrated
 code uses the role names. The old names are removed only when the last
 reference is gone — not in this pass.
+
+**Fill tokens.** `--ok` / `--warn` / `--bad` are used two ways at once: as
+text (the readiness sublabel, warning copy) and as fills (the readiness
+progress bars, the streak today-bar). Text on white must clear 4.5:1, which
+is exactly what forces light theme's `--warn` down to `#96521A` — an
+accessible amber is necessarily brown once it has to serve as text. A bar
+carries no text and has no contrast requirement, so it was paying a tax it
+didn't owe: the same brown that reads fine as a small label reads as dead
+weight across a whole progress track.
+
+Each role therefore gets a second token — `--ok-fill` / `--warn-fill` /
+`--bad-fill` — reserved for surfaces that carry no text. In dark theme these
+equal the existing text tokens (already bright enough to double as fills).
+In light theme they diverge: light and dark converge on essentially one
+bright set of fills (`--warn-fill` is `#E0A33E` in light vs `#E08A3C` in
+dark — marginally lighter, chosen by eye, otherwise identical), while the
+text tokens stay theme-specific and dark-in-light. `:root` defaults each
+`-fill` token to `var(--ok)` / `var(--warn)` / `var(--bad)`, so nothing
+outside `.app` changes.
+
+The split is applied narrowly: only to fills with nothing rendered on top of
+them (the three readiness bars, `.streak-menu-today-fill`). Filled surfaces
+that carry a label — `.activity-cal-cell.status-active`,
+`.activity-cal-week.done`, `.bell-badge`, `.coach-focus-btn.done`,
+`.empty-state-cta` — stay on the text-safe tokens, because `--on-ok` is
+white and white on `--ok-fill` (`#3FA68A`) measures 2.99:1, a contrast
+failure.
 
 ### Radius: contrast system
 

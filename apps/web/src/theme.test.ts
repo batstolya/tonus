@@ -113,6 +113,23 @@ describe('role tokens', () => {
       expect(scope['--yellow']).toBe('var(--warn)')
     }
   })
+
+  it('defaults the -fill tokens to their text counterpart in :root, unchanged outside .app', () => {
+    expect(rootTokens['--ok-fill']).toBe('var(--ok)')
+    expect(rootTokens['--warn-fill']).toBe('var(--warn)')
+    expect(rootTokens['--bad-fill']).toBe('var(--bad)')
+  })
+
+  it('converges dark and light .app on one bright set of -fill values', () => {
+    // The point of the split: unlike --warn (which must go brown in light
+    // theme to stay text-safe), --warn-fill carries no text and both themes
+    // land on (almost) the same bright amber.
+    expect(appDark['--ok-fill']).toBe(appLight['--ok-fill'])
+    expect(appDark['--bad-fill']).toBe(appLight['--bad-fill'])
+    expect(appDark['--warn-fill']).toBe('#E08A3C')
+    expect(appLight['--warn-fill']).toBe('#E0A33E')
+    expect(appDark['--warn-fill']).not.toBe(appLight['--warn-fill'])
+  })
 })
 
 describe.each([
@@ -238,6 +255,10 @@ describe('gamified home surfaces use tokens', () => {
       expect(decls).toMatch(new RegExp(`color:\\s*var\\(${onToken}\\)`))
       expect(decls).not.toMatch(/#fff/)
     }
+  })
+
+  it('the streak today-bar is a bare fill with nothing on it, so it uses --ok-fill not --ok', () => {
+    expect(rule(css, '.streak-menu-today-fill')).toMatch(/background:\s*var\(--ok-fill\)/)
   })
 
   it('bell-item level tints keep their percentages when moved onto role tokens', () => {
