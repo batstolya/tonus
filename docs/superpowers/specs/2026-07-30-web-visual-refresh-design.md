@@ -3,8 +3,10 @@
 **Date:** 2026-07-30
 **Status:** Design approved, pending spec review
 **Updated:** 2026-08-02 — the brass accent shipped, was seen live, and was
-rejected. The accent is now graphite; see "Palette" below for what changed
-and why, kept alongside the original brass reasoning rather than written over
+rejected. It was replaced with graphite, which also shipped, was seen live,
+and was found too harsh (pure near-black). The accent is now a dark pine
+green; see "Palette" below for what changed and why at each step, kept
+alongside the earlier brass and graphite reasoning rather than written over
 it.
 
 ## Problem
@@ -29,9 +31,10 @@ than roles. Any palette change makes those names lie.
 
 ## Goals
 
-1. A deliberate palette — "night indigo + graphite" (shipped first as
-   "night indigo + brass", replaced after live review — see "Palette" below)
-   — applied to the authed web app, with verified contrast in both themes.
+1. A deliberate palette — "night indigo + pine" (shipped first as
+   "night indigo + brass", then "night indigo + graphite", each replaced
+   after live review — see "Palette" below) — applied to the authed web app,
+   with verified contrast in both themes.
 2. A radius system of three tokens with an intentional contrast between
    surfaces and controls, replacing ad-hoc per-rule values.
 3. Role-named semantic tokens (`--ok` / `--warn` / `--bad`) with the old
@@ -88,7 +91,7 @@ renders byte-identically before and after.
 When the landing is eventually brought along, the `.app` block moves to
 `:root` and the defaults are deleted.
 
-### Palette: night indigo + graphite
+### Palette: night indigo + pine
 
 **Originally shipped as "night indigo + brass."** The reasoning that picked
 brass is kept below verbatim, because it was the real reasoning at the time —
@@ -109,12 +112,24 @@ different hue" (a cooler accent has the same problem in reverse against
 "ok"); it's that any *hued* accent competes with the three status colors by
 construction, however far apart on the wheel it starts.
 
-**The accent became graphite** — near-black in light theme, near-white in
-dark theme — so colour is reserved for status indicators alone. Everything
-that used to be "coloured because it's a control" (buttons, the wordmark,
-active tabs) is ink now instead. The readiness-score number itself was moved
-off `r.color` for the same reason and now inherits `--text`; its band colour
-still lives on the sublabel underneath it and on the three progress bars.
+**The accent then became graphite** — near-black in light theme, near-white
+in dark theme — so colour was reserved for status indicators alone.
+Everything that used to be "coloured because it's a control" (buttons, the
+wordmark, active tabs) became ink instead. The readiness-score number itself
+was moved off `r.color` for the same reason and now inherits `--text`; its
+band colour still lives on the sublabel underneath it and on the three
+progress bars.
+
+Graphite shipped, was seen live, and was also rejected: pure near-black read
+as too harsh once it was on screen rather than in a swatch. **The accent is
+now a dark pine green** — `#24443B` in light theme, `#D3E6DD` in dark — which
+keeps the ink idea graphite established (a dark fill with a white label, or a
+pale fill with a near-black label) but carries a green undertone instead of
+being hueless. The "reserve colour for status" argument that motivated
+graphite still mostly holds: pine is dark/desaturated enough that it doesn't
+compete with the status trio the way brass did, though it does sit in the
+same hue family as `--ok` (see "Accent/ok adjacency" below) — a tradeoff
+made knowingly, not a defect.
 
 **Dark (`.app`)**
 
@@ -126,9 +141,9 @@ still lives on the sublabel underneath it and on the three progress bars.
 | `--border` | `#2A3247` | 1.44 on bg (decorative) |
 | `--text` | `#E6E9F2` | 15.13 on bg |
 | `--text-muted` | `#8B93AB` | 6.00 on bg, 5.54 on surface |
-| `--accent` | `#E6E9F2` | 13.97 as text on surface |
-| `--accent-text` | `#E6E9F2` | same as `--accent` in dark |
-| `--on-accent` | `#0F1422` | 15.13 on accent fill |
+| `--accent` | `#D3E6DD` | 13.03 as text on surface |
+| `--accent-text` | `#D3E6DD` | same as `--accent` in dark |
+| `--on-accent` | `#0F1422` | 14.11 on accent fill |
 | `--ok` | `#3FA68A` | 6.15 on bg, 5.68 on surface |
 | `--warn` | `#E08A3C` | 6.88 on bg, 6.36 on surface |
 | `--bad` | `#E36A64` | 5.26 on surface |
@@ -146,9 +161,9 @@ still lives on the sublabel underneath it and on the three progress bars.
 | `--border` | `#E2E5EE` | decorative |
 | `--text` | `#141826` | 16.22 on bg |
 | `--text-muted` | `#5D667F` | 5.72 on surface |
-| `--accent` | `#232936` | 14.56 as text on surface |
-| `--on-accent` | `#FFFFFF` | 14.56 on accent fill |
-| `--accent-text` | `#232936` | same as `--accent` — graphite is dark enough to serve as both |
+| `--accent` | `#24443B` | 10.69 as text on surface |
+| `--on-accent` | `#FFFFFF` | 10.69 on accent fill |
+| `--accent-text` | `#24443B` | same as `--accent` — pine is dark enough to serve as both |
 | `--ok` | `#27735F` | 5.67 on surface |
 | `--warn` | `#96521A` | 5.97 on surface |
 | `--bad` | `#C2403C` | 5.13 on surface |
@@ -168,10 +183,10 @@ Every ratio above was computed against WCAG 2.1 relative luminance and clears
 - **`--accent-text` was a separate value in light theme only while the
   accent was brass.** The brass *fill* (`#B08A15`) was too light to sit on
   white as text (3.23:1), so accent-colored text and links needed their own
-  darker value there. Graphite doesn't have that problem — `#232936` clears
-  14.56:1 as both a fill and as text — so `--accent-text` is `var(--accent)`
-  in both themes now. The token itself stays (call sites still reference it),
-  it's just no longer aliasing to a distinct literal.
+  darker value there. Neither graphite nor pine has that problem — pine's
+  `#24443B` clears 10.69:1 as both a fill and as text — so `--accent-text` is
+  `var(--accent)` in both themes now. The token itself stays (call sites
+  still reference it), it's just no longer aliasing to a distinct literal.
 
 **Role aliases.** `--ok` / `--warn` / `--bad` are the real tokens;
 `--green: var(--ok)`, `--red: var(--bad)`, `--yellow: var(--warn)` are kept
@@ -205,6 +220,34 @@ that carry a label — `.activity-cal-cell.status-active`,
 `.empty-state-cta` — stay on the text-safe tokens, because `--on-ok` is
 white and white on `--ok-fill` (`#3FA68A`) measures 2.99:1, a contrast
 failure.
+
+### Accent/ok adjacency
+
+Pine sits in the same hue family as `--ok` (measured distinguishability:
+1.88 in light, 2.29 in dark — distinct, but related). This was surfaced
+during the pine change and accepted deliberately rather than treated as a
+defect: a survey of `index.css` for spots where an accent-colored element and
+an `--ok`/`--green`-colored element render close enough to be confused found
+several, all pre-existing structure rather than something the color change
+introduced:
+
+- `.activity-cal-cell` can carry `status-active` (an `--ok` fill) and
+  `is-today` (an accent outline) on the *same* cell at once
+  (`ActivityCalendar.tsx`) — the accent ring is drawn directly on top of the
+  green fill.
+- `.supp-cell` can likewise carry `taken` (green day-number) and `today`
+  (accent border) simultaneously (`SupplementsScreen.tsx`).
+- `AiAnalysisBlock` stacks three section-label pills back to back — "good"
+  (green), "improve" (red), "focus" (accent) — in the same card.
+- `.coach-focus-card` pairs an accent-text heading with a button that turns
+  `--ok`-filled once the day's focus is marked done, both in one card.
+- `ExperimentCard` gives an active experiment an accent hero border and an
+  accent status badge, while a finished experiment two cards down in the
+  same list shows its effect size in `--green` via `.expc-good`.
+
+None of these are being changed as part of this pass; they are noted here so
+the adjacency is a documented, intentional tradeoff rather than something the
+next palette pass rediscovers from scratch.
 
 ### Radius: contrast system
 

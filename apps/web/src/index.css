@@ -59,7 +59,7 @@
   --border: #2A3247;
   --text: #E6E9F2;
   --text-muted: #8B93AB;
-  --accent: #E6E9F2;
+  --accent: #D3E6DD;
   --accent-text: var(--accent);
   --accent-border: color-mix(in srgb, var(--accent) 45%, var(--border));
   --on-accent: #0F1422;
@@ -92,10 +92,11 @@
   --border: #E2E5EE;
   --text: #141826;
   --text-muted: #5D667F;
-  --accent: #232936;
-  /* Graphite is dark enough to double as its own text colour, unlike the
-     brass fill it replaced (which needed a separate darker value to read on
-     white). */
+  --accent: #24443B;
+  /* Dark pine green, not near-black: the same "ink" idea graphite carried
+     (a dark fill with a white label), with a green undertone the user asked
+     for after seeing graphite live. Still dark enough to double as its own
+     text colour, so no separate --accent-text value is needed. */
   --accent-text: var(--accent);
   --accent-border: color-mix(in srgb, var(--accent) 45%, var(--border));
   --on-accent: #FFFFFF;
