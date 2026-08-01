@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import type { DailyMetrics } from '../../types'
 import {
   METRIC_DEFS, buildReportModel, loadReportSources, periodStart, localDate, toMarkdown,
-  type DoctorReportModel, type ReportSources,
+  BAND_TEXT, type DoctorReportModel, type ReportSources,
 } from '../../lib/doctorReport'
 import { isUnlocked } from '../../lib/privacy'
 import { callFunction } from '../../lib/edgeFunctions'
@@ -239,6 +239,7 @@ export function DoctorReport({ user, daily, onClose }: Props) {
               <thead><tr>
                 <th>{rt('Метрика')}</th><th>{rt('Среднее')}</th><th>{rt('Мин')}</th>
                 <th>{rt('Макс')}</th><th>{rt('К личной норме')}</th><th>{rt('Дней с данными')}</th>
+                <th>{rt('Надёжность')}</th>
               </tr></thead>
               <tbody>
                 {metrics.map(m => (
@@ -249,15 +250,19 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                     <td>{m.max.toFixed(m.digits)}</td>
                     <td>{m.baselinePct != null ? `${signed(m.baselinePct)}%` : dash}</td>
                     <td>{m.daysWithData} {rt('из')} {m.daysInPeriod}</td>
+                    <td>
+                      {rt(BAND_TEXT[m.reliability.band])}
+                      {m.reliability.maxGap > 1 ? `, ${rt('макс. пробел')} ${m.reliability.maxGap} ${rt('дн.')}` : ''}
+                    </td>
                   </tr>
                 ))}
                 {model.avgBedtime && (
                   <tr><td>{rt('Время отбоя (среднее)')}</td><td>{model.avgBedtime}</td>
-                    <td>{dash}</td><td>{dash}</td><td>{dash}</td><td>{dash}</td></tr>
+                    <td>{dash}</td><td>{dash}</td><td>{dash}</td><td>{dash}</td><td>{dash}</td></tr>
                 )}
                 {model.avgWakeTime && (
                   <tr><td>{rt('Время подъёма (среднее)')}</td><td>{model.avgWakeTime}</td>
-                    <td>{dash}</td><td>{dash}</td><td>{dash}</td><td>{dash}</td></tr>
+                    <td>{dash}</td><td>{dash}</td><td>{dash}</td><td>{dash}</td><td>{dash}</td></tr>
                 )}
               </tbody>
             </table>

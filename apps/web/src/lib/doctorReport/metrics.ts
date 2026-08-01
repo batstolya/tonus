@@ -1,6 +1,7 @@
 // Metric registry for the doctor report: one entry per numeric field the app
 // stores, so adding a metric to DailyMetrics means adding one row here.
 import type { DailyMetrics } from '../../types'
+import { reliabilityOf, type Reliability } from './reliability'
 
 export type MetricKey =
   | 'rhr' | 'hrv' | 'hrAvg' | 'hrMin' | 'hrMax' | 'walkHr' | 'spo2' | 'resp'
@@ -53,9 +54,19 @@ export interface MetricSummary {
   baselinePct: number | null
   daysWithData: number
   daysInPeriod: number
+  reliability: Reliability
 }
 
 export const avg = (v: number[]): number => v.reduce((a, b) => a + b, 0) / v.length
+
+/** Linear-interpolated quantile; p is 0..1 over the sorted values. */
+export function quantile(values: number[], p: number): number {
+  const s = [...values].sort((a, b) => a - b)
+  const i = (s.length - 1) * p
+  const lo = Math.floor(i)
+  const hi = Math.ceil(i)
+  return lo === hi ? s[lo] : s[lo] + (s[hi] - s[lo]) * (i - lo)
+}
 
 export function addDays(date: string, n: number): string {
   const d = new Date(date + 'T00:00:00Z')
@@ -140,6 +151,8 @@ export function summarizeMetrics(
     if (!vals.length) continue
     const a = avg(vals)
     const base = m.baseline ? baselines[m.baseline] ?? null : null
+    const dates = new Set(slice.filter(d => typeof m.get(d) === 'number').map(d => d.date))
+    const rel = reliabilityOf(dates, frame.effectiveStart, frame.end)
     out.push({
       key: m.key,
       label: m.label,
@@ -148,8 +161,9 @@ export function summarizeMetrics(
       min: +Math.min(...vals).toFixed(m.digits),
       max: +Math.max(...vals).toFixed(m.digits),
       baselinePct: base != null && base > 0 ? Math.round(((a - base) / base) * 100) : null,
-      daysWithData: vals.length,
-      daysInPeriod: frame.calendarDays,
+      daysWithData: rel.daysWithData,
+      daysInPeriod: rel.daysInPeriod,
+      reliability: rel,
     })
   }
   return out

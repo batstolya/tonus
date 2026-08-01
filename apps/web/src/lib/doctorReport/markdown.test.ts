@@ -77,4 +77,21 @@ describe('toMarkdown', () => {
     const rows = toMarkdown(model, 'ru').split('\n').filter(l => /^\| 2026-/.test(l))
     expect(rows.length).toBeGreaterThanOrEqual(30)
   })
+
+  it('prints the reliability band and longest gap for a metric with a hole', () => {
+    // Steps miss five consecutive days in the middle of the period; rhr and
+    // sleep stay complete so only the steps row should carry a gap note.
+    const gapDates = new Set([-20, -19, -18, -17, -16].map(n => addDays(today, n)))
+    const gappyDaily: DailyMetrics[] = daily.map(d =>
+      gapDates.has(d.date) ? { date: d.date, restingHeartRate: d.restingHeartRate, sleepHours: d.sleepHours } : d)
+    const gappyModel = buildReportModel({ daily: gappyDaily, sources, periodDays: 30, today })
+
+    const stepsRow = gappyModel.metrics.find(m => m.key === 'steps')!
+    expect(stepsRow.reliability.maxGap).toBe(5)
+    expect(stepsRow.reliability.band).toBe('high') // 25/30 ≈ 83%, still above the 80% line
+
+    const md = toMarkdown(gappyModel, 'ru')
+    expect(md).toContain('Надёжность') // the column header
+    expect(md).toContain('высокая, макс. пробел 5 дн.') // the steps row's reliability cell
+  })
 })

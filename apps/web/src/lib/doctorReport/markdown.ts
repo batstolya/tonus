@@ -1,5 +1,6 @@
 import { translations } from '../translations'
 import { METRIC_DEFS } from './metrics'
+import { BAND_TEXT } from './reliability'
 import type { DoctorReportModel } from './model'
 
 const STATUS_TEXT: Record<string, string> = {
@@ -66,10 +67,11 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
       t(m.label), m.avg.toFixed(m.digits), m.min.toFixed(m.digits), m.max.toFixed(m.digits),
       m.baselinePct != null ? `${signed(m.baselinePct)}%` : dash,
       `${m.daysWithData} ${t('из')} ${m.daysInPeriod}`,
+      `${t(BAND_TEXT[m.reliability.band])}${m.reliability.maxGap > 1 ? `, ${t('макс. пробел')} ${m.reliability.maxGap} ${t('дн.')}` : ''}`,
     ])
-    if (model.avgBedtime) rows.push([t('Время отбоя (среднее)'), model.avgBedtime, dash, dash, dash, dash])
-    if (model.avgWakeTime) rows.push([t('Время подъёма (среднее)'), model.avgWakeTime, dash, dash, dash, dash])
-    table([t('Метрика'), t('Среднее'), t('Мин'), t('Макс'), t('К личной норме'), t('Дней с данными')], rows)
+    if (model.avgBedtime) rows.push([t('Время отбоя (среднее)'), model.avgBedtime, dash, dash, dash, dash, dash])
+    if (model.avgWakeTime) rows.push([t('Время подъёма (среднее)'), model.avgWakeTime, dash, dash, dash, dash, dash])
+    table([t('Метрика'), t('Среднее'), t('Мин'), t('Макс'), t('К личной норме'), t('Дней с данными'), t('Надёжность')], rows)
     p(t('«Личная норма» — скользящая базовая линия за 30 дней до текущего дня, расчёт приложения.'))
     p()
   }

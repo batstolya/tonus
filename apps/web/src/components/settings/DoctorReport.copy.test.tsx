@@ -44,4 +44,24 @@ describe('DoctorReport copy for AI', () => {
     await waitFor(() => expect(container.querySelector('.dr-sleep-table')).toBeTruthy())
     expect(container.querySelectorAll('.dr-sleep-table tbody tr')).toHaveLength(30)
   })
+
+  it('shows the reliability band and longest gap for a metric with a hole', async () => {
+    // Steps miss five consecutive days in the middle; rhr and sleep stay
+    // complete, so only the steps row should carry a gap note. The report
+    // body renders in Russian regardless of UI language (lang defaults to
+    // 'ru' and never gets toggled in this test).
+    const gapDaily: DailyMetrics[] = daily.map((d, i) => (i >= 12 && i <= 16
+      ? { date: d.date, restingHeartRate: d.restingHeartRate, sleepHours: d.sleepHours }
+      : d))
+    const { container } = renderWithProviders(
+      <DoctorReport user={user} daily={gapDaily} onClose={() => {}} />)
+    fireEvent.click(screen.getByText(ui('Сформировать')))
+    await waitFor(() => expect(screen.getByText('Метрики за период')).toBeTruthy())
+
+    expect(screen.getByText('Надёжность')).toBeTruthy()
+    const stepsRow = Array.from(container.querySelectorAll('table tbody tr'))
+      .find(tr => tr.textContent?.includes('Шаги'))
+    expect(stepsRow?.textContent).toContain('высокая')
+    expect(stepsRow?.textContent).toContain('макс. пробел 5 дн.')
+  })
 })
