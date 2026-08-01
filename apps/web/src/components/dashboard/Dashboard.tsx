@@ -108,7 +108,7 @@ function ReadinessCard({ daily }: { daily: DailyMetrics[] }) {
       <div className="readiness-top">
         <div className="readiness-left">
           <div className="readiness-label">{t('Готовность дня')}</div>
-          <div className="readiness-score" style={{ color: r.color }}><CountUp value={r.score} /></div>
+          <div className="readiness-score"><CountUp value={r.score} /></div>
           <div className="readiness-sublabel" style={{ color: r.color }}>{t(r.label)}</div>
         </div>
         <div className="readiness-bars">

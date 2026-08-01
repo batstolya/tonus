@@ -2,6 +2,10 @@
 
 **Date:** 2026-07-30
 **Status:** Design approved, pending spec review
+**Updated:** 2026-08-02 — the brass accent shipped, was seen live, and was
+rejected. The accent is now graphite; see "Palette" below for what changed
+and why, kept alongside the original brass reasoning rather than written over
+it.
 
 ## Problem
 
@@ -25,8 +29,9 @@ than roles. Any palette change makes those names lie.
 
 ## Goals
 
-1. A deliberate palette — "night indigo + brass" — applied to the authed web
-   app, with verified contrast in both themes.
+1. A deliberate palette — "night indigo + graphite" (shipped first as
+   "night indigo + brass", replaced after live review — see "Palette" below)
+   — applied to the authed web app, with verified contrast in both themes.
 2. A radius system of three tokens with an intentional contrast between
    surfaces and controls, replacing ad-hoc per-rule values.
 3. Role-named semantic tokens (`--ok` / `--warn` / `--bad`) with the old
@@ -83,12 +88,33 @@ renders byte-identically before and after.
 When the landing is eventually brought along, the `.app` block moves to
 `:root` and the defaults are deleted.
 
-### Palette: night indigo + brass
+### Palette: night indigo + graphite
 
-Chosen over a warm-terracotta and a sage-plum alternative because a health
-dashboard encodes state in color constantly, and the accent must not collide
-with the status trio. Brass sits far from teal/ochre/coral on the wheel; a
-terracotta accent would have sat between the "warn" and "bad" hues.
+**Originally shipped as "night indigo + brass."** The reasoning that picked
+brass is kept below verbatim, because it was the real reasoning at the time —
+not because it still holds:
+
+> Chosen over a warm-terracotta and a sage-plum alternative because a health
+> dashboard encodes state in color constantly, and the accent must not
+> collide with the status trio. Brass sits far from teal/ochre/coral on the
+> wheel; a terracotta accent would have sat between the "warn" and "bad"
+> hues.
+
+Brass shipped, was seen live, and was rejected. Forcing the fill to clear
+4.5:1 against white desaturates any warm hue into a muddy tan, and at the
+readiness-score number — the single largest coloured element on the
+dashboard at a mid-range score — that read as a second brown mass sitting
+next to the already-brown accessible "warn" state. The lesson wasn't "pick a
+different hue" (a cooler accent has the same problem in reverse against
+"ok"); it's that any *hued* accent competes with the three status colors by
+construction, however far apart on the wheel it starts.
+
+**The accent became graphite** — near-black in light theme, near-white in
+dark theme — so colour is reserved for status indicators alone. Everything
+that used to be "coloured because it's a control" (buttons, the wordmark,
+active tabs) is ink now instead. The readiness-score number itself was moved
+off `r.color` for the same reason and now inherits `--text`; its band colour
+still lives on the sublabel underneath it and on the three progress bars.
 
 **Dark (`.app`)**
 
@@ -100,9 +126,9 @@ terracotta accent would have sat between the "warn" and "bad" hues.
 | `--border` | `#2A3247` | 1.44 on bg (decorative) |
 | `--text` | `#E6E9F2` | 15.13 on bg |
 | `--text-muted` | `#8B93AB` | 6.00 on bg, 5.54 on surface |
-| `--accent` | `#C9A227` | 7.01 as text on surface |
-| `--accent-text` | `#C9A227` | same as `--accent` in dark |
-| `--on-accent` | `#0F1422` | 7.59 on accent fill |
+| `--accent` | `#E6E9F2` | 13.97 as text on surface |
+| `--accent-text` | `#E6E9F2` | same as `--accent` in dark |
+| `--on-accent` | `#0F1422` | 15.13 on accent fill |
 | `--ok` | `#3FA68A` | 6.15 on bg, 5.68 on surface |
 | `--warn` | `#E08A3C` | 6.88 on bg, 6.36 on surface |
 | `--bad` | `#E36A64` | 5.26 on surface |
@@ -117,9 +143,9 @@ terracotta accent would have sat between the "warn" and "bad" hues.
 | `--border` | `#E2E5EE` | decorative |
 | `--text` | `#141826` | 16.22 on bg |
 | `--text-muted` | `#5D667F` | 5.72 on surface |
-| `--accent` | `#B08A15` | fill only |
-| `--on-accent` | `#141826` | 5.46 on accent fill |
-| `--accent-text` | `#6E550A` | 7.08 on surface |
+| `--accent` | `#232936` | 14.56 as text on surface |
+| `--on-accent` | `#FFFFFF` | 14.56 on accent fill |
+| `--accent-text` | `#232936` | same as `--accent` — graphite is dark enough to serve as both |
 | `--ok` | `#27735F` | 5.67 on surface |
 | `--warn` | `#96521A` | 5.97 on surface |
 | `--bad` | `#C2403C` | 5.13 on surface |
@@ -129,13 +155,17 @@ Every ratio above was computed against WCAG 2.1 relative luminance and clears
 
 - **`--on-accent` is required, not cosmetic.** `.btn-primary` currently
   hard-codes `color: #fff` over `background: var(--accent)`. White on brass
-  is 2.42:1 (dark) / 3.23:1 (light) — a real accessibility failure. The rule
-  becomes `color: var(--on-accent)`, with `:root { --on-accent: #fff }`
+  was 2.42:1 (dark) / 3.23:1 (light) — a real accessibility failure that
+  motivated the rule regardless of which hue the accent ends up being. The
+  rule is `color: var(--on-accent)`, with `:root { --on-accent: #fff }`
   preserving today's landing rendering.
-- **Light theme needs a separate `--accent-text`.** The brass *fill*
-  (`#B08A15`) is too light to sit on white as text (3.23:1). Accent-colored
-  text and links in light theme use `--accent-text`. In dark theme
-  `--accent-text` equals `--accent`, so the token exists in both.
+- **`--accent-text` was a separate value in light theme only while the
+  accent was brass.** The brass *fill* (`#B08A15`) was too light to sit on
+  white as text (3.23:1), so accent-colored text and links needed their own
+  darker value there. Graphite doesn't have that problem — `#232936` clears
+  14.56:1 as both a fill and as text — so `--accent-text` is `var(--accent)`
+  in both themes now. The token itself stays (call sites still reference it),
+  it's just no longer aliasing to a distinct literal.
 
 **Role aliases.** `--ok` / `--warn` / `--bad` are the real tokens;
 `--green: var(--ok)`, `--red: var(--bad)`, `--yellow: var(--warn)` are kept
@@ -240,8 +270,10 @@ with Phosphor icons behind a semantic registry (`src/lib/icons.tsx`), so that
 on 2026-07-30, before any code was written.
 
 The consequence should be expected rather than discovered: system emoji are
-saturated and glossy, and against a muted brass-and-teal palette they will
-stand out *more* than they do against today's bright default palette. The
+saturated and glossy, and against a muted graphite-and-teal palette (brass at
+the time this note was written, graphite now — see the "Updated" line at the
+top) they will stand out *more* than they do against today's bright default
+palette. The
 dashboard after this pilot is a good palette with emoji on top of it. The
 icon pass remains the obvious next step, and its hardest part is already
 mapped — some emoji are baked into i18n keys and data (`QuickLog.tsx:9-18`,

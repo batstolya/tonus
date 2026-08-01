@@ -56,7 +56,7 @@
   --border: #2A3247;
   --text: #E6E9F2;
   --text-muted: #8B93AB;
-  --accent: #C9A227;
+  --accent: #E6E9F2;
   --accent-text: var(--accent);
   --accent-border: color-mix(in srgb, var(--accent) 45%, var(--border));
   --on-accent: #0F1422;
@@ -83,12 +83,13 @@
   --border: #E2E5EE;
   --text: #141826;
   --text-muted: #5D667F;
-  --accent: #B08A15;
-  /* The brass fill is too light to read as text on white (3.23:1), so accent
-     text and links get their own darker value. */
-  --accent-text: #6E550A;
+  --accent: #232936;
+  /* Graphite is dark enough to double as its own text colour, unlike the
+     brass fill it replaced (which needed a separate darker value to read on
+     white). */
+  --accent-text: var(--accent);
   --accent-border: color-mix(in srgb, var(--accent) 45%, var(--border));
-  --on-accent: #141826;
+  --on-accent: #FFFFFF;
   --on-ok: #FFFFFF;
   --on-bad: #FFFFFF;
   --ok: #27735F;
