@@ -1,7 +1,7 @@
 import { translations } from '../translations'
 import { METRIC_DEFS, type MetricSummary } from './metrics'
 import { BAND_TEXT, POSITION_TEXT } from './reliability'
-import type { DoctorReportModel } from './model'
+import type { DoctorReportModel, ScoreSummary } from './model'
 
 const STATUS_TEXT: Record<string, string> = {
   active: 'активна', improving: 'улучшается', resolved: 'разрешилась',
@@ -21,6 +21,18 @@ export const baselineCell = (m: MetricSummary, t: (key: string) => string): stri
   m.baseline
     ? `${t('медиана')} ${m.baseline.median.toFixed(m.digits)} · ${m.baseline.lo.toFixed(m.digits)}–${m.baseline.hi.toFixed(m.digits)} · ${t(POSITION_TEXT[m.baseline.position])}`
     : t('данных недостаточно')
+
+/**
+ * Same cell in both renderers: the score table's trend column. When the
+ * model refused the trend (see model.ts — not enough coverage at one end of
+ * the period) there is no delta to print, so this says so instead of
+ * guessing. Below one point the arrow would dramatise rounding noise.
+ */
+export const scoreTrendText = (s: ScoreSummary, t: (key: string) => string): string => {
+  if (!s.trend || s.first == null || s.last == null) return t('не рассчитан')
+  const delta = s.last - s.first
+  return Math.abs(delta) < 1 ? t('без изменений') : `${delta > 0 ? '↑' : '↓'} ${signed(delta)}`
+}
 
 /**
  * The markdown twin of the printed page: same model, same sections, same
@@ -58,16 +70,20 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
     p(`## ${t('Оценки Tonus (0–100, расчёт приложения)')}`)
     p()
     table(
-      [t('Оценка'), t('Среднее за период'), t('Начало периода'), t('Конец периода'), t('Тренд')],
-      model.scores.map(s => {
-        const delta = s.last - s.first
-        // Below one point the arrow would dramatise rounding noise.
-        const trend = Math.abs(delta) < 1
-          ? t('без изменений')
-          : `${delta > 0 ? '↑' : '↓'} ${signed(delta)}`
-        return [t(s.label), String(s.avg), String(s.first), String(s.last), trend]
-      }),
+      [t('Оценка'), t('Среднее за период'), t('Начало периода'), t('Конец периода'), t('Тренд'), t('Дней с данными')],
+      model.scores.map(s => [
+        t(s.label),
+        String(s.avg),
+        s.first != null ? String(s.first) : dash,
+        s.last != null ? String(s.last) : dash,
+        scoreTrendText(s, t),
+        String(s.days),
+      ]),
     )
+    p(t('Сон: часы сна к 8 ч; 8 ч и больше — 100.'))
+    p(t('Восстановление: HRV к личной базе (вес 60%) и пульс покоя к личной базе (вес 40%). База — скользящее среднее за 30 дней.'))
+    p(t('Оценки считаются только по дням, где есть исходные данные: день без HRV не занижает восстановление, он в него не входит.'))
+    p()
   }
 
   if (model.metrics.length) {

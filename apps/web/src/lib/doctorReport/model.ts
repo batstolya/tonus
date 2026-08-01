@@ -1,6 +1,7 @@
 import type { DailyMetrics } from '../../types'
 import { computeDailyScores } from '../scores'
-import { localDate } from './dates'
+import { addDays, localDate } from './dates'
+import { avg } from './math'
 import {
   periodFrame, summarizeMetrics,
   type MetricSummary, type PeriodFrame,
@@ -16,11 +17,14 @@ import type { ReportSources } from './load'
 import type { Sex } from '../api/settings'
 
 export interface ScoreSummary {
-  key: 'sleep_score' | 'recovery_score' | 'stress_score'
+  key: 'sleep_score' | 'recovery_score'
   label: string
   avg: number
-  first: number
-  last: number
+  /** null — never a sentinel 0 — when `trend` is false: nothing to print. */
+  first: number | null
+  last: number | null
+  days: number
+  trend: boolean
 }
 
 export interface DoctorReportModel {
@@ -49,10 +53,11 @@ export interface ReportInput {
 }
 
 // Readiness is absent on purpose: on this data it carries little signal.
+// Load is absent because it was not load — stress_score is 100 − recovery,
+// the same number under a name that promises training volume.
 const SCORE_DEFS: { key: ScoreSummary['key']; label: string }[] = [
   { key: 'sleep_score', label: 'Сон' },
   { key: 'recovery_score', label: 'Восстановление' },
-  { key: 'stress_score', label: 'Нагрузка' },
 ]
 
 export function buildReportModel({
@@ -65,18 +70,29 @@ export function buildReportModel({
 
   const scoreRows = computeDailyScores(clean)
   const inPeriod = scoreRows.filter(s => s.date >= frame.start && s.date <= today)
-  const third = Math.max(1, Math.floor(inPeriod.length / 3))
-  const mean = (v: number[]) => v.reduce((a, b) => a + b, 0) / v.length
+  // A trend needs real coverage at both ends, not just an overall average: a
+  // day is "in" a third only past its own weight, so a single stray reading
+  // can't fabricate a start or end score for a mostly-empty stretch.
+  const thirdDays = Math.max(1, Math.floor(frame.calendarDays / 3))
+  const firstEnd = addDays(frame.effectiveStart, thirdDays - 1)
+  const lastStart = addDays(frame.end, -(thirdDays - 1))
   const scores: ScoreSummary[] = []
   for (const def of SCORE_DEFS) {
-    const vals = inPeriod.map(s => s[def.key]).filter((v): v is number => typeof v === 'number')
+    const has = (rows: typeof inPeriod) =>
+      rows.map(s => s[def.key]).filter((v): v is number => typeof v === 'number')
+    const vals = has(inPeriod)
     if (!vals.length) continue
+    const firstVals = has(inPeriod.filter(s => s.date <= firstEnd))
+    const lastVals = has(inPeriod.filter(s => s.date >= lastStart))
+    const trend = firstVals.length >= thirdDays / 2 && lastVals.length >= thirdDays / 2
     scores.push({
       key: def.key,
       label: def.label,
-      avg: Math.round(mean(vals)),
-      first: Math.round(mean(vals.slice(0, third))),
-      last: Math.round(mean(vals.slice(-third))),
+      avg: Math.round(avg(vals)),
+      first: trend ? Math.round(avg(firstVals)) : null,
+      last: trend ? Math.round(avg(lastVals)) : null,
+      days: vals.length,
+      trend,
     })
   }
 

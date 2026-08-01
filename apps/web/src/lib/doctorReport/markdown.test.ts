@@ -143,6 +143,32 @@ describe('toMarkdown', () => {
     expect(md).toContain('Время подъёма (медиана) | 01:55 | половина ночей 01:55–01:55')
   })
 
+  it('drops the load row and prints day counts on the scores that remain', () => {
+    const md = toMarkdown(model, 'ru')
+    expect(md).not.toContain('| Нагрузка |')
+    expect(md).toContain('| Оценка | Среднее за период | Начало периода | Конец периода | Тренд | Дней с данными |')
+    const sleepRow = md.split('\n').find(l => l.startsWith('| Сон |'))!
+    const cells = sleepRow.split('|').map(c => c.trim())
+    expect(cells[1]).toBe('Сон')
+    expect(Number(cells[6])).toBeGreaterThan(0) // "Дней с данными" column
+  })
+
+  it('refuses a score trend and prints "не рассчитан" when the last third of the period is mostly empty', () => {
+    const daily60: DailyMetrics[] = Array.from({ length: 60 }, (_, i) => ({
+      date: addDays(today, -59 + i),
+      restingHeartRate: 58, hrv: 45, sleepHours: 7, steps: 9000,
+    }))
+    const gappy = daily60.map((d, i) => (i > 40 ? { date: d.date } : d))
+    const gappyModel = buildReportModel({ daily: gappy, sources, periodDays: 30, today })
+
+    const md = toMarkdown(gappyModel, 'ru')
+    const sleepRow = md.split('\n').find(l => l.startsWith('| Сон |'))!
+    const cells = sleepRow.split('|').map(c => c.trim())
+    expect(cells[3]).toBe('—') // "Начало периода" — no fabricated score
+    expect(cells[4]).toBe('—') // "Конец периода"
+    expect(cells[5]).toBe('не рассчитан') // "Тренд"
+  })
+
   it('prints the reliability band and longest gap for a metric with a hole', () => {
     // Steps miss five consecutive days in the middle of the period; rhr and
     // sleep stay complete so only the steps row should carry a gap note.

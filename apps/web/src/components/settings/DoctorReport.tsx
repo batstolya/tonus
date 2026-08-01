@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import type { DailyMetrics } from '../../types'
 import {
   METRIC_DEFS, buildReportModel, loadReportSources, periodStart, localDate, toMarkdown, baselineCell,
-  BAND_TEXT, type DoctorReportModel, type ReportSources,
+  scoreTrendText, BAND_TEXT, type DoctorReportModel, type ReportSources,
 } from '../../lib/doctorReport'
 import { isUnlocked } from '../../lib/privacy'
 import { callFunction } from '../../lib/edgeFunctions'
@@ -220,15 +220,21 @@ export function DoctorReport({ user, daily, onClose }: Props) {
               <thead><tr>
                 <th>{rt('Оценка')}</th><th>{rt('Среднее за период')}</th>
                 <th>{rt('Начало периода')}</th><th>{rt('Конец периода')}</th>
+                <th>{rt('Тренд')}</th><th>{rt('Дней с данными')}</th>
               </tr></thead>
               <tbody>
                 {scores.map(s => (
                   <tr key={s.key}>
-                    <td>{rt(s.label)}</td><td>{s.avg}</td><td>{s.first}</td><td>{s.last}</td>
+                    <td>{rt(s.label)}</td><td>{s.avg}</td>
+                    <td>{s.first ?? dash}</td><td>{s.last ?? dash}</td>
+                    <td>{scoreTrendText(s, rt)}</td><td>{s.days}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            <p className="dr-note">{rt('Сон: часы сна к 8 ч; 8 ч и больше — 100.')}</p>
+            <p className="dr-note">{rt('Восстановление: HRV к личной базе (вес 60%) и пульс покоя к личной базе (вес 40%). База — скользящее среднее за 30 дней.')}</p>
+            <p className="dr-note">{rt('Оценки считаются только по дням, где есть исходные данные: день без HRV не занижает восстановление, он в него не входит.')}</p>
           </section>
         )}
 

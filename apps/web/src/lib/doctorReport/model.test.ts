@@ -24,9 +24,16 @@ describe('buildReportModel', () => {
     expect(m.period.emptyDays).toBe(0)
   })
 
-  it('reports sleep, recovery and load but never readiness', () => {
+  it('reports sleep and recovery only — load was recovery inverted', () => {
     const m = buildReportModel({ daily, sources: emptySources, periodDays: 30, today })
-    expect(m.scores.map(s => s.key)).toEqual(['sleep_score', 'recovery_score', 'stress_score'])
+    expect(m.scores.map(s => s.key)).toEqual(['sleep_score', 'recovery_score'])
+    expect(m.scores.every(s => s.days > 0)).toBe(true)
+  })
+
+  it('refuses a score trend when a third of the period is mostly empty', () => {
+    const gappy = daily.map((d, i) => (i > 40 ? { date: d.date } : d))
+    const m = buildReportModel({ daily: gappy, sources: emptySources, periodDays: 30, today })
+    expect(m.scores.every(s => s.trend === false)).toBe(true)
   })
 
   it('fills the sections that have data and leaves the rest empty', () => {

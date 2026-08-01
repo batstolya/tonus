@@ -136,6 +136,63 @@ describe('DoctorReport copy for AI', () => {
     expect(stepsRow?.textContent).toContain('макс. пробел 5 дн.')
   })
 
+  it('drops the load row and shows day counts on the printed scores table', async () => {
+    const { container } = renderWithProviders(
+      <DoctorReport user={user} daily={daily} onClose={() => {}} />)
+    fireEvent.click(screen.getByText(ui('Сформировать')))
+    const heading = await screen.findByText('Оценки Tonus (0–100, расчёт приложения)')
+    const table = heading.closest('section')!.querySelector('table')!
+
+    const rowLabels = Array.from(table.querySelectorAll('tbody tr td:first-child'))
+      .map(td => td.textContent)
+    expect(rowLabels).toEqual(['Сон', 'Восстановление'])
+    expect(rowLabels).not.toContain('Нагрузка')
+
+    const headerCells = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent)
+    expect(headerCells).toContain('Дней с данными')
+    expect(headerCells).toContain('Тренд')
+
+    const daysCell = table.querySelector('tbody tr td:last-child')!
+    expect(Number(daysCell.textContent)).toBeGreaterThan(0)
+
+    expect(container.querySelector('.dr-doc')?.textContent).toContain(
+      'Сон: часы сна к 8 ч; 8 ч и больше — 100.',
+    )
+  })
+
+  it('shows "не рассчитан" instead of a fabricated score when the last third of the period is mostly empty', async () => {
+    const base = new Date()
+    const dateAt = (daysAgo: number) => {
+      const d = new Date(base)
+      d.setDate(d.getDate() - daysAgo)
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    }
+    // 60 days of history (needed for the score baseline) with the most
+    // recent ~19 days blanked — the last third of a 30-day period ends up
+    // mostly empty, same shape as the model/markdown-level gappy fixtures.
+    const daily60: DailyMetrics[] = Array.from({ length: 60 }, (_, i) => ({
+      date: dateAt(59 - i),
+      restingHeartRate: 58, hrv: 45, sleepHours: 7, steps: 9000,
+    }))
+    const gappy = daily60.map((d, i) => (i > 40 ? { date: d.date } : d))
+
+    const { container } = renderWithProviders(
+      <DoctorReport user={user} daily={gappy} onClose={() => {}} />)
+    fireEvent.click(screen.getByText('30'))
+    fireEvent.click(screen.getByText(ui('Сформировать')))
+    const heading = await screen.findByText('Оценки Tonus (0–100, расчёт приложения)')
+    const table = heading.closest('section')!.querySelector('table')!
+
+    const sleepRow = Array.from(table.querySelectorAll('tbody tr'))
+      .find(tr => tr.textContent?.startsWith('Сон'))!
+    const cells = Array.from(sleepRow.querySelectorAll('td')).map(td => td.textContent)
+    expect(cells[2]).toBe('—') // "Начало периода" — no fabricated score
+    expect(cells[3]).toBe('—') // "Конец периода"
+    expect(cells[4]).toBe('не рассчитан') // "Тренд"
+
+    expect(container.textContent).not.toMatch(/Нагрузка/)
+  })
+
   it('prints the median and range for a well-covered metric, and refuses one below the coverage band — in the DOM, not the model', async () => {
     // Same fixture shape as the model/markdown-level tests (28 pre-period
     // days shaped 44..53 -> median 48, range 46-50), but rendered through the
