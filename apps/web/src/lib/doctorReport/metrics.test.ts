@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { METRIC_DEFS, summarizeMetrics, avgTimeOfDay, addDays, periodFrame, daysBetween } from './metrics'
+import { addDays, daysBetween } from './dates'
+import { METRIC_DEFS, summarizeMetrics, avgTimeOfDay, periodFrame } from './metrics'
 import type { DailyMetrics } from '../../types'
 
 const today = '2026-07-31'

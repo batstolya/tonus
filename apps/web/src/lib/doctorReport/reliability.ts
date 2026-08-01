@@ -1,4 +1,4 @@
-import { addDays } from './metrics'
+import { addDays } from './dates'
 
 // How much of the period a metric covers, and what that permits the report to
 // say. Measured values print at every band; only derived claims are gated.

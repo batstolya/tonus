@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { buildReportModel } from './model'
-import { addDays } from './metrics'
+import { addDays } from './dates'
 import type { DailyMetrics } from '../../types'
 
 const today = '2026-07-31'

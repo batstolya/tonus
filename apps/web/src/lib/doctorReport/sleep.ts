@@ -1,5 +1,6 @@
 import type { DailyMetrics } from '../../types'
-import { localDate, periodSlice } from './metrics'
+import { localDate } from './dates'
+import { periodSlice } from './metrics'
 
 const WEEKDAYS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
 

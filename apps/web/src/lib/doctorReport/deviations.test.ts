@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { median, mad, detectDeviations } from './deviations'
-import { addDays, periodFrame } from './metrics'
+import { addDays } from './dates'
+import { periodFrame } from './metrics'
 import type { DailyMetrics } from '../../types'
 
 const today = '2026-07-31'

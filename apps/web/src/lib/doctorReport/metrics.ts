@@ -1,6 +1,7 @@
 // Metric registry for the doctor report: one entry per numeric field the app
 // stores, so adding a metric to DailyMetrics means adding one row here.
 import type { DailyMetrics } from '../../types'
+import { addDays, daysBetween, localDate } from './dates'
 import { reliabilityOf, type Reliability } from './reliability'
 
 export type MetricKey =
@@ -68,17 +69,6 @@ export function quantile(values: number[], p: number): number {
   return lo === hi ? s[lo] : s[lo] + (s[hi] - s[lo]) * (i - lo)
 }
 
-export function addDays(date: string, n: number): string {
-  const d = new Date(date + 'T00:00:00Z')
-  d.setUTCDate(d.getUTCDate() + n)
-  return d.toISOString().slice(0, 10)
-}
-
-export const localDate = (): string => {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
 export const periodStart = (periodDays: number, today: string = localDate()): string =>
   addDays(today, -periodDays + 1)
 
@@ -99,10 +89,6 @@ export interface PeriodFrame {
   clamped: boolean
   daysWithAnyRecord: number
   emptyDays: number
-}
-
-export function daysBetween(from: string, to: string): number {
-  return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86400000) + 1
 }
 
 /**

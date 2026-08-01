@@ -1,7 +1,8 @@
 import type { DailyMetrics } from '../../types'
 import { computeDailyScores } from '../scores'
+import { localDate } from './dates'
 import {
-  avgTimeOfDay, frameSlice, localDate, periodFrame, summarizeMetrics,
+  avgTimeOfDay, frameSlice, periodFrame, summarizeMetrics,
   type BaselineKey, type MetricSummary, type PeriodFrame,
 } from './metrics'
 import { WEEKLY_KEYS, coverage, weeklyRows, type CoverageGap, type WeeklyRow } from './weekly'
