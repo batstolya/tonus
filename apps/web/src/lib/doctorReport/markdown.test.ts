@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { toMarkdown } from './markdown'
+import { toMarkdown, MISSING_LINES } from './markdown'
 import { buildReportModel } from './model'
 import { addDays } from './dates'
 import type { DailyMetrics } from '../../types'
@@ -62,6 +62,27 @@ describe('toMarkdown', () => {
     const md = toMarkdown(model, 'ru')
     expect(md).toContain('Кофе, алкоголь, лекарства')
     expect(md).toContain('Время и длительность')
+  })
+
+  it('holds exactly these nine lines — a bad merge that drops one should fail here first', () => {
+    // Written out rather than derived from the export: this is the
+    // independent check that catches drift in MISSING_LINES itself.
+    expect(MISSING_LINES).toEqual([
+      'Артериального давления, веса, роста, температуры тела',
+      'Диагнозов, назначений врача и рецептурных препаратов (учитываются только добавки, отмеченные пациентом)',
+      'Питания',
+      'ЭКГ, аритмий и любых клинических измерений',
+      'Время и длительность эпизодов низкого или высокого пульса: в отчёте есть только суточные минимум, максимум и среднее',
+      'Тип тренировки и пульс во время неё: есть только минуты упражнений и активные калории',
+      'Время в постели, засыпание, ночные пробуждения и эффективность сна',
+      'Кофе, алкоголь, лекарства и события (болезнь, стресс, поездки) пациент отмечает в приложении, но в этот отчёт они не включены',
+      'Всё перечисленное отсутствует, а не равно нулю: не делай выводов о том, чего здесь нет.',
+    ])
+  })
+
+  it('prints every "what this data does not contain" line in the rendered markdown', () => {
+    const md = toMarkdown(model, 'ru')
+    for (const line of MISSING_LINES) expect(md).toContain(line)
   })
 
   it('keeps sections in the same order every time', () => {

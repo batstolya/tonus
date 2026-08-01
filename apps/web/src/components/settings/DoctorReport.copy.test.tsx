@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { screen, fireEvent, waitFor } from '@testing-library/react'
 import { renderWithProviders } from '../../test/utils'
 import { DoctorReport } from './DoctorReport'
+import { MISSING_LINES } from '../../lib/doctorReport'
 import { translations } from '../../lib/translations'
 import type { DailyMetrics } from '../../types'
 import type { User } from '@supabase/supabase-js'
@@ -37,14 +38,14 @@ describe('DoctorReport copy for AI', () => {
     expect(md).toContain('## Чего в этих данных нет')
   })
 
-  it('names coffee, alcohol, medication and events as logged but excluded, in the print view too', async () => {
+  it('prints every "what this data does not contain" line in the print view too', async () => {
+    // Same MISSING_LINES export the markdown renderer prints — this loop is
+    // the guard against the two renderers silently diverging on this block.
     const { container } = renderWithProviders(
       <DoctorReport user={user} daily={daily} onClose={() => {}} />)
     fireEvent.click(screen.getByText(ui('Сформировать')))
     await waitFor(() => expect(screen.getByText('Чего в этих данных нет')).toBeTruthy())
-    expect(container.textContent).toContain(
-      'Кофе, алкоголь, лекарства и события (болезнь, стресс, поездки) пациент отмечает в приложении, но в этот отчёт они не включены',
-    )
+    for (const line of MISSING_LINES) expect(container.textContent).toContain(line)
   })
 
   it('renders a row for every night in the print view', async () => {
