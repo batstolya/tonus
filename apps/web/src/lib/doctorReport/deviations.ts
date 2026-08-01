@@ -50,11 +50,13 @@ const MIN_Z = 2
 export function detectDeviations(
   daily: DailyMetrics[],
   frame: PeriodFrame,
+  allowed: Set<MetricKey>,
 ): DeviationWeek[] {
   const buckets = weekBuckets(daily, frame)
   const found: (Deviation & { weekStart: string; days: number })[] = []
 
   for (const m of METRIC_DEFS) {
+    if (!allowed.has(m.key)) continue
     const weekly = buckets
       .map(b => {
         const v = b.rows.map(m.get).filter((x): x is number => typeof x === 'number')

@@ -5,6 +5,7 @@ import {
   avgTimeOfDay, frameSlice, periodFrame, summarizeMetrics,
   type MetricSummary, type PeriodFrame,
 } from './metrics'
+import { supportsClaims } from './reliability'
 import { WEEKLY_KEYS, coverage, weeklyRows, type CoverageGap, type WeeklyRow } from './weekly'
 import { detectDeviations, type DeviationWeek } from './deviations'
 import { buildSleep, type SleepSection } from './sleep'
@@ -84,6 +85,9 @@ export function buildReportModel({
 
   const birthYear = sources.profile?.birth_year ?? null
 
+  const metrics = summarizeMetrics(daily, frame)
+  const reliable = new Set(metrics.filter(m => supportsClaims(m.reliability.band)).map(m => m.key))
+
   return {
     period: frame,
     patient: {
@@ -92,13 +96,13 @@ export function buildReportModel({
       age: birthYear ? Number(today.slice(0, 4)) - birthYear : null,
     },
     scores,
-    metrics: summarizeMetrics(daily, frame),
+    metrics,
     avgBedtime: avgTimeOfDay(slice.map(d => d.sleepBedtime).filter((v): v is string => !!v)),
     avgWakeTime: avgTimeOfDay(slice.map(d => d.sleepWakeTime).filter((v): v is string => !!v)),
     weekly: { keys: WEEKLY_KEYS, rows: weeklyRows(daily, frame) },
     sleep: buildSleep(daily, periodDays, today),
     coverage: coverage(daily, frame),
-    deviations: detectDeviations(daily, frame),
+    deviations: detectDeviations(daily, frame, reliable),
     labs: buildLabs(sources.labs, frame.effectiveStart),
     supplements: buildSupplements(sources.supplements, sources.supplementLogs, frame.effectiveStart, today),
     concerns: buildConcerns(visibleConcerns, sources.concernLogs, frame.effectiveStart),
