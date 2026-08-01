@@ -38,6 +38,25 @@ describe('buildReportModel', () => {
     expect(m.deviations).toEqual([])
   })
 
+  it('keeps a nap-only day in the record count, but excludes it from metrics and scores', () => {
+    // A day whose only entry is a daytime doze still had a record — blanking
+    // its sleep fields must not make periodFrame think the day is empty.
+    const nap: DailyMetrics = { date: addDays(today, -1), sleepHours: 1.9, sleepBedtime: `${addDays(today, -1)}T09:08:00`, steps: 4000 }
+    const night: DailyMetrics = { date: today, sleepHours: 7.2, sleepBedtime: `${today}T01:10:00`, steps: 5000 }
+    const m = buildReportModel({ daily: [nap, night], sources: emptySources, periodDays: 2, today })
+
+    expect(m.period.daysWithAnyRecord).toBe(2)
+    expect(m.period.emptyDays).toBe(0)
+    // Steps is unaffected by the sleep-only blanking — both days still count.
+    const steps = m.metrics.find(x => x.key === 'steps')!
+    expect(steps.daysWithData).toBe(2)
+    // But the sleep metric itself only sees the real night.
+    const sleep = m.metrics.find(x => x.key === 'sleep')!
+    expect(sleep.daysWithData).toBe(1)
+    expect(m.sleep!.total).toBe(1)
+    expect(m.sleep!.daytimeCount).toBe(1)
+  })
+
   it('computes age from the birth year', () => {
     const m = buildReportModel({
       daily, sources: { ...emptySources, profile: { birth_year: 1988, sex: 'male' } },

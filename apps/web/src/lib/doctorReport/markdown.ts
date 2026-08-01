@@ -110,16 +110,21 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
     p()
     table(
       [t('Дата'), t('День'), t('Отбой'), t('Подъём'), t('Сон, ч'), t('Глубокий, ч'),
-        t('REM, ч'), t('Лёгкий, ч'), t('Глубокий, %'), t('REM, %')],
+        t('REM, ч'), t('Лёгкий, ч'), t('Глубокий, %'), t('REM, %'), t('Тип')],
       s.nights.map(n => [
         n.date, t(n.weekday), n.bedtime ?? dash, n.wakeTime ?? dash, n.hours.toFixed(1),
         n.deep?.toFixed(1) ?? dash, n.rem?.toFixed(1) ?? dash, n.core?.toFixed(1) ?? dash,
         n.deepPct != null ? `${n.deepPct}%` : dash,
         n.remPct != null ? `${n.remPct}%` : dash,
+        n.daytime ? t('дневной эпизод') : '',
       ]),
     )
-    p(`${t('Ночей в периоде')}: ${s.total}. ${t('Короче 6 ч')}: ${s.under6}. ${t('От 8 ч')}: ${s.over8}. ${t('Без записи сна')}: ${s.missing}.`)
+    p(`${t('Ночей в периоде')}: ${s.total}. ${t('Короче 6 ч')}: ${s.under6}. ${t('От 8 ч')}: ${s.over8}. ${t('Без записи ночного сна')}: ${s.missing}. ${t('Дневных эпизодов')}: ${s.daytimeCount}.`)
     p()
+    if (s.daytimeCount > 0) {
+      p(t('Дневные эпизоды (короче 3 ч, начались между 08:00 и 20:00) показаны в таблице, но не входят в подсчёт ночей, в средние времена и в оценку сна.'))
+      p()
+    }
     if (s.implausible) {
       p(`${t('Ночей, где между отбоем и подъёмом прошло меньше времени, чем длился сон')}: ${s.implausible}. ${t('Время пробуждения в этих строках записано источником неверно; значения показаны как есть, без правки.')}`)
       p()

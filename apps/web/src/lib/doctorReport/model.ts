@@ -8,7 +8,7 @@ import {
 import { supportsClaims } from './reliability'
 import { WEEKLY_KEYS, coverage, weeklyRows, type CoverageGap, type WeeklyRow } from './weekly'
 import { detectDeviations, type DeviationWeek } from './deviations'
-import { buildSleep, type SleepSection } from './sleep'
+import { buildSleep, withoutDaytimeSleep, type SleepSection } from './sleep'
 import { buildLabs, type LabsSection } from './labs'
 import { buildSupplements, type SupplementLine } from './supplements'
 import { buildConcerns, buildJournal, type ConcernLine, type JournalSection } from './journal'
@@ -60,10 +60,13 @@ const SCORE_DEFS: { key: ScoreSummary['key']; label: string }[] = [
 export function buildReportModel({
   daily, sources, periodDays, today = localDate(), pickedConcernIds,
 }: ReportInput): DoctorReportModel {
-  const frame = periodFrame(daily, periodDays, today)
-  const slice = frameSlice(daily, frame)
+  // Daytime episodes are shown in the sleep table and excluded everywhere else:
+  // one filtered copy feeds metrics, weeks, coverage, deviations and scores.
+  const clean = withoutDaytimeSleep(daily)
+  const frame = periodFrame(clean, periodDays, today)
+  const slice = frameSlice(clean, frame)
 
-  const scoreRows = computeDailyScores(daily)
+  const scoreRows = computeDailyScores(clean)
   const inPeriod = scoreRows.filter(s => s.date >= frame.start && s.date <= today)
   const third = Math.max(1, Math.floor(inPeriod.length / 3))
   const mean = (v: number[]) => v.reduce((a, b) => a + b, 0) / v.length
@@ -85,7 +88,7 @@ export function buildReportModel({
 
   const birthYear = sources.profile?.birth_year ?? null
 
-  const metrics = summarizeMetrics(daily, frame)
+  const metrics = summarizeMetrics(clean, frame)
   const reliable = new Set(metrics.filter(m => supportsClaims(m.reliability.band)).map(m => m.key))
 
   return {
@@ -99,10 +102,10 @@ export function buildReportModel({
     metrics,
     avgBedtime: avgTimeOfDay(slice.map(d => d.sleepBedtime).filter((v): v is string => !!v)),
     avgWakeTime: avgTimeOfDay(slice.map(d => d.sleepWakeTime).filter((v): v is string => !!v)),
-    weekly: { keys: WEEKLY_KEYS, rows: weeklyRows(daily, frame) },
-    sleep: buildSleep(daily, periodDays, today),
-    coverage: coverage(daily, frame),
-    deviations: detectDeviations(daily, frame, reliable),
+    weekly: { keys: WEEKLY_KEYS, rows: weeklyRows(clean, frame) },
+    sleep: buildSleep(daily, frame),
+    coverage: coverage(clean, frame),
+    deviations: detectDeviations(clean, frame, reliable),
     labs: buildLabs(sources.labs, frame.effectiveStart),
     supplements: buildSupplements(sources.supplements, sources.supplementLogs, frame.effectiveStart, today),
     concerns: buildConcerns(visibleConcerns, sources.concernLogs, frame.effectiveStart),

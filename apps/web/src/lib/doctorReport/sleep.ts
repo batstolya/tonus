@@ -1,8 +1,12 @@
 import type { DailyMetrics } from '../../types'
-import { localDate } from './dates'
-import { periodSlice } from './metrics'
+import { frameSlice, type PeriodFrame } from './metrics'
 
 const WEEKDAYS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
+
+/** An episode this short, starting inside the daytime window, is not a night. */
+export const DAYTIME_MAX_HOURS = 3
+export const DAYTIME_FROM_HOUR = 8
+export const DAYTIME_TO_HOUR = 20
 
 export interface SleepNight {
   date: string
@@ -16,6 +20,8 @@ export interface SleepNight {
   core: number | null
   deepPct: number | null
   remPct: number | null
+  /** A short episode starting during the daytime window — not counted as a night. */
+  daytime: boolean
 }
 
 export interface SleepSection {
@@ -23,10 +29,46 @@ export interface SleepSection {
   total: number
   under6: number
   over8: number
-  /** Days in the period with no sleep record at all. */
+  /** Days in the period with no night-sleep record at all (including daytime-only days). */
   missing: number
   /** Nights whose wake time precedes bedtime plus sleep duration. */
   implausible: number
+  /** Short episodes that started during the day — shown, but excluded from every other count. */
+  daytimeCount: number
+}
+
+/**
+ * Without a timestamp nothing is classified: the report marks what it can see
+ * and never guesses. The XML importer merges a nap folded into a real night
+ * before the data reaches us, so only wholly daytime episodes are findable
+ * here — splitting the rest belongs to the ingest.
+ */
+export function isDaytimeEpisode(d: DailyMetrics): boolean {
+  if (d.sleepHours == null || d.sleepHours >= DAYTIME_MAX_HOURS) return false
+  if (!d.sleepBedtime) return false
+  const start = new Date(d.sleepBedtime)
+  if (isNaN(start.getTime())) return false
+  const hour = start.getHours()
+  return hour >= DAYTIME_FROM_HOUR && hour < DAYTIME_TO_HOUR
+}
+
+/**
+ * Sleep fields blanked on daytime episodes, so no aggregate counts them. The
+ * row itself — its date and every non-sleep field — is kept: a day whose only
+ * record was a nap still exists as a day with a record.
+ */
+export function withoutDaytimeSleep(daily: DailyMetrics[]): DailyMetrics[] {
+  return daily.map(d => {
+    if (!isDaytimeEpisode(d)) return d
+    const copy = { ...d }
+    delete copy.sleepHours
+    delete copy.sleepDeep
+    delete copy.sleepREM
+    delete copy.sleepCore
+    delete copy.sleepBedtime
+    delete copy.sleepWakeTime
+    return copy
+  })
 }
 
 const hhmm = (iso?: string): string | null => {
@@ -49,10 +91,9 @@ const windowHours = (d: DailyMetrics): number | null =>
  */
 export function buildSleep(
   daily: DailyMetrics[],
-  periodDays: number,
-  today: string = localDate(),
+  frame: PeriodFrame,
 ): SleepSection | null {
-  const slice = periodSlice(daily, periodDays, today)
+  const slice = frameSlice(daily, frame)
   const withSleep = slice.filter(d => d.sleepHours != null)
   if (!withSleep.length) return null
 
@@ -72,16 +113,20 @@ export function buildSleep(
       core: d.sleepCore != null ? +d.sleepCore.toFixed(1) : null,
       deepPct: share(d.sleepDeep, hours),
       remPct: share(d.sleepREM, hours),
+      daytime: isDaytimeEpisode(d),
     }
   })
 
+  const nightly = withSleep.filter(d => !isDaytimeEpisode(d))
+
   return {
     nights,
-    total: withSleep.length,
-    under6: withSleep.filter(d => d.sleepHours! < 6).length,
-    over8: withSleep.filter(d => d.sleepHours! >= 8).length,
-    missing: slice.length - withSleep.length,
-    implausible: withSleep.filter(d => {
+    total: nightly.length,
+    under6: nightly.filter(d => d.sleepHours! < 6).length,
+    over8: nightly.filter(d => d.sleepHours! >= 8).length,
+    missing: frame.calendarDays - nightly.length,
+    daytimeCount: withSleep.length - nightly.length,
+    implausible: nightly.filter(d => {
       const w = windowHours(d)
       return w != null && d.sleepHours! > w
     }).length,

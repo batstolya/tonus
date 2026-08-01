@@ -45,6 +45,39 @@ describe('DoctorReport copy for AI', () => {
     expect(container.querySelectorAll('.dr-sleep-table tbody tr')).toHaveLength(30)
   })
 
+  it('marks a daytime nap in the printed sleep table and the summary line', async () => {
+    // Same fixture as the markdown-level test: a 1.9 h doze starting at 09:08
+    // next to a real 7.2 h night, rendered through the actual print view.
+    const base = new Date()
+    const dateAt = (daysAgo: number) => {
+      const d = new Date(base)
+      d.setDate(d.getDate() - daysAgo)
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    }
+    const napDate = dateAt(1)
+    const nightDate = dateAt(0)
+    const napDaily: DailyMetrics[] = [
+      { date: napDate, sleepHours: 1.9, sleepBedtime: `${napDate}T09:08:00` },
+      { date: nightDate, sleepHours: 7.2, sleepBedtime: `${nightDate}T01:10:00` },
+    ]
+    const { container } = renderWithProviders(
+      <DoctorReport user={user} daily={napDaily} onClose={() => {}} />)
+    fireEvent.click(screen.getByText('30'))
+    fireEvent.click(screen.getByText(ui('Сформировать')))
+    await waitFor(() => expect(container.querySelector('.dr-sleep-table')).toBeTruthy())
+
+    const rows = Array.from(container.querySelectorAll('.dr-sleep-table tbody tr'))
+    const napRow = rows.find(tr => tr.textContent?.includes(napDate))
+    const nightRow = rows.find(tr => tr.textContent?.includes(nightDate))
+    expect(napRow?.textContent).toContain('дневной эпизод')
+    expect(nightRow?.textContent).not.toContain('дневной эпизод')
+
+    const summary = Array.from(container.querySelectorAll('.dr-note'))
+      .find(el => el.textContent?.includes('Ночей в периоде'))
+    expect(summary?.textContent).toContain('Дневных эпизодов: 1')
+    expect(screen.getByText(/Дневные эпизоды \(короче 3 ч/)).toBeTruthy()
+  })
+
   it('shows the reliability band and longest gap for a metric with a hole', async () => {
     // Steps miss five consecutive days in the middle; rhr and sleep stay
     // complete, so only the steps row should carry a gap note. The report

@@ -106,6 +106,24 @@ describe('toMarkdown', () => {
     expect(hrvRow).toContain('данных недостаточно')
   })
 
+  it('marks a daytime nap in the sleep table and reports it in the summary line', () => {
+    // A 1.9 h doze starting at 09:08 next to a real 7.2 h night.
+    const nap: DailyMetrics = { date: '2026-07-30', sleepHours: 1.9, sleepBedtime: '2026-07-30T09:08:00' }
+    const night: DailyMetrics = { date: '2026-07-31', sleepHours: 7.2, sleepBedtime: '2026-07-31T01:10:00' }
+    const napModel = buildReportModel({ daily: [nap, night], sources, periodDays: 2, today })
+
+    expect(napModel.sleep!.total).toBe(1)
+    expect(napModel.sleep!.daytimeCount).toBe(1)
+
+    const md = toMarkdown(napModel, 'ru')
+    const rows = md.split('\n').filter(l => /^\| 2026-07-3[01] \|/.test(l))
+    expect(rows.find(r => r.startsWith('| 2026-07-30'))).toContain('дневной эпизод')
+    expect(rows.find(r => r.startsWith('| 2026-07-31'))).not.toContain('дневной эпизод')
+    expect(md).toContain('Ночей в периоде: 1. Короче 6 ч: 0. От 8 ч: 0. Без записи ночного сна:')
+    expect(md).toContain('Дневных эпизодов: 1.')
+    expect(md).toContain('Дневные эпизоды (короче 3 ч, начались между 08:00 и 20:00) показаны в таблице, но не входят в подсчёт ночей, в средние времена и в оценку сна.')
+  })
+
   it('prints the reliability band and longest gap for a metric with a hole', () => {
     // Steps miss five consecutive days in the middle of the period; rhr and
     // sleep stay complete so only the steps row should carry a gap note.

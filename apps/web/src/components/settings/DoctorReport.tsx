@@ -300,7 +300,7 @@ export function DoctorReport({ user, daily, onClose }: Props) {
               <thead><tr>
                 <th>{rt('Дата')}</th><th>{rt('День')}</th><th>{rt('Отбой')}</th><th>{rt('Подъём')}</th>
                 <th>{rt('Сон, ч')}</th><th>{rt('Глубокий, ч')}</th><th>{rt('REM, ч')}</th>
-                <th>{rt('Лёгкий, ч')}</th><th>{rt('Глубокий, %')}</th><th>{rt('REM, %')}</th>
+                <th>{rt('Лёгкий, ч')}</th><th>{rt('Глубокий, %')}</th><th>{rt('REM, %')}</th><th>{rt('Тип')}</th>
               </tr></thead>
               <tbody>
                 {sleep.nights.map(n => (
@@ -313,13 +313,19 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                     <td>{n.core?.toFixed(1) ?? dash}</td>
                     <td>{n.deepPct != null ? `${n.deepPct}%` : dash}</td>
                     <td>{n.remPct != null ? `${n.remPct}%` : dash}</td>
+                    <td>{n.daytime ? rt('дневной эпизод') : ''}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
             <p className="dr-note">
-              {rt('Ночей в периоде')}: {sleep.total}. {rt('Короче 6 ч')}: {sleep.under6}. {rt('От 8 ч')}: {sleep.over8}. {rt('Без записи сна')}: {sleep.missing}.
+              {rt('Ночей в периоде')}: {sleep.total}. {rt('Короче 6 ч')}: {sleep.under6}. {rt('От 8 ч')}: {sleep.over8}. {rt('Без записи ночного сна')}: {sleep.missing}. {rt('Дневных эпизодов')}: {sleep.daytimeCount}.
             </p>
+            {sleep.daytimeCount > 0 && (
+              <p className="dr-note">
+                {rt('Дневные эпизоды (короче 3 ч, начались между 08:00 и 20:00) показаны в таблице, но не входят в подсчёт ночей, в средние времена и в оценку сна.')}
+              </p>
+            )}
             {sleep.implausible > 0 && (
               <p className="dr-note">
                 {rt('Ночей, где между отбоем и подъёмом прошло меньше времени, чем длился сон')}: {sleep.implausible}. {rt('Время пробуждения в этих строках записано источником неверно; значения показаны как есть, без правки.')}
