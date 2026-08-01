@@ -41,7 +41,23 @@ export interface HaePoint {
 export interface HaeMetric { name?: string; units?: unknown; data?: HaePoint[] }
 export interface HaePayload { data?: { metrics?: HaeMetric[] }; metrics?: HaeMetric[] }
 
-export function num(v: unknown): number | null { const n = Number(v); return isFinite(n) ? n : null }
+/**
+ * `Number(null)` is 0 and `Number('')` is 0, so the plain coercion stored a
+ * field the source explicitly reported as absent as a measured zero — a sleep
+ * phase of 0 h, or a resting heart rate whose minimum touched 0 bpm (the
+ * `?? avg` fallback below never fired, because `??` does not treat 0 as
+ * missing). Absence has to be rejected before the coercion, not after it.
+ * A real zero still passes: that distinction is the whole point.
+ */
+export function num(v: unknown): number | null {
+  // Only a number or a numeric string can be a measurement. Everything else —
+  // null, undefined, booleans, arrays, objects — coerces to 0 or 1 and must be
+  // rejected before Number() ever sees it.
+  if (typeof v !== 'number' && typeof v !== 'string') return null
+  if (typeof v === 'string' && v.trim() === '') return null
+  const n = Number(v)
+  return isFinite(n) ? n : null
+}
 
 // Разбор HAE JSON → строки для staging. Возвращает { metrics, sleep }.
 export function parseHAE(userId: string, payload: HaePayload): { metrics: MetricRow[]; sleep: SleepRow[] } {
