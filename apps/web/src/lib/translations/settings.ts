@@ -239,8 +239,12 @@ export const settings: Record<string, Translation> = {
   'Чего в этих данных нет': { uk: 'Чого в цих даних немає', en: 'What this data does not contain' },
   'Артериального давления, веса, роста, температуры тела': { uk: 'Артеріального тиску, ваги, зросту, температури тіла', en: 'Blood pressure, weight, height, body temperature' },
   'Диагнозов, назначений врача и рецептурных препаратов (учитываются только добавки, отмеченные пациентом)': { uk: 'Діагнозів, призначень лікаря і рецептурних препаратів (враховуються лише добавки, відмічені пацієнтом)', en: 'Diagnoses, prescriptions and prescription drugs (only patient-logged supplements are covered)' },
-  'Питания и алкоголя': { uk: 'Харчування та алкоголю', en: 'Diet and alcohol' },
+  'Питания': { uk: 'Харчування', en: 'Nutrition' },
   'ЭКГ, аритмий и любых клинических измерений': { uk: 'ЕКГ, аритмій та будь-яких клінічних вимірювань', en: 'ECG, arrhythmias and any clinical measurements' },
+  'Время и длительность эпизодов низкого или высокого пульса: в отчёте есть только суточные минимум, максимум и среднее': { uk: 'Час і тривалість епізодів низького чи високого пульсу: у звіті є лише добові мінімум, максимум і середнє', en: 'The timing and duration of low or high heart-rate episodes: the report holds only the daily minimum, maximum and mean' },
+  'Тип тренировки и пульс во время неё: есть только минуты упражнений и активные калории': { uk: 'Тип тренування і пульс під час нього: є лише хвилини вправ та активні калорії', en: 'Workout type and heart rate during exercise: only exercise minutes and active calories are stored' },
+  'Время в постели, засыпание, ночные пробуждения и эффективность сна': { uk: 'Час у ліжку, засинання, нічні пробудження та ефективність сну', en: 'Time in bed, sleep latency, night-time awakenings and sleep efficiency' },
+  'Кофе, алкоголь, лекарства и события (болезнь, стресс, поездки) пациент отмечает в приложении, но в этот отчёт они не включены': { uk: 'Каву, алкоголь, ліки та події (хвороба, стрес, поїздки) пацієнт відмічає в застосунку, але в цей звіт вони не включені', en: 'Coffee, alcohol, medication and events (illness, stress, travel) are logged by the patient in the app but excluded from this report' },
   'Всё перечисленное отсутствует, а не равно нулю: не делай выводов о том, чего здесь нет.': { uk: 'Усе перелічене відсутнє, а не дорівнює нулю: не роби висновків про те, чого тут немає.', en: 'Everything listed is absent, not zero: do not draw conclusions about what is not here.' },
   // Metric labels — the report renders them through the same dictionary.
   'Пульс покоя, уд/мин': { uk: 'Пульс спокою, уд/хв', en: 'Resting heart rate, bpm' },

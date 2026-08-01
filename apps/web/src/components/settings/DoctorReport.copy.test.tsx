@@ -37,6 +37,16 @@ describe('DoctorReport copy for AI', () => {
     expect(md).toContain('## Чего в этих данных нет')
   })
 
+  it('names coffee, alcohol, medication and events as logged but excluded, in the print view too', async () => {
+    const { container } = renderWithProviders(
+      <DoctorReport user={user} daily={daily} onClose={() => {}} />)
+    fireEvent.click(screen.getByText(ui('Сформировать')))
+    await waitFor(() => expect(screen.getByText('Чего в этих данных нет')).toBeTruthy())
+    expect(container.textContent).toContain(
+      'Кофе, алкоголь, лекарства и события (болезнь, стресс, поездки) пациент отмечает в приложении, но в этот отчёт они не включены',
+    )
+  })
+
   it('renders a row for every night in the print view', async () => {
     const { container } = renderWithProviders(
       <DoctorReport user={user} daily={daily} onClose={() => {}} />)

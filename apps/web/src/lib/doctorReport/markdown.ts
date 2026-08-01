@@ -45,6 +45,24 @@ export const labStatusCell = (l: Pick<LabLine, 'status' | 'statusSource'>, t: (k
   `${t(LAB_STATUS_TEXT[l.status])}${l.statusSource === 'lab-flag' ? ` (${t(LAB_FLAG_SUFFIX)})` : ''}`
 
 /**
+ * Same list in both renderers: the closing "what this data does not
+ * contain" block. It exists so an external model reading this report never
+ * mistakes silence for a normal reading — each line names data the app
+ * either never collects or collects but excludes from this report.
+ */
+export const MISSING_LINES = [
+  'Артериального давления, веса, роста, температуры тела',
+  'Диагнозов, назначений врача и рецептурных препаратов (учитываются только добавки, отмеченные пациентом)',
+  'Питания',
+  'ЭКГ, аритмий и любых клинических измерений',
+  'Время и длительность эпизодов низкого или высокого пульса: в отчёте есть только суточные минимум, максимум и среднее',
+  'Тип тренировки и пульс во время неё: есть только минуты упражнений и активные калории',
+  'Время в постели, засыпание, ночные пробуждения и эффективность сна',
+  'Кофе, алкоголь, лекарства и события (болезнь, стресс, поездки) пациент отмечает в приложении, но в этот отчёт они не включены',
+  'Всё перечисленное отсутствует, а не равно нулю: не делай выводов о том, чего здесь нет.',
+]
+
+/**
  * The markdown twin of the printed page: same model, same sections, same
  * order. Russian keys pass through the dictionary for the en report.
  */
@@ -310,13 +328,7 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
 
   p(`## ${t('Чего в этих данных нет')}`)
   p()
-  for (const line of [
-    'Артериального давления, веса, роста, температуры тела',
-    'Диагнозов, назначений врача и рецептурных препаратов (учитываются только добавки, отмеченные пациентом)',
-    'Питания и алкоголя',
-    'ЭКГ, аритмий и любых клинических измерений',
-    'Всё перечисленное отсутствует, а не равно нулю: не делай выводов о том, чего здесь нет.',
-  ]) p(`- ${t(line)}`)
+  for (const line of MISSING_LINES) p(`- ${t(line)}`)
   p()
 
   return L.join('\n')

@@ -58,6 +58,12 @@ describe('toMarkdown', () => {
     expect(toMarkdown(model, 'ru')).toContain('## Чего в этих данных нет')
   })
 
+  it('names the data the app holds but the report leaves out', () => {
+    const md = toMarkdown(model, 'ru')
+    expect(md).toContain('Кофе, алкоголь, лекарства')
+    expect(md).toContain('Время и длительность')
+  })
+
   it('keeps sections in the same order every time', () => {
     const md = toMarkdown(model, 'ru')
     const order = ['## Оценки', '## Метрики за период', '## Динамика по неделям',

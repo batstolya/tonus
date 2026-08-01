@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import type { DailyMetrics } from '../../types'
 import {
   METRIC_DEFS, buildReportModel, loadReportSources, periodStart, localDate, toMarkdown, baselineCell,
-  scoreTrendText, BAND_TEXT, labStatusCell, LAB_UNIT_CAVEAT, LAB_DATE_CAVEAT,
+  scoreTrendText, BAND_TEXT, labStatusCell, LAB_UNIT_CAVEAT, LAB_DATE_CAVEAT, MISSING_LINES,
   type DoctorReportModel, type ReportSources,
 } from '../../lib/doctorReport'
 import { isUnlocked } from '../../lib/privacy'
@@ -32,14 +32,6 @@ const EMPTY_SOURCES: ReportSources = {
 const STATUS_TEXT: Record<string, string> = {
   active: 'активна', improving: 'улучшается', resolved: 'разрешилась',
 }
-
-const MISSING_LINES = [
-  'Артериального давления, веса, роста, температуры тела',
-  'Диагнозов, назначений врача и рецептурных препаратов (учитываются только добавки, отмеченные пациентом)',
-  'Питания и алкоголя',
-  'ЭКГ, аритмий и любых клинических измерений',
-  'Всё перечисленное отсутствует, а не равно нулю: не делай выводов о том, чего здесь нет.',
-]
 
 const dash = '—'
 const signed = (n: number) => `${n > 0 ? '+' : ''}${n}`
