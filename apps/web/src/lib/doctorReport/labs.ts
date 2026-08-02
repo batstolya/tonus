@@ -13,12 +13,41 @@ export function parseRefRange(s: string | null | undefined): { lo: number; hi: n
   return null
 }
 
+export type LabStatus = 'above' | 'below' | 'in-range' | 'unknown' | 'unparsed'
+
+/**
+ * Same dictionary in both renderers (markdown.ts and DoctorReport.tsx) — the
+ * whole point of `status` is that it never states more than the data
+ * supports, so both surfaces must say it in the same words. `unknown` and
+ * `unparsed` must stay separate texts: the report can see whether the lab
+ * sent no reference at all versus sent one it could not read, and must never
+ * claim the former when it was actually the latter.
+ */
+export const LAB_STATUS_TEXT: Record<LabStatus, string> = {
+  above: 'выше диапазона лаборатории',
+  below: 'ниже диапазона лаборатории',
+  'in-range': 'в диапазоне лаборатории',
+  unknown: 'статус не определён: лаборатория не указала референс',
+  unparsed: 'статус не определён: референс лаборатории не распознан',
+}
+
+/** Appended to the status cell when it came from the lab's own flag, not a parsed range. */
+export const LAB_FLAG_SUFFIX = 'по флагу лаборатории'
+
+/** Printed once under the labs tables in both renderers. */
+export const LAB_UNIT_CAVEAT =
+  'Показатели с одинаковым названием в разных единицах показаны отдельными строками и не сравниваются между собой.'
+export const LAB_DATE_CAVEAT =
+  'Дата берётся из формы загрузки файла, а не с бланка: результаты из разных лабораторий могут стоять одним днём, и порядок внутри этого дня неизвестен.'
+
 export interface LabLine {
   marker: string
   value: number
   unit: string | null
   refRange: string | null
-  flag: '↑' | '↓' | null
+  status: LabStatus
+  /** Where the status came from — never the app's own judgement. */
+  statusSource: 'range' | 'lab-flag' | null
   date: string
   prevValue: number | null
   prevDate: string | null
@@ -42,39 +71,72 @@ export interface LabsSection {
 }
 
 /**
+ * Grouping key: the same analyte reported in two different units is two
+ * series, never one — a percentage and an absolute count of the same cell
+ * type are not comparable and must not be merged into one delta. The unit
+ * text itself is normalised (trim, case) so the same unit spelled two ways
+ * still groups together; genuinely different units never do.
+ */
+const unitKey = (u: string | null | undefined): string =>
+  (u ?? '').trim().toLowerCase().replace(/\s+/g, '')
+
+// JSON-encoded pair, not a joined string — a marker name that happens to
+// contain the separator must never collide with a different marker/unit pair.
+const groupKey = (marker: string, unit: string | null | undefined): string =>
+  JSON.stringify([marker, unitKey(unit)])
+
+const byMarkerThenUnit = (a: { marker: string; unit: string | null }, b: { marker: string; unit: string | null }): number =>
+  a.marker.localeCompare(b.marker, 'ru') || (a.unit ?? '').localeCompare(b.unit ?? '', 'ru')
+
+/**
  * Two scopes on purpose: `lines` is the period-aware summary, `series` is the
  * complete history. A doctor reading a marker trend needs the whole series
  * regardless of the window chosen for wearable data.
  */
 export function buildLabs(results: LabResult[], periodStartDate: string): LabsSection {
-  const byMarker = new Map<string, LabResult[]>()
-  for (const r of results) byMarker.set(r.marker, [...(byMarker.get(r.marker) ?? []), r])
+  const byKey = new Map<string, LabResult[]>()
+  for (const r of results) {
+    const key = groupKey(r.marker, r.unit)
+    byKey.set(key, [...(byKey.get(key) ?? []), r])
+  }
 
   const lines: LabLine[] = []
   const series: LabSeries[] = []
   const outOfPeriod: string[] = []
+  const markerNames = new Set<string>()
 
-  for (const [marker, rs] of byMarker) {
+  for (const rs of byKey.values()) {
     const sorted = [...rs].sort((a, b) => a.date.localeCompare(b.date))
     const cur = sorted[sorted.length - 1]
     const prev = sorted.length > 1 ? sorted[sorted.length - 2] : null
 
+    markerNames.add(cur.marker)
+
+    // A verdict needs a source outside the app's own judgement: either the
+    // lab's reference range, parsed, or the flag the lab itself transcribed.
+    // With neither, the status is unknown — never guessed as "in range". The
+    // wording still has to distinguish "the lab gave no reference" from "the
+    // lab gave one this app couldn't parse" — printing the range next to a
+    // claim that none was given would be its own kind of false statement.
     const range = parseRefRange(cur.ref_range)
-    let flag: LabLine['flag'] = null
+    const hasRefRangeText = !!(cur.ref_range && cur.ref_range.trim())
+    let status: LabStatus = hasRefRangeText ? 'unparsed' : 'unknown'
+    let statusSource: LabLine['statusSource'] = null
     if (range) {
-      if (cur.value > range.hi) flag = '↑'
-      else if (cur.value < range.lo) flag = '↓'
+      status = cur.value > range.hi ? 'above' : cur.value < range.lo ? 'below' : 'in-range'
+      statusSource = 'range'
     } else if (cur.flag) {
-      // Range did not parse — trust the flag transcribed from the lab report.
-      const f = cur.flag.trim().toUpperCase()
-      flag = f === 'H' || f === '↑' ? '↑' : f === 'L' || f === '↓' ? '↓' : null
+      const f = cur.flag.trim().toLowerCase()
+      if (f === 'high' || f === 'h' || f === '↑') { status = 'above'; statusSource = 'lab-flag' }
+      else if (f === 'low' || f === 'l' || f === '↓') { status = 'below'; statusSource = 'lab-flag' }
+      else if (f === 'normal') { status = 'in-range'; statusSource = 'lab-flag' }
     }
 
-    if (cur.date < periodStartDate) outOfPeriod.push(marker)
+    if (cur.date < periodStartDate) outOfPeriod.push(cur.marker)
 
     lines.push({
-      marker, value: cur.value, unit: cur.unit, refRange: cur.ref_range ?? null,
-      flag, date: cur.date,
+      marker: cur.marker, value: cur.value, unit: cur.unit, refRange: cur.ref_range ?? null,
+      status, statusSource, date: cur.date,
       prevValue: prev?.value ?? null,
       prevDate: prev?.date ?? null,
       delta: prev ? +(cur.value - prev.value).toFixed(2) : null,
@@ -82,18 +144,19 @@ export function buildLabs(results: LabResult[], periodStartDate: string): LabsSe
 
     if (sorted.length > 1) {
       series.push({
-        marker, unit: cur.unit, refRange: cur.ref_range ?? null,
+        marker: cur.marker, unit: cur.unit, refRange: cur.ref_range ?? null,
         points: sorted.map(r => ({ date: r.date, value: r.value })),
       })
     }
   }
 
-  const byName = (a: { marker: string }, b: { marker: string }) => a.marker.localeCompare(b.marker, 'ru')
   return {
-    lines: lines.sort(byName),
-    series: series.sort(byName),
-    outOfPeriod: outOfPeriod.sort((a, b) => a.localeCompare(b, 'ru')),
+    lines: lines.sort(byMarkerThenUnit),
+    series: series.sort(byMarkerThenUnit),
+    outOfPeriod: [...new Set(outOfPeriod)].sort((a, b) => a.localeCompare(b, 'ru')),
     totalMeasurements: results.length,
-    markerCount: byMarker.size,
+    // "Markers" means distinct marker names, not distinct marker+unit rows —
+    // a percentage and a count of the same analyte are still one marker.
+    markerCount: markerNames.size,
   }
 }
