@@ -154,8 +154,8 @@ export function InsightsScreen({ daily, intakeEvents = [] }: Props) {
           <div className="ins-ai-list">
             {insights.map(i => (
               <div key={i.id} className="ins-ai-card">
-                <span className="ins-ai-tag">{i.metric}</span>
-                <p>{i.text}</p>
+                <span className="ins-ai-tag">{t(i.metric)}</span>
+                <p>{t(i.key, i.vars)}</p>
               </div>
             ))}
           </div>

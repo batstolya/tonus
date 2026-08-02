@@ -3,6 +3,7 @@ import { isDemoActive } from './demo'
 import { demoFunctionResponse } from './demoAi'
 import { captureClientFailure } from './observability'
 import { getEnv } from './env'
+import { detectLang } from './translate'
 
 // Единый вызов Supabase Edge Functions с авторизацией и обработкой ошибок.
 // Заменяет повторяющийся бойлерплейт (getSession + fetch + headers) в 12 местах.
@@ -23,7 +24,19 @@ export class EdgeFunctionError extends Error {
 
 // Вызывает edge-функцию POST'ом, возвращает распарсенный JSON.
 // Бросает EdgeFunctionError при не-2xx или { error } в теле ответа.
-export async function callFunction<T = unknown>(name: string, body?: unknown): Promise<T> {
+// Язык интерфейса едет в КАЖДЫЙ вызов: AI-функции пишут ответ на нём. Раньше
+// язык передавал только чат, поэтому анализ, коуч и эксперименты отвечали
+// по-русски украиноязычному пользователю. Явный lang от вызывающего сильнее.
+function withLang(body: unknown): unknown {
+  if (Array.isArray(body)) return body
+  if (body === undefined) return { lang: detectLang() }
+  if (typeof body !== 'object' || body === null) return body
+  const obj = body as Record<string, unknown>
+  return obj.lang !== undefined ? obj : { ...obj, lang: detectLang() }
+}
+
+export async function callFunction<T = unknown>(name: string, rawBody?: unknown): Promise<T> {
+  const body = withLang(rawBody)
   // Демо: сессии нет, edge-функции ответили бы 401 — отдаём фикстуру той же формы.
   if (isDemoActive()) {
     const demo = demoFunctionResponse(name, body)

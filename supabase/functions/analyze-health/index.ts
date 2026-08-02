@@ -3,6 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { checkBudget, budgetExceededMessage } from '../_shared/costGuard.ts'
 import { aiConsentRequiredResponse, fetchGeminiWithConsent, isAiConsentRequired } from '../_shared/aiConsent.ts'
 import { corsHeadersFor } from '../_shared/cors.ts'
+import { langInstruction, langNominative } from '../_shared/replyLang.ts'
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -10,7 +11,9 @@ const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
 const ALLOWED_ORIGINS = Deno.env.get('TONUS_ALLOWED_ORIGINS') ?? ''
 
-const SYSTEM_PROMPT = `Ты помощник по самочувствию. Анализируешь данные здоровья из Apple Health и даёшь короткое саммери на русском языке.
+const systemPrompt = (lang: unknown) => `Ты помощник по самочувствию. Анализируешь данные здоровья из Apple Health и даёшь короткое саммери.
+
+${langInstruction(lang)}
 
 Правила:
 - Никаких медицинских диагнозов. Только наблюдения и советы по образу жизни.
@@ -57,7 +60,7 @@ serve(async (req) => {
 Правила:
 - ТОЛЬКО вопросы. Никаких диагнозов, интерпретаций, оценок риска и названий препаратов.
 - Каждый вопрос опирается на конкретное значение или динамику из сводки.
-- Язык ответа: ${lang === 'en' ? 'английский' : 'русский'}.
+- Язык ответа: ${langNominative(lang)}.
 
 Верни строго JSON (без markdown): { "questions": ["...", "..."] }`
       const qRes = await fetchGeminiWithConsent(
@@ -101,7 +104,7 @@ serve(async (req) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+          system_instruction: { parts: [{ text: systemPrompt(lang) }] },
           contents: [{ parts: [{ text: `Данные здоровья за период ${periodStart} — ${periodEnd}:\n\n${digest}` }] }],
           generationConfig: { temperature: 0.4, maxOutputTokens: 2048, responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } },
         }),

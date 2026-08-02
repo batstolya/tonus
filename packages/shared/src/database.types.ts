@@ -1417,6 +1417,7 @@ export type Database = {
           birth_year: number | null
           created_at: string | null
           id: string
+          lang: string | null
           latitude: number | null
           location_label: string | null
           longitude: number | null
@@ -1429,6 +1430,7 @@ export type Database = {
           birth_year?: number | null
           created_at?: string | null
           id: string
+          lang?: string | null
           latitude?: number | null
           location_label?: string | null
           longitude?: number | null
@@ -1441,6 +1443,7 @@ export type Database = {
           birth_year?: number | null
           created_at?: string | null
           id?: string
+          lang?: string | null
           latitude?: number | null
           location_label?: string | null
           longitude?: number | null

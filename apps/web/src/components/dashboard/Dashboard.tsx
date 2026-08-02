@@ -457,8 +457,8 @@ export function Dashboard({ daily, events, onNavigate, user, quickLog }: Props) 
           <h3>{t('Инсайты')}</h3>
           {insights.slice(0, 3).map(i => (
             <div key={i.id} className="insight-item">
-              <span className="insight-metric">{i.metric}</span>
-              <p>{i.text}</p>
+              <span className="insight-metric">{t(i.metric)}</span>
+              <p>{t(i.key, i.vars)}</p>
             </div>
           ))}
         </div>

@@ -108,6 +108,13 @@ export async function syncProfileTimezone(userId: string): Promise<void> {
   await supabase.from('profiles').upsert({ id: userId, timezone })
 }
 
+// Keeps profiles.lang in step with the UI language. Cron-driven AI text (weekly
+// coach digest, Telegram messages) has no request body to read the language
+// from and used to answer everyone in Russian; it reads this column instead.
+export async function syncProfileLang(userId: string, lang: string): Promise<void> {
+  await supabase.from('profiles').upsert({ id: userId, lang })
+}
+
 // ── Profile basics (age + sex) ───────────────────────────────────────────────
 
 export type Sex = 'male' | 'female'
