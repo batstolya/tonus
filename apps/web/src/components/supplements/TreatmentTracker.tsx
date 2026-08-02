@@ -7,6 +7,7 @@ import {
 import { isDemoActive } from '../../lib/demo'
 import { demoList, demoInsert, demoRemove, demoId } from '../../lib/demoDb'
 import { useT } from '../../lib/i18n'
+import { Icon } from '../../lib/icons'
 
 interface MetricComparison {
   metric: string
@@ -176,7 +177,7 @@ export function TreatmentTracker({ user }: Props) {
   if (loading) {
     return (
       <div style={{ marginTop: 28 }}>
-        <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>🔬 {t('Работает ли?')}</h3>
+        <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}><Icon name="microscope" size={16} /> {t('Работает ли?')}</h3>
         <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('Загрузка…')}</p>
       </div>
     )
@@ -185,7 +186,7 @@ export function TreatmentTracker({ user }: Props) {
   return (
     <div style={{ marginTop: 28 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-        <h3 style={{ fontSize: 16, fontWeight: 700 }}>🔬 {t('Работает ли?')}</h3>
+        <h3 style={{ fontSize: 16, fontWeight: 700 }}><Icon name="microscope" size={16} /> {t('Работает ли?')}</h3>
         <button
           className="btn-primary"
           style={{ fontSize: 13, padding: '6px 14px' }}

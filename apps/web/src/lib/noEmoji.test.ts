@@ -27,6 +27,11 @@ const PILOT_FILES = [
   'components/activity/ActivityScreen.tsx',
   'components/heart-rate/HeartRateScreen.tsx',
   'components/stress-map/StressMapScreen.tsx',
+  'components/supplements/AdherenceBlock.tsx',
+  'components/supplements/SupplementSchedule.tsx',
+  'components/supplements/SupplementsScreen.tsx',
+  'components/supplements/TreatmentTracker.tsx',
+  'components/concerns/ConcernsScreen.tsx',
 ]
 
 const REPLACED = Object.values(ICONS).map(e => e.emoji)
@@ -63,6 +68,11 @@ function derivePilotFiles(): string[] {
 // check for genuine leftover emoji.
 const KNOWN_NON_REGISTRY_COLLISIONS: Partial<Record<string, string[]>> = {
   'components/dashboard/ActivityCalendar.tsx': ['›'],
+  // Same story: SupplementsScreen's month-nav '‹'/'›' and ConcernsScreen's
+  // card disclosure '›' predate the icon registry and aren't emoji->icon
+  // conversion sites — they just happen to share chevronRight's glyph.
+  'components/supplements/SupplementsScreen.tsx': ['›', '‹'],
+  'components/concerns/ConcernsScreen.tsx': ['›'],
 }
 
 describe('converted files carry no emoji', () => {

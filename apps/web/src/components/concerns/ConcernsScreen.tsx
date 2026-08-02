@@ -8,6 +8,7 @@ import {
 } from '../../lib/concerns'
 import { LoadError } from '../ui/LoadError'
 import { useT } from '../../lib/i18n'
+import { Icon } from '../../lib/icons'
 import { startEffect } from '../../lib/startEffect'
 import { isMasked, loadPinHash, unlock } from '../../lib/privacy'
 
@@ -133,7 +134,7 @@ function ConcernDetail({ concern, userId, onBack, onUpdate }: {
           style={{ width: '100%', marginBottom: 10, resize: 'vertical' }} />
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
           <label className="btn-secondary" style={{ cursor: 'pointer', fontSize: 13 }}>
-            📷 {photoFile ? photoFile.name : t('Фото')}
+            <Icon name="photo" size={14} /> {photoFile ? photoFile.name : t('Фото')}
             <input type="file" accept="image/*" style={{ display: 'none' }}
               onChange={e => setPhotoFile(e.target.files?.[0] ?? null)} />
           </label>
@@ -288,7 +289,7 @@ export function ConcernsScreen({ user, onNavigateHair }: Props) {
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: pinSet ? 'pointer' : 'default', opacity: pinSet ? 1 : 0.6 }}>
             <input type="checkbox" checked={isPrivate && pinSet} disabled={!pinSet}
               onChange={e => setIsPrivate(e.target.checked)} />
-            🔒 {t('Приватная — скрывать за PIN')}
+            <Icon name="locked" size={14} title={t('Приватная запись')} /> {t('Приватная — скрывать за PIN')}
             {!pinSet && <span className="settings-muted" style={{ fontSize: 12 }}>({t('сначала задай PIN в Настройках')})</span>}
           </label>
           <button className="btn-primary" onClick={handleAdd} disabled={saving || !name.trim()}>
@@ -303,7 +304,7 @@ export function ConcernsScreen({ user, onNavigateHair }: Props) {
 
       {unlockFor && (
         <div className="goals-form" style={{ marginBottom: 16 }}>
-          <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>🔒 {t('Введи PIN, чтобы открыть запись')}</div>
+          <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}><Icon name="locked" size={14} title={t('Приватная запись')} /> {t('Введи PIN, чтобы открыть запись')}</div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <input className="log-input" type="password" inputMode="numeric" autoFocus
               placeholder="PIN" value={pinInput} style={{ width: 120 }}
@@ -323,7 +324,9 @@ export function ConcernsScreen({ user, onNavigateHair }: Props) {
             <button key={c.id} className={`concern-card${masked ? ' concern-card-masked' : ''}`}
               onClick={() => masked ? (setUnlockFor(c), setPinError(false)) : setSelected(c)}>
               <div className="concern-card-top">
-                <span className="concern-name">{masked ? `🔒 ${t('Скрытая запись')}` : <>{c.is_private && '🔒 '}{c.name}</>}</span>
+                <span className="concern-name">{masked
+                  ? <><Icon name="locked" size={12} title={t('Скрытая запись')} /> {t('Скрытая запись')}</>
+                  : <>{c.is_private && <><Icon name="locked" size={12} title={t('Приватная запись')} /> </>}{c.name}</>}</span>
                 {!masked && (
                   <span className="concern-status" style={{ color: STATUS_LABELS[c.status]?.color }}>
                     {t(STATUS_LABELS[c.status]?.label ?? '')}
@@ -357,7 +360,9 @@ export function ConcernsScreen({ user, onNavigateHair }: Props) {
                   <button key={c.id} className={`concern-card resolved${masked ? ' concern-card-masked' : ''}`}
                     onClick={() => masked ? (setUnlockFor(c), setPinError(false)) : setSelected(c)}>
                     <div className="concern-card-top">
-                      <span className="concern-name">{masked ? `🔒 ${t('Скрытая запись')}` : c.name}</span>
+                      <span className="concern-name">{masked
+                        ? <><Icon name="locked" size={12} title={t('Скрытая запись')} /> {t('Скрытая запись')}</>
+                        : c.name}</span>
                       {!masked && (
                         <span className="concern-status" style={{ color: STATUS_LABELS[c.status]?.color }}>
                           {STATUS_LABELS[c.status]?.label}

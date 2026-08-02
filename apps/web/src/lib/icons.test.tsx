@@ -72,6 +72,11 @@ const expectedComponentName: Record<IconName, string> = {
   dotInfo: 'CircleIcon',
   calendarRange: 'CalendarDotsIcon',
   schedule: 'CalendarIcon',
+  clock: 'ClockIcon',
+  microscope: 'MicroscopeIcon',
+  photo: 'CameraIcon',
+  locked: 'LockIcon',
+  reminder: 'AlarmIcon',
 }
 
 afterEach(() => {

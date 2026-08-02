@@ -1,10 +1,11 @@
 import {
-  ArrowDownRight, ArrowsClockwise, ArrowsLeftRight, ArrowUpRight, Barbell, Bed, Broadcast,
-  Calendar, CalendarBlank, CalendarDots, CaretRight, ChartBar, CheckCircle, Circle, CloudSun,
-  Coffee, Compass, Eye, Fire, Gear, Globe, Heart, Heartbeat, Hourglass, Lightbulb, Lightning, Link,
-  Magnet, MagnifyingGlass, Moon, Pause, PersonSimpleRun, PersonSimpleWalk, SignOut, Sneaker,
-  Snowflake, SoccerBall, Sparkle, SmileyMeh, SmileyNervous, Sun, Target, TestTube, Thermometer,
-  ThumbsUp, TrendDown, TrendUp, Trophy, Volleyball, Warning, Wind, Wine, type Icon as PhosphorIcon,
+  Alarm, ArrowDownRight, ArrowsClockwise, ArrowsLeftRight, ArrowUpRight, Barbell, Bed, Broadcast,
+  Calendar, CalendarBlank, CalendarDots, Camera, CaretRight, ChartBar, CheckCircle, Circle, Clock,
+  CloudSun, Coffee, Compass, Eye, Fire, Gear, Globe, Heart, Heartbeat, Hourglass, Lightbulb,
+  Lightning, Link, Lock, Magnet, MagnifyingGlass, Microscope, Moon, Pause, PersonSimpleRun,
+  PersonSimpleWalk, SignOut, Sneaker, Snowflake, SoccerBall, Sparkle, SmileyMeh, SmileyNervous, Sun,
+  Target, TestTube, Thermometer, ThumbsUp, TrendDown, TrendUp, Trophy, Volleyball, Warning, Wind,
+  Wine, type Icon as PhosphorIcon,
 } from '@phosphor-icons/react'
 
 // Every entry keeps the emoji it replaces so VITE_ICONS=0 restores the old
@@ -79,6 +80,14 @@ export const ICONS = {
   // for names outside the deliberate dot* exception. Calendar (verified
   // present in @phosphor-icons/react@2.1.10) gives `schedule` its own shape.
   schedule:      { icon: Calendar,       emoji: '🗓' },
+  clock:      { icon: Clock,      emoji: '🕐' },
+  microscope: { icon: Microscope, emoji: '🔬' },
+  photo:      { icon: Camera,     emoji: '📷' },
+  locked:     { icon: Lock,       emoji: '🔒' },
+  // Not in the task brief's survey — the Extended_Pictographic guard also
+  // flags the reminder-editor's alarm clock (⏰), one of the glyphs earlier
+  // batches found the plan's grep ranges missed. Mirrors that precedent.
+  reminder:   { icon: Alarm,      emoji: '⏰' },
 } as const satisfies Record<string, Entry>
 
 export type IconName = keyof typeof ICONS

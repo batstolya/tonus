@@ -47,6 +47,9 @@ export const health: Record<string, Translation> = {
   'Приватная — скрывать за PIN': { uk: 'Приватна — ховати за PIN', en: 'Private — hide behind PIN' },
   'сначала задай PIN в Настройках': { uk: 'спершу задай PIN у Налаштуваннях', en: 'set a PIN in Settings first' },
   'Скрытая запись': { uk: 'Прихований запис', en: 'Hidden entry' },
+  // Icon title for the lock glyph — used where it stands alone (the private-entry
+  // name prefix) rather than beside text that already names the state.
+  'Приватная запись': { uk: 'Приватний запис', en: 'Private entry' },
   'Нажми, чтобы ввести PIN': { uk: 'Натисни, щоб ввести PIN', en: 'Tap to enter PIN' },
   'Введи PIN, чтобы открыть запись': { uk: 'Введи PIN, щоб відкрити запис', en: 'Enter PIN to open the entry' },
   'Открыть': { uk: 'Відкрити', en: 'Unlock' },
