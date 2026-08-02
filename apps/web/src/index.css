@@ -27,6 +27,10 @@
   --yellow: var(--warn);
   --r-surface: 14px;
   --r-control: 10px;
+  /* Text-entry fields sit apart from --r-control: that token goes fully
+     round in the light theme, which reads as a pill on a button and as a
+     mistake on a multi-line textarea. */
+  --r-field: 10px;
   --r-inner: 6px;
   --radius: var(--r-surface);
   --card-shadow: none;
@@ -79,6 +83,7 @@
   --yellow: var(--warn);
   --r-surface: 4px;
   --r-control: 999px;
+  --r-field: 8px;
   --r-inner: 2px;
   --radius: var(--r-surface);
   --topbar-bg: rgba(15,20,34,0.92);
@@ -1275,7 +1280,7 @@ body {
   width: 100%;
   background: var(--surface2);
   border: 1px solid var(--border);
-  border-radius: var(--r-control);
+  border-radius: var(--r-field);
   padding: 10px 12px;
   font-size: 14px;
   color: var(--text);
@@ -1292,7 +1297,7 @@ body {
 .supp-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .supp-header h2 { margin: 0; }
 .supp-form { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
-.supp-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 14px; color: var(--text); font-family: inherit; }
+.supp-input { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--r-field); padding: 8px 12px; font-size: 14px; color: var(--text); font-family: inherit; }
 .supp-input:focus { outline: none; border-color: var(--accent); }
 .supp-input-sm { width: 100px; }
 .supp-month-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
@@ -1838,7 +1843,7 @@ body {
 
 /* Experiment form */
 .exp-form { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 14px; }
-.settings-input { width: 100%; box-sizing: border-box; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 14px; color: var(--text); font-family: inherit; transition: border-color 0.15s, box-shadow 0.15s; }
+.settings-input { width: 100%; box-sizing: border-box; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--r-field); padding: 10px 12px; font-size: 14px; color: var(--text); font-family: inherit; transition: border-color 0.15s, box-shadow 0.15s; }
 .settings-input::placeholder { color: var(--text-muted); opacity: 0.7; }
 .settings-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
 select.settings-input { appearance: none; -webkit-appearance: none; cursor: pointer; padding-right: 34px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' stroke='%239aa3b2' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }

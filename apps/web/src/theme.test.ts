@@ -94,6 +94,7 @@ describe('token isolation from the landing', () => {
     expect(rootTokens['--radius']).toBe('var(--r-surface)')
     expect(rootTokens['--r-surface']).toBe('14px')
     expect(rootTokens['--r-control']).toBe('10px')
+    expect(rootTokens['--r-field']).toBe('10px')
     expect(rootTokens['--r-inner']).toBe('6px')
     expect(rootTokens['--on-accent']).toBe('#fff')
     expect(rootTokens['--on-ok']).toBe('#fff')
@@ -214,8 +215,12 @@ describe('dashboard status surfaces use tokens', () => {
     expect(rule(css, '.coach-focus-btn.done')).toMatch(/color:\s*var\(--on-ok\)/)
   })
 
-  it('inputs and inner bars use the control and inner radii', () => {
-    expect(rule(css, '.cj-textarea')).toMatch(/border-radius:\s*var\(--r-control\)/)
+  it('text fields use the field radius, and inner bars the inner one', () => {
+    // --r-control goes fully round in the light theme, which is right for a
+    // button and wrong for a multi-line textarea — hence the split token.
+    for (const selector of ['.cj-textarea', '.settings-input', '.supp-input']) {
+      expect(rule(css, selector)).toMatch(/border-radius:\s*var\(--r-field\)/)
+    }
     expect(rule(css, '.r-bar-track')).toMatch(/border-radius:\s*var\(--r-inner\)/)
     expect(rule(css, '.r-bar-fill')).toMatch(/border-radius:\s*var\(--r-inner\)/)
   })
