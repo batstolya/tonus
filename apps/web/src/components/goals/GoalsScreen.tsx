@@ -328,7 +328,9 @@ export function GoalsScreen({ user, daily }: Props) {
               return (
                 <div key={goal.id} className="goal-card goal-card-finished">
                   <div className="goal-card-left" style={{ width: 52, textAlign: 'center' }}>
-                    {achieved ? <Icon name="trophy" size={26} /> : <span aria-hidden style={{ fontSize: 26 }}>✕</span>}
+                    {achieved
+                      ? <span style={{ color: 'var(--warn)' }}><Icon name="trophy" size={26} /></span>
+                      : <span aria-hidden style={{ fontSize: 26 }}>✕</span>}
                   </div>
                   <div className="goal-card-body">
                     <div className="goal-card-title">{goal.title}</div>
