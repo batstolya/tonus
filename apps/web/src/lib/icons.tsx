@@ -1,9 +1,10 @@
 import {
   ArrowDownRight, ArrowsClockwise, ArrowsLeftRight, ArrowUpRight, Barbell, Bed, Broadcast,
-  CalendarBlank, CaretRight, ChartBar, CheckCircle, Circle, Eye, Fire, Gear, Globe, Heart, Heartbeat,
-  Hourglass, Lightbulb, Lightning, MagnifyingGlass, Moon, Pause, PersonSimpleRun, PersonSimpleWalk,
-  SignOut, Sneaker, Snowflake, SoccerBall, Sparkle, SmileyMeh, SmileyNervous, Target, TestTube,
-  ThumbsUp, Trophy, Volleyball, Warning, Wind, type Icon as PhosphorIcon,
+  Calendar, CalendarBlank, CalendarDots, CaretRight, ChartBar, CheckCircle, Circle, CloudSun,
+  Coffee, Compass, Eye, Fire, Gear, Globe, Heart, Heartbeat, Hourglass, Lightbulb, Lightning, Link,
+  Magnet, MagnifyingGlass, Moon, Pause, PersonSimpleRun, PersonSimpleWalk, SignOut, Sneaker,
+  Snowflake, SoccerBall, Sparkle, SmileyMeh, SmileyNervous, Sun, Target, TestTube, Thermometer,
+  ThumbsUp, TrendDown, TrendUp, Trophy, Volleyball, Warning, Wind, Wine, type Icon as PhosphorIcon,
 } from '@phosphor-icons/react'
 
 // Every entry keeps the emoji it replaces so VITE_ICONS=0 restores the old
@@ -61,6 +62,23 @@ export const ICONS = {
   swap:           { icon: ArrowsLeftRight,  emoji: '↔' },
   pending:        { icon: Hourglass,        emoji: '⏳' },
   pause:          { icon: Pause,            emoji: '⏸' },
+  sun:           { icon: Sun,            emoji: '☀' },
+  coffee:        { icon: Coffee,         emoji: '☕' },
+  alcohol:       { icon: Wine,           emoji: '🍷' },
+  temperature:   { icon: Thermometer,    emoji: '🌡' },
+  weather:       { icon: CloudSun,       emoji: '🌦' },
+  link:          { icon: Link,           emoji: '🔗' },
+  compass:       { icon: Compass,        emoji: '🧭' },
+  magnet:        { icon: Magnet,         emoji: '🧲' },
+  trendUp:       { icon: TrendUp,        emoji: '📈' },
+  trendDown:     { icon: TrendDown,      emoji: '📉' },
+  dotInfo:       { icon: Circle,         emoji: '🔵' },
+  calendarRange: { icon: CalendarDots,   emoji: '📆' },
+  // Brief specifies CalendarBlank here, but that's already `calendar`'s
+  // component (📅) — reusing it would violate the no-shared-component rule
+  // for names outside the deliberate dot* exception. Calendar (verified
+  // present in @phosphor-icons/react@2.1.10) gives `schedule` its own shape.
+  schedule:      { icon: Calendar,       emoji: '🗓' },
 } as const satisfies Record<string, Entry>
 
 export type IconName = keyof typeof ICONS

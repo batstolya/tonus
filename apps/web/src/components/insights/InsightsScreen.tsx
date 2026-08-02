@@ -6,6 +6,7 @@ import {
   computeWeekdayPatterns, buildHeatmap, INSIGHT_METRICS, WD_NAMES,
 } from '../../lib/insightsExtra'
 import { useT } from '../../lib/i18n'
+import { Icon } from '../../lib/icons'
 import { CorrelationsBlock } from './CorrelationsBlock'
 
 interface Props {
@@ -44,7 +45,7 @@ function Heatmap({ daily }: { daily: DailyMetrics[] }) {
   return (
     <div className="ins-block">
       <div className="ins-block-head">
-        <SectionTitle>📅 {t('Календарь')}</SectionTitle>
+        <SectionTitle><Icon name="calendar" size={16} /> {t('Календарь')}</SectionTitle>
         <select className="ins-select" value={mk.key as string}
           onChange={e => { setMk(INSIGHT_METRICS.find(m => m.key === e.target.value)!); setHover(null) }}>
           {INSIGHT_METRICS.map(m => <option key={m.key as string} value={m.key as string}>{t(m.label)}</option>)}
@@ -116,11 +117,11 @@ export function InsightsScreen({ daily, intakeEvents = [] }: Props) {
       {/* Рекорды и серии */}
       {(records.length > 0 || streaks.length > 0) && (
         <div className="ins-block">
-          <SectionTitle>🏆 {t('Рекорды и серии')}</SectionTitle>
+          <SectionTitle><Icon name="trophy" size={16} /> {t('Рекорды и серии')}</SectionTitle>
           <div className="ins-chips">
             {streaks.map(s => (
               <span key={s.label} className="ins-chip ins-chip--streak">
-                🔥 {s.days} {t(s.label)}
+                <Icon name="streak" size={14} /> {s.days} {t(s.label)}
               </span>
             ))}
             {records.map(r => (
@@ -136,7 +137,7 @@ export function InsightsScreen({ daily, intakeEvents = [] }: Props) {
       {/* Аномалии */}
       {anomalies.length > 0 && (
         <div className="ins-block">
-          <SectionTitle>⚠️ {t('Дни-выбросы')}</SectionTitle>
+          <SectionTitle><Icon name="warning" size={16} /> {t('Дни-выбросы')}</SectionTitle>
           <div className="ins-chips">
             {anomalies.map((a, i) => (
               <span key={i} className="ins-chip ins-chip--warn">
@@ -150,7 +151,7 @@ export function InsightsScreen({ daily, intakeEvents = [] }: Props) {
       {/* AI инсайты */}
       {insights.length > 0 && (
         <div className="ins-block">
-          <SectionTitle>💡 {t('Наблюдения')}</SectionTitle>
+          <SectionTitle><Icon name="idea" size={16} /> {t('Наблюдения')}</SectionTitle>
           <div className="ins-ai-list">
             {insights.map(i => (
               <div key={i.id} className="ins-ai-card">
@@ -171,7 +172,7 @@ export function InsightsScreen({ daily, intakeEvents = [] }: Props) {
       {/* Паттерны по дням недели */}
       {weekday.length > 0 && (
         <div className="ins-block">
-          <SectionTitle>📆 {t('Паттерны по дням недели')}</SectionTitle>
+          <SectionTitle><Icon name="calendarRange" size={16} /> {t('Паттерны по дням недели')}</SectionTitle>
           <div className="ins-chips">
             {weekday.map((w, i) => (
               <span key={i} className="ins-chip">

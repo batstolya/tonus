@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { HeartRateSample, CalendarEvent } from '../../types'
 import { useT } from '../../lib/i18n'
+import { Icon } from '../../lib/icons'
 import { buildStressMap } from '../../lib/stressMap'
 import { StressCharts } from './StressCharts'
 
@@ -37,7 +38,7 @@ export function StressMapScreen({ heartRateSamples, events, onGoogleCalendar, go
         </p>
         {onGoogleCalendar && (
           <button className="btn-primary" style={{ maxWidth: 240, marginBottom: 12 }} onClick={onGoogleCalendar}>
-            🗓 Google Calendar
+            <Icon name="schedule" size={16} /> Google Calendar
           </button>
         )}
         <p className="screen-hint">{t('Другие способы подключить календарь — в Настройках')}</p>
@@ -49,7 +50,7 @@ export function StressMapScreen({ heartRateSamples, events, onGoogleCalendar, go
     <div className="screen">
       <div className="stress-header">
         <div>
-          <h2>{t('Карта стресса — пульс ↔ события')}</h2>
+          <h2>{t('Карта стресса — пульс')} <Icon name="swap" size={18} /> {t('события')}</h2>
           <p className="screen-hint">
             {t('События отсортированы по нагрузке на сердце (превышение над базовым уровнем). Физическая активность помечена отдельно.')}
           </p>
@@ -63,7 +64,7 @@ export function StressMapScreen({ heartRateSamples, events, onGoogleCalendar, go
               {t('По дате')}
             </button>
             <button className={`stress-sort-btn${mode === 'charts' ? ' active' : ''}`} onClick={() => setMode('charts')}>
-              📊 {t('Графики')}
+              <Icon name="chart" size={16} /> {t('Графики')}
             </button>
           </div>
           {googleConnected && onToggleGoogle && (
@@ -88,7 +89,7 @@ export function StressMapScreen({ heartRateSamples, events, onGoogleCalendar, go
           >
             <div className="stress-event-header">
               <span className="stress-title">{entry.event.title}</span>
-              {entry.isPhysicalActivity && <span className="badge">🏃 {t('активность')}</span>}
+              {entry.isPhysicalActivity && <span className="badge"><Icon name="exercise" size={12} /> {t('активность')}</span>}
               <span className="stress-date">{fmtDate(entry.event.start, locale)}</span>
             </div>
             <div className="stress-stats">

@@ -59,6 +59,19 @@ const expectedComponentName: Record<IconName, string> = {
   swap: 'ArrowsLeftRightIcon',
   pending: 'HourglassIcon',
   pause: 'PauseIcon',
+  sun: 'SunIcon',
+  coffee: 'CoffeeIcon',
+  alcohol: 'WineIcon',
+  temperature: 'ThermometerIcon',
+  weather: 'CloudSunIcon',
+  link: 'LinkIcon',
+  compass: 'CompassIcon',
+  magnet: 'MagnetIcon',
+  trendUp: 'TrendUpIcon',
+  trendDown: 'TrendDownIcon',
+  dotInfo: 'CircleIcon',
+  calendarRange: 'CalendarDotsIcon',
+  schedule: 'CalendarIcon',
 }
 
 afterEach(() => {

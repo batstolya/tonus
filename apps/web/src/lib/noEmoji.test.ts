@@ -22,6 +22,11 @@ const PILOT_FILES = [
   'components/research/ExperimentsScreen.tsx',
   'components/research/ResearchScreen.tsx',
   'components/goals/GoalsScreen.tsx',
+  'components/insights/CorrelationsBlock.tsx',
+  'components/insights/InsightsScreen.tsx',
+  'components/activity/ActivityScreen.tsx',
+  'components/heart-rate/HeartRateScreen.tsx',
+  'components/stress-map/StressMapScreen.tsx',
 ]
 
 const REPLACED = Object.values(ICONS).map(e => e.emoji)
