@@ -34,6 +34,9 @@ const expectedComponentName: Record<IconName, string> = {
   sportVolleyball: 'VolleyballIcon',
   sportFootball: 'SoccerBallIcon',
   sportGym: 'BarbellIcon',
+  settings: 'GearIcon',
+  chevronRight: 'CaretRightIcon',
+  signOut: 'SignOutIcon',
 }
 
 afterEach(() => {

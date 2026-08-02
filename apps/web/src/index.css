@@ -880,13 +880,41 @@ body {
   width: 100%; background: none; border: none;
   color: var(--text); font-size: 15px;
   padding: 12px 20px; cursor: pointer; text-align: left;
-  border-radius: 0; transition: background 0.15s;
+  transition: background 0.15s;
 }
-.mobile-nav-btn span:first-child { font-size: 18px; width: 24px; text-align: center; }
+.mobile-nav-icon { flex-shrink: 0; }
+.mobile-nav-chevron { margin-left: auto; color: var(--text-muted); flex-shrink: 0; }
 .mobile-nav-btn:hover { background: var(--surface2); }
 .mobile-nav-btn.active { color: var(--accent); background: var(--surface2); }
-.mobile-nav-btn.signout { color: var(--red); }
+.mobile-nav-btn.signout { color: var(--text-muted); }
 .mobile-menu-footer { margin-top: auto; border-top: 1px solid var(--border); padding-top: 8px; }
+
+/* Mobile drawer: shared segmented-control shape for the theme and language
+   rows — both are three-way choices, so they get one control instead of two
+   bespoke ones. Radii come from the .app-scoped tokens (r-control/r-inner),
+   so this is a pill track in dark and a lightly rounded one in light. */
+.mobile-menu-section { padding: 10px 20px 6px; }
+.mobile-menu-caption {
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-muted); margin-bottom: 8px;
+}
+.mobile-segmented {
+  display: flex; gap: 2px;
+  background: var(--surface2);
+  border-radius: var(--r-control);
+  padding: 3px;
+}
+.mobile-segmented-btn {
+  flex: 1; background: none; border: none;
+  border-radius: var(--r-inner);
+  padding: 8px 4px; font-size: 13px; font-weight: 500;
+  color: var(--text-muted); cursor: pointer;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.mobile-segmented-btn.active {
+  background: var(--surface); color: var(--text); font-weight: 600;
+  box-shadow: var(--card-shadow);
+}
 
 /* Bottom nav (mobile only) */
 .bottom-nav {
@@ -2004,10 +2032,6 @@ input[type="date"].settings-input::-webkit-calendar-picker-indicator { cursor: p
 .theme-preview-system span:nth-child(2) { background: linear-gradient(135deg, #2b2f37 50%, #e2e4e9 50%); }
 .theme-preview-system span:nth-child(3) { background: #e2e4e9; }
 
-/* Мобильное меню: ряд из трёх режимов темы */
-.mobile-theme-row { display: flex; gap: 8px; padding: 6px 0; }
-.mobile-theme-btn { flex: 1; padding: 8px 4px; font-size: 13px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface2); color: var(--text); cursor: pointer; }
-.mobile-theme-btn.active { border-color: var(--accent); color: var(--accent); font-weight: 600; }
 .lang-option:hover { background: var(--surface2); }
 .lang-option.active { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); }
 .lang-option.active .lang-code { color: var(--accent); opacity: 0.75; }

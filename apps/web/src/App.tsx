@@ -41,6 +41,7 @@ import { supabase } from './lib/supabase'
 import { isGoogleCalendarAvailable } from './lib/googleCalendar'
 import { detectAvailableMetrics } from './lib/availableMetrics'
 import { useT } from './lib/i18n'
+import { Icon } from './lib/icons'
 import './index.css'
 import { getActiveGroup, getActiveSubView, filterNavGroups } from './app/navigation'
 import { useAppBootstrap } from './hooks/useAppBootstrap'
@@ -192,26 +193,36 @@ export default function App() {
                   className={`mobile-nav-btn${state.view === 'settings' ? ' active' : ''}`}
                   onClick={() => { setView('settings'); setMobileMenuOpen(false) }}
                 >
-                  <span>⚙️</span><span>{t('Настройки')}</span>
+                  <Icon name="settings" className="mobile-nav-icon" />
+                  <span>{t('Настройки')}</span>
+                  <Icon name="chevronRight" className="mobile-nav-chevron" />
                 </button>
-                <div className="mobile-theme-row">
-                  {([['light', 'Светлая'], ['dark', 'Тёмная'], ['system', 'Системная']] as const).map(([m, label]) => (
-                    <button key={m} className={`mobile-theme-btn${themeMode === m ? ' active' : ''}`}
-                      onClick={() => setThemeMode(m)}>
-                      {t(label)}
-                    </button>
-                  ))}
+                <div className="mobile-menu-section">
+                  <div className="mobile-menu-caption">{t('Тема')}</div>
+                  <div className="mobile-segmented">
+                    {([['light', 'Светлая'], ['dark', 'Тёмная'], ['system', 'Системная']] as const).map(([m, label]) => (
+                      <button key={m} className={`mobile-segmented-btn${themeMode === m ? ' active' : ''}`}
+                        onClick={() => setThemeMode(m)}>
+                        {t(label)}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <button
-                  className="mobile-nav-btn"
-                  onClick={() => setLang(lang === 'ru' ? 'uk' : lang === 'uk' ? 'en' : 'ru')}
-                >
-                  <span className="lang-code">{lang === 'ru' ? 'RU' : lang === 'uk' ? 'UA' : 'EN'}</span>
-                  <span>{lang === 'ru' ? 'Русский' : lang === 'uk' ? 'Українська' : 'English'}</span>
-                </button>
+                <div className="mobile-menu-section">
+                  <div className="mobile-menu-caption">{t('Язык')}</div>
+                  <div className="mobile-segmented">
+                    {([['ru', 'RU'], ['uk', 'UA'], ['en', 'EN']] as const).map(([code, short]) => (
+                      <button key={code} className={`mobile-segmented-btn${lang === code ? ' active' : ''}`}
+                        onClick={() => setLang(code)}>
+                        {short}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div className="mobile-menu-footer">
                   <button className="mobile-nav-btn signout" onClick={handleSignOut}>
-                    <span>🚪</span><span>{t('Выйти')}</span>
+                    <Icon name="signOut" className="mobile-nav-icon" />
+                    <span>{t('Выйти')}</span>
                   </button>
                 </div>
               </div>
