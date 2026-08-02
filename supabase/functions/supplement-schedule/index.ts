@@ -3,6 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { checkBudget, budgetExceededMessage } from '../_shared/costGuard.ts'
 import { aiConsentRequiredResponse, fetchGeminiWithConsent, isAiConsentRequired } from '../_shared/aiConsent.ts'
 import { corsHeadersFor } from '../_shared/cors.ts'
+import { langPrepositional } from '../_shared/replyLang.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -35,6 +36,9 @@ serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
     const { data: { user }, error } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
     if (error || !user) return new Response('Unauthorized', { status: 401, headers: CORS })
+
+    // Тело нужно только ради языка ответа; вызов без тела остаётся валидным.
+    const { lang } = await req.json().catch(() => ({ lang: undefined })) as { lang?: string }
 
     // AI Cost Guard
     const budget = await checkBudget(supabase, user.id)
@@ -119,7 +123,7 @@ ${profileLines}
 - используй ТОЛЬКО добавки из стека, имена — дословно как в стеке;
 - каждая добавка должна попасть хотя бы в один слот;
 - время в формате HH:MM (24ч); группируй добавки по слотам;
-- reason — одна короткая фраза на русском;
+- reason — одна короткая фраза на ${langPrepositional(lang)};
 - максимум 5 слотов.`
 
     const geminiRes = await fetchGeminiWithConsent(

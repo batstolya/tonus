@@ -3,6 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { checkBudget, budgetExceededMessage } from '../_shared/costGuard.ts'
 import { aiConsentRequiredResponse, fetchGeminiWithConsent, isAiConsentRequired } from '../_shared/aiConsent.ts'
 import { corsHeadersFor } from '../_shared/cors.ts'
+import { langPrepositional } from '../_shared/replyLang.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
@@ -21,13 +22,13 @@ serve(async (req) => {
     const budget = await checkBudget(supabase, user.id)
     if (!budget.ok) return new Response(JSON.stringify({ error: budgetExceededMessage(budget) }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
 
-    const { image, text } = await req.json() as { image?: { base64: string; mime: string }; text?: string }
+    const { image, text, lang } = await req.json() as { image?: { base64: string; mime: string }; text?: string; lang?: string }
 
     let parts: unknown[]
     if (image) {
       const hint = text ? ` Подпись пользователя: "${text}".` : ''
       parts = [
-        { text: `На фото — еда. Оцени блюдо и его пищевую ценность по виду и типичным порциям.${hint}\nВерни ТОЛЬКО JSON: {"dish":"название блюда на русском","calories":число,"protein_g":число,"carbs_g":число,"fat_g":число,"is_food":true|false}` },
+        { text: `На фото — еда. Оцени блюдо и его пищевую ценность по виду и типичным порциям.${hint}\nВерни ТОЛЬКО JSON: {"dish":"название блюда на ${langPrepositional(lang)}","calories":число,"protein_g":число,"carbs_g":число,"fat_g":число,"is_food":true|false}` },
         { inline_data: { mime_type: image.mime, data: image.base64 } },
       ]
     } else if (text?.trim()) {

@@ -4,6 +4,7 @@ import { checkBudget } from '../_shared/costGuard.ts'
 import { isValidInternalSecret } from '../_shared/auth.ts'
 import { aiConsentRequiredResponse, fetchGeminiWithConsent, isAiConsentRequired } from '../_shared/aiConsent.ts'
 import { corsHeadersFor } from '../_shared/cors.ts'
+import { langInstruction } from '../_shared/replyLang.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
@@ -32,7 +33,7 @@ serve(async (req) => {
     }
 
     // не пересобирать чаще раза в сутки, если не force
-    const { force } = await req.json().catch(() => ({ force: false }))
+    const { force, lang } = await req.json().catch(() => ({ force: false, lang: undefined }))
     const { data: existing } = await supabase.from('coach_profile').select('*').eq('user_id', userId).maybeSingle()
     if (existing && !force && existing.updated_at && (Date.now() - new Date(existing.updated_at).getTime()) < 86400000) {
       return new Response(JSON.stringify(existing), { headers: { ...CORS, 'Content-Type': 'application/json' } })
@@ -88,7 +89,8 @@ ${notes || 'нет'}
   "summary": "3-5 предложений: кто пользователь по здоровью, его цели, привычки, контекст жизни, что для него важно. Простым языком, без воды.",
   "facts": ["короткие ключевые факты", "макс 8 штук", "то что стоит помнить надолго"]
 }
-Правила: опирайся только на данные, не выдумывай. Не диагнозы. На русском.`
+Правила: опирайся только на данные, не выдумывай. Не диагнозы.
+${langInstruction(lang)}`
 
     const res = await fetchGeminiWithConsent(
       supabase,

@@ -3,11 +3,12 @@ import type { User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { isDemoActive } from '../lib/demo'
 import { translateStandalone } from '../lib/translate'
+import { useT } from '../lib/i18n'
 import { loadMetricsFromSupabase, loadHRSamples } from '../lib/sync'
 import { persistDailyScores } from '../lib/scores'
 import { loadCalendarEvents } from '../lib/calendarSync'
 import { startEffect } from '../lib/startEffect'
-import { syncProfileTimezone } from '../lib/api/settings'
+import { syncProfileTimezone, syncProfileLang } from '../lib/api/settings'
 import type { IntakeEvent } from '../lib/api/intake'
 import type { DailyMetrics, HeartRateSample, CalendarEvent } from '../types'
 
@@ -30,6 +31,14 @@ export function useAppBootstrap({ user, setDaily, setEvents }: Args) {
     if (!tzSyncUserId) return
     startEffect(() => syncProfileTimezone(tzSyncUserId).catch(() => {}))
   }, [tzSyncUserId])
+
+  // То же для языка: cron-разборы (коуч, Telegram) не видят запроса из браузера
+  // и берут язык ответа из profiles.lang.
+  const { lang } = useT()
+  useEffect(() => {
+    if (!tzSyncUserId) return
+    startEffect(() => syncProfileLang(tzSyncUserId, lang).catch(() => {}))
+  }, [tzSyncUserId, lang])
 
   useEffect(() => {
     let cancelled = false

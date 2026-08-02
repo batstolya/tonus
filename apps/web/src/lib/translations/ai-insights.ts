@@ -98,6 +98,29 @@ export const ai_insights: Record<string, Translation> = {
   'Глубокий сон': { uk: 'Глибокий сон', en: 'Deep sleep' },
 
 
+  // ── Наблюдения из lib/insights.ts (ключ + плейсхолдер {n}) ─
+  'ВСР (HRV)': { uk: 'ВСР (HRV)', en: 'HRV' },
+  'Пульс покоя за последнюю неделю вырос на {n} уд/мин по сравнению с предыдущей — это наблюдение, не диагноз.': {
+    uk: 'Пульс спокою за останній тиждень зріс на {n} уд/хв порівняно з попереднім — це спостереження, не діагноз.',
+    en: 'Resting heart rate rose by {n} bpm over the past week compared with the previous one — an observation, not a diagnosis.',
+  },
+  'Пульс покоя за последнюю неделю снизился на {n} уд/мин — возможно, тело лучше восстанавливается.': {
+    uk: 'Пульс спокою за останній тиждень знизився на {n} уд/хв — можливо, тіло краще відновлюється.',
+    en: 'Resting heart rate dropped by {n} bpm over the past week — your body may be recovering better.',
+  },
+  'Вариабельность пульса выросла на {n} мс — как правило, признак хорошего восстановления.': {
+    uk: 'Варіабельність пульсу зросла на {n} мс — зазвичай це ознака доброго відновлення.',
+    en: 'Heart rate variability rose by {n} ms — usually a sign of good recovery.',
+  },
+  'Вариабельность пульса снизилась на {n} мс — стоит обратить внимание на сон и нагрузки.': {
+    uk: 'Варіабельність пульсу знизилася на {n} мс — варто звернути увагу на сон і навантаження.',
+    en: 'Heart rate variability dropped by {n} ms — worth looking at your sleep and training load.',
+  },
+  'Средний сон за неделю — {n} ч. Рекомендуется не менее 7–8 часов.': {
+    uk: 'Середній сон за тиждень — {n} год. Рекомендовано щонайменше 7–8 годин.',
+    en: 'Average sleep this week is {n} h. At least 7–8 hours is recommended.',
+  },
+
   // ── Инсайты ────────────────────────────────────────────────
   'Инсайты и тренды': { uk: 'Інсайти та тренди', en: 'Insights & trends' },
   'Сравнить эту неделю с прошлой': { uk: 'Порівняти цей тиждень з минулим', en: 'Compare this week to last' },

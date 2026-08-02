@@ -4,6 +4,7 @@ import { checkBudget, budgetExceededMessage } from '../_shared/costGuard.ts'
 import { isValidInternalSecret } from '../_shared/auth.ts'
 import { aiConsentRequiredResponse, fetchGeminiWithConsent, isAiConsentRequired } from '../_shared/aiConsent.ts'
 import { corsHeadersFor } from '../_shared/cors.ts'
+import { langNominative } from '../_shared/replyLang.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -76,7 +77,8 @@ serve(async (req) => {
     const budget = await checkBudget(supabase, user.id)
     if (!budget.ok) return new Response(JSON.stringify({ error: 'budget_exceeded', message: budgetExceededMessage(budget) }), { status: 402, headers: { ...CORS, 'Content-Type': 'application/json' } })
 
-    const body: { mode?: unknown; idea?: unknown } = await req.json().catch(() => ({}))
+    const body: { mode?: unknown; idea?: unknown; lang?: unknown } = await req.json().catch(() => ({}))
+    const lang = body.lang
     const mode: 'generate' | 'refine' = body.mode === 'refine' ? 'refine' : 'generate'
     const idea = String(body.idea ?? '').slice(0, 300)
 
@@ -102,7 +104,7 @@ ${metricList}
 - change_rule — конкретное ежедневное действие, которое человек меняет.
 - target_metric — ровно один ключ из списка, самый подходящий к идее.
 - rationale — 1 предложение: почему это разумно проверить.
-- Реалистичное, безопасное изменение. Тон поддерживающий. Язык — русский.`
+- Реалистичное, безопасное изменение. Тон поддерживающий. Язык — ${langNominative(lang)}.`
     } else {
       // generate из данных за 30 дней — метрики + ПОВЕДЕНИЕ + среда + тайминг сна
       const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 30)
@@ -212,7 +214,7 @@ ${metricList}
 - Среда (жара, пыльца) — НЕ цель эксперимента (её нельзя менять), упоминай только в rationale как возможное объяснение.
 - rationale — 1 предложение со ссылкой на КОНКРЕТНЫЕ цифры поведения/исходов выше.
 - hypothesis — 1 предложение: привычка X влияет на исход Y.
-- 2-3 эксперимента про разные привычки. Реалистично, безопасно. Язык — русский.`
+- 2-3 эксперимента про разные привычки. Реалистично, безопасно. Язык — ${langNominative(lang)}.`
     }
 
     const geminiRes = await fetchGeminiWithConsent(

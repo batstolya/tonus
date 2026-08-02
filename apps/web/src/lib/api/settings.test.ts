@@ -26,6 +26,7 @@ import {
   getCalSyncStatus,
   getProfileLocation, saveProfileLocation, updateLocationLabel,
   syncProfileTimezone,
+  syncProfileLang,
   loadProfileBasics, saveProfileBasics,
   getSupplementLogsSince,
 } from './settings'
@@ -133,6 +134,12 @@ describe('cal sync + profile location', () => {
     expect(tz).toBeTruthy() // sanity: node resolves a real zone in tests
     expect(state.calls[0].table).toBe('profiles')
     expect(state.calls[0].steps).toContainEqual(['upsert', [{ id: 'u1', timezone: tz }]])
+  })
+
+  it('syncProfileLang mirrors the UI language into the profile', async () => {
+    await syncProfileLang('u1', 'uk')
+    expect(state.calls[0].table).toBe('profiles')
+    expect(state.calls[0].steps).toContainEqual(['upsert', [{ id: 'u1', lang: 'uk' }]])
   })
 
   it('updateLocationLabel updates only the label', async () => {
