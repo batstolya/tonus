@@ -72,7 +72,7 @@ compares exact strings.
 | 🏆 | `trophy` | `Trophy` |
 | 💡 | `idea` | `Lightbulb` |
 | 🔒 | `locked` | `Lock` |
-| 📷 📸 | `photo` `snapshot` | `Camera` |
+| 📷 📸 | `photo` `snapshot` | `Camera` `ImageSquare` |
 | ✏ ✎ | `edit` `editSimple` | `Pencil` `PencilSimple` |
 | 🔍 | `search` | `MagnifyingGlass` |
 | 🔬 | `microscope` | `Microscope` |
@@ -102,6 +102,17 @@ compares exact strings.
 
 Already in the registry, reuse rather than re-add: `⚠` → `warning`, `🔥` → `streak`,
 `📅` → `calendar`, `✅` → `planDone`, `🫀` → `alertHigh`, `🏃` → `exercise`.
+
+**Two names must never share a Phosphor component unless colour distinguishes
+them.** Task 1 shipped `alertHigh`/`pulse` both on `Heartbeat` and
+`sleepDebt`/`sleeping` both on `Bed`, so two pairs of metrics in
+`ExperimentCard.tsx` render identically where 🫀/💓 and 💤/😴 used to differ. The
+`dot*` family is the deliberate exception — those share `Circle` and are told
+apart by an explicit colour at the call site.
+
+Before adding an entry, check whether its component is already taken. Verified
+alternatives for the known collisions: `Pulse`, `Waveform`, `HeartHalf`,
+`MoonStars`, `ImageSquare`, `Image`, `CameraPlus`, `Aperture`.
 
 ---
 
