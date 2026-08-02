@@ -113,6 +113,65 @@ describe('DoctorReport labs status — printed page', () => {
 
     const notes = Array.from(container.querySelectorAll('.dr-note')).map(el => el.textContent)
     expect(notes.some(t => t?.includes('Показатели с одинаковым названием в разных единицах'))).toBe(true)
-    expect(notes.some(t => t?.includes('Дата берётся из формы загрузки файла'))).toBe(true)
+    expect(notes.some(t => t?.includes('Дата — это дата забора материала, а не загрузки файла'))).toBe(true)
+  })
+})
+
+describe('DoctorReport lab sample dates — printed page', () => {
+  it('prints the month, not its first day, and joins one analyte across spellings', async () => {
+    vi.mocked(loadReportSources).mockResolvedValue({
+      ...EMPTY_SOURCES,
+      labs: [
+        { id: '1', lab_file_id: 'f', marker: 'FERRITINA', value: 85, unit: 'ng/mL',
+          date: '2026-06-20', sample_date: '2024-09-01', sample_date_precision: 'month', analyte_key: 'ferritin' },
+        { id: '2', lab_file_id: 'f', marker: 'Ferrytyna (L05)', value: 68, unit: 'ng/ml',
+          date: '2026-06-20', sample_date: '2025-09-01', sample_date_precision: 'month', analyte_key: 'ferritin' },
+      ],
+    })
+    const { container } = renderWithProviders(
+      <DoctorReport user={user} daily={daily} onClose={() => {}} />)
+    fireEvent.click(screen.getByText(ui('Сформировать')))
+    await waitFor(() => expect(container.textContent).toContain('09.2025'))
+
+    // Two spellings, one row: the analyte key joined them. Scoped to the main
+    // labs table — "Все измерения по показателям" below it lists series too.
+    const mainTable = Array.from(container.querySelectorAll('section'))
+      .find(sec => sec.querySelector('h2')?.textContent === 'Анализы')!
+      .querySelector('table')!
+    const rows = Array.from(mainTable.querySelectorAll('tbody tr'))
+      .filter(tr => /Ferr/i.test(tr.textContent ?? ''))
+    expect(rows).toHaveLength(1)
+    expect(rows[0].textContent).toContain('09.2024') // previous draw, by month
+    expect(container.textContent).not.toContain('2025-09-01')
+    expect(container.textContent).not.toContain('2026-06-20') // never the upload date
+  })
+
+  it('says the sample date is unknown rather than printing the upload date', async () => {
+    vi.mocked(loadReportSources).mockResolvedValue({
+      ...EMPTY_SOURCES,
+      labs: [
+        { id: '1', lab_file_id: 'f', marker: 'FERRITINA', value: 85, unit: 'ng/mL',
+          date: '2026-06-20', sample_date: null, sample_date_precision: 'unknown', analyte_key: 'ferritin' },
+      ],
+    })
+    const { container } = renderWithProviders(
+      <DoctorReport user={user} daily={daily} onClose={() => {}} />)
+    fireEvent.click(screen.getByText(ui('Сформировать')))
+    await waitFor(() => expect(container.textContent).toContain('дата сдачи неизвестна'))
+    expect(container.textContent).not.toContain('2026-06-20')
+  })
+
+  it('counts markers the dictionary did not recognise', async () => {
+    vi.mocked(loadReportSources).mockResolvedValue({
+      ...EMPTY_SOURCES,
+      labs: [
+        { id: '1', lab_file_id: 'f', marker: 'Неведомый маркер', value: 1, unit: 'ед',
+          date: '2026-06-20', sample_date: '2025-01-01', sample_date_precision: 'day', analyte_key: null },
+      ],
+    })
+    const { container } = renderWithProviders(
+      <DoctorReport user={user} daily={daily} onClose={() => {}} />)
+    fireEvent.click(screen.getByText(ui('Сформировать')))
+    await waitFor(() => expect(container.textContent).toContain('Показателей без распознанного названия: 1'))
   })
 })

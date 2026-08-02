@@ -22,7 +22,13 @@ export interface LabResult {
   unit: string | null
   ref_range?: string | null
   flag?: string | null
+  /** Import date. Chronology reads sample_date; this stays for legacy rows. */
   date: string
+  /** When the sample was taken, as far as it is known. */
+  sample_date?: string | null
+  sample_date_precision?: 'day' | 'month' | 'unknown' | null
+  /** Canonical analyte slug; null when the marker name was not recognised. */
+  analyte_key?: string | null
 }
 
 export async function loadLabFiles(userId: string): Promise<LabFile[]> {

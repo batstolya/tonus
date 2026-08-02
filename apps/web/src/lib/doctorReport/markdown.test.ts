@@ -414,9 +414,10 @@ describe('toMarkdown', () => {
       sources: {
         ...sources,
         labs: [
-          { id: '1', lab_file_id: 'f', marker: 'LINFOCITOS', value: 42.2, unit: '%', date: '2026-06-01' },
-          { id: '2', lab_file_id: 'f', marker: 'LINFOCITOS', value: 40.1, unit: '%', date: '2026-06-20' },
-          { id: '3', lab_file_id: 'f', marker: 'LINFOCITOS', value: 2.16, unit: '10E3/µL', date: '2026-06-20' },
+          // sample_date mirrors date, the shape every stored row now has.
+          { id: '1', lab_file_id: 'f', marker: 'LINFOCITOS', value: 42.2, unit: '%', date: '2026-06-01', sample_date: '2026-06-01', sample_date_precision: 'day' },
+          { id: '2', lab_file_id: 'f', marker: 'LINFOCITOS', value: 40.1, unit: '%', date: '2026-06-20', sample_date: '2026-06-20', sample_date_precision: 'day' },
+          { id: '3', lab_file_id: 'f', marker: 'LINFOCITOS', value: 2.16, unit: '10E3/µL', date: '2026-06-20', sample_date: '2026-06-20', sample_date_precision: 'day' },
         ],
       },
       periodDays: 30, today,
@@ -432,6 +433,58 @@ describe('toMarkdown', () => {
     const pctRow = rows.find(r => r.includes('%'))!
     expect(pctRow).toContain('к 2026-06-01') // the percentage series still gets its own real delta
     expect(md).toContain('Показатели с одинаковым названием в разных единицах показаны отдельными строками и не сравниваются между собой.')
-    expect(md).toContain('Дата берётся из формы загрузки файла')
+    expect(md).toContain('Дата — это дата забора материала, а не загрузки файла')
+  })
+})
+
+describe('toMarkdown — lab sample dates', () => {
+  const labModel = (labs: unknown[]) => buildReportModel({
+    daily, sources: { ...sources, labs } as typeof sources, periodDays: 30, today,
+  })
+
+  it('prints a month-precision date as the month, not as its first day', () => {
+    const md = toMarkdown(labModel([
+      { id: '1', lab_file_id: 'f', marker: 'FERRITINA', value: 85, unit: 'ng/mL',
+        date: '2026-06-20', sample_date: '2024-09-01', sample_date_precision: 'month', analyte_key: 'ferritin' },
+    ]), 'ru')
+    expect(md).toContain('09.2024')
+    expect(md).not.toContain('2024-09-01')
+  })
+
+  it('says the sample date is unknown instead of printing the upload date', () => {
+    const md = toMarkdown(labModel([
+      { id: '1', lab_file_id: 'f', marker: 'FERRITINA', value: 85, unit: 'ng/mL',
+        date: '2026-06-20', sample_date: null, sample_date_precision: 'unknown', analyte_key: 'ferritin' },
+    ]), 'ru')
+    expect(md).toContain('дата сдачи неизвестна')
+    expect(md).not.toContain('2026-06-20')
+  })
+
+  it('names the order as unknown when two results share one month', () => {
+    const md = toMarkdown(labModel([
+      { id: '1', lab_file_id: 'f', marker: 'FERRITINA', value: 85, unit: 'ng/mL',
+        date: '2026-06-20', sample_date: '2025-09-01', sample_date_precision: 'month', analyte_key: 'ferritin' },
+      { id: '2', lab_file_id: 'f', marker: 'Ferrytyna (L05)', value: 68, unit: 'ng/mL',
+        date: '2026-06-20', sample_date: '2025-09-01', sample_date_precision: 'month', analyte_key: 'ferritin' },
+    ]), 'ru')
+    expect(md).toContain('порядок внутри месяца неизвестен')
+  })
+
+  it('no longer claims the date comes from the upload form', () => {
+    const md = toMarkdown(labModel([
+      { id: '1', lab_file_id: 'f', marker: 'FERRITINA', value: 85, unit: 'ng/mL',
+        date: '2026-06-20', sample_date: '2024-09-01', sample_date_precision: 'month', analyte_key: 'ferritin' },
+    ]), 'ru')
+    expect(md).not.toContain('Дата берётся из формы загрузки файла')
+  })
+
+  it('counts the markers the analyte dictionary did not recognise', () => {
+    const md = toMarkdown(labModel([
+      { id: '1', lab_file_id: 'f', marker: 'Неведомый маркер', value: 1, unit: 'ед',
+        date: '2026-06-20', sample_date: '2025-01-01', sample_date_precision: 'day', analyte_key: null },
+      { id: '2', lab_file_id: 'f', marker: 'FERRITINA', value: 85, unit: 'ng/mL',
+        date: '2026-06-20', sample_date: '2024-09-01', sample_date_precision: 'month', analyte_key: 'ferritin' },
+    ]), 'ru')
+    expect(md).toContain('Показателей без распознанного названия: 1')
   })
 })

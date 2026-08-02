@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { identifyAnalyte, normaliseName, normaliseUnit, seriesKey } from './analytes.ts'
+import { identifyAnalyte, normaliseName, normaliseUnit, seriesKey, seriesKeyFor } from './analytes.ts'
 
 // The names below are the real production set: 83 results across four files,
 // two languages and three laboratories, all of which the report treated as
@@ -145,5 +145,28 @@ describe('identifyAnalyte', () => {
     expect(identifyAnalyte('Ferritin-like substance', 'ng/mL')).toBeNull()
     expect(identifyAnalyte('', null)).toBeNull()
     expect(identifyAnalyte('Ferrytynaa', 'ng/mL')).toBeNull()
+  })
+})
+
+describe('seriesKeyFor', () => {
+  it('derives the triple from a stored key and the row unit', () => {
+    // The report keeps analyte_key in the database but not measurement or
+    // unitFamily; those come from the row's own unit, through this module.
+    expect(seriesKeyFor('ferritin', 'ng/mL')).toBe(seriesKeyFor('ferritin', 'ng/ml'))
+    expect(seriesKeyFor('tsh', 'mU/l')).toBe(seriesKeyFor('tsh', 'µIU/mL'))
+  })
+
+  it('splits the percentage from the absolute count of one analyte', () => {
+    expect(seriesKeyFor('lymphocytes', '%')).not.toBe(seriesKeyFor('lymphocytes', '10E3/µL'))
+  })
+
+  it('agrees with identifyAnalyte for a name the dictionary knows', () => {
+    const id = identifyAnalyte('LINFOCITOS', '%')!
+    expect(seriesKeyFor(id.key, '%')).toBe(seriesKey(id))
+  })
+
+  it('treats a percentage that is the analyte itself as absolute', () => {
+    expect(seriesKeyFor('hematocrit', '%')).toBe(seriesKeyFor('hematocrit', '%'))
+    expect(seriesKeyFor('hematocrit', '%').includes('absolute')).toBe(true)
   })
 })

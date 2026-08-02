@@ -1,7 +1,10 @@
 import { translations } from '../translations'
 import { METRIC_DEFS, type MetricSummary } from './metrics'
 import { BAND_TEXT, POSITION_TEXT } from './reliability'
-import { LAB_STATUS_TEXT, LAB_FLAG_SUFFIX, LAB_UNIT_CAVEAT, LAB_DATE_CAVEAT, type LabLine } from './labs'
+import {
+  LAB_STATUS_TEXT, LAB_FLAG_SUFFIX, LAB_UNIT_CAVEAT, LAB_DATE_CAVEAT,
+  LAB_ORDER_UNKNOWN, LAB_UNIDENTIFIED, labDateCell, type LabLine,
+} from './labs'
 import { INTAKE_LABELS } from './intake'
 import type { DoctorReportModel, ScoreSummary } from './model'
 
@@ -245,9 +248,11 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
         `${l.value}${l.unit ? ` ${l.unit}` : ''}`,
         l.refRange ?? dash,
         labStatusCell(l, t),
-        l.prevValue != null ? `${l.prevValue} (${l.prevDate})` : dash,
-        l.delta != null ? `${signed(l.delta, Number.isInteger(l.delta) ? 0 : 1)} ${t('к')} ${l.prevDate}` : dash,
-        l.date,
+        l.prevValue != null ? `${l.prevValue} (${labDateCell(l.prevDate, l.prevPrecision ?? 'unknown', t)})` : dash,
+        l.delta != null
+          ? `${signed(l.delta, Number.isInteger(l.delta) ? 0 : 1)} ${t('к')} ${labDateCell(l.prevDate, l.prevPrecision ?? 'unknown', t)}`
+          : l.prevValue != null ? t(LAB_ORDER_UNKNOWN) : dash,
+        labDateCell(l.date, l.datePrecision, t),
       ]),
     )
     if (model.labs.outOfPeriod.length) {
@@ -258,6 +263,9 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
     p()
     p(t(LAB_UNIT_CAVEAT))
     p(t(LAB_DATE_CAVEAT))
+    if (model.labs.unidentifiedMarkers > 0) {
+      p(`${t(LAB_UNIDENTIFIED)}: ${model.labs.unidentifiedMarkers}. ${t('Они показаны под собственными названиями и ни с чем не объединяются.')}`)
+    }
     p()
 
     if (model.labs.series.length) {
@@ -267,7 +275,7 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
         [t('Показатель'), t('Все значения по датам (от старых к новым)'), t('Реф. диапазон')],
         model.labs.series.map(s => [
           s.marker,
-          `${s.points.map(pt => `${pt.date}: ${pt.value}`).join(' → ')}${s.unit ? ` ${s.unit}` : ''}`,
+          `${s.points.map(pt => `${labDateCell(pt.date, pt.precision, t)}: ${pt.value}`).join(' → ')}${s.unit ? ` ${s.unit}` : ''}`,
           s.refRange ?? dash,
         ]),
       )
