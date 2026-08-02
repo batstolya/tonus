@@ -126,6 +126,14 @@ regex over file names. A regex that mis-parses a file name silently moves a
 patient's lab history by months; four literal rows can be read and checked by a
 human before they run.
 
+3. Every existing row also needs its `analyte_key`. **This step was missing from
+   the first version of this design**, which described only the import path — so
+   `extract-lab` set the key on future uploads while all 83 stored rows kept
+   `null`, and not one of the cross-language trends this spec exists for would
+   have appeared. `scripts/backfill-lab-analyte-keys.sql` is generated from
+   `analytes.ts` over the distinct `(marker, unit)` pairs actually present, so
+   the dictionary and the backfill cannot drift apart.
+
 ## 4. Analyte identity
 
 New shared module `_shared/analytes.ts`, used by the edge function and mirrored
@@ -178,8 +186,18 @@ The lab section, already reworked in #170, changes in four ways:
 
 1. Rows sort and print by `sample_date`, not `date`. A month-precision date
    prints as `09.2024`; an unknown one prints «дата сдачи неизвестна».
-2. Series group by `analyte_key` when present, by `[marker, unit]` when not —
-   the #170 behaviour stays as the fallback.
+2. Series group by the **full `seriesKey` triple** — `analyte_key`,
+   `measurement` and `unitFamily` — when the analyte is identified, and by
+   `[marker, unit]` when it is not; the #170 behaviour stays as the fallback.
+
+   **Grouping by `analyte_key` alone would be a regression**, and an earlier
+   draft of this section said exactly that. The percentage and the absolute
+   count of one differential analyte share a key: production holds
+   `lymphocytes` as both `42.2 %` and `2.16 10E3/µL`. Joining them is the very
+   defect #170 fixed by grouping on `[marker, unit]`. `measurement` and
+   `unitFamily` are not stored — the report derives them from the row's own
+   `unit` through the same module, so only the name→key mapping needs the
+   database column.
 3. A delta is printed only between two results whose dates can be ordered.
    Two month-precision results in the same month print both values and no
    delta, with «порядок внутри месяца неизвестен».
