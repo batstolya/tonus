@@ -118,6 +118,7 @@ export const ai_insights: Record<string, Translation> = {
 
 
   // ── Загрузка файла ─────────────────────────────────────────
+  'Предупреждение': { uk: 'Попередження', en: 'Warning' },
   'Читаем архив Xiaomi…': { uk: 'Читаємо архів Xiaomi…', en: 'Reading Xiaomi archive…' },
   'Разбираем CSV файлы…': { uk: 'Розбираємо CSV файли…', en: 'Parsing CSV files…' },
   'Формируем метрики…': { uk: 'Формуємо метрики…', en: 'Building metrics…' },

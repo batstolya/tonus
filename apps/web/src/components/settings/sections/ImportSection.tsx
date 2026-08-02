@@ -1,5 +1,6 @@
 import { useT } from '../../../lib/i18n'
 import type { AppView } from '../../../store/appStore'
+import { Icon } from '../../../lib/icons'
 import { ArchiveBtn, type SectionProps } from './ArchiveBtn'
 
 export function ImportSection({ archived, onArchive, onNavigate }: SectionProps & { onNavigate: (view: AppView) => void }) {
@@ -15,7 +16,7 @@ export function ImportSection({ archived, onArchive, onNavigate }: SectionProps 
         {t('Загрузите новый экспорт из приложения «Здоровье» (Apple) или Xiaomi, чтобы добавить свежие дни.')}
       </div>
       <button className="btn-secondary" onClick={() => onNavigate('upload')}>
-        📥 {t('Загрузить данные')}
+        <Icon name="import" size={14} /> {t('Загрузить данные')}
       </button>
     </section>
   )

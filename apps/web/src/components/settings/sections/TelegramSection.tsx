@@ -4,6 +4,7 @@ import { useT } from '../../../lib/i18n'
 import { getActiveTelegramLink, createTelegramLinkToken, pauseTelegramLink } from '../../../lib/api/settings'
 import { loadDailyNoteSettings, saveDailyNoteSettings } from '../../../lib/dailyNote'
 import { loadReportSettings, saveReportSettings, type ReportSettings } from '../../../lib/reportSettings'
+import { Icon } from '../../../lib/icons'
 import { ArchiveBtn } from './ArchiveBtn'
 
 // Telegram + вечерний вопрос + настройки отчётов. Объединены в один компонент:
@@ -111,7 +112,7 @@ export function TelegramSection({ user, archivedTelegram, archivedReports, onArc
             <div>
               <label className="settings-label" style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
                 <input type="checkbox" checked={noteEnabled} onChange={e => handleNoteToggle(e.target.checked)} style={{ width: 16, height: 16 }} />
-                🌙 {t('Вечерний вопрос «как прошёл день»')}
+                <Icon name="moon" size={14} /> {t('Вечерний вопрос «как прошёл день»')}
               </label>
               <div className="settings-muted" style={{ fontSize: 13, marginTop: 4 }}>
                 {t('Бот спросит вечером, ответ сохранится в заметку дня и учтётся в ИИ-отчётах')}

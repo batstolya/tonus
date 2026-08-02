@@ -4,6 +4,15 @@ import { useT } from '../../../lib/i18n'
 import { loadMonthUsage, loadBudget, saveBudget } from '../../../lib/aiUsage'
 import { ArchiveBtn, type SectionProps } from './ArchiveBtn'
 
+// These three strings are translation keys, not standalone JSX text: each
+// emoji is baked into the ru/uk/en dictionary entries in
+// lib/translations/settings.ts and rendered only via `t(SOURCE_LABELS[src])`
+// below. Splitting the emoji off into an <Icon> would change the key text
+// and silently regress uk/en users to the Russian fallback (translate()
+// falls back to source on a missing key) — out of scope here, left for the
+// i18n pass, same rationale as QuickLog.tsx's EVENT_TYPES labels. No call
+// site in this file renders these glyphs outside of `t()`, so the file does
+// not import the icon registry and needs no noEmoji.test.ts exemption.
 const SOURCE_LABELS: Record<string, string> = {
   chat: '💬 Чат',
   analyze: '🔍 Анализ данных',

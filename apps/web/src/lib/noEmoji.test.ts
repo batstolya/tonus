@@ -35,6 +35,13 @@ const PILOT_FILES = [
   'components/intake/QuickLog.tsx',
   'components/nutrition/MealLogger.tsx',
   'components/nutrition/NutritionScreen.tsx',
+  'components/settings/DoctorReport.tsx',
+  'components/settings/sections/EnvironmentSection.tsx',
+  'components/settings/sections/ExportSection.tsx',
+  'components/settings/sections/ImportSection.tsx',
+  'components/settings/sections/TelegramSection.tsx',
+  'components/upload/UploadScreen.tsx',
+  'components/onboarding/guide/StepSchedule.tsx',
 ]
 
 const REPLACED = Object.values(ICONS).map(e => e.emoji)

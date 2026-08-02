@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { useT } from '../../../lib/i18n'
 import { getProfileLocation, saveProfileLocation, updateLocationLabel } from '../../../lib/api/settings'
 import { callFunction } from '../../../lib/edgeFunctions'
+import { Icon } from '../../../lib/icons'
 import { ArchiveBtn, type SectionProps } from './ArchiveBtn'
 
 type LocResult = { name: string; country?: string; admin1?: string; latitude: number; longitude: number }
@@ -10,13 +11,13 @@ type LocResult = { name: string; country?: string; admin1?: string; latitude: nu
 export function EnvironmentSection({ archived, onArchive, user }: SectionProps & { user: User }) {
   const { t, lang } = useT()
   const [envSyncing, setEnvSyncing] = useState(false)
-  const [envMsg, setEnvMsg] = useState<string | null>(null)
+  const [envMsg, setEnvMsg] = useState<ReactNode>(null)
   const [locLabel, setLocLabel] = useState<string | null>(null)
   const [locQuery, setLocQuery] = useState('')
   const [locResults, setLocResults] = useState<LocResult[]>([])
   const [locSearching, setLocSearching] = useState(false)
   const [locLocating, setLocLocating] = useState(false)
-  const [locMsg, setLocMsg] = useState<string | null>(null)
+  const [locMsg, setLocMsg] = useState<ReactNode>(null)
   const [editingLoc, setEditingLoc] = useState(false)
 
   async function handleSyncEnvironment() {
@@ -24,7 +25,9 @@ export function EnvironmentSection({ archived, onArchive, user }: SectionProps &
     setEnvMsg(null)
     try {
       const json = await callFunction<{ synced?: number }>('fetch-environment', {})
-      setEnvMsg(json.synced ? `✅ ${t('Синхронизировано')} ${json.synced} ${t('дн')}` : t('Ошибка'))
+      setEnvMsg(json.synced
+        ? <><Icon name="planDone" size={14} /> {t('Синхронизировано')} {json.synced} {t('дн')}</>
+        : t('Ошибка'))
     } catch (e) {
       setEnvMsg(`${t('Ошибка')}: ${(e as Error).message}`)
     }
@@ -51,7 +54,8 @@ export function EnvironmentSection({ archived, onArchive, user }: SectionProps &
     const label = [r.name, r.admin1, r.country].filter(Boolean).join(', ')
     const err = await saveProfileLocation(user.id, { latitude: r.latitude, longitude: r.longitude, label })
     if (err) { setLocMsg(`${t('Ошибка')}: ${err}`); return }
-    setLocLabel(label); setLocResults([]); setLocQuery(''); setEditingLoc(false); setLocMsg(`✅ ${t('Локация определена')}`)
+    setLocLabel(label); setLocResults([]); setLocQuery(''); setEditingLoc(false)
+    setLocMsg(<><Icon name="planDone" size={14} /> {t('Локация определена')}</>)
   }
 
   // Запрашиваем доступ к геолокации браузера и сами определяем место (обратный геокодер)
@@ -72,7 +76,8 @@ export function EnvironmentSection({ archived, onArchive, user }: SectionProps &
         const err = await saveProfileLocation(user.id, { latitude, longitude, label })
         setLocLocating(false)
         if (err) { setLocMsg(`${t('Ошибка')}: ${err}`); return }
-        setLocLabel(label); setLocResults([]); setLocQuery(''); setEditingLoc(false); setLocMsg(`✅ ${t('Локация определена')}`)
+        setLocLabel(label); setLocResults([]); setLocQuery(''); setEditingLoc(false)
+        setLocMsg(<><Icon name="planDone" size={14} /> {t('Локация определена')}</>)
       },
       (err) => {
         setLocLocating(false)
@@ -138,7 +143,7 @@ export function EnvironmentSection({ archived, onArchive, user }: SectionProps &
         // Локация не выбрана (или режим изменения) — показываем выбор
         <>
           <button className="btn-primary" style={{ marginBottom: 8 }} onClick={handleUseMyLocation} disabled={locLocating}>
-            {locLocating ? t('Определяю…') : `📍 ${t('Определить автоматически')}`}
+            {locLocating ? t('Определяю…') : <><Icon name="location" size={14} /> {t('Определить автоматически')}</>}
           </button>
           <div className="settings-muted" style={{ marginBottom: 6, fontSize: 13 }}>{t('…или найди город вручную:')}</div>
           <div className="settings-ics-row" style={{ flexDirection: 'column', gap: 8, alignItems: 'stretch', marginBottom: 10 }}>

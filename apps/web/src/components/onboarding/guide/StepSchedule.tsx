@@ -1,5 +1,6 @@
 import { m } from 'motion/react'
 import { useT } from '../../../lib/i18n'
+import { Icon } from '../../../lib/icons'
 
 const ITEMS = [
   'Включи все метрики здоровья и сон',
@@ -20,7 +21,7 @@ export function StepSchedule() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2 + i * 0.25 }}
           >
-            ✅ {t(item)}
+            <Icon name="planDone" size={14} /> {t(item)}
           </m.li>
         ))}
       </ul>

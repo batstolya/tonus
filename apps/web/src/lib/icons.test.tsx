@@ -87,6 +87,11 @@ const expectedComponentName: Record<IconName, string> = {
   edit: 'PencilIcon',
   editSimple: 'PencilSimpleIcon',
   snapshot: 'ImageSquareIcon',
+  chat: 'ChatCircleIcon',
+  location: 'MapPinIcon',
+  archive: 'PackageIcon',
+  print: 'PrinterIcon',
+  import: 'DownloadSimpleIcon',
 }
 
 afterEach(() => {

@@ -1,12 +1,12 @@
 import {
   Alarm, ArrowDownRight, ArrowsClockwise, ArrowsLeftRight, ArrowUpRight, Barbell, Bed, Broadcast,
-  Calendar, CalendarBlank, CalendarDots, Camera, CaretRight, ChartBar, CheckCircle, Circle, Clock,
-  CloudSun, Coffee, Compass, Drop, Eye, Fire, ForkKnife, Gear, Globe, Heart, Heartbeat, Hourglass,
-  ImageSquare, Lightbulb, Lightning, Link, Lock, Magnet, MagnifyingGlass, Microscope, Moon,
-  NotePencil, Pause, Pencil, PencilSimple, PersonSimpleRun, PersonSimpleWalk, Pill, SignOut,
-  Sneaker, Snowflake, SoccerBall, Sparkle, SmileyMeh, SmileyNervous, Suitcase, Sun, Target,
-  TestTube, Thermometer, ThumbsUp, TrendDown, TrendUp, Trophy, Virus, Volleyball, Warning, Wind,
-  Wine, type Icon as PhosphorIcon,
+  Calendar, CalendarBlank, CalendarDots, Camera, CaretRight, ChartBar, ChatCircle, CheckCircle,
+  Circle, Clock, CloudSun, Coffee, Compass, DownloadSimple, Drop, Eye, Fire, ForkKnife, Gear,
+  Globe, Heart, Heartbeat, Hourglass, ImageSquare, Lightbulb, Lightning, Link, Lock, Magnet,
+  MagnifyingGlass, MapPin, Microscope, Moon, NotePencil, Package, Pause, Pencil, PencilSimple,
+  PersonSimpleRun, PersonSimpleWalk, Pill, Printer, SignOut, Sneaker, Snowflake, SoccerBall,
+  Sparkle, SmileyMeh, SmileyNervous, Suitcase, Sun, Target, TestTube, Thermometer, ThumbsUp,
+  TrendDown, TrendUp, Trophy, Virus, Volleyball, Warning, Wind, Wine, type Icon as PhosphorIcon,
 } from '@phosphor-icons/react'
 
 // Every entry keeps the emoji it replaces so VITE_ICONS=0 restores the old
@@ -102,6 +102,11 @@ export const ICONS = {
   // no-shared-component rule with no colour to distinguish them, so this
   // uses ImageSquare instead. `photo` already covers Camera (batch 3).
   snapshot:   { icon: ImageSquare,   emoji: '📸' },
+  chat:     { icon: ChatCircle,     emoji: '💬' },
+  location: { icon: MapPin,         emoji: '📍' },
+  archive:  { icon: Package,        emoji: '📦' },
+  print:    { icon: Printer,        emoji: '🖨' },
+  import:   { icon: DownloadSimple, emoji: '📥' },
 } as const satisfies Record<string, Entry>
 
 export type IconName = keyof typeof ICONS
