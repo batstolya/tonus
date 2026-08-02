@@ -1174,34 +1174,7 @@ body {
 .ew-list { margin: 4px 0 6px 16px; font-size: 13px; color: var(--text); line-height: 1.6; }
 .ew-hint { font-size: 12px; color: var(--text-muted); }
 
-/* ── Магнитная буря: слим-баннер (появляется только в дни Kp ≥ 5) ── */
-.geostorm-banner {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  border-radius: var(--r-surface);
-  border-left: 3px solid;
-  padding: 12px 16px;
-  margin-bottom: 16px;
-}
-.geostorm-icon { flex-shrink: 0; display: inline-flex; align-items: center; }
-.geostorm-banner.minor .geostorm-icon { color: #BA7517; }
-.geostorm-banner.strong .geostorm-icon { color: #D85A30; }
-.geostorm-banner.extreme .geostorm-icon { color: #E24B4A; }
-.geostorm-banner strong { font-size: 14px; display: block; margin-bottom: 2px; }
-.geostorm-hint { font-size: 13px; color: var(--text-muted); }
-.geostorm-banner.minor  { background: rgba(239, 159, 39, 0.10); border-color: #BA7517; }
-.geostorm-banner.minor strong  { color: #854F0B; }
-.geostorm-banner.strong { background: rgba(216, 90, 48, 0.10); border-color: #D85A30; }
-.geostorm-banner.strong strong { color: #993C1D; }
-.geostorm-banner.extreme { background: rgba(226, 75, 74, 0.10); border-color: #E24B4A; }
-.geostorm-banner.extreme strong { color: #A32D2D; }
-@media (prefers-color-scheme: dark) {
-  .geostorm-banner.minor strong  { color: #FAC775; }
-  .geostorm-banner.strong strong { color: #F0997B; }
-  .geostorm-banner.extreme strong { color: #F09595; }
-}
-
+/* ── Магнитная буря: бейдж в топбаре (только в дни Kp ≥ 5) ── */
 .geostorm-wrap { position: relative; display: inline-flex; }
 .geostorm-badge {
   line-height: 1;
