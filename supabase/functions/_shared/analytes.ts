@@ -50,9 +50,19 @@ const UNIT_ALIASES: Record<string, string> = {
  */
 const LAB_CODE = /^[a-z]{0,3}\d{1,4}$/
 
+/**
+ * Some stored names carry an undecoded escape instead of the letter: iron is
+ * stored as the twelve characters `[095] Żelazo`, while `Płytki krwi
+ * (PLT)` from the same import kept its real `ł`. The escape survived one JSON
+ * round-trip too many on the way in. Decoding here keeps those rows joinable
+ * without rewriting stored data, and costs nothing for names that are clean.
+ */
+const decodeEscapes = (s: string): string =>
+  s.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex: string) => String.fromCharCode(parseInt(hex, 16)))
+
 /** Lower-case, strip diacritics, drop laboratory codes and collapse spaces. */
 export function normaliseName(marker: string): string {
-  return marker
+  return decodeEscapes(marker)
     .normalize('NFD').replace(/[̀-ͯ]/g, '')
     .replace(/ł/g, 'l') // ł has no decomposition, so NFD leaves it whole
     .toLowerCase()

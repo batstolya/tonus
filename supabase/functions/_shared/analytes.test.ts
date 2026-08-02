@@ -101,6 +101,17 @@ describe('identifyAnalyte', () => {
     }
   })
 
+  it('reads the two names production stores with an undecoded escape', () => {
+    // Verbatim from lab_results: the escape is literal text, twelve characters
+    // for '[095] Żelazo'. The earlier version of the test below typed these
+    // with real letters and so never covered the rows that actually exist.
+    expect(identifyAnalyte('[095] \\u017belazo', 'µg/dl')?.key).toBe('iron')
+    expect(identifyAnalyte('\\u017belazo', 'µmol/l')?.key).toBe('iron')
+    // …and they still land in separate series, since nothing converts units.
+    expect(seriesKey(identifyAnalyte('[095] \\u017belazo', 'µg/dl')!))
+      .not.toBe(seriesKey(identifyAnalyte('\\u017belazo', 'µmol/l')!))
+  })
+
   it('recognises every marker name present in production', () => {
     const names = [
       'ANCHURA DISTRIBUCIÓN HEMATIES', 'Aminotransferaza alaninowa (ALT) (117)', 'BASOFILOS',
@@ -121,8 +132,10 @@ describe('identifyAnalyte', () => {
       'Średnia masa HGB w erytrocycie (MCH)', 'Średnia objętość erytrocyta (MCV)',
       'Średnia objętość płytek krwi (MPV)', 'Średnie stężenie HGB w erytrocytach (MCHC)',
       '[043] Transferyna', '[055] Trijodotyronina wolna FT3', '[069] Tyroksyna wolna FT4',
-      '[091] Witamina 25-OH D3', '[093] TIBC', '[095] Żelazo', '[L05] Ferrytyna', '[L69] TSH',
-      '[M31] Kortyzol (jedn.SI)', 'Żelazo',
+      '[091] Witamina 25-OH D3', '[093] TIBC', '[L05] Ferrytyna', '[L69] TSH',
+      '[M31] Kortyzol (jedn.SI)',
+      // Exactly as production stores them — the escape never got decoded.
+      '[095] \\u017belazo', '\\u017belazo',
     ]
     const unknown = names.filter(n => identifyAnalyte(n, null) == null)
     expect(unknown).toEqual([])
