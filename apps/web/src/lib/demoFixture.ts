@@ -35,7 +35,20 @@ export function makeDemoDaily(days = 90): DailyMetrics[] {
       6.1 + r(1) * 0.9 + (steps > 9000 ? 1.1 : 0) + (lateNight ? -1.2 : 0) + (hotDay ? -1.1 : 0) + (weekend ? 0.4 : 0))
     const bed = new Date(d); bed.setDate(bed.getDate() - 1)
     bed.setHours(lateNight ? 24 : 23, Math.floor(r(2) * 59), 0, 0) // 00:xx при позднем отбое
-    const wake = new Date(d); wake.setHours(7, Math.floor(r(3) * 59), 0, 0)
+    // Wake follows from bedtime and the night's own length, plus a little time
+    // awake in bed. A fixed 07:xx wake used to contradict sleepHours (which
+    // reaches 9.5), leaving nights whose sleep did not fit their own bed
+    // window — the report now flags exactly that, and the fixture must not
+    // manufacture it by accident.
+    const wake = new Date(bed.getTime() + (sleepHours + 0.15 + r(3) * 0.5) * 3600000)
+    // One deliberately broken session, 9 days back: bedtime and wake land far
+    // enough apart that no single night could fill them. Production holds 80
+    // of these in 525 rows; without one here the report's "⚠ suspicious night"
+    // path would exist only in tests and never be seen in demo mode.
+    if (i === 9) {
+      bed.setTime(new Date(d).setHours(2, 14, 0, 0))
+      wake.setTime(new Date(d).setHours(23, 55, 0, 0)) // 21.7 h, the shape production stores
+    }
     const hrv = 32 + r(8) * 22 + (prevSleep - 6.5) * 6 // вчерашний сон двигает HRV
     prevSleep = sleepHours
     out.push({

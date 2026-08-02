@@ -2,6 +2,7 @@ import { translations } from '../translations'
 import { METRIC_DEFS, type MetricSummary } from './metrics'
 import { BAND_TEXT, POSITION_TEXT } from './reliability'
 import { LAB_STATUS_TEXT, LAB_FLAG_SUFFIX, LAB_UNIT_CAVEAT, LAB_DATE_CAVEAT, type LabLine } from './labs'
+import { INTAKE_LABELS } from './intake'
 import type { DoctorReportModel, ScoreSummary } from './model'
 
 const STATUS_TEXT: Record<string, string> = {
@@ -58,7 +59,7 @@ export const MISSING_LINES = [
   'Время и длительность эпизодов низкого или высокого пульса: в отчёте есть только суточные минимум, максимум и среднее',
   'Тип тренировки и пульс во время неё: есть только минуты упражнений и активные калории',
   'Время в постели, засыпание, ночные пробуждения и эффективность сна',
-  'Кофе, алкоголь, лекарства и события (болезнь, стресс, поездки) пациент отмечает в приложении, но в этот отчёт они не включены',
+  'События (болезнь, стресс, поездки), еду и воду пациент отмечает в приложении, но в этот отчёт они не включены; кофе, алкоголь и лекарства — включены отдельной секцией',
   'Всё перечисленное отсутствует, а не равно нулю: не делай выводов о том, чего здесь нет.',
 ]
 
@@ -145,16 +146,17 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
     p(`## ${t('Динамика по неделям')}`)
     p()
     table(
-      [t('Неделя с'), ...model.weekly.keys.map(k => t(LABELS.get(k) ?? k)), t('Дней')],
+      [t('Неделя с'), ...model.weekly.keys.map(k => t(LABELS.get(k) ?? k))],
       model.weekly.rows.map(r => [
         r.weekStart,
         ...model.weekly.keys.map(k => {
           const v = r.values[k]
-          return v == null ? dash : v.toFixed(DIGITS.get(k) ?? 1)
+          return v == null ? dash : `${v.toFixed(DIGITS.get(k) ?? 1)} (${r.counts[k]})`
         }),
-        String(r.days),
       ]),
     )
+    p()
+    p(t('В скобках — сколько дней этой метрики стоит за средним: недели различаются по покрытию, и одно число на всю строку вводило бы в заблуждение. Пустая ячейка — данных меньше трёх дней.'))
   }
 
   if (model.sleep) {
@@ -168,8 +170,8 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
         t('REM, ч'), t('Лёгкий, ч'), t('Не классифицировано, ч'), t('Глубокий, %'), t('REM, %'), t('Тип')],
       s.nights.map(n => [
         n.date, t(n.weekday),
-        n.bedtime ? n.bedtime + (n.bedtimeDate ? ` (${n.bedtimeDate})` : '') : dash,
-        n.wakeTime ? n.wakeTime + (n.wakeDate ? ` (${n.wakeDate})` : '') : dash,
+        n.bedtime ? n.bedtime + (n.bedtimeDate ? ` (${n.bedtimeDate})` : '') + (n.suspicious ? ' ⚠' : '') : dash,
+        n.wakeTime ? n.wakeTime + (n.wakeDate ? ` (${n.wakeDate})` : '') + (n.suspicious ? ' ⚠' : '') : dash,
         n.hours.toFixed(1),
         n.deep?.toFixed(1) ?? dash, n.rem?.toFixed(1) ?? dash, n.core?.toFixed(1) ?? dash,
         n.unclassified != null ? n.unclassified.toFixed(1) : dash,
@@ -184,8 +186,8 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
       p(t('Дневные эпизоды (короче 3 ч, начались между 08:00 и 20:00) показаны в таблице, но не входят в подсчёт ночей, в средние времена и в оценку сна.'))
       p()
     }
-    if (s.implausible) {
-      p(`${t('Ночей, где между отбоем и подъёмом прошло меньше времени, чем длился сон')}: ${s.implausible}. ${t('Время пробуждения в этих строках записано источником неверно; значения показаны как есть, без правки.')}`)
+    if (s.suspiciousNights) {
+      p(`${t('Ночей, где промежуток между отбоем и подъёмом не может вместить записанный сон')} (⚠): ${s.suspiciousNights}. ${t('Такой промежуток длиннее 16 часов, равен нулю или короче самого сна — источник склеил или разорвал сессию. Длительность сна в этих строках остаётся измеренной, а отбой и подъём доверия не заслуживают и в средние времена не входят.')}`)
       p()
     }
     if (s.phasesOverTotal > 0) {
@@ -288,6 +290,29 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
       ]),
     )
     p(t('Показана доля дней с отметкой о приёме, считая от первого отмеченного приёма внутри периода. Отсутствие отметки не означает, что приём не состоялся.'))
+    p()
+  }
+
+  if (model.intake.length) {
+    p(`## ${t('Отмеченный приём (со слов пациента)')}`)
+    p()
+    table(
+      [t('Тип'), t('Дней с отметками'), t('Всего отметок'), t('Медиана за день с отметкой'), t('Типичное время')],
+      model.intake.map(l => [
+        t(INTAKE_LABELS[l.type]),
+        `${l.days} ${t('из')} ${l.calendarDays}`,
+        String(l.events),
+        l.medianPerDay != null ? `${l.medianPerDay}${l.unit ? ` ${l.unit}` : ''}` : dash,
+        l.time ? `${l.time.median} · ${t('половина')} ${l.time.q1}–${l.time.q3}` : dash,
+      ]),
+    )
+    p()
+    for (const l of model.intake) {
+      if (!l.names.length) continue
+      const named = l.names.map(n => `${n.name ?? t('без названия')} — ${n.count}`).join(', ')
+      p(`${t(INTAKE_LABELS[l.type])}: ${named}.`)
+    }
+    p(t('Это отметки пациента в приложении, а не измерения. Отсутствие отметки не означает, что приёма не было, а доза — введённое пациентом значение, а не измеренный объём. Постоянный приём добавок — в предыдущей секции.'))
     p()
   }
 

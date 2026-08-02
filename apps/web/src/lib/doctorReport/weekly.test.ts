@@ -40,6 +40,38 @@ describe('weeklyRows', () => {
     expect(rows[0].values.hrv).toBeUndefined()
     expect(rows[0].days).toBe(3)
   })
+
+  it('counts the days behind each metric separately, not the days in the week', () => {
+    // The production case: the week of 2026-07-20 printed "Сон 8.3 · Дней 7"
+    // from three nights, because the day count belonged to the week and the
+    // average belonged to the metric.
+    const daily = [
+      day('2026-07-20', { restingHeartRate: 56, steps: 8000 }),
+      day('2026-07-21', { restingHeartRate: 56, steps: 8000 }),
+      day('2026-07-22', { restingHeartRate: 56, steps: 8000, sleepHours: 7.5 }),
+      day('2026-07-23', { steps: 8000 }),
+      day('2026-07-24', { steps: 8000, sleepHours: 8.2 }),
+      day('2026-07-25', { steps: 8000, sleepHours: 9.1 }),
+      day('2026-07-26', { steps: 8000 }),
+    ]
+    const rows = weeklyRows(daily, periodFrame(daily, 30, '2026-07-26'))
+    expect(rows[0].days).toBe(7)
+    expect(rows[0].values.sleep).toBe(8.3)
+    expect(rows[0].counts.sleep).toBe(3)
+    expect(rows[0].counts.rhr).toBe(3)
+    expect(rows[0].counts.steps).toBe(7)
+  })
+
+  it('carries no count for a metric whose cell was suppressed', () => {
+    const daily = [
+      day('2026-07-27', { hrv: 40 }),
+      day('2026-07-28', { hrv: 60 }),
+      day('2026-07-29', { steps: 9000, hrv: undefined }),
+    ]
+    const rows = weeklyRows(daily, periodFrame(daily, 30, '2026-07-31'))
+    expect(rows[0].values.hrv).toBeUndefined()
+    expect(rows[0].counts.hrv).toBeUndefined()
+  })
 })
 
 describe('coverage', () => {

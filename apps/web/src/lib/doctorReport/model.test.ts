@@ -13,7 +13,7 @@ const daily: DailyMetrics[] = Array.from({ length: 60 }, (_, i) => ({
 }))
 
 const emptySources = {
-  labs: [], supplements: [], supplementLogs: [], concerns: [], concernLogs: [], notes: [],
+  labs: [], supplements: [], supplementLogs: [], concerns: [], concernLogs: [], notes: [], intake: [],
   profile: null,
 }
 

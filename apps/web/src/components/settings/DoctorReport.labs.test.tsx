@@ -23,7 +23,7 @@ vi.mock('../../lib/doctorReport', async importOriginal => {
 const { loadReportSources } = await import('../../lib/doctorReport')
 
 const EMPTY_SOURCES: ReportSources = {
-  labs: [], supplements: [], supplementLogs: [], concerns: [], concernLogs: [], notes: [],
+  labs: [], supplements: [], supplementLogs: [], concerns: [], concernLogs: [], notes: [], intake: [],
   profile: null,
 }
 

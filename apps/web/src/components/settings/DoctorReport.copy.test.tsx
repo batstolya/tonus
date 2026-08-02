@@ -157,8 +157,8 @@ describe('DoctorReport copy for AI', () => {
   })
 
   it('dates a bedtime that spans midnight and shows the median bed/wake rows — in the DOM, not the model', async () => {
-    // Same shape as the markdown-level test: a night that ran 02:14 (previous
-    // calendar day) -> 01:55 (the row's own day), rendered through the print
+    // Same shape as the markdown-level test: a night that ran 23:40 (previous
+    // calendar day) -> 07:10 (the row's own day), rendered through the print
     // view so a renderer that dropped the date suffix would be caught here too.
     const base = new Date()
     const dateAt = (daysAgo: number) => {
@@ -171,7 +171,7 @@ describe('DoctorReport copy for AI', () => {
     const ddmm = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}`
     const nightDaily: DailyMetrics[] = [{
       date: nightDate, sleepHours: 7.3,
-      sleepBedtime: `${prevDate}T02:14:00`, sleepWakeTime: `${nightDate}T01:55:00`,
+      sleepBedtime: `${prevDate}T23:40:00`, sleepWakeTime: `${nightDate}T07:10:00`,
     }]
 
     const { container } = renderWithProviders(
@@ -182,16 +182,16 @@ describe('DoctorReport copy for AI', () => {
 
     const nightRow = Array.from(container.querySelectorAll('.dr-sleep-table tbody tr'))
       .find(tr => tr.textContent?.includes(nightDate))
-    expect(nightRow?.textContent).toContain(`02:14 (${ddmm(prevDate)})`)
-    expect(nightRow?.textContent).not.toContain('01:55 (')
+    expect(nightRow?.textContent).toContain(`23:40 (${ddmm(prevDate)})`)
+    expect(nightRow?.textContent).not.toContain('07:10 (')
 
     const metricRows = Array.from(container.querySelectorAll('table tbody tr'))
     const bedtimeRow = metricRows.find(tr => tr.textContent?.includes('Время отбоя (медиана)'))
     const wakeRow = metricRows.find(tr => tr.textContent?.includes('Время подъёма (медиана)'))
-    expect(bedtimeRow?.textContent).toContain('02:14')
-    expect(bedtimeRow?.textContent).toContain('половина ночей 02:14–02:14')
-    expect(wakeRow?.textContent).toContain('01:55')
-    expect(wakeRow?.textContent).toContain('половина ночей 01:55–01:55')
+    expect(bedtimeRow?.textContent).toContain('23:40')
+    expect(bedtimeRow?.textContent).toContain('половина ночей 23:40–23:40')
+    expect(wakeRow?.textContent).toContain('07:10')
+    expect(wakeRow?.textContent).toContain('половина ночей 07:10–07:10')
 
     // Coverage, not a dash — same "N из M" the metric rows above carry.
     expect(bedtimeRow?.textContent).toContain('1 из 1')
@@ -367,7 +367,11 @@ describe('DoctorReport copy for AI', () => {
       .find(tr => tr.textContent?.includes('2026-07-20'))!
     // weeklyRows() pre-rounds to the metric's digits (sleep: 1); the cell
     // must print through the same toFixed, or a value the model already
-    // rounded to "7" prints as the bare number instead of "7.0".
-    expect(Array.from(weekRow.querySelectorAll('td')).some(td => td.textContent === '7.0')).toBe(true)
+    // rounded to "7" prints as the bare number instead of "7.0". The count in
+    // brackets is the days of that metric behind the average — seven here.
+    expect(Array.from(weekRow.querySelectorAll('td')).some(td => td.textContent === '7.0 (7)')).toBe(true)
+    // The shared per-week day column is gone: its only cell was the defect.
+    const weeklyHead = heading.closest('section')!.querySelector('table:last-of-type thead')!
+    expect(Array.from(weeklyHead.querySelectorAll('th')).map(th => th.textContent)).not.toContain('Дней')
   })
 })

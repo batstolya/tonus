@@ -29,18 +29,31 @@ export function weekBuckets(daily: DailyMetrics[], frame: PeriodFrame): WeekBuck
 
 export interface WeeklyRow {
   weekStart: string
+  /** Rows in the bucket — days the week has any record at all. */
   days: number
   values: Partial<Record<MetricKey, number>>
+  /**
+   * Days of *that* metric behind *that* average. A single `days` column next
+   * to per-metric means says something false by juxtaposition: the week of
+   * 2026-07-20 printed a sleep average of 8.3 h beside "Дней 7" when three
+   * nights produced it. Only set where `values` is — a suppressed cell has
+   * no average to qualify.
+   */
+  counts: Partial<Record<MetricKey, number>>
 }
 
 export function weeklyRows(daily: DailyMetrics[], frame: PeriodFrame): WeeklyRow[] {
   return weekBuckets(daily, frame).map(({ weekStart, rows }) => {
     const values: Partial<Record<MetricKey, number>> = {}
+    const counts: Partial<Record<MetricKey, number>> = {}
     for (const m of METRIC_DEFS) {
       const v = rows.map(m.get).filter((x): x is number => typeof x === 'number')
-      if (v.length >= MIN_WEEK_DAYS) values[m.key] = +avg(v).toFixed(m.digits)
+      if (v.length >= MIN_WEEK_DAYS) {
+        values[m.key] = +avg(v).toFixed(m.digits)
+        counts[m.key] = v.length
+      }
     }
-    return { weekStart, days: rows.length, values }
+    return { weekStart, days: rows.length, values, counts }
   })
 }
 

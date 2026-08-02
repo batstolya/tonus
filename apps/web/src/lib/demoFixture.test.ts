@@ -39,6 +39,24 @@ describe('makeDemoDaily', () => {
     }
   })
 
+  it('keeps exactly one broken sleep session, so the report\'s suspicious-night path is visible in demo', () => {
+    const broken = daily.filter(d =>
+      d.sleepBedtime && d.sleepWakeTime
+      && (Date.parse(d.sleepWakeTime) - Date.parse(d.sleepBedtime)) / 3600000 > 16)
+    expect(broken).toHaveLength(1)
+    // The rest must stay plausible, or the demo report would read as broken
+    // rather than as a report that catches one broken night. The fixture used
+    // to fix wake at 07:xx while generating up to 9.5 h of sleep, so seven
+    // nights reported more sleep than their own bed window could hold.
+    const others = daily.filter(d => d.sleepBedtime && d.sleepWakeTime && d !== broken[0])
+    for (const d of others) {
+      const window = (Date.parse(d.sleepWakeTime!) - Date.parse(d.sleepBedtime!)) / 3600000
+      expect(window).toBeGreaterThan(0)
+      expect(window).toBeLessThanOrEqual(16)
+      expect(window).toBeGreaterThanOrEqual(d.sleepHours!)
+    }
+  })
+
   it('feeds computeDailyScores: scores exist for every day after the 5-day warmup', () => {
     const scores = computeDailyScores(daily)
     expect(scores).toHaveLength(85) // 90 − 5 дней на разгон базовой линии

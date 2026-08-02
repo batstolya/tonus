@@ -8,7 +8,9 @@ import {
   type SupplementAdherenceLog, type ProfileBasics,
 } from '../api/settings'
 import type { Supplement } from '../supplements'
+import type { IntakeEvent } from '../api/intake'
 import type { JournalNote } from './journal'
+import { REPORTED_TYPES } from './intake'
 
 /**
  * Unlike loadSupplements, discontinued rows are kept: a treatment the patient
@@ -66,6 +68,23 @@ export async function loadSupplementLogs(userId: string, since: string): Promise
   return getSupplementLogsSince(userId, since)
 }
 
+/** Intake the report prints; other types stay listed as data it does not hold. */
+export async function loadIntakeEvents(userId: string, since: string): Promise<IntakeEvent[]> {
+  if (isDemoActive()) {
+    return (demoList('intake_events') as IntakeEvent[])
+      .filter(e => e.ts.slice(0, 10) >= since && (REPORTED_TYPES as readonly string[]).includes(e.type))
+  }
+  const { data, error } = await supabase
+    .from('intake_events')
+    .select('id, ts, type, amount, unit, note')
+    .eq('user_id', userId)
+    .gte('ts', `${since}T00:00:00`)
+    .in('type', REPORTED_TYPES as unknown as string[])
+    .order('ts')
+  if (error) throw error
+  return (data ?? []) as IntakeEvent[]
+}
+
 export interface ReportSources {
   labs: LabResult[]
   supplements: Supplement[]
@@ -74,6 +93,7 @@ export interface ReportSources {
   concernLogs: ConcernLog[]
   notes: JournalNote[]
   profile: ProfileBasics | null
+  intake: IntakeEvent[]
 }
 
 /**
@@ -81,7 +101,7 @@ export interface ReportSources {
  * table leaves its section empty instead of killing the whole report.
  */
 export async function loadReportSources(userId: string, since: string): Promise<ReportSources> {
-  const [labs, supplements, supplementLogs, concerns, concernLogs, notes, profile] = await Promise.all([
+  const [labs, supplements, supplementLogs, concerns, concernLogs, notes, profile, intake] = await Promise.all([
     loadLabResults(userId).catch(() => [] as LabResult[]),
     loadAllSupplements(userId).catch(() => [] as Supplement[]),
     loadSupplementLogs(userId, since).catch(() => [] as SupplementAdherenceLog[]),
@@ -89,6 +109,7 @@ export async function loadReportSources(userId: string, since: string): Promise<
     loadAllConcernLogs(userId, since).catch(() => [] as ConcernLog[]),
     loadNotesWithWellbeing(userId, since).catch(() => [] as JournalNote[]),
     loadProfileBasics(userId).catch(() => null),
+    loadIntakeEvents(userId, since).catch(() => [] as IntakeEvent[]),
   ])
-  return { labs, supplements, supplementLogs, concerns, concernLogs, notes, profile }
+  return { labs, supplements, supplementLogs, concerns, concernLogs, notes, profile, intake }
 }

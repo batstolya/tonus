@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildSleep, isDaytimeEpisode, withoutDaytimeSleep, timeOfDayStats } from './sleep'
+import { buildSleep, isDaytimeEpisode, withoutDaytimeSleep } from './sleep'
 import { periodFrame } from './metrics'
 import type { DailyMetrics } from '../../types'
 
@@ -33,7 +33,56 @@ describe('buildSleep', () => {
     expect(s.under6).toBe(1)
     expect(s.over8).toBe(2)
     expect(s.missing).toBe(1)
-    expect(s.implausible).toBe(1)
+    expect(s.suspiciousNights).toBe(1)
+  })
+
+  it('flags a bed window too long to be one night', () => {
+    // The production case: 2026-06-13 stored bedtime 00:14 and wake 23:55 of
+    // the same day — a 23h41m window holding 7.3h of sleep. 80 of 525 stored
+    // sessions look like this, and none of them was flagged before.
+    const daily: DailyMetrics[] = [{
+      date: '2026-06-13', sleepHours: 7.3,
+      sleepBedtime: '2026-06-13T00:14:24Z', sleepWakeTime: '2026-06-13T23:55:33Z',
+    }]
+    const s = buildSleep(daily, periodFrame(daily, 30, '2026-06-13'))!
+    expect(s.nights[0].windowHours).toBeCloseTo(23.69, 1)
+    expect(s.nights[0].suspicious).toBe(true)
+    expect(s.suspiciousNights).toBe(1)
+  })
+
+  it('holds the bed-window threshold at 16 hours, not one hour either side', () => {
+    const night = (date: string, windowH: number): DailyMetrics => ({
+      date, sleepHours: 7,
+      sleepBedtime: `${date}T00:00:00Z`,
+      sleepWakeTime: new Date(Date.parse(`${date}T00:00:00Z`) + windowH * 3600000).toISOString(),
+    })
+    const daily = [night('2026-07-27', 15), night('2026-07-28', 16), night('2026-07-29', 17)]
+    const s = buildSleep(daily, periodFrame(daily, 30, '2026-07-29'))!
+    expect(s.nights.map(n => n.suspicious)).toEqual([false, false, true])
+  })
+
+  it('flags a non-positive window and keeps its sleep total', () => {
+    const daily: DailyMetrics[] = [{
+      date: '2026-07-27', sleepHours: 7,
+      sleepBedtime: '2026-07-27T08:00:00Z', sleepWakeTime: '2026-07-27T08:00:00Z',
+    }]
+    const s = buildSleep(daily, periodFrame(daily, 30, '2026-07-27'))!
+    expect(s.nights[0].suspicious).toBe(true)
+    expect(s.nights[0].hours).toBe(7)
+  })
+
+  it('keeps a suspicious night out of the bedtime and wake medians', () => {
+    // Two sane nights at 23:00 and one broken session starting at 09:00 with a
+    // 22-hour window. Including it would drag the median hours away.
+    const daily: DailyMetrics[] = [
+      { date: '2026-07-27', sleepHours: 7, sleepBedtime: '2026-07-26T23:00:00Z', sleepWakeTime: '2026-07-27T06:00:00Z' },
+      { date: '2026-07-28', sleepHours: 7, sleepBedtime: '2026-07-27T23:00:00Z', sleepWakeTime: '2026-07-28T06:00:00Z' },
+      { date: '2026-07-29', sleepHours: 7, sleepBedtime: '2026-07-29T09:00:00Z', sleepWakeTime: '2026-07-30T07:00:00Z' },
+    ]
+    const s = buildSleep(daily, periodFrame(daily, 30, '2026-07-29'))!
+    expect(s.suspiciousNights).toBe(1)
+    expect(s.bedtime!.count).toBe(2)
+    expect(s.wake!.count).toBe(2)
   })
 
   it('is null when no night has sleep data', () => {
@@ -180,23 +229,5 @@ describe('daytime episodes', () => {
   })
 })
 
-describe('timeOfDayStats', () => {
-  it('puts the median of times straddling midnight at midnight', () => {
-    const s = timeOfDayStats(['2026-07-30T23:40:00', '2026-07-31T00:20:00'])!
-    expect(s.median).toBe('00:00')
-  })
-
-  it('reports quartiles around the median bedtime', () => {
-    const s = timeOfDayStats([
-      '2026-07-29T01:00:00', '2026-07-30T02:00:00', '2026-07-31T03:00:00',
-    ])!
-    expect(s.median).toBe('02:00')
-    expect(s.q1).toBe('01:30')
-    expect(s.q3).toBe('02:30')
-    expect(s.count).toBe(3)
-  })
-
-  it('is null without times', () => {
-    expect(timeOfDayStats([])).toBeNull()
-  })
-})
+// timeOfDayStats moved to math.ts when intake became a second caller with a
+// different seam; its tests live in math.test.ts.

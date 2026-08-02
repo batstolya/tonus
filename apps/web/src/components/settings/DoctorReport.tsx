@@ -4,6 +4,7 @@ import type { DailyMetrics } from '../../types'
 import {
   METRIC_DEFS, buildReportModel, loadReportSources, periodStart, localDate, toMarkdown, baselineCell,
   scoreTrendText, BAND_TEXT, labStatusCell, LAB_UNIT_CAVEAT, LAB_DATE_CAVEAT, MISSING_LINES,
+  INTAKE_LABELS,
   type DoctorReportModel, type ReportSources,
 } from '../../lib/doctorReport'
 import { isUnlocked } from '../../lib/privacy'
@@ -26,7 +27,7 @@ interface Props {
 
 const EMPTY_SOURCES: ReportSources = {
   labs: [], supplements: [], supplementLogs: [], concerns: [], concernLogs: [], notes: [],
-  profile: null,
+  profile: null, intake: [],
 }
 
 const STATUS_TEXT: Record<string, string> = {
@@ -177,7 +178,7 @@ export function DoctorReport({ user, daily, onClose }: Props) {
   }
 
   // ── Печатное представление ──────────────────────────────────────────────────
-  const { scores, metrics, weekly, sleep, coverage, deviations, labs, supplements, concerns, journal } = model
+  const { scores, metrics, weekly, sleep, coverage, deviations, labs, supplements, intake, concerns, journal } = model
 
   return (
     <div className="dr-print-root">
@@ -287,7 +288,6 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                   <thead><tr>
                     <th>{rt('Неделя с')}</th>
                     {weekly.keys.map(k => <th key={k}>{rt(METRIC_LABELS.get(k) ?? k)}</th>)}
-                    <th>{rt('Дней')}</th>
                   </tr></thead>
                   <tbody>
                     {weekly.rows.map(w => (
@@ -295,13 +295,13 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                         <td>{w.weekStart}</td>
                         {weekly.keys.map(k => {
                           const v = w.values[k]
-                          return <td key={k}>{v == null ? dash : v.toFixed(DIGITS.get(k) ?? 1)}</td>
+                          return <td key={k}>{v == null ? dash : `${v.toFixed(DIGITS.get(k) ?? 1)} (${w.counts[k]})`}</td>
                         })}
-                        <td>{w.days}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+                <p className="dr-note">{rt('В скобках — сколько дней этой метрики стоит за средним: недели различаются по покрытию, и одно число на всю строку вводило бы в заблуждение. Пустая ячейка — данных меньше трёх дней.')}</p>
               </>
             )}
           </section>
@@ -322,8 +322,8 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                 {sleep.nights.map(n => (
                   <tr key={n.date}>
                     <td>{n.date}</td><td>{rt(n.weekday)}</td>
-                    <td>{n.bedtime ? n.bedtime + (n.bedtimeDate ? ` (${n.bedtimeDate})` : '') : dash}</td>
-                    <td>{n.wakeTime ? n.wakeTime + (n.wakeDate ? ` (${n.wakeDate})` : '') : dash}</td>
+                    <td>{n.bedtime ? n.bedtime + (n.bedtimeDate ? ` (${n.bedtimeDate})` : '') + (n.suspicious ? ' ⚠' : '') : dash}</td>
+                    <td>{n.wakeTime ? n.wakeTime + (n.wakeDate ? ` (${n.wakeDate})` : '') + (n.suspicious ? ' ⚠' : '') : dash}</td>
                     <td>{n.hours.toFixed(1)}</td>
                     <td>{n.deep?.toFixed(1) ?? dash}</td>
                     <td>{n.rem?.toFixed(1) ?? dash}</td>
@@ -344,9 +344,9 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                 {rt('Дневные эпизоды (короче 3 ч, начались между 08:00 и 20:00) показаны в таблице, но не входят в подсчёт ночей, в средние времена и в оценку сна.')}
               </p>
             )}
-            {sleep.implausible > 0 && (
+            {sleep.suspiciousNights > 0 && (
               <p className="dr-note">
-                {rt('Ночей, где между отбоем и подъёмом прошло меньше времени, чем длился сон')}: {sleep.implausible}. {rt('Время пробуждения в этих строках записано источником неверно; значения показаны как есть, без правки.')}
+                {rt('Ночей, где промежуток между отбоем и подъёмом не может вместить записанный сон')} (⚠): {sleep.suspiciousNights}. {rt('Такой промежуток длиннее 16 часов, равен нулю или короче самого сна — источник склеил или разорвал сессию. Длительность сна в этих строках остаётся измеренной, а отбой и подъём доверия не заслуживают и в средние времена не входят.')}
               </p>
             )}
             {sleep.phasesOverTotal > 0 && (
@@ -492,6 +492,35 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                 <p className="dr-note">{rt('Показана доля дней с отметкой о приёме, считая от первого отмеченного приёма внутри периода. Отсутствие отметки не означает, что приём не состоялся.')}</p>
               </>
             )}
+          </section>
+        )}
+
+        {sections.supplements && intake.length > 0 && (
+          <section>
+            <h2>{rt('Отмеченный приём (со слов пациента)')}</h2>
+            <table>
+              <thead><tr>
+                <th>{rt('Тип')}</th><th>{rt('Дней с отметками')}</th><th>{rt('Всего отметок')}</th>
+                <th>{rt('Медиана за день с отметкой')}</th><th>{rt('Типичное время')}</th>
+              </tr></thead>
+              <tbody>
+                {intake.map(l => (
+                  <tr key={l.type}>
+                    <td>{rt(INTAKE_LABELS[l.type])}</td>
+                    <td>{l.days} {rt('из')} {l.calendarDays}</td>
+                    <td>{l.events}</td>
+                    <td>{l.medianPerDay != null ? `${l.medianPerDay}${l.unit ? ` ${l.unit}` : ''}` : dash}</td>
+                    <td>{l.time ? `${l.time.median} · ${rt('половина')} ${l.time.q1}–${l.time.q3}` : dash}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {intake.filter(l => l.names.length).map(l => (
+              <p key={l.type} className="dr-note">
+                {rt(INTAKE_LABELS[l.type])}: {l.names.map(n => `${n.name ?? rt('без названия')} — ${n.count}`).join(', ')}.
+              </p>
+            ))}
+            <p className="dr-note">{rt('Это отметки пациента в приложении, а не измерения. Отсутствие отметки не означает, что приёма не было, а доза — введённое пациентом значение, а не измеренный объём. Постоянный приём добавок — в предыдущей секции.')}</p>
           </section>
         )}
 
