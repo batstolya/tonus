@@ -267,6 +267,9 @@ export const ai_insights: Record<string, Translation> = {
 
   // ── Исследования: факторы и метки экрана ───────────────────
   'Что важнее всего': { uk: 'Що найважливіше', en: 'What matters most' },
+  'Высокая уверенность': { uk: 'Висока впевненість', en: 'High confidence' },
+  'Средняя уверенность': { uk: 'Середня впевненість', en: 'Medium confidence' },
+  'Мало данных': { uk: 'Мало даних', en: 'Not enough data' },
   'Проверить экспериментом': { uk: 'Перевірити експериментом', en: 'Test with an experiment' },
   'Самочувствие': { uk: 'Самопочуття', en: 'Wellbeing' },
   'Алкоголь (день)': { uk: 'Алкоголь (день)', en: 'Alcohol (day)' },

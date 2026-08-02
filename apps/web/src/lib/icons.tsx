@@ -1,7 +1,9 @@
 import {
-  ArrowsClockwise, Barbell, Broadcast, CalendarBlank, CaretRight, CheckCircle, Circle, Eye, Fire,
-  Gear, Heartbeat, Lightning, PersonSimpleRun, PersonSimpleWalk, SignOut, Snowflake, SoccerBall,
-  Sparkle, SmileyMeh, SmileyNervous, Target, ThumbsUp, Volleyball, Warning, type Icon as PhosphorIcon,
+  ArrowDownRight, ArrowsClockwise, ArrowsLeftRight, ArrowUpRight, Barbell, Bed, Broadcast,
+  CalendarBlank, CaretRight, ChartBar, CheckCircle, Circle, Eye, Fire, Gear, Globe, Heart, Heartbeat,
+  Hourglass, Lightbulb, Lightning, MagnifyingGlass, Moon, Pause, PersonSimpleRun, PersonSimpleWalk,
+  SignOut, Sneaker, Snowflake, SoccerBall, Sparkle, SmileyMeh, SmileyNervous, Target, TestTube,
+  ThumbsUp, Trophy, Volleyball, Warning, Wind, type Icon as PhosphorIcon,
 } from '@phosphor-icons/react'
 
 // Every entry keeps the emoji it replaces so VITE_ICONS=0 restores the old
@@ -37,6 +39,28 @@ export const ICONS = {
   settings:        { icon: Gear,       emoji: '⚙️' },
   chevronRight:    { icon: CaretRight, emoji: '›' },
   signOut:         { icon: SignOut,    emoji: '🚪' },
+  magic:      { icon: Sparkle,        emoji: '✨' },
+  heart:      { icon: Heart,          emoji: '❤' },
+  moon:       { icon: Moon,           emoji: '🌙' },
+  shoes:      { icon: Sneaker,        emoji: '👟' },
+  pulse:      { icon: Heartbeat,      emoji: '💓' },
+  sleepDebt:  { icon: Bed,            emoji: '💤' },
+  sleeping:   { icon: Bed,            emoji: '😴' },
+  chart:      { icon: ChartBar,       emoji: '📊' },
+  breathing:  { icon: Wind,           emoji: '🫁' },
+  lab:        { icon: TestTube,       emoji: '🧪' },
+  world:      { icon: Globe,          emoji: '🌍' },
+  search:     { icon: MagnifyingGlass, emoji: '🔍' },
+  dotBad:     { icon: Circle,         emoji: '🔴' },
+  dotWarn:    { icon: Circle,         emoji: '🟡' },
+  dotOk:      { icon: Circle,         emoji: '🟢' },
+  trophy:     { icon: Trophy,         emoji: '🏆' },
+  idea:       { icon: Lightbulb,      emoji: '💡' },
+  arrowUpRight:   { icon: ArrowUpRight,     emoji: '↗' },
+  arrowDownRight: { icon: ArrowDownRight,   emoji: '↘' },
+  swap:           { icon: ArrowsLeftRight,  emoji: '↔' },
+  pending:        { icon: Hourglass,        emoji: '⏳' },
+  pause:          { icon: Pause,            emoji: '⏸' },
 } as const satisfies Record<string, Entry>
 
 export type IconName = keyof typeof ICONS
