@@ -1,5 +1,5 @@
 import type { HealthConcern, ConcernLog } from '../concerns'
-import { avg } from './metrics'
+import { avg } from './math'
 import { mondayOf } from './weekly'
 
 export interface ConcernLine {

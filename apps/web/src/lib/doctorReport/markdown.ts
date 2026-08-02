@@ -1,6 +1,8 @@
 import { translations } from '../translations'
-import { METRIC_DEFS } from './metrics'
-import type { DoctorReportModel } from './model'
+import { METRIC_DEFS, type MetricSummary } from './metrics'
+import { BAND_TEXT, POSITION_TEXT } from './reliability'
+import { LAB_STATUS_TEXT, LAB_FLAG_SUFFIX, LAB_UNIT_CAVEAT, LAB_DATE_CAVEAT, type LabLine } from './labs'
+import type { DoctorReportModel, ScoreSummary } from './model'
 
 const STATUS_TEXT: Record<string, string> = {
   active: 'активна', improving: 'улучшается', resolved: 'разрешилась',
@@ -10,6 +12,55 @@ const DIGITS = new Map(METRIC_DEFS.map(m => [m.key, m.digits]))
 const LABELS = new Map(METRIC_DEFS.map(m => [m.key, m.label]))
 
 const signed = (n: number, digits = 0): string => `${n > 0 ? '+' : ''}${n.toFixed(digits)}`
+
+/**
+ * Same cell in both renderers: markdown.ts and DoctorReport.tsx print this
+ * exact string for the "personal baseline" column, given the model's own
+ * translate function (t for markdown's ru/en switch, rt for the printed page).
+ */
+export const baselineCell = (m: MetricSummary, t: (key: string) => string): string =>
+  m.baseline
+    ? `${t('медиана')} ${m.baseline.median.toFixed(m.digits)} · ${m.baseline.lo.toFixed(m.digits)}–${m.baseline.hi.toFixed(m.digits)} · ${t(POSITION_TEXT[m.baseline.position])}`
+    : t('данных недостаточно')
+
+/**
+ * Same cell in both renderers: the score table's trend column. When the
+ * model refused the trend (see model.ts — not enough coverage at one end of
+ * the period) there is no delta to print, so this says so instead of
+ * guessing. Below one point the arrow would dramatise rounding noise.
+ */
+export const scoreTrendText = (s: ScoreSummary, t: (key: string) => string): string => {
+  if (!s.trend || s.first == null || s.last == null) return t('не рассчитан')
+  const delta = s.last - s.first
+  return Math.abs(delta) < 1 ? t('без изменений') : `${delta > 0 ? '↑' : '↓'} ${signed(delta)}`
+}
+
+/**
+ * Same cell in both renderers: the labs status column. `l.status` already
+ * refuses to guess when there is no reference range or lab flag (see
+ * labs.ts); this only names where a real verdict came from, so a value read
+ * off the lab's own flag is never presented as if a range confirmed it.
+ */
+export const labStatusCell = (l: Pick<LabLine, 'status' | 'statusSource'>, t: (key: string) => string): string =>
+  `${t(LAB_STATUS_TEXT[l.status])}${l.statusSource === 'lab-flag' ? ` (${t(LAB_FLAG_SUFFIX)})` : ''}`
+
+/**
+ * Same list in both renderers: the closing "what this data does not
+ * contain" block. It exists so an external model reading this report never
+ * mistakes silence for a normal reading — each line names data the app
+ * either never collects or collects but excludes from this report.
+ */
+export const MISSING_LINES = [
+  'Артериального давления, веса, роста, температуры тела',
+  'Диагнозов, назначений врача и рецептурных препаратов (учитываются только добавки, отмеченные пациентом)',
+  'Питания',
+  'ЭКГ, аритмий и любых клинических измерений',
+  'Время и длительность эпизодов низкого или высокого пульса: в отчёте есть только суточные минимум, максимум и среднее',
+  'Тип тренировки и пульс во время неё: есть только минуты упражнений и активные калории',
+  'Время в постели, засыпание, ночные пробуждения и эффективность сна',
+  'Кофе, алкоголь, лекарства и события (болезнь, стресс, поездки) пациент отмечает в приложении, но в этот отчёт они не включены',
+  'Всё перечисленное отсутствует, а не равно нулю: не делай выводов о том, чего здесь нет.',
+]
 
 /**
  * The markdown twin of the printed page: same model, same sections, same
@@ -29,9 +80,14 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
 
   p(`# ${t('Сводка данных здоровья')}`)
   p()
-  p(`- **${t('Период')}:** ${model.period.start} — ${model.period.end} (${model.period.days} ${t('дней')})`)
+  p(`- **${t('Период')}:** ${model.period.effectiveStart} — ${model.period.end} (${model.period.calendarDays} ${t('дней')})`)
+  p(`- **${t('Качество данных')}:** ${t('календарных дней')} ${model.period.calendarDays} · ${t('дней хотя бы с одной записью')} ${model.period.daysWithAnyRecord} · ${t('полностью пустых дней')} ${model.period.emptyDays}`)
+  if (model.period.clamped) {
+    p(`- **${t('Запрошенный период')}:** ${model.period.nominalDays} ${t('дней')}, ${t('но данные начинаются')} ${model.period.effectiveStart} — ${t('знаменатель считается от этой даты')}`)
+  }
   p(`- **${t('Сформировано')}:** ${model.period.end}`)
   p(`- **${t('Источник')}:** ${t('приложение Tonus, данные носимых устройств')}`)
+  p(`- ${t('Из Apple Health импортируются 14 показателей: шаги, дистанция, активные калории, минуты упражнений, этажи, пульс (средний, покоя, при ходьбе), HRV, SpO₂, частота дыхания, температура запястья, VO₂max и сон. Тренировки, события пульса, ЭКГ и метрики походки не импортируются.')}`)
   // The "Пациент" label belongs to the blank line the doctor fills in by hand;
   // once the age is known the line names what it actually carries.
   p(model.patient.age != null
@@ -45,16 +101,20 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
     p(`## ${t('Оценки Tonus (0–100, расчёт приложения)')}`)
     p()
     table(
-      [t('Оценка'), t('Среднее за период'), t('Начало периода'), t('Конец периода'), t('Тренд')],
-      model.scores.map(s => {
-        const delta = s.last - s.first
-        // Below one point the arrow would dramatise rounding noise.
-        const trend = Math.abs(delta) < 1
-          ? t('без изменений')
-          : `${delta > 0 ? '↑' : '↓'} ${signed(delta)}`
-        return [t(s.label), String(s.avg), String(s.first), String(s.last), trend]
-      }),
+      [t('Оценка'), t('Среднее за период'), t('Начало периода'), t('Конец периода'), t('Тренд'), t('Дней с данными')],
+      model.scores.map(s => [
+        t(s.label),
+        String(s.avg),
+        s.first != null ? String(s.first) : dash,
+        s.last != null ? String(s.last) : dash,
+        scoreTrendText(s, t),
+        `${s.days} ${t('из')} ${model.period.calendarDays}`,
+      ]),
     )
+    p(t('Сон: часы сна к 8 ч; 8 ч и больше — 100.'))
+    p(t('Восстановление: HRV к личной базе (вес 60%) и пульс покоя к личной базе (вес 40%). База — скользящее среднее за 30 дней.'))
+    p(t('Если одного из показателей не хватает, вес пересчитывается на оставшиеся: день с одним лишь пульсом покоя (без HRV) всё равно даёт оценку восстановления.'))
+    p()
   }
 
   if (model.metrics.length) {
@@ -62,17 +122,26 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
     p()
     const rows = model.metrics.map(m => [
       t(m.label), m.avg.toFixed(m.digits), m.min.toFixed(m.digits), m.max.toFixed(m.digits),
-      m.baselinePct != null ? `${signed(m.baselinePct)}%` : dash,
+      baselineCell(m, t),
       `${m.daysWithData} ${t('из')} ${m.daysInPeriod}`,
+      `${t(BAND_TEXT[m.reliability.band])}${m.reliability.maxGap > 1 ? `, ${t('макс. пробел')} ${m.reliability.maxGap} ${t('дн.')}` : ''}`,
     ])
-    if (model.avgBedtime) rows.push([t('Время отбоя (среднее)'), model.avgBedtime, dash, dash, dash, dash])
-    if (model.avgWakeTime) rows.push([t('Время подъёма (среднее)'), model.avgWakeTime, dash, dash, dash, dash])
-    table([t('Метрика'), t('Среднее'), t('Мин'), t('Макс'), t('К личной норме'), t('Дней с данными')], rows)
-    p(t('«Личная норма» — скользящая базовая линия за 30 дней до текущего дня, расчёт приложения.'))
+    if (model.sleep?.bedtime) {
+      const b = model.sleep.bedtime
+      rows.push([t('Время отбоя (медиана)'), b.median, `${t('половина ночей')} ${b.q1}–${b.q3}`, dash, dash,
+        `${b.count} ${t('из')} ${model.period.calendarDays}`, dash])
+    }
+    if (model.sleep?.wake) {
+      const w = model.sleep.wake
+      rows.push([t('Время подъёма (медиана)'), w.median, `${t('половина ночей')} ${w.q1}–${w.q3}`, dash, dash,
+        `${w.count} ${t('из')} ${model.period.calendarDays}`, dash])
+    }
+    table([t('Метрика'), t('Среднее'), t('Мин'), t('Макс'), t('Личная норма (медиана и обычный диапазон)'), t('Дней с данными'), t('Надёжность')], rows)
+    p(t('«Личная норма» — медиана за 28 дней до начала периода и её межквартильный диапазон. Считается только при покрытии от 60% и минимум 14 днях в этом окне. Оценки Tonus выше используют другую базу — скользящее среднее за 30 дней.'))
     p()
   }
 
-  if (model.weekly.rows.length) {
+  if (model.weekly.rows.length > 1) {
     p(`## ${t('Динамика по неделям')}`)
     p()
     table(
@@ -92,22 +161,39 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
     const s = model.sleep
     p(`## ${t('Сон по дням')}`)
     p()
-    p(t('Все ночи периода без агрегации. В таблице только измеренные значения: доли фаз — арифметика от них же, производных показателей нет.'))
+    p(t('Все ночи периода без агрегации. В таблице только измеренные значения: доли фаз считаются от общего сна за ночь; время, не отнесённое ни к одной фазе, показано отдельной колонкой.'))
     p()
     table(
       [t('Дата'), t('День'), t('Отбой'), t('Подъём'), t('Сон, ч'), t('Глубокий, ч'),
-        t('REM, ч'), t('Лёгкий, ч'), t('Глубокий, %'), t('REM, %')],
+        t('REM, ч'), t('Лёгкий, ч'), t('Не классифицировано, ч'), t('Глубокий, %'), t('REM, %'), t('Тип')],
       s.nights.map(n => [
-        n.date, t(n.weekday), n.bedtime ?? dash, n.wakeTime ?? dash, n.hours.toFixed(1),
+        n.date, t(n.weekday),
+        n.bedtime ? n.bedtime + (n.bedtimeDate ? ` (${n.bedtimeDate})` : '') : dash,
+        n.wakeTime ? n.wakeTime + (n.wakeDate ? ` (${n.wakeDate})` : '') : dash,
+        n.hours.toFixed(1),
         n.deep?.toFixed(1) ?? dash, n.rem?.toFixed(1) ?? dash, n.core?.toFixed(1) ?? dash,
+        n.unclassified != null ? n.unclassified.toFixed(1) : dash,
         n.deepPct != null ? `${n.deepPct}%` : dash,
         n.remPct != null ? `${n.remPct}%` : dash,
+        n.daytime ? t('дневной эпизод') : '',
       ]),
     )
-    p(`${t('Ночей в периоде')}: ${s.total}. ${t('Короче 6 ч')}: ${s.under6}. ${t('От 8 ч')}: ${s.over8}. ${t('Без записи сна')}: ${s.missing}.`)
+    p(`${t('Ночей в периоде')}: ${s.total}. ${t('Короче 6 ч')}: ${s.under6}. ${t('От 8 ч')}: ${s.over8}. ${t('Без записи ночного сна')}: ${s.missing}. ${t('Дневных эпизодов')}: ${s.daytimeCount}.`)
     p()
+    if (s.daytimeCount > 0) {
+      p(t('Дневные эпизоды (короче 3 ч, начались между 08:00 и 20:00) показаны в таблице, но не входят в подсчёт ночей, в средние времена и в оценку сна.'))
+      p()
+    }
     if (s.implausible) {
       p(`${t('Ночей, где между отбоем и подъёмом прошло меньше времени, чем длился сон')}: ${s.implausible}. ${t('Время пробуждения в этих строках записано источником неверно; значения показаны как есть, без правки.')}`)
+      p()
+    }
+    if (s.phasesOverTotal > 0) {
+      p(`${t('Ночей, где сумма фаз больше общего сна')}: ${s.phasesOverTotal}. ${t('Источник записал фазы и общий сон независимо; значения показаны как есть, без правки.')}`)
+      p()
+    }
+    if (s.phaseCoveragePct != null) {
+      p(`${t('Разложено по фазам')}: ${s.phaseCoveragePct}% ${t('измеренного ночного сна. Остальное время источник записал как сон, но не отнёс ни к одной фазе.')}`)
       p()
     }
   }
@@ -151,12 +237,12 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
     p(`## ${t('Анализы')}`)
     p()
     table(
-      [t('Показатель'), t('Значение'), t('Реф. диапазон'), t('Вне нормы'), t('Предыдущее'), t('Динамика'), t('Дата')],
+      [t('Показатель'), t('Значение'), t('Реф. диапазон'), t('Статус'), t('Предыдущее'), t('Динамика'), t('Дата')],
       model.labs.lines.map(l => [
         l.marker,
         `${l.value}${l.unit ? ` ${l.unit}` : ''}`,
         l.refRange ?? dash,
-        l.flag === '↑' ? t('выше нормы') : l.flag === '↓' ? t('ниже нормы') : t('в норме'),
+        labStatusCell(l, t),
         l.prevValue != null ? `${l.prevValue} (${l.prevDate})` : dash,
         l.delta != null ? `${signed(l.delta, Number.isInteger(l.delta) ? 0 : 1)} ${t('к')} ${l.prevDate}` : dash,
         l.date,
@@ -167,6 +253,9 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
     } else {
       p(t('Все показатели сданы внутри периода отчёта.'))
     }
+    p()
+    p(t(LAB_UNIT_CAVEAT))
+    p(t(LAB_DATE_CAVEAT))
     p()
 
     if (model.labs.series.length) {
@@ -189,7 +278,7 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
     p(`## ${t('Добавки и приём')}`)
     p()
     table(
-      [t('Название'), t('Доза'), t('Статус'), t('Приём с'), t('Соблюдение в периоде')],
+      [t('Название'), t('Доза'), t('Статус'), t('Приём с'), t('Доля дней с отметкой')],
       model.supplements.map(s => [
         s.name,
         s.dose ? `${s.dose}${s.unit ? ` ${s.unit}` : ''}` : dash,
@@ -198,7 +287,7 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
         s.pct != null ? `${s.pct}% (${s.taken} ${t('из')} ${s.windowDays} ${t('дней')})` : dash,
       ]),
     )
-    p(t('Соблюдение считается от первого отмеченного приёма внутри периода, а не от всей длины периода.'))
+    p(t('Показана доля дней с отметкой о приёме, считая от первого отмеченного приёма внутри периода. Отсутствие отметки не означает, что приём не состоялся.'))
     p()
   }
 
@@ -253,13 +342,7 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
 
   p(`## ${t('Чего в этих данных нет')}`)
   p()
-  for (const line of [
-    'Артериального давления, веса, роста, температуры тела',
-    'Диагнозов, назначений врача и рецептурных препаратов (учитываются только добавки, отмеченные пациентом)',
-    'Питания и алкоголя',
-    'ЭКГ, аритмий и любых клинических измерений',
-    'Всё перечисленное отсутствует, а не равно нулю: не делай выводов о том, чего здесь нет.',
-  ]) p(`- ${t(line)}`)
+  for (const line of MISSING_LINES) p(`- ${t(line)}`)
   p()
 
   return L.join('\n')

@@ -1,12 +1,15 @@
 import type { DailyMetrics } from '../../types'
 import { computeDailyScores } from '../scores'
+import { addDays, localDate } from './dates'
+import { avg } from './math'
 import {
-  avgTimeOfDay, localDate, periodSlice, periodStart, summarizeMetrics,
-  type BaselineKey, type MetricSummary,
+  periodFrame, summarizeMetrics,
+  type MetricSummary, type PeriodFrame,
 } from './metrics'
+import { supportsClaims } from './reliability'
 import { WEEKLY_KEYS, coverage, weeklyRows, type CoverageGap, type WeeklyRow } from './weekly'
 import { detectDeviations, type DeviationWeek } from './deviations'
-import { buildSleep, type SleepSection } from './sleep'
+import { buildSleep, withoutDaytimeSleep, type SleepSection } from './sleep'
 import { buildLabs, type LabsSection } from './labs'
 import { buildSupplements, type SupplementLine } from './supplements'
 import { buildConcerns, buildJournal, type ConcernLine, type JournalSection } from './journal'
@@ -14,21 +17,22 @@ import type { ReportSources } from './load'
 import type { Sex } from '../api/settings'
 
 export interface ScoreSummary {
-  key: 'sleep_score' | 'recovery_score' | 'stress_score'
+  key: 'sleep_score' | 'recovery_score'
   label: string
   avg: number
-  first: number
-  last: number
+  /** null — never a sentinel 0 — when `trend` is false: nothing to print. */
+  first: number | null
+  last: number | null
+  days: number
+  trend: boolean
 }
 
 export interface DoctorReportModel {
-  period: { start: string; end: string; days: number }
+  period: PeriodFrame
   /** Age is coarse by design: only the birth year is stored. */
   patient: { birthYear: number | null; sex: Sex | null; age: number | null }
   scores: ScoreSummary[]
   metrics: MetricSummary[]
-  avgBedtime: string | null
-  avgWakeTime: string | null
   weekly: { keys: typeof WEEKLY_KEYS; rows: WeeklyRow[] }
   sleep: SleepSection | null
   coverage: { gaps: CoverageGap[]; missingDates: string[] }
@@ -49,40 +53,50 @@ export interface ReportInput {
 }
 
 // Readiness is absent on purpose: on this data it carries little signal.
+// Load is absent because it was not load — stress_score is 100 − recovery,
+// the same number under a name that promises training volume.
 const SCORE_DEFS: { key: ScoreSummary['key']; label: string }[] = [
   { key: 'sleep_score', label: 'Сон' },
   { key: 'recovery_score', label: 'Восстановление' },
-  { key: 'stress_score', label: 'Нагрузка' },
 ]
 
 export function buildReportModel({
   daily, sources, periodDays, today = localDate(), pickedConcernIds,
 }: ReportInput): DoctorReportModel {
-  const start = periodStart(periodDays, today)
-  const slice = periodSlice(daily, periodDays, today)
+  // Daytime episodes are shown in the sleep table and excluded everywhere else:
+  // one filtered copy feeds metrics, weeks, coverage, deviations and scores.
+  const clean = withoutDaytimeSleep(daily)
+  const frame = periodFrame(clean, periodDays, today)
 
-  const scoreRows = computeDailyScores(daily)
-  const lastScore = scoreRows[scoreRows.length - 1]
-  const baselines: Partial<Record<BaselineKey, number | null>> = {
-    rhr: lastScore?.rhr_baseline ?? null,
-    hrv: lastScore?.hrv_baseline ?? null,
-    sleep: lastScore?.sleep_baseline ?? null,
-    steps: lastScore?.steps_baseline ?? null,
-  }
-
-  const inPeriod = scoreRows.filter(s => s.date >= start && s.date <= today)
-  const third = Math.max(1, Math.floor(inPeriod.length / 3))
-  const mean = (v: number[]) => v.reduce((a, b) => a + b, 0) / v.length
+  const scoreRows = computeDailyScores(clean)
+  const inPeriod = scoreRows.filter(s => s.date >= frame.start && s.date <= today)
+  // A trend needs real coverage at both ends, not just an overall average: a
+  // day is "in" a third only past its own weight, so a single stray reading
+  // can't fabricate a start or end score for a mostly-empty stretch.
+  const thirdDays = Math.max(1, Math.floor(frame.calendarDays / 3))
+  const firstEnd = addDays(frame.effectiveStart, thirdDays - 1)
+  const lastStart = addDays(frame.end, -(thirdDays - 1))
   const scores: ScoreSummary[] = []
   for (const def of SCORE_DEFS) {
-    const vals = inPeriod.map(s => s[def.key]).filter((v): v is number => typeof v === 'number')
+    const has = (rows: typeof inPeriod) =>
+      rows.map(s => s[def.key]).filter((v): v is number => typeof v === 'number')
+    const vals = has(inPeriod)
     if (!vals.length) continue
+    const firstVals = has(inPeriod.filter(s => s.date <= firstEnd))
+    const lastVals = has(inPeriod.filter(s => s.date >= lastStart))
+    // On a one- or two-day period the first and last third collapse onto the
+    // same day(s): without this guard a single score gets counted as both
+    // "first" and "last", printing a trend — even "без изменений" — from one
+    // data point instead of no evidence at all.
+    const trend = firstEnd < lastStart && firstVals.length >= thirdDays / 2 && lastVals.length >= thirdDays / 2
     scores.push({
       key: def.key,
       label: def.label,
-      avg: Math.round(mean(vals)),
-      first: Math.round(mean(vals.slice(0, third))),
-      last: Math.round(mean(vals.slice(-third))),
+      avg: Math.round(avg(vals)),
+      first: trend ? Math.round(avg(firstVals)) : null,
+      last: trend ? Math.round(avg(lastVals)) : null,
+      days: vals.length,
+      trend,
     })
   }
 
@@ -91,24 +105,25 @@ export function buildReportModel({
 
   const birthYear = sources.profile?.birth_year ?? null
 
+  const metrics = summarizeMetrics(clean, frame)
+  const reliable = new Set(metrics.filter(m => supportsClaims(m.reliability.band)).map(m => m.key))
+
   return {
-    period: { start, end: today, days: periodDays },
+    period: frame,
     patient: {
       birthYear,
       sex: sources.profile?.sex ?? null,
       age: birthYear ? Number(today.slice(0, 4)) - birthYear : null,
     },
     scores,
-    metrics: summarizeMetrics(daily, periodDays, today, baselines),
-    avgBedtime: avgTimeOfDay(slice.map(d => d.sleepBedtime).filter((v): v is string => !!v)),
-    avgWakeTime: avgTimeOfDay(slice.map(d => d.sleepWakeTime).filter((v): v is string => !!v)),
-    weekly: { keys: WEEKLY_KEYS, rows: weeklyRows(daily, periodDays, today) },
-    sleep: buildSleep(daily, periodDays, today),
-    coverage: coverage(daily, periodDays, today),
-    deviations: detectDeviations(daily, periodDays, today),
-    labs: buildLabs(sources.labs, start),
-    supplements: buildSupplements(sources.supplements, sources.supplementLogs, start, today),
-    concerns: buildConcerns(visibleConcerns, sources.concernLogs, start),
-    journal: buildJournal(sources.notes, start),
+    metrics,
+    weekly: { keys: WEEKLY_KEYS, rows: weeklyRows(clean, frame) },
+    sleep: buildSleep(daily, frame),
+    coverage: coverage(clean, frame),
+    deviations: detectDeviations(clean, frame, reliable),
+    labs: buildLabs(sources.labs, frame.effectiveStart),
+    supplements: buildSupplements(sources.supplements, sources.supplementLogs, frame.effectiveStart, today),
+    concerns: buildConcerns(visibleConcerns, sources.concernLogs, frame.effectiveStart),
+    journal: buildJournal(sources.notes, frame.effectiveStart),
   }
 }

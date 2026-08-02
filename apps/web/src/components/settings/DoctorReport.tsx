@@ -2,7 +2,8 @@ import type { User } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
 import type { DailyMetrics } from '../../types'
 import {
-  METRIC_DEFS, buildReportModel, loadReportSources, periodStart, localDate, toMarkdown,
+  METRIC_DEFS, buildReportModel, loadReportSources, periodStart, localDate, toMarkdown, baselineCell,
+  scoreTrendText, BAND_TEXT, labStatusCell, LAB_UNIT_CAVEAT, LAB_DATE_CAVEAT, MISSING_LINES,
   type DoctorReportModel, type ReportSources,
 } from '../../lib/doctorReport'
 import { isUnlocked } from '../../lib/privacy'
@@ -32,17 +33,13 @@ const STATUS_TEXT: Record<string, string> = {
   active: 'активна', improving: 'улучшается', resolved: 'разрешилась',
 }
 
-const MISSING_LINES = [
-  'Артериального давления, веса, роста, температуры тела',
-  'Диагнозов, назначений врача и рецептурных препаратов (учитываются только добавки, отмеченные пациентом)',
-  'Питания и алкоголя',
-  'ЭКГ, аритмий и любых клинических измерений',
-  'Всё перечисленное отсутствует, а не равно нулю: не делай выводов о том, чего здесь нет.',
-]
-
 const dash = '—'
 const signed = (n: number) => `${n > 0 ? '+' : ''}${n}`
 const METRIC_LABELS = new Map(METRIC_DEFS.map(m => [m.key, m.label]))
+// weeklyRows() already rounds each value to the metric's own digits; render
+// through the same toFixed the markdown twin uses, or "7" and "7.0" disagree
+// on a value the model already agreed on.
+const DIGITS = new Map(METRIC_DEFS.map(m => [m.key, m.digits]))
 
 export function DoctorReport({ user, daily, onClose }: Props) {
   const { t } = useT()
@@ -196,7 +193,18 @@ export function DoctorReport({ user, daily, onClose }: Props) {
       <div className="dr-doc">
         <h1>{rt('Сводка данных здоровья')}</h1>
         <p className="dr-meta">
-          {rt('Период')}: {model.period.start} — {model.period.end} · {rt('Сформировано')}: {model.period.end}
+          {rt('Период')}: {model.period.effectiveStart} — {model.period.end} · {rt('Сформировано')}: {model.period.end}
+        </p>
+        <p className="dr-meta">
+          {rt('Качество данных')}: {rt('календарных дней')} {model.period.calendarDays} · {rt('дней хотя бы с одной записью')} {model.period.daysWithAnyRecord} · {rt('полностью пустых дней')} {model.period.emptyDays}
+        </p>
+        {model.period.clamped && (
+          <p className="dr-meta">
+            {rt('Запрошенный период')}: {model.period.nominalDays} {rt('дней')}, {rt('но данные начинаются')} {model.period.effectiveStart} — {rt('знаменатель считается от этой даты')}
+          </p>
+        )}
+        <p className="dr-meta">
+          {rt('Из Apple Health импортируются 14 показателей: шаги, дистанция, активные калории, минуты упражнений, этажи, пульс (средний, покоя, при ходьбе), HRV, SpO₂, частота дыхания, температура запястья, VO₂max и сон. Тренировки, события пульса, ЭКГ и метрики походки не импортируются.')}
         </p>
         <p className="dr-meta">
           {/* The "Пациент" label belongs to the blank handwriting line; once the
@@ -214,15 +222,21 @@ export function DoctorReport({ user, daily, onClose }: Props) {
               <thead><tr>
                 <th>{rt('Оценка')}</th><th>{rt('Среднее за период')}</th>
                 <th>{rt('Начало периода')}</th><th>{rt('Конец периода')}</th>
+                <th>{rt('Тренд')}</th><th>{rt('Дней с данными')}</th>
               </tr></thead>
               <tbody>
                 {scores.map(s => (
                   <tr key={s.key}>
-                    <td>{rt(s.label)}</td><td>{s.avg}</td><td>{s.first}</td><td>{s.last}</td>
+                    <td>{rt(s.label)}</td><td>{s.avg}</td>
+                    <td>{s.first ?? dash}</td><td>{s.last ?? dash}</td>
+                    <td>{scoreTrendText(s, rt)}</td><td>{s.days} {rt('из')} {model.period.calendarDays}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            <p className="dr-note">{rt('Сон: часы сна к 8 ч; 8 ч и больше — 100.')}</p>
+            <p className="dr-note">{rt('Восстановление: HRV к личной базе (вес 60%) и пульс покоя к личной базе (вес 40%). База — скользящее среднее за 30 дней.')}</p>
+            <p className="dr-note">{rt('Если одного из показателей не хватает, вес пересчитывается на оставшиеся: день с одним лишь пульсом покоя (без HRV) всё равно даёт оценку восстановления.')}</p>
           </section>
         )}
 
@@ -232,7 +246,8 @@ export function DoctorReport({ user, daily, onClose }: Props) {
             <table>
               <thead><tr>
                 <th>{rt('Метрика')}</th><th>{rt('Среднее')}</th><th>{rt('Мин')}</th>
-                <th>{rt('Макс')}</th><th>{rt('К личной норме')}</th><th>{rt('Дней с данными')}</th>
+                <th>{rt('Макс')}</th><th>{rt('Личная норма (медиана и обычный диапазон)')}</th><th>{rt('Дней с данными')}</th>
+                <th>{rt('Надёжность')}</th>
               </tr></thead>
               <tbody>
                 {metrics.map(m => (
@@ -241,21 +256,29 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                     <td>{m.avg.toFixed(m.digits)}</td>
                     <td>{m.min.toFixed(m.digits)}</td>
                     <td>{m.max.toFixed(m.digits)}</td>
-                    <td>{m.baselinePct != null ? `${signed(m.baselinePct)}%` : dash}</td>
+                    <td>{baselineCell(m, rt)}</td>
                     <td>{m.daysWithData} {rt('из')} {m.daysInPeriod}</td>
+                    <td>
+                      {rt(BAND_TEXT[m.reliability.band])}
+                      {m.reliability.maxGap > 1 ? `, ${rt('макс. пробел')} ${m.reliability.maxGap} ${rt('дн.')}` : ''}
+                    </td>
                   </tr>
                 ))}
-                {model.avgBedtime && (
-                  <tr><td>{rt('Время отбоя (среднее)')}</td><td>{model.avgBedtime}</td>
-                    <td>{dash}</td><td>{dash}</td><td>{dash}</td><td>{dash}</td></tr>
+                {sleep?.bedtime && (
+                  <tr><td>{rt('Время отбоя (медиана)')}</td><td>{sleep.bedtime.median}</td>
+                    <td>{rt('половина ночей')} {sleep.bedtime.q1}–{sleep.bedtime.q3}</td>
+                    <td>{dash}</td><td>{dash}</td>
+                    <td>{sleep.bedtime.count} {rt('из')} {model.period.calendarDays}</td><td>{dash}</td></tr>
                 )}
-                {model.avgWakeTime && (
-                  <tr><td>{rt('Время подъёма (среднее)')}</td><td>{model.avgWakeTime}</td>
-                    <td>{dash}</td><td>{dash}</td><td>{dash}</td><td>{dash}</td></tr>
+                {sleep?.wake && (
+                  <tr><td>{rt('Время подъёма (медиана)')}</td><td>{sleep.wake.median}</td>
+                    <td>{rt('половина ночей')} {sleep.wake.q1}–{sleep.wake.q3}</td>
+                    <td>{dash}</td><td>{dash}</td>
+                    <td>{sleep.wake.count} {rt('из')} {model.period.calendarDays}</td><td>{dash}</td></tr>
                 )}
               </tbody>
             </table>
-            <p className="dr-note">{rt('«Личная норма» — скользящая базовая линия за 30 дней до текущего дня, расчёт приложения.')}</p>
+            <p className="dr-note">{rt('«Личная норма» — медиана за 28 дней до начала периода и её межквартильный диапазон. Считается только при покрытии от 60% и минимум 14 днях в этом окне. Оценки Tonus выше используют другую базу — скользящее среднее за 30 дней.')}</p>
 
             {weekly.rows.length > 1 && (
               <>
@@ -270,7 +293,10 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                     {weekly.rows.map(w => (
                       <tr key={w.weekStart}>
                         <td>{w.weekStart}</td>
-                        {weekly.keys.map(k => <td key={k}>{w.values[k] ?? dash}</td>)}
+                        {weekly.keys.map(k => {
+                          const v = w.values[k]
+                          return <td key={k}>{v == null ? dash : v.toFixed(DIGITS.get(k) ?? 1)}</td>
+                        })}
                         <td>{w.days}</td>
                       </tr>
                     ))}
@@ -284,34 +310,53 @@ export function DoctorReport({ user, daily, onClose }: Props) {
         {sections.sleep && sleep && (
           <section>
             <h2>{rt('Сон по дням')}</h2>
-            <p className="dr-note">{rt('Все ночи периода без агрегации. В таблице только измеренные значения: доли фаз — арифметика от них же, производных показателей нет.')}</p>
+            <p className="dr-note">{rt('Все ночи периода без агрегации. В таблице только измеренные значения: доли фаз считаются от общего сна за ночь; время, не отнесённое ни к одной фазе, показано отдельной колонкой.')}</p>
             <table className="dr-sleep-table">
               <thead><tr>
                 <th>{rt('Дата')}</th><th>{rt('День')}</th><th>{rt('Отбой')}</th><th>{rt('Подъём')}</th>
                 <th>{rt('Сон, ч')}</th><th>{rt('Глубокий, ч')}</th><th>{rt('REM, ч')}</th>
-                <th>{rt('Лёгкий, ч')}</th><th>{rt('Глубокий, %')}</th><th>{rt('REM, %')}</th>
+                <th>{rt('Лёгкий, ч')}</th><th>{rt('Не классифицировано, ч')}</th>
+                <th>{rt('Глубокий, %')}</th><th>{rt('REM, %')}</th><th>{rt('Тип')}</th>
               </tr></thead>
               <tbody>
                 {sleep.nights.map(n => (
                   <tr key={n.date}>
                     <td>{n.date}</td><td>{rt(n.weekday)}</td>
-                    <td>{n.bedtime ?? dash}</td><td>{n.wakeTime ?? dash}</td>
+                    <td>{n.bedtime ? n.bedtime + (n.bedtimeDate ? ` (${n.bedtimeDate})` : '') : dash}</td>
+                    <td>{n.wakeTime ? n.wakeTime + (n.wakeDate ? ` (${n.wakeDate})` : '') : dash}</td>
                     <td>{n.hours.toFixed(1)}</td>
                     <td>{n.deep?.toFixed(1) ?? dash}</td>
                     <td>{n.rem?.toFixed(1) ?? dash}</td>
                     <td>{n.core?.toFixed(1) ?? dash}</td>
+                    <td>{n.unclassified != null ? n.unclassified.toFixed(1) : dash}</td>
                     <td>{n.deepPct != null ? `${n.deepPct}%` : dash}</td>
                     <td>{n.remPct != null ? `${n.remPct}%` : dash}</td>
+                    <td>{n.daytime ? rt('дневной эпизод') : ''}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
             <p className="dr-note">
-              {rt('Ночей в периоде')}: {sleep.total}. {rt('Короче 6 ч')}: {sleep.under6}. {rt('От 8 ч')}: {sleep.over8}. {rt('Без записи сна')}: {sleep.missing}.
+              {rt('Ночей в периоде')}: {sleep.total}. {rt('Короче 6 ч')}: {sleep.under6}. {rt('От 8 ч')}: {sleep.over8}. {rt('Без записи ночного сна')}: {sleep.missing}. {rt('Дневных эпизодов')}: {sleep.daytimeCount}.
             </p>
+            {sleep.daytimeCount > 0 && (
+              <p className="dr-note">
+                {rt('Дневные эпизоды (короче 3 ч, начались между 08:00 и 20:00) показаны в таблице, но не входят в подсчёт ночей, в средние времена и в оценку сна.')}
+              </p>
+            )}
             {sleep.implausible > 0 && (
               <p className="dr-note">
                 {rt('Ночей, где между отбоем и подъёмом прошло меньше времени, чем длился сон')}: {sleep.implausible}. {rt('Время пробуждения в этих строках записано источником неверно; значения показаны как есть, без правки.')}
+              </p>
+            )}
+            {sleep.phasesOverTotal > 0 && (
+              <p className="dr-note">
+                {rt('Ночей, где сумма фаз больше общего сна')}: {sleep.phasesOverTotal}. {rt('Источник записал фазы и общий сон независимо; значения показаны как есть, без правки.')}
+              </p>
+            )}
+            {sleep.phaseCoveragePct != null && (
+              <p className="dr-note">
+                {rt('Разложено по фазам')}: {sleep.phaseCoveragePct}% {rt('измеренного ночного сна. Остальное время источник записал как сон, но не отнёс ни к одной фазе.')}
               </p>
             )}
           </section>
@@ -369,15 +414,16 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                 <table>
                   <thead><tr>
                     <th>{rt('Показатель')}</th><th>{rt('Значение')}</th><th>{rt('Реф. диапазон')}</th>
-                    <th>{rt('Вне нормы')}</th><th>{rt('Предыдущее')}</th><th>{rt('Динамика')}</th><th>{rt('Дата')}</th>
+                    <th>{rt('Статус')}</th><th>{rt('Предыдущее')}</th><th>{rt('Динамика')}</th><th>{rt('Дата')}</th>
                   </tr></thead>
                   <tbody>
                     {labs.lines.map(l => (
-                      <tr key={l.marker} className={l.flag ? 'dr-flagged' : undefined}>
+                      <tr key={`${l.marker} ${l.unit ?? ''}`}
+                        className={l.status === 'above' || l.status === 'below' ? 'dr-flagged' : undefined}>
                         <td>{l.marker}</td>
                         <td>{l.value} {l.unit ?? ''}</td>
                         <td>{l.refRange ?? dash}</td>
-                        <td>{l.flag === '↑' ? rt('выше нормы') : l.flag === '↓' ? rt('ниже нормы') : rt('в норме')}</td>
+                        <td>{labStatusCell(l, rt)}</td>
                         <td>{l.prevValue != null ? `${l.prevValue} (${l.prevDate})` : dash}</td>
                         <td>{l.delta != null ? `${signed(l.delta)} ${rt('к')} ${l.prevDate}` : dash}</td>
                         <td>{l.date}</td>
@@ -390,6 +436,8 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                     ? `${rt('Последнее измерение раньше периода отчёта')}: ${labs.outOfPeriod.join(', ')}.`
                     : rt('Все показатели сданы внутри периода отчёта.')}
                 </p>
+                <p className="dr-note">{rt(LAB_UNIT_CAVEAT)}</p>
+                <p className="dr-note">{rt(LAB_DATE_CAVEAT)}</p>
                 {labs.series.length > 0 && (
                   <>
                     <h3>{rt('Все измерения по показателям')}</h3>
@@ -401,7 +449,7 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                       </tr></thead>
                       <tbody>
                         {labs.series.map(s => (
-                          <tr key={s.marker}>
+                          <tr key={`${s.marker} ${s.unit ?? ''}`}>
                             <td>{s.marker}</td>
                             <td>{s.points.map(pt => `${pt.date}: ${pt.value}`).join(' → ')} {s.unit ?? ''}</td>
                             <td>{s.refRange ?? dash}</td>
@@ -427,7 +475,7 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                 <table>
                   <thead><tr>
                     <th>{rt('Название')}</th><th>{rt('Доза')}</th><th>{rt('Статус')}</th>
-                    <th>{rt('Приём с')}</th><th>{rt('Соблюдение в периоде')}</th>
+                    <th>{rt('Приём с')}</th><th>{rt('Доля дней с отметкой')}</th>
                   </tr></thead>
                   <tbody>
                     {supplements.map(s => (
@@ -441,7 +489,7 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                     ))}
                   </tbody>
                 </table>
-                <p className="dr-note">{rt('Соблюдение считается от первого отмеченного приёма внутри периода, а не от всей длины периода.')}</p>
+                <p className="dr-note">{rt('Показана доля дней с отметкой о приёме, считая от первого отмеченного приёма внутри периода. Отсутствие отметки не означает, что приём не состоялся.')}</p>
               </>
             )}
           </section>
