@@ -3,6 +3,7 @@ import type { DailyMetrics } from '../../types'
 import { runAnalysis, loadAnalyses, deleteAnalysis, type AiAnalysis, type AnalysisPeriod } from '../../lib/aiAnalysis'
 import { useT } from '../../lib/i18n'
 import { isAiConsentRequiredError, loadAiConsent } from '../../lib/aiConsent'
+import { Icon } from '../../lib/icons'
 
 interface Props {
   daily: DailyMetrics[]
@@ -138,7 +139,7 @@ export function AiAnalysisBlock({ daily, userId }: Props) {
             ))}
           </div>
           <button className="btn-primary ai-run-btn" onClick={handleRun} disabled={loading || consented === null}>
-            {loading ? <span className="ai-spinner" /> : '✦'} {loading ? t('Анализируем…') : t('Проанализировать')}
+            {loading ? <span className="ai-spinner" /> : <Icon name="analyze" size={14} />} {loading ? t('Анализируем…') : t('Проанализировать')}
           </button>
         </div>
       </div>

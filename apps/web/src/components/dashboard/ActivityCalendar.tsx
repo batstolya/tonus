@@ -2,6 +2,7 @@ import { motion } from 'motion/react'
 import type { DailyMetrics } from '../../types'
 import { computeStreak, isActiveDay, hasDayData, WEEKLY_MIN_DAYS } from '../../lib/streak'
 import { useT } from '../../lib/i18n'
+import { Icon } from '../../lib/icons'
 
 interface Props {
   daily: DailyMetrics[]
@@ -123,7 +124,7 @@ export function ActivityCalendar({ daily, year, month, minYm, onNavigate }: Prop
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: Math.min(0.4, (w * 7 + i) * 0.008), duration: 0.2 }}
                 >
-                  {status === 'frozen' ? '❄️' : d.getDate()}
+                  {status === 'frozen' ? <Icon name="frozen" size={14} /> : d.getDate()}
                 </motion.div>
               )
             }),

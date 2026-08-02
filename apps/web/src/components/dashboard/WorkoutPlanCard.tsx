@@ -3,8 +3,19 @@ import type { DailyMetrics } from '../../types'
 import { getWorkoutSchedule } from '../../lib/api/settings'
 import { isDemoActive } from '../../lib/demo'
 import { makeDemoWorkoutSchedule } from '../../lib/demoFixture'
-import { plannedDaysInRange, attendance, nextPlannedWorkout, scheduleWeekdays, sportEmoji, type WorkoutScheduleRow } from '../../lib/workoutPlan'
+import { plannedDaysInRange, attendance, nextPlannedWorkout, scheduleWeekdays, type WorkoutScheduleRow } from '../../lib/workoutPlan'
 import { useT } from '../../lib/i18n'
+import { Icon, type IconName } from '../../lib/icons'
+
+// Same matching rules as sportEmoji (src/lib/workoutPlan.ts, mirrored from
+// supabase/functions/_shared/workoutPlan.ts), but returns a registry name
+// instead of an emoji literal, so the card passes the noEmoji guard.
+function sportIconName(label?: string | null): IconName {
+  const l = (label ?? '').toLowerCase()
+  if (l.includes('волейб') || l.includes('volley')) return 'sportVolleyball'
+  if (l.includes('футбол') || l.includes('футзал') || l.includes('soccer') || l.includes('football')) return 'sportFootball'
+  return 'sportGym'
+}
 
 // Карточка расписания тренировок: ближайшая плановая + соблюдение за месяц.
 // Скрыта, пока расписание не задано в настройках (или выключено).
@@ -51,14 +62,14 @@ export function WorkoutPlanCard({ daily }: { daily: DailyMetrics[] }) {
     <div className="streak-cards workout-plan-card">
       <div className="streak-card">
         <span className="streak-card-value">
-          <span className="streak-card-emoji" aria-hidden>{sportEmoji(next?.label)}</span>
+          <span className="streak-card-emoji"><Icon name={sportIconName(next?.label)} size={14} /></span>
           {nextLabel}
         </span>
         <span className="streak-card-label">{t('Следующая тренировка')}</span>
       </div>
       <div className="streak-card">
         <span className="streak-card-value">
-          <span className="streak-card-emoji" aria-hidden>✅</span>
+          <span className="streak-card-emoji"><Icon name="planDone" size={14} /></span>
           {a.done} / {a.total}
         </span>
         <span className="streak-card-label">{t('Месяц: по плану')}</span>

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { motion } from 'motion/react'
 
 interface Props {
-  icon: ReactNode        // emoji or small element
+  icon: ReactNode        // an <Icon /> element, or any small node
   title: string          // already-translated string
   text?: string          // already-translated string
   cta?: { label: string; onClick: () => void }

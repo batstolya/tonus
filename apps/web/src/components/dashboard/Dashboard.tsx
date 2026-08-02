@@ -12,6 +12,7 @@ import { loadTodayNote, saveNote } from '../../lib/contextNotes'
 import { loadFocus, loadCheckins, checkInToday, removeCheckinToday, loadFocusInputs, inferFocusCheck, type CoachFocus } from '../../lib/coach'
 import { evaluateFocus, type FocusData } from '../../lib/focusAdherence'
 import { useT } from '../../lib/i18n'
+import { Icon } from '../../lib/icons'
 import { motion, MotionConfig, type Variants } from 'motion/react'
 import { CountUp } from '../common/CountUp'
 import { GeoStormBanner } from './GeoStormBanner'
@@ -176,7 +177,7 @@ function StressDaysCard({ daily }: { daily: DailyMetrics[] }) {
   return (
     <div className="stress-days-card">
       <div className="sd-item sd-bad">
-        <div className="sd-icon">😓</div>
+        <div className="sd-icon"><Icon name="stressed" size={24} /></div>
         <div className="sd-info">
           <div className="sd-label">{t('Самый стрессовый')}</div>
           <div className="sd-date">{fmtDate(mostStressed.date)}</div>
@@ -185,7 +186,7 @@ function StressDaysCard({ daily }: { daily: DailyMetrics[] }) {
       </div>
       <div className="sd-divider" />
       <div className="sd-item sd-good">
-        <div className="sd-icon">😌</div>
+        <div className="sd-icon"><Icon name="calm" size={24} /></div>
         <div className="sd-info">
           <div className="sd-label">{t('Самый спокойный')}</div>
           <div className="sd-date">{fmtDate(leastStressed.date)}</div>
@@ -202,7 +203,7 @@ function EarlyWarningBanner({ daily }: { daily: DailyMetrics[] }) {
   if (!w.active) return null
   return (
     <div className="early-warning">
-      <span className="ew-icon">⚠</span>
+      <span className="ew-icon"><Icon name="warning" size={18} /></span>
       <div>
         <strong>{t('Организм под нагрузкой')}</strong>
         <ul className="ew-list">
@@ -244,16 +245,18 @@ function CoachFocusCard({ user, daily }: { user: User; daily: DailyMetrics[] }) 
     return (
       <div className="coach-focus-card">
         <div className="coach-focus-head">
-          <span className="coach-focus-label">🎯 {t('Фокус недели')}</span>
+          <span className="coach-focus-label"><Icon name="focus" size={14} /> {t('Фокус недели')}</span>
           <span className="coach-focus-count">{count}</span>
         </div>
         <div className="coach-focus-text">{focus.text}</div>
         <div className="coach-focus-dots" style={{ display: 'flex', gap: 6, marginTop: 8 }}>
           {p.perDay.map((d, i) => (
-            <span key={i} title={d.date} style={{ opacity: d.future ? 0.3 : 1 }}>{d.met ? '🟢' : '⚪'}</span>
+            <span key={i} style={{ opacity: d.future ? 0.3 : 1 }}>
+              <Icon name={d.met ? 'dayMet' : 'dayMissed'} size={14} title={`${d.date} — ${d.met ? t('выполнено') : t('не выполнено')}`} />
+            </span>
           ))}
         </div>
-        <div className="coach-focus-auto" style={{ marginTop: 6, fontSize: 12, opacity: 0.6 }}>🔄 {t('по данным')}</div>
+        <div className="coach-focus-auto" style={{ marginTop: 6, fontSize: 12, opacity: 0.6 }}><Icon name="auto" size={14} /> {t('по данным')}</div>
       </div>
     )
   }
@@ -272,7 +275,7 @@ function CoachFocusCard({ user, daily }: { user: User; daily: DailyMetrics[] }) 
   return (
     <div className="coach-focus-card">
       <div className="coach-focus-head">
-        <span className="coach-focus-label">🎯 {t('Фокус недели')}</span>
+        <span className="coach-focus-label"><Icon name="focus" size={14} /> {t('Фокус недели')}</span>
         <span className="coach-focus-count">{checkins.length} {t('из 7 дней')}</span>
       </div>
       <div className="coach-focus-text">{focus.text}</div>
@@ -415,7 +418,7 @@ export function Dashboard({ daily, events, onNavigate, user, quickLog }: Props) 
 
       {daily.length === 0 && (
         <EmptyState
-          icon="🔥"
+          icon={<Icon name="streak" size={32} />}
           title={t('Подключи Apple Health, чтобы начать серию')}
           cta={{ label: t('Настроить синхронизацию'), onClick: () => onNavigate('settings') }}
         />

@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import type { DailyMetrics } from '../../types'
 import { renderWithProviders, fireEvent, waitFor, cleanup } from '../../test/utils'
 
 // Opening the panel mounts WorkoutPlanCard, whose effect fetches the workout
@@ -10,7 +11,20 @@ vi.mock('../../lib/demo', () => ({ isDemoActive: () => false }))
 
 import { StreakMenu } from './StreakMenu'
 
-afterEach(() => { cleanup(); vi.clearAllMocks() })
+// StreakMenu reads today from `new Date()` directly (no injected clock), so a
+// fixture for "today" has to be dated with the same local-time formatting the
+// component uses rather than a fixed string.
+function todayYmd(): string {
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${dd}`
+}
+
+// Pin the UI language: detectLang falls back to navigator.language otherwise.
+beforeEach(() => localStorage.setItem('lang', 'en'))
+afterEach(() => { cleanup(); vi.clearAllMocks(); localStorage.clear() })
 
 describe('StreakMenu', () => {
   it('renders the trigger collapsed with a zero streak for empty history', () => {
@@ -30,5 +44,24 @@ describe('StreakMenu', () => {
     // Let the schedule fetch settle inside the test so no state update leaks
     // past teardown.
     await waitFor(() => expect(api.getWorkoutSchedule).toHaveBeenCalled())
+  })
+
+  // The today-progress line is a JSX fragment (icons inlined into a sentence,
+  // not a template string). Both other tests here render with daily=[], so
+  // todayHasData is always false and this line never mounts. Below the
+  // threshold on both fronts keeps todayActive false and todayHasData true.
+  it('shows the today-progress line with the steps/exercise split before the day closes', async () => {
+    const daily: DailyMetrics[] = [{ date: todayYmd(), steps: 3000, exerciseMinutes: 10 } as DailyMetrics]
+    const { container } = renderWithProviders(<StreakMenu daily={daily} />)
+    fireEvent.click(container.querySelector('.streak-menu-trigger')!)
+    await waitFor(() => expect(api.getWorkoutSchedule).toHaveBeenCalled())
+
+    const line = container.querySelector('.streak-menu-today-text')
+    expect(line).not.toBeNull()
+    const text = line!.textContent ?? ''
+    expect(text.indexOf('3,000')).toBeGreaterThanOrEqual(0)
+    expect(text.indexOf('3,000')).toBeLessThan(text.indexOf('·'))
+    expect(text.indexOf('·')).toBeLessThan(text.indexOf('10'))
+    expect(text).toMatch(/10 \/ 30 min/)
   })
 })
