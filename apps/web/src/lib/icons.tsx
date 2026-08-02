@@ -92,7 +92,6 @@ export const ICONS = {
   meal:       { icon: ForkKnife,     emoji: '🍽' },
   water:      { icon: Drop,          emoji: '💧' },
   meds:       { icon: Pill,          emoji: '💊' },
-  workout:    { icon: Barbell,       emoji: '🏋' },
   illness:    { icon: Virus,         emoji: '🤒' },
   stress:     { icon: SmileyNervous, emoji: '😰' },
   travel:     { icon: Suitcase,      emoji: '🧳' },

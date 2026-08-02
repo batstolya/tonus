@@ -84,14 +84,17 @@ const KNOWN_NON_REGISTRY_COLLISIONS: Partial<Record<string, string[]>> = {
   // rollout, left for the i18n pass. Only the standalone caffeine-icon and
   // date-picker emoji in this file were converted to <Icon>.
   //
-  // The label's weight-lifter glyph carries a variation selector ('🏋️',
-  // matching `sportGym`'s registered emoji byte-for-byte) even though the
-  // `workout` entry above was minted from the bare codepoint ('🏋', no
-  // selector) per the task brief; both forms need listing here since the
-  // REPLACED literal-match below checks each registered emoji independently
-  // and the bare form is also a true substring of the file's VS16 form.
+  // The label's weight-lifter glyph carries a variation selector ('🏋️'),
+  // byte-for-byte identical to `sportGym`'s registered emoji — that's the
+  // only weight-lifter form registered now. An earlier draft of this
+  // rollout also registered a `workout` entry for the bare, selector-less
+  // codepoint ('🏋', no variation selector), but that codepoint appears
+  // nowhere in the codebase (this label's glyph has always carried the
+  // selector) and `workout` reused `sportGym`'s Barbell component with no
+  // colour to distinguish them, so `workout` was removed as dead and
+  // colliding.
   'components/intake/QuickLog.tsx':
-    ['☕', '🍷', '🍽', '💧', '💊', '🏋', '🏋️', '🤒', '😰', '🧳', '📝'],
+    ['☕', '🍷', '🍽', '💧', '💊', '🏋️', '🤒', '😰', '🧳', '📝'],
 }
 
 // Mirrors KNOWN_NON_REGISTRY_COLLISIONS above but for the broader
@@ -102,8 +105,19 @@ const KNOWN_NON_REGISTRY_COLLISIONS: Partial<Record<string, string[]>> = {
 // vs. any new, unregistered pictographic character), and conflating their
 // exemptions would let a genuinely new stray emoji in QuickLog.tsx slip
 // through unnoticed.
-const KNOWN_TRANSLATION_KEY_EMOJI: Partial<Record<string, string[]>> = {
-  'components/intake/QuickLog.tsx': ['☕', '🍷', '🍽', '💧', '💊', '🏋', '🤒', '😰', '🧳', '📝'],
+//
+// Each value is pinned to the exact number of times that glyph appears in
+// today's EVENT_TYPES label array (every glyph below appears exactly once,
+// as the first character of its label). A plain "these glyphs are exempt"
+// list would filter the glyph out of the *whole file's* source text, so an
+// extra occurrence added elsewhere in QuickLog.tsx — e.g. a fresh standalone
+// JSX node — would silently pass. Pinning the count instead means the sweep
+// below fails the moment the observed count no longer matches, catching
+// exactly the regression a bare allow-list would miss.
+const KNOWN_TRANSLATION_KEY_EMOJI_COUNTS: Partial<Record<string, Record<string, number>>> = {
+  'components/intake/QuickLog.tsx': {
+    '☕': 1, '🍷': 1, '🍽': 1, '💧': 1, '💊': 1, '🏋': 1, '🤒': 1, '😰': 1, '🧳': 1, '📝': 1,
+  },
 }
 
 describe('converted files carry no emoji', () => {
@@ -132,10 +146,25 @@ describe('converted files carry no emoji', () => {
   for (const file of PILOT_FILES) {
     it(`${file} carries no unregistered pictographic character`, () => {
       const source = readFileSync(join(__dirname, '..', file), 'utf8')
-      const exempt = KNOWN_TRANSLATION_KEY_EMOJI[file] ?? []
-      const found = [...source.matchAll(PICTOGRAPHIC)].map(m => m[0])
-        .filter(ch => !ALLOWED.has(ch) && !exempt.includes(ch))
-      expect(found, `${file} still contains ${found.join(' ')}`).toEqual([])
+      const exemptCounts = KNOWN_TRANSLATION_KEY_EMOJI_COUNTS[file] ?? {}
+      const matches = [...source.matchAll(PICTOGRAPHIC)].map(m => m[0])
+
+      // Anything pictographic that isn't globally allowed and isn't one of
+      // this file's pinned-count exemptions is an unconditional failure.
+      const unexpected = matches.filter(ch => !ALLOWED.has(ch) && !(ch in exemptCounts))
+      expect(unexpected, `${file} still contains ${unexpected.join(' ')}`).toEqual([])
+
+      // Exempted glyphs are only exempt up to their pinned count: an extra
+      // occurrence (e.g. the same glyph reintroduced as a standalone JSX
+      // node) pushes the observed count past the pin and fails here.
+      const counts: Record<string, number> = {}
+      for (const ch of matches) counts[ch] = (counts[ch] ?? 0) + 1
+      for (const [ch, expectedCount] of Object.entries(exemptCounts)) {
+        expect(
+          counts[ch] ?? 0,
+          `${file}: expected exactly ${expectedCount} occurrence(s) of ${ch}, found ${counts[ch] ?? 0}`,
+        ).toBe(expectedCount)
+      }
     })
   }
 })

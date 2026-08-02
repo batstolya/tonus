@@ -80,7 +80,6 @@ const expectedComponentName: Record<IconName, string> = {
   meal: 'ForkKnifeIcon',
   water: 'DropIcon',
   meds: 'PillIcon',
-  workout: 'BarbellIcon',
   illness: 'VirusIcon',
   stress: 'SmileyNervousIcon',
   travel: 'SuitcaseIcon',

@@ -118,7 +118,7 @@ export function NutritionScreen({ user }: { user: User }) {
               {t('Цель')} <input type="number" defaultValue={goal} onBlur={e => saveGoal(Number(e.target.value) || goal)} autoFocus /> {t('ккал')}
             </span>
           ) : (
-            <button className="nutr-goal-btn" onClick={() => setEditGoal(true)}>{t('Цель')}: {goal} {t('ккал')} <Icon name="editSimple" /></button>
+            <button className="nutr-goal-btn" onClick={() => setEditGoal(true)}>{t('Цель')}: {goal} {t('ккал')} <Icon name="editSimple" title={t('Редактировать')} /></button>
           )}
         </div>
         <div className="nutr-today-cal" style={{ color: barColor }}>{todayCal} <span>/ {goal} {t('ккал')}</span></div>
