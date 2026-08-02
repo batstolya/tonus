@@ -13,10 +13,10 @@ export function GeoStormBadge() {
   if (!tier || kp == null) return null
   const kpStr = Number.isInteger(kp) ? String(kp) : kp.toFixed(1)
   return (
-    <div className="geostorm-wrap">
+    <div className="topbar-badge-wrap">
       <button
         type="button"
-        className={`geostorm-badge ${tier}`}
+        className={`topbar-badge geostorm-badge ${tier}`}
         onClick={() => setOpen(o => !o)}
         aria-expanded={open}
         aria-label={`${t('Магнитная буря сегодня')} · Kp ${kpStr}`}
@@ -26,10 +26,10 @@ export function GeoStormBadge() {
       {open && (
         <>
           <div className="lang-overlay" onClick={() => setOpen(false)} />
-          <div className="geostorm-pop" role="status">
-            <strong className="geostorm-pop-title">{t('Магнитная буря сегодня')} · Kp {kpStr}</strong>
-            <p className="geostorm-pop-text">{t(stormHintKey(tier))}</p>
-            <p className="geostorm-pop-note">{t('Kp — индекс геомагнитной активности (буря при Kp ≥ 5). У чувствительных людей в такие дни может проседать сон и восстановление.')}</p>
+          <div className="topbar-pop" role="status">
+            <strong className="topbar-pop-title">{t('Магнитная буря сегодня')} · Kp {kpStr}</strong>
+            <p className="topbar-pop-text">{t(stormHintKey(tier))}</p>
+            <p className="topbar-pop-note">{t('Kp — индекс геомагнитной активности (буря при Kp ≥ 5). У чувствительных людей в такие дни может проседать сон и восстановление.')}</p>
           </div>
         </>
       )}

@@ -17,7 +17,7 @@ const PILOT_FILES = [
   'components/dashboard/StreakMenu.tsx',
   'components/dashboard/ActivityCalendar.tsx',
   'components/dashboard/AiAnalysisBlock.tsx',
-  'components/ui/DataGaps.tsx',
+  'components/ui/DataGapsBadge.tsx',
 ]
 
 const REPLACED = Object.values(ICONS).map(e => e.emoji)
