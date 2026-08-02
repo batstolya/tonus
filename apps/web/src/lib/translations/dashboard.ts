@@ -145,7 +145,6 @@ export const dashboard: Record<string, Translation> = {
 
 
   // ── Data completeness / DataGaps ───────────────────────────────────────────
-  'Неполные данные': { uk: 'Неповні дані', en: 'Incomplete data' },
   'Пробелы в данных за': { uk: 'Прогалини в даних за', en: 'Data gaps in the last' },
   'нет': { uk: 'нема', en: 'missing' },
   'Выводы ИИ менее точны при пробелах в данных.': { uk: 'Висновки ШІ менш точні за наявності прогалин у даних.', en: 'AI insights are less accurate when data has gaps.' },
