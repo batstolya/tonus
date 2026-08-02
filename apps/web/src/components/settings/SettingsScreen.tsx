@@ -11,6 +11,7 @@ import { ConnectGuide } from '../onboarding/ConnectGuide'
 import { isDemoActive } from '../../lib/demo'
 import { ArchiveBtn } from './sections/ArchiveBtn'
 import { LanguageSection } from './sections/LanguageSection'
+import { ProfileSection } from './sections/ProfileSection'
 import { TelegramSection } from './sections/TelegramSection'
 import { GoogleCalendarSection } from './sections/GoogleCalendarSection'
 import { CalSyncSection } from './sections/CalSyncSection'
@@ -74,6 +75,7 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
     <div className="settings-screen">
       <h2>{t('Настройки')}</h2>
 
+      <ProfileSection archived={isArchived('profile')} onArchive={archiveSection} user={user} />
       <LanguageSection archived={isArchived('language')} onArchive={archiveSection} />
 
       <TelegramSection

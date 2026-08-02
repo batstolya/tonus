@@ -3,6 +3,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { checkBudget, budgetExceededMessage } from '../_shared/costGuard.ts'
 import { aiConsentRequiredResponse, fetchGeminiWithConsent, isAiConsentRequired } from '../_shared/aiConsent.ts'
 import { corsHeadersFor } from '../_shared/cors.ts'
+import { identifyAnalyte } from '../_shared/analytes.ts'
+import { resolveSampleDate } from '../_shared/labSampleDate.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
@@ -32,6 +34,8 @@ serve(async (req) => {
 
     let extractedText = ''
     let biomarkers: { marker: string; value: number; unit?: string; ref_range?: string; flag?: string }[] = []
+    // The collection date as printed on the form, when the model found one.
+    let formSampleDate: string | null = null
 
     if (isPdf || isImage) {
       const mimeType = fileType
@@ -48,7 +52,8 @@ serve(async (req) => {
 НЕ переписывай шапку бланка, реквизиты лаборатории и данные пациента. Не транскрибируй документ.
 Извлекай ТОЛЬКО строки таблицы результатов с числовым значением — КАЖДУЮ, все показатели на всех страницах, а не только важные.
 Для каждого: marker (название как в бланке), value (число; десятичную запятую переведи в точку; диапазоны/«<5» вынеси в ref_range), unit, ref_range (референсные значения если есть), flag ("low"/"high"/"normal" если бланк помечает отклонение).
-Не выдумывай показатели.` }]
+Не выдумывай показатели.
+Отдельно верни sample_date — дату ЗАБОРА материала с бланка (формат YYYY-MM-DD; если на бланке виден только месяц — YYYY-MM). Это НЕ дата печати, выдачи или регистрации результата. Если даты забора на бланке нет — верни пустую строку, НЕ подставляй никакую другую дату.` }]
             },
             contents: [{
               parts: [
@@ -78,6 +83,7 @@ serve(async (req) => {
                       required: ['marker', 'value'],
                     },
                   },
+                  sample_date: { type: 'string' },
                 },
                 required: ['markers'],
               },
@@ -98,6 +104,7 @@ serve(async (req) => {
       try {
         const parsed = JSON.parse(raw)
         biomarkers = Array.isArray(parsed.markers) ? parsed.markers : []
+        formSampleDate = typeof parsed.sample_date === 'string' ? parsed.sample_date : null
         const lines = biomarkers.map(b => `${b.marker}: ${b.value}${b.unit ? ' ' + b.unit : ''}${b.ref_range ? ` (норма ${b.ref_range})` : ''}${b.flag && b.flag !== 'normal' ? ` [${b.flag}]` : ''}`)
         extractedText = lines.join('\n')
         if (biomarkers.length === 0) extractedText = `[Не распознано ни одного показателя. finishReason=${finishReason}]`
@@ -107,6 +114,10 @@ serve(async (req) => {
       }
     }
 
+    // The form wins, then the file name, then the upload field. Never today:
+    // that fallback is what stamped a year of results with their upload day.
+    const sample = resolveSampleDate(formSampleDate, fileName, date)
+
     // Save lab file record
     const { data: labFile, error: insertErr } = await supabase
       .from('lab_files')
@@ -115,6 +126,8 @@ serve(async (req) => {
         file_name: fileName,
         file_type: fileType,
         date: date || null,
+        sample_date: sample.date,
+        sample_date_precision: sample.precision,
         extracted_text: extractedText,
       })
       .select()
@@ -122,8 +135,6 @@ serve(async (req) => {
 
     if (insertErr || !labFile) throw new Error('Failed to save lab file')
 
-    // Save extracted biomarkers (дата — из бланка/выбранная, иначе сегодня)
-    const resultDate = date || new Date().toISOString().slice(0, 10)
     if (biomarkers.length > 0) {
       const rows = biomarkers
         .filter(b => b.marker && typeof b.value === 'number' && isFinite(b.value))
@@ -135,7 +146,11 @@ serve(async (req) => {
           unit: b.unit || null,
           ref_range: b.ref_range || null,
           flag: b.flag && ['low', 'high', 'normal'].includes(b.flag) ? b.flag : null,
-          date: resultDate,
+          // `date` stays the import date; anything chronological reads sample_date.
+          date: date || new Date().toISOString().slice(0, 10),
+          sample_date: sample.date,
+          sample_date_precision: sample.precision,
+          analyte_key: identifyAnalyte(b.marker, b.unit ?? null)?.key ?? null,
         }))
       if (rows.length > 0) {
         await supabase.from('lab_results').insert(rows)

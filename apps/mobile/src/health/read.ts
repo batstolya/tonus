@@ -1,4 +1,6 @@
 import {
+  AuthorizationRequestStatus,
+  getRequestStatusForAuthorization,
   isHealthDataAvailable,
   requestAuthorization,
   queryStatisticsCollectionForQuantity,
@@ -70,6 +72,25 @@ export function checkAvailability(): HealthAvailability {
 /** Показывает системный запрос доступа ко всем типам, которые мы читаем. */
 export async function requestHealthAccess(): Promise<boolean> {
   return requestAuthorization({ toRead: HEALTH_READ_TYPES as never })
+}
+
+/**
+ * Спрашивали ли уже доступ. Отличить «отказано» от «данных нет» иначе НЕЛЬЗЯ:
+ * Apple намеренно скрывает статус доступа НА ЧТЕНИЕ (иначе приложение узнавало
+ * бы о человеке то, что он скрыл, — например, что он вообще не ведёт записи о
+ * беременности). `authorizationStatusFor` честен только для записи.
+ *
+ * Единственное, что система соглашается сказать, — нужно ли ещё показывать
+ * запрос. Значит, различить можно два случая из трёх:
+ *  - `shouldRequest` — не спрашивали (или спросили не про все типы): пусто
+ *    ПОТОМУ ЧТО не дали доступ;
+ *  - `unnecessary` — спрашивали: пусто либо потому, что человек снял галочки,
+ *    либо потому, что записей правда нет. Их не различить, и честнее сказать
+ *    об этом прямо, чем выбрать одну версию за пользователя.
+ */
+export async function hasBeenAsked(): Promise<boolean> {
+  const status = await getRequestStatusForAuthorization({ toRead: HEALTH_READ_TYPES as never })
+  return status === AuthorizationRequestStatus.unnecessary
 }
 
 /**

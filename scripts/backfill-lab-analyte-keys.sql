@@ -1,0 +1,101 @@
+-- Backfill analyte_key for lab results imported before _shared/analytes.ts existed.
+-- Generated from the module itself over the distinct (marker, unit) pairs in
+-- production, not written by hand. Rows whose name the module does not
+-- recognise are left null on purpose and keep their printed name.
+--
+-- Run:  npx supabase db query --linked -f scripts/backfill-lab-analyte-keys.sql
+
+begin;
+
+update public.lab_results r
+   set analyte_key = v.key
+  from (values
+  ('[043] Transferyna', 'mg/dl', 'transferrin'),
+  ('[055] Trijodotyronina wolna FT3', 'pmol/l', 'ft3'),
+  ('[069] Tyroksyna wolna FT4', 'pmol/l', 'ft4'),
+  ('[091] Witamina 25-OH D3', 'ng/ml', 'vitamin_d'),
+  ('[093] TIBC', '\u00b5g/dl', 'tibc'),
+  ('[095] \u017belazo', '\u00b5g/dl', 'iron'),
+  ('[L05] Ferrytyna', 'ng/ml', 'ferritin'),
+  ('[L69] TSH', 'mU/l', 'tsh'),
+  ('[M31] Kortyzol (jedn.SI)', 'nmol/l', 'cortisol'),
+  ('\u017belazo', '\u00b5mol/l', 'iron'),
+  ('Aminotransferaza alaninowa (ALT) (117)', 'U/L', 'alt'),
+  ('ANCHURA DISTRIBUCIÓN HEMATIES', '%', 'rdw'),
+  ('BASOFILOS', '%', 'basophils'),
+  ('BASOFILOS', '10E3/µL', 'basophils'),
+  ('Bazocyty (BASO)', '10^9/L', 'basophils'),
+  ('Bazocyty (BASO%)', '%', 'basophils'),
+  ('BILIRRUBINA TOTAL', 'mg/dL', 'bilirubin_total'),
+  ('CAP. LATENTE DE FIJACION DE FE', 'µg/dL', 'uibc'),
+  ('CAPACIDAD TOTAL FIJACION HIERRO', 'µg/dL', 'tibc'),
+  ('Cholesterol całkowity w surowicy (199)', 'mg/dL', 'cholesterol_total'),
+  ('Cholesterol HDL w surowicy (K01)', 'mg/dL', 'hdl'),
+  ('Cholesterol LDL - wyliczany', 'mg/dL', 'ldl'),
+  ('CONC. HEMOGLOBINA CORP. MEDIA', 'g/dL', 'mchc'),
+  ('EGFR', 'ml/min/1.73m^2', 'egfr'),
+  ('EOSINOFILOS', '%', 'eosinophils'),
+  ('EOSINOFILOS', '10E3/µL', 'eosinophils'),
+  ('Eozynocyty (EOS)', '10^9/L', 'eosinophils'),
+  ('Eozynocyty (EOS%)', '%', 'eosinophils'),
+  ('Erytrocyty (RBC)', '10^12/L', 'rbc'),
+  ('FERRITINA', 'ng/mL', 'ferritin'),
+  ('Ferrytyna (L05)', 'ng/mL', 'ferritin'),
+  ('FT3 (055)', 'pg/mL', 'ft3'),
+  ('FT4 (069)', 'ng/dL', 'ft4'),
+  ('GLUCOSA', 'mg/dL', 'glucose'),
+  ('GLUCOSA MEDIA ESTIMADA', 'mg/dL', 'estimated_average_glucose'),
+  ('Glukoza (L43)', 'mg/dL', 'glucose'),
+  ('HEMATIES', '10E6/µL', 'rbc'),
+  ('HEMATOCRITO', '%', 'hematocrit'),
+  ('Hematokryt (HCT)', '%', 'hematocrit'),
+  ('HEMOGLOBINA', 'g/dL', 'hemoglobin'),
+  ('Hemoglobina (HGB)', 'g/dL', 'hemoglobin'),
+  ('Hemoglobina [mmol/L]', 'mmol/L', 'hemoglobin'),
+  ('HEMOGLOBINA A1c', '%', 'hba1c'),
+  ('HEMOGLOBINA A1c IFCC', 'mmol/mol', 'hba1c_ifcc'),
+  ('HEMOGLOBINA CORPUSCULAR MEDIA', 'pg', 'mch'),
+  ('HIERRO', 'µg/dL', 'iron'),
+  ('INDICE SATURACION TRANSFERRINA (CFFE)', '%', 'transferrin_saturation'),
+  ('Kortyzol (jedn. tradyc.)', '\u00b5g/dl', 'cortisol'),
+  ('Kreatynina w surowicy (M37)', 'mg/dL', 'creatinine'),
+  ('LEUCOCITOS', '10E3/µL', 'wbc'),
+  ('Leukocyty (WBC)', '10^9/L', 'wbc'),
+  ('Limfocyty (LYMPH)', '10^9/L', 'lymphocytes'),
+  ('Limfocyty (LYMPH%)', '%', 'lymphocytes'),
+  ('LINFOCITOS', '%', 'lymphocytes'),
+  ('LINFOCITOS', '10E3/µL', 'lymphocytes'),
+  ('Magnez w surowicy (M87)', 'mmol/L', 'magnesium'),
+  ('MONOCITOS', '%', 'monocytes'),
+  ('MONOCITOS', '10E3/µL', 'monocytes'),
+  ('Monocyty (MON)', '10^9/L', 'monocytes'),
+  ('Monocyty (MON%)', '%', 'monocytes'),
+  ('Neutrocyty (NEU)', '10^9/L', 'neutrophils'),
+  ('Neutrocyty (NEU%)', '%', 'neutrophils'),
+  ('NEUTROFILOS', '%', 'neutrophils'),
+  ('NEUTROFILOS', '10E3/µL', 'neutrophils'),
+  ('Nie-HDL', 'mg/dL', 'non_hdl'),
+  ('PLAQUETAS', '10E3/µL', 'platelets'),
+  ('Płytki krwi (PLT)', '10^9/L', 'platelets'),
+  ('Płytkokryt (PCT)', '%', 'plateletcrit'),
+  ('Średnia masa HGB w erytrocycie (MCH)', 'pg', 'mch'),
+  ('Średnia objętość erytrocyta (MCV)', 'fL', 'mcv'),
+  ('Średnia objętość płytek krwi (MPV)', 'fL', 'mpv'),
+  ('Średnie stężenie HGB w erytrocytach (MCHC)', 'g/dL', 'mchc'),
+  ('Testosteron (041)', 'ng/mL', 'testosterone'),
+  ('Transferyna', 'g/l', 'transferrin'),
+  ('Triglicerydy w surowicy (049)', 'mg/dL', 'triglycerides'),
+  ('TSH (L69)', 'µIU/mL', 'tsh'),
+  ('UIBC', '\u00b5g/dl', 'uibc'),
+  ('VOLUMEN CORPUSCULAR MEDIO', 'fL', 'mcv'),
+  ('VOLUMEN PLAQUETAR MEDIO', 'fL', 'mpv'),
+  ('Witamina 25(OH)D Total', 'ng/mL', 'vitamin_d'),
+  ('Witamina B12 (083)', 'pg/mL', 'vitamin_b12'),
+  ('Wskaźnik anizocytozy erytrocytów (RDW)', '%', 'rdw'),
+  ('Wskaźnik anizocytozy płytek krwi (PDW)', '%', 'pdw')
+  ) as v(marker, unit, key)
+ where r.marker = v.marker
+   and coalesce(r.unit, '') = v.unit
+   and r.analyte_key is null;
+
+commit;

@@ -1,6 +1,12 @@
 import '@testing-library/jest-dom/vitest'
-import { vi } from 'vitest'
+import { afterEach, vi } from 'vitest'
+import { cleanup } from '@testing-library/react'
 import { createElement, type ReactNode, type FunctionComponent } from 'react'
+
+// This project runs without `globals: true`, so Testing Library never installs
+// its own auto-cleanup: without this, renders pile up across the tests in a
+// file and a second render turns every query into "found multiple elements".
+afterEach(cleanup)
 
 // motion/react schedules animation frames that can resolve after jsdom is torn
 // down ("ReferenceError: window is not defined"). In tests we render motion.*
