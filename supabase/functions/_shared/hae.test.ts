@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseHAE, parseHRSamples } from './hae.ts'
+import { num, parseHAE, parseHRSamples } from './hae.ts'
 
 // Характеризационные тесты: фиксируют поведение, которое уже крутится в проде.
 // Если тест разошёлся с реализацией — прав тест только тогда, когда реализация
@@ -7,7 +7,57 @@ import { parseHAE, parseHRSamples } from './hae.ts'
 const USER = '00000000-0000-0000-0000-000000000001'
 const DAY = '2026-07-20 00:00:00 +0000'
 
+describe('num', () => {
+  it('rejects every shape of absence, because Number() turns them into zero', () => {
+    // Number(null) === 0, Number('') === 0, Number(false) === 0, Number([]) === 0.
+    // Each used to be stored as a measurement of nothing.
+    for (const v of [null, undefined, '', false, true, [], {}, 'abc', NaN]) {
+      expect(num(v), `num(${JSON.stringify(v) ?? String(v)})`).toBeNull()
+    }
+  })
+
+  it('keeps a real zero, which is the whole reason absence is checked first', () => {
+    expect(num(0)).toBe(0)
+    expect(num('0')).toBe(0)
+    expect(num(-1)).toBe(-1)
+    expect(num('7.5')).toBe(7.5)
+  })
+})
+
 describe('parseHAE', () => {
+  it('stores a phase the source reported as null as absent, not as zero hours', () => {
+    const { sleep } = parseHAE(USER, {
+      data: {
+        metrics: [{
+          name: 'sleep_analysis',
+          units: 'hr',
+          data: [{ date: DAY, totalSleep: 7.5, deep: null, rem: 1.4, core: 3.9 }],
+        }],
+      },
+    })
+    expect(sleep[0].duration_hours).toBe(7.5)
+    expect(sleep[0].deep_hours).toBeNull()
+    expect(sleep[0].rem_hours).toBe(1.4)
+  })
+
+  it('falls back to the average when the source reports a null minimum', () => {
+    // `const mn = num(p.Min ?? p.min) ?? avg` — with num() returning 0 for an
+    // explicit null, `??` never fired and the day stored a minimum of zero.
+    const { metrics } = parseHAE(USER, {
+      data: {
+        metrics: [{
+          name: 'resting_heart_rate',
+          units: 'count/min',
+          data: [{ date: DAY, Avg: 58, Min: null, Max: null }],
+        }],
+      },
+    })
+    const row = metrics.find(m => m.metric === 'restingHeartRate')!
+    expect(row.avg_val).toBe(58)
+    expect(row.min_val).toBe(58)
+    expect(row.max_val).toBe(58)
+  })
+
   it('sums a metric within a source and takes the max across sources', () => {
     const { metrics } = parseHAE(USER, {
       data: {

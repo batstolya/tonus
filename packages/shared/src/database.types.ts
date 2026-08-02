@@ -1211,6 +1211,8 @@ export type Database = {
           file_path: string | null
           file_type: string | null
           id: string
+          sample_date: string | null
+          sample_date_precision: string | null
           user_id: string
         }
         Insert: {
@@ -1221,6 +1223,8 @@ export type Database = {
           file_path?: string | null
           file_type?: string | null
           id?: string
+          sample_date?: string | null
+          sample_date_precision?: string | null
           user_id: string
         }
         Update: {
@@ -1231,12 +1235,15 @@ export type Database = {
           file_path?: string | null
           file_type?: string | null
           id?: string
+          sample_date?: string | null
+          sample_date_precision?: string | null
           user_id?: string
         }
         Relationships: []
       }
       lab_results: {
         Row: {
+          analyte_key: string | null
           created_at: string | null
           date: string
           flag: string | null
@@ -1244,11 +1251,14 @@ export type Database = {
           lab_file_id: string
           marker: string
           ref_range: string | null
+          sample_date: string | null
+          sample_date_precision: string | null
           unit: string | null
           user_id: string
           value: number | null
         }
         Insert: {
+          analyte_key?: string | null
           created_at?: string | null
           date: string
           flag?: string | null
@@ -1256,11 +1266,14 @@ export type Database = {
           lab_file_id: string
           marker: string
           ref_range?: string | null
+          sample_date?: string | null
+          sample_date_precision?: string | null
           unit?: string | null
           user_id: string
           value?: number | null
         }
         Update: {
+          analyte_key?: string | null
           created_at?: string | null
           date?: string
           flag?: string | null
@@ -1268,6 +1281,8 @@ export type Database = {
           lab_file_id?: string
           marker?: string
           ref_range?: string | null
+          sample_date?: string | null
+          sample_date_precision?: string | null
           unit?: string | null
           user_id?: string
           value?: number | null

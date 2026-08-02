@@ -1,19 +1,16 @@
 import { useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { useT } from '../../lib/i18n'
-import {
-  loadProfileBasics, saveProfileBasics, saveReminder,
-  type Supplement, type ProfileBasics, type Sex,
-} from '../../lib/supplements'
+import { saveReminder, type Supplement } from '../../lib/supplements'
+import { loadProfileBasics, type ProfileBasics } from '../../lib/api/settings'
 import {
   fetchSupplementSchedule, scheduleToReminderTimes, type Schedule,
 } from '../../lib/supplementSchedule'
 
-// 🕐 AI "ideal supplement timing" card on the supplements page. Asks once for
-// age + sex, calls the supplement-schedule edge function, renders the day plan,
-// and can write the recommended times into the existing reminders.
-
-const CURRENT_YEAR = new Date().getFullYear()
+// 🕐 AI "ideal supplement timing" card on the supplements page. Reads age + sex
+// from the profile, calls the supplement-schedule edge function, renders the day
+// plan, and can write the recommended times into the existing reminders. The
+// profile is edited in Settings — two editors for one field drift apart.
 
 export function SupplementSchedule({ user, supplements }: { user: User; supplements: Supplement[] }) {
   const { t } = useT()
@@ -22,10 +19,6 @@ export function SupplementSchedule({ user, supplements }: { user: User; suppleme
   const [schedule, setSchedule] = useState<Schedule | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [profile, setProfile] = useState<ProfileBasics | null | undefined>(undefined)
-  const [colMissing, setColMissing] = useState(false)
-  const [showProfileForm, setShowProfileForm] = useState(false)
-  const [birthYear, setBirthYear] = useState('')
-  const [sex, setSex] = useState<Sex | ''>('')
   const [applied, setApplied] = useState<number | null>(null)
 
   if (supplements.length === 0) return null
@@ -45,29 +38,9 @@ export function SupplementSchedule({ user, supplements }: { user: User; suppleme
 
   async function handleGenerate() {
     setError(null)
-    let p = profile
-    if (p === undefined) {
-      p = await loadProfileBasics(user.id)
-      setProfile(p)
-      if (p === null) setColMissing(true)
-    }
-    // Ask for age/sex once if we can store it but it's not set yet.
-    if (p && p.birth_year == null && !showProfileForm) {
-      setBirthYear(''); setSex('')
-      setShowProfileForm(true)
-      return
-    }
-    await generate()
-  }
-
-  async function handleSaveProfile() {
-    const yr = parseInt(birthYear, 10)
-    if (!isNaN(yr) && yr >= 1900 && yr <= CURRENT_YEAR) {
-      const patch: Partial<ProfileBasics> = { birth_year: yr, sex: sex || null }
-      await saveProfileBasics(user.id, patch)
-      setProfile((prev) => ({ birth_year: yr, sex: sex || null, ...(prev ?? {}), ...patch }))
-    }
-    setShowProfileForm(false)
+    // Read the profile only to tell the user where to fill it in; the schedule
+    // function reads age and sex server-side either way.
+    if (profile === undefined) setProfile(await loadProfileBasics(user.id))
     await generate()
   }
 
@@ -94,35 +67,8 @@ export function SupplementSchedule({ user, supplements }: { user: User; suppleme
         </button>
       </div>
 
-      {colMissing && (
-        <div className="auth-error" style={{ marginBottom: 12, fontSize: 13 }}>
-          ⚠️ {t('Колонки возраста нет в БД. Запусти в Supabase SQL Editor:')}<br />
-          <code style={{ fontSize: 11 }}>alter table profiles add column if not exists birth_year int; alter table profiles add column if not exists sex text;</code>
-        </div>
-      )}
-
-      {showProfileForm && (
-        <div className="supp-form" style={{ marginBottom: 14 }}>
-          <input
-            className="supp-input supp-input-sm"
-            type="text"
-            inputMode="numeric"
-            placeholder={t('Год рождения')}
-            value={birthYear}
-            onChange={(e) => setBirthYear(e.target.value.replace(/\D/g, '').slice(0, 4))}
-          />
-          <select className="supp-input supp-input-sm" value={sex} onChange={(e) => setSex(e.target.value as Sex | '')}>
-            <option value="">{t('Пол')}</option>
-            <option value="male">{t('Мужской')}</option>
-            <option value="female">{t('Женский')}</option>
-          </select>
-          <button className="btn-primary" onClick={handleSaveProfile} disabled={loading}>
-            {t('Сохранить и подобрать')}
-          </button>
-          <button className="btn-ghost" onClick={() => { setShowProfileForm(false); generate() }}>
-            {t('Пропустить')}
-          </button>
-        </div>
+      {profile && profile.birth_year == null && (
+        <p className="supp-hint">{t('Укажи год рождения и пол в Настройках — расписание подбирается по возрасту')}</p>
       )}
 
       {error && (

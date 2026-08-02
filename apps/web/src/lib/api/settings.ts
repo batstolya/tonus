@@ -1,4 +1,5 @@
 import { supabase } from '../supabase'
+import { isDemoActive } from '../demo'
 import type { Json } from '../database.types'
 import type { DayTimes } from '../workoutPlan'
 
@@ -105,6 +106,34 @@ export async function syncProfileTimezone(userId: string): Promise<void> {
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
   if (!timezone) return
   await supabase.from('profiles').upsert({ id: userId, timezone })
+}
+
+// ── Profile basics (age + sex) ───────────────────────────────────────────────
+
+export type Sex = 'male' | 'female'
+
+export interface ProfileBasics {
+  birth_year: number | null
+  sex: Sex | null
+}
+
+export async function loadProfileBasics(userId: string): Promise<ProfileBasics | null> {
+  // Demo has no profiles table; without this the section and the doctor report
+  // header render empty on the screenshot stand.
+  if (isDemoActive()) return { birth_year: 1988, sex: 'male' }
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('birth_year, sex')
+    .eq('id', userId)
+    .maybeSingle()
+  if (error) return null
+  return { birth_year: data?.birth_year ?? null, sex: (data?.sex as Sex | null) ?? null }
+}
+
+export async function saveProfileBasics(userId: string, patch: Partial<ProfileBasics>): Promise<boolean> {
+  if (isDemoActive()) return true
+  const { error } = await supabase.from('profiles').update({ ...patch }).eq('id', userId)
+  return !error
 }
 
 // ── Supplement adherence logs (doctor report) ────────────────────────────────

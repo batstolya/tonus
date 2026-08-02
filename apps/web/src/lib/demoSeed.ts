@@ -80,7 +80,11 @@ export interface SeedLabResult {
   unit: string | null
   ref_range: string | null
   flag: string | null
+  /** Import date, as in production. */
   date: string
+  sample_date: string | null
+  sample_date_precision: 'day' | 'month' | 'unknown'
+  analyte_key: string | null
 }
 
 export interface SeedConcern {
@@ -346,17 +350,19 @@ interface MarkerSeed {
   summer: number
   springFlag: string | null
   summerFlag: string | null
+  /** Canonical key — the demo names are Russian, which the dictionary does not carry. */
+  analyte: string
 }
 
 const MARKERS: MarkerSeed[] = [
-  { marker: 'Ферритин', unit: 'нг/мл', ref: '30–400', spring: 24, summer: 41, springFlag: 'low', summerFlag: null },
-  { marker: 'Витамин D', unit: 'нг/мл', ref: '30–100', spring: 19, summer: 34, springFlag: 'low', summerFlag: null },
-  { marker: 'ТТГ', unit: 'мЕд/л', ref: '0.4–4.0', spring: 2.1, summer: 1.8, springFlag: null, summerFlag: null },
-  { marker: 'Гемоглобин', unit: 'г/л', ref: '130–170', spring: 141, summer: 148, springFlag: null, summerFlag: null },
-  { marker: 'Холестерин общий', unit: 'ммоль/л', ref: '3.0–5.2', spring: 5.6, summer: 5.1, springFlag: 'high', summerFlag: null },
-  { marker: 'Глюкоза', unit: 'ммоль/л', ref: '3.9–5.5', spring: 5.0, summer: 4.8, springFlag: null, summerFlag: null },
-  { marker: 'Тестостерон общий', unit: 'нмоль/л', ref: '8.6–29', spring: 16.4, summer: 18.9, springFlag: null, summerFlag: null },
-  { marker: 'СРБ', unit: 'мг/л', ref: '0–5', spring: 3.2, summer: 1.4, springFlag: null, summerFlag: null },
+  { marker: 'Ферритин', unit: 'нг/мл', ref: '30–400', spring: 24, summer: 41, springFlag: 'low', summerFlag: null , analyte: 'ferritin' },
+  { marker: 'Витамин D', unit: 'нг/мл', ref: '30–100', spring: 19, summer: 34, springFlag: 'low', summerFlag: null , analyte: 'vitamin_d' },
+  { marker: 'ТТГ', unit: 'мЕд/л', ref: '0.4–4.0', spring: 2.1, summer: 1.8, springFlag: null, summerFlag: null , analyte: 'tsh' },
+  { marker: 'Гемоглобин', unit: 'г/л', ref: '130–170', spring: 141, summer: 148, springFlag: null, summerFlag: null , analyte: 'hemoglobin' },
+  { marker: 'Холестерин общий', unit: 'ммоль/л', ref: '3.0–5.2', spring: 5.6, summer: 5.1, springFlag: 'high', summerFlag: null , analyte: 'cholesterol_total' },
+  { marker: 'Глюкоза', unit: 'ммоль/л', ref: '3.9–5.5', spring: 5.0, summer: 4.8, springFlag: null, summerFlag: null , analyte: 'glucose' },
+  { marker: 'Тестостерон общий', unit: 'нмоль/л', ref: '8.6–29', spring: 16.4, summer: 18.9, springFlag: null, summerFlag: null , analyte: 'testosterone' },
+  { marker: 'СРБ', unit: 'мг/л', ref: '0–5', spring: 3.2, summer: 1.4, springFlag: null, summerFlag: null , analyte: 'crp' },
 ]
 
 function makeLabFiles(): SeedLabFile[] {
@@ -377,15 +383,20 @@ function makeLabFiles(): SeedLabFile[] {
 function makeLabResults(): SeedLabResult[] {
   const out: SeedLabResult[] = []
   MARKERS.forEach((m, i) => {
+    // The spring draw is dated to the day; the summer one only to its month,
+    // so demo shows both precisions the report has to print — and the second
+    // never claims a day the form did not give.
     out.push({
       id: `demo-labres-${i}-1`, user_id: DEMO_USER, lab_file_id: 'demo-lab-1',
       marker: m.marker, value: m.spring, unit: m.unit, ref_range: m.ref,
       flag: m.springFlag, date: dateStr(120),
+      sample_date: dateStr(120), sample_date_precision: 'day', analyte_key: m.analyte,
     })
     out.push({
       id: `demo-labres-${i}-2`, user_id: DEMO_USER, lab_file_id: 'demo-lab-2',
       marker: m.marker, value: m.summer, unit: m.unit, ref_range: m.ref,
       flag: m.summerFlag, date: dateStr(20),
+      sample_date: `${dateStr(20).slice(0, 7)}-01`, sample_date_precision: 'month', analyte_key: m.analyte,
     })
   })
   return out
