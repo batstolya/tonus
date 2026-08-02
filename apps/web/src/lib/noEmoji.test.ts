@@ -9,6 +9,7 @@ import { ICONS } from './icons'
 // it against the real source tree, so a call site added without updating
 // this list fails loudly instead of slipping through unguarded.
 const PILOT_FILES = [
+  'App.tsx',
   'components/dashboard/Dashboard.tsx',
   'components/dashboard/StreakStats.tsx',
   'components/dashboard/WorkoutPlanCard.tsx',
@@ -21,12 +22,14 @@ const PILOT_FILES = [
 
 const REPLACED = Object.values(ICONS).map(e => e.emoji)
 
-// Scans components/** for non-test source files that import the icon
-// registry — those are the files that render icons and so must carry no
-// leftover emoji. Test files are excluded: they import Icon to build props
-// for the component under test, not to render emoji-replacing UI themselves.
+// Scans src/** (not just components/**) for non-test source files that
+// import the icon registry — those are the files that render icons and so
+// must carry no leftover emoji. Test files are excluded: they import Icon to
+// build props for the component under test, not to render emoji-replacing UI
+// themselves. Walking all of src (rather than just components/) is what
+// catches App.tsx, which lives at the src root.
 function derivePilotFiles(): string[] {
-  const componentsDir = join(__dirname, '..', 'components')
+  const srcDir = join(__dirname, '..')
   const out: string[] = []
   function walk(dir: string) {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -35,19 +38,30 @@ function derivePilotFiles(): string[] {
       if (!/\.tsx?$/.test(entry.name) || entry.name.includes('.test.')) continue
       const source = readFileSync(full, 'utf8')
       if (/from\s+['"][^'"]*\/lib\/icons['"]/.test(source)) {
-        out.push(relative(join(__dirname, '..'), full).split('\\').join('/'))
+        out.push(relative(srcDir, full).split('\\').join('/'))
       }
     }
   }
-  walk(componentsDir)
+  walk(srcDir)
   return out.sort()
+}
+
+// ActivityCalendar's month-nav buttons render a literal '›'/'‹' pagination
+// arrow that predates the icon registry and has nothing to do with any entry
+// in it (it never went through an emoji->icon conversion). It only collides
+// here because the mobile-drawer chevron's fallback emoji happens to be the
+// same glyph. This is a narrow, understood exemption, not a loosening of the
+// check for genuine leftover emoji.
+const KNOWN_NON_REGISTRY_COLLISIONS: Partial<Record<string, string[]>> = {
+  'components/dashboard/ActivityCalendar.tsx': ['›'],
 }
 
 describe('converted files carry no emoji', () => {
   for (const file of PILOT_FILES) {
     it(file, () => {
       const source = readFileSync(join(__dirname, '..', file), 'utf8')
-      const found = REPLACED.filter(emoji => source.includes(emoji))
+      const exempt = KNOWN_NON_REGISTRY_COLLISIONS[file] ?? []
+      const found = REPLACED.filter(emoji => source.includes(emoji) && !exempt.includes(emoji))
       expect(found, `${file} still contains ${found.join(' ')}`).toEqual([])
     })
   }
