@@ -10,8 +10,9 @@ export { WEEKLY_KEYS } from './weekly'
 export { toMarkdown, baselineCell, scoreTrendText, labStatusCell, MISSING_LINES } from './markdown'
 export {
   parseRefRange, LAB_STATUS_TEXT, LAB_FLAG_SUFFIX, LAB_UNIT_CAVEAT, LAB_DATE_CAVEAT,
+  LAB_DATE_UNKNOWN, LAB_ORDER_UNKNOWN, LAB_UNIDENTIFIED, labDateCell,
 } from './labs'
-export type { LabStatus, LabLine, LabSeries, LabsSection } from './labs'
+export type { LabStatus, LabLine, LabSeries, LabsSection, DatePrecision } from './labs'
 export { BAND_TEXT, POSITION_TEXT, bandOf, baselineOf, reliabilityOf, supportsClaims } from './reliability'
 export type { Band, Baseline, Reliability } from './reliability'
 export { buildIntake, INTAKE_LABELS, REPORTED_TYPES, INTAKE_ORIGIN_MIN } from './intake'

@@ -147,16 +147,29 @@ const PERCENT_IS_THE_ANALYTE = new Set([
   'hematocrit', 'rdw', 'pdw', 'plateletcrit', 'hba1c', 'transferrin_saturation',
 ])
 
+const measurementOf = (key: string, unitFamily: string): Measurement =>
+  unitFamily === '%' && !PERCENT_IS_THE_ANALYTE.has(key) ? 'relative' : 'absolute'
+
 export function identifyAnalyte(marker: string, unit: string | null | undefined): AnalyteId | null {
   const key = NAME_TO_KEY[normaliseName(marker)]
   if (!key) return null
   const unitFamily = normaliseUnit(unit)
-  const measurement: Measurement =
-    unitFamily === '%' && !PERCENT_IS_THE_ANALYTE.has(key) ? 'relative' : 'absolute'
-  return { key, measurement, unitFamily }
+  return { key, measurement: measurementOf(key, unitFamily), unitFamily }
 }
 
 /** Two results belong to one series only when all three parts agree. */
 export function seriesKey(id: AnalyteId): string {
   return `${id.key}|${id.measurement}|${id.unitFamily}`
+}
+
+/**
+ * The same series key from a key already stored on the row plus that row's own
+ * unit. `measurement` and `unitFamily` are deliberately not stored: they follow
+ * from the unit, and deriving them here keeps the report from grouping on
+ * `analyte_key` alone — which would merge the percentage and the absolute count
+ * of one analyte and undo the separation the report was fixed to keep.
+ */
+export function seriesKeyFor(analyteKey: string, unit: string | null | undefined): string {
+  const unitFamily = normaliseUnit(unit)
+  return seriesKey({ key: analyteKey, measurement: measurementOf(analyteKey, unitFamily), unitFamily })
 }

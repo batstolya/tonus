@@ -4,6 +4,7 @@ import type { DailyMetrics } from '../../types'
 import {
   METRIC_DEFS, buildReportModel, loadReportSources, periodStart, localDate, toMarkdown, baselineCell,
   scoreTrendText, BAND_TEXT, labStatusCell, LAB_UNIT_CAVEAT, LAB_DATE_CAVEAT, MISSING_LINES,
+  LAB_ORDER_UNKNOWN, LAB_UNIDENTIFIED, labDateCell,
   INTAKE_LABELS,
   type DoctorReportModel, type ReportSources,
 } from '../../lib/doctorReport'
@@ -424,9 +425,11 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                         <td>{l.value} {l.unit ?? ''}</td>
                         <td>{l.refRange ?? dash}</td>
                         <td>{labStatusCell(l, rt)}</td>
-                        <td>{l.prevValue != null ? `${l.prevValue} (${l.prevDate})` : dash}</td>
-                        <td>{l.delta != null ? `${signed(l.delta)} ${rt('к')} ${l.prevDate}` : dash}</td>
-                        <td>{l.date}</td>
+                        <td>{l.prevValue != null ? `${l.prevValue} (${labDateCell(l.prevDate, l.prevPrecision ?? 'unknown', rt)})` : dash}</td>
+                        <td>{l.delta != null
+                          ? `${signed(l.delta)} ${rt('к')} ${labDateCell(l.prevDate, l.prevPrecision ?? 'unknown', rt)}`
+                          : l.prevValue != null ? rt(LAB_ORDER_UNKNOWN) : dash}</td>
+                        <td>{labDateCell(l.date, l.datePrecision, rt)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -438,6 +441,11 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                 </p>
                 <p className="dr-note">{rt(LAB_UNIT_CAVEAT)}</p>
                 <p className="dr-note">{rt(LAB_DATE_CAVEAT)}</p>
+                {labs.unidentifiedMarkers > 0 && (
+                  <p className="dr-note">
+                    {rt(LAB_UNIDENTIFIED)}: {labs.unidentifiedMarkers}. {rt('Они показаны под собственными названиями и ни с чем не объединяются.')}
+                  </p>
+                )}
                 {labs.series.length > 0 && (
                   <>
                     <h3>{rt('Все измерения по показателям')}</h3>
@@ -451,7 +459,7 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                         {labs.series.map(s => (
                           <tr key={`${s.marker} ${s.unit ?? ''}`}>
                             <td>{s.marker}</td>
-                            <td>{s.points.map(pt => `${pt.date}: ${pt.value}`).join(' → ')} {s.unit ?? ''}</td>
+                            <td>{s.points.map(pt => `${labDateCell(pt.date, pt.precision, rt)}: ${pt.value}`).join(' → ')} {s.unit ?? ''}</td>
                             <td>{s.refRange ?? dash}</td>
                           </tr>
                         ))}
