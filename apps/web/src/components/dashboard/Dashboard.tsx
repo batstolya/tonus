@@ -109,26 +109,26 @@ function ReadinessCard({ daily }: { daily: DailyMetrics[] }) {
       <div className="readiness-top">
         <div className="readiness-left">
           <div className="readiness-label">{t('Готовность дня')}</div>
-          <div className="readiness-score" style={{ color: r.color }}><CountUp value={r.score} /></div>
+          <div className="readiness-score"><CountUp value={r.score} /></div>
           <div className="readiness-sublabel" style={{ color: r.color }}>{t(r.label)}</div>
         </div>
         <div className="readiness-bars">
           {r.components.hrv != null && (
             <div className="r-bar-row">
               <span>{t('Восстановление')}</span>
-              <div className="r-bar-track"><motion.div className="r-bar-fill" style={{ width: `${(r.components.hrv / 40) * 100}%`, background: r.color, transformOrigin: 'left' }} initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ duration: 0.6, ease: 'easeOut', delay: 0.15 }} /></div>
+              <div className="r-bar-track"><motion.div className="r-bar-fill" style={{ width: `${(r.components.hrv / 40) * 100}%`, background: r.fill, transformOrigin: 'left' }} initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ duration: 0.6, ease: 'easeOut', delay: 0.15 }} /></div>
             </div>
           )}
           {r.components.rhr != null && (
             <div className="r-bar-row">
               <span>{t('Пульс покоя')}</span>
-              <div className="r-bar-track"><motion.div className="r-bar-fill" style={{ width: `${(r.components.rhr / 30) * 100}%`, background: r.color, transformOrigin: 'left' }} initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ duration: 0.6, ease: 'easeOut', delay: 0.22 }} /></div>
+              <div className="r-bar-track"><motion.div className="r-bar-fill" style={{ width: `${(r.components.rhr / 30) * 100}%`, background: r.fill, transformOrigin: 'left' }} initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ duration: 0.6, ease: 'easeOut', delay: 0.22 }} /></div>
             </div>
           )}
           {r.components.sleep != null && (
             <div className="r-bar-row">
               <span>{t('Сон')}</span>
-              <div className="r-bar-track"><motion.div className="r-bar-fill" style={{ width: `${(r.components.sleep / 30) * 100}%`, background: r.color, transformOrigin: 'left' }} initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ duration: 0.6, ease: 'easeOut', delay: 0.29 }} /></div>
+              <div className="r-bar-track"><motion.div className="r-bar-fill" style={{ width: `${(r.components.sleep / 30) * 100}%`, background: r.fill, transformOrigin: 'left' }} initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ duration: 0.6, ease: 'easeOut', delay: 0.29 }} /></div>
             </div>
           )}
         </div>

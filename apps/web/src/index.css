@@ -1,3 +1,8 @@
+/* Design tokens.
+   :root holds the legacy palette: it is what the landing and the auth screen
+   render, and both live outside .app (App.tsx:99-100). The .app blocks below
+   carry the current design. When the landing is brought onto the new palette,
+   the .app blocks move up into :root and these defaults are deleted. */
 :root {
   --bg: #0f0f12;
   --surface: #1a1a20;
@@ -6,10 +11,24 @@
   --text: #e8e8f0;
   --text-muted: #8888a0;
   --accent: #6c8fff;
-  --green: #5bc896;
-  --red: #ff6b6b;
-  --yellow: #ffd166;
-  --radius: 14px;
+  --accent-text: var(--accent);
+  --accent-border: color-mix(in srgb, var(--accent) 45%, var(--border));
+  --on-accent: #fff;
+  --on-ok: #fff;
+  --on-bad: #fff;
+  --ok: #5bc896;
+  --warn: #ffd166;
+  --bad: #ff6b6b;
+  --ok-fill: var(--ok);
+  --warn-fill: var(--warn);
+  --bad-fill: var(--bad);
+  --green: var(--ok);
+  --red: var(--bad);
+  --yellow: var(--warn);
+  --r-surface: 14px;
+  --r-control: 10px;
+  --r-inner: 6px;
+  --radius: var(--r-surface);
   --card-shadow: none;
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --topbar-bg: rgba(15,15,18,0.92);
@@ -24,12 +43,77 @@
   --text: #111118;
   --text-muted: #6e6e80;
   --accent: #4a6fff;
-  --green: #34c678;
-  --red: #e53935;
-  --yellow: #f59e0b;
+  --ok: #34c678;
+  --warn: #f59e0b;
+  --bad: #e53935;
   --topbar-bg: rgba(255,255,255,0.92);
   --shadow: 0 1px 0 rgba(0,0,0,0.08);
   --card-shadow: 0 4px 16px rgba(17, 17, 24, 0.06);
+}
+
+/* Night indigo + brass. Scoped to the app shell; see the comment on :root. */
+.app {
+  --bg: #0F1422;
+  --surface: #161C2D;
+  --surface2: #1E2538;
+  --border: #2A3247;
+  --text: #E6E9F2;
+  --text-muted: #8B93AB;
+  --accent: #D3E6DD;
+  --accent-text: var(--accent);
+  --accent-border: color-mix(in srgb, var(--accent) 45%, var(--border));
+  --on-accent: #0F1422;
+  --on-ok: #0F1422;
+  --on-bad: #0F1422;
+  --ok: #3FA68A;
+  --warn: #E08A3C;
+  --bad: #E36A64;
+  /* -fill variants: bare fills (progress bars) carry no text, so they are
+     free of the 4.5:1 contrast floor that binds --ok/--warn/--bad. In dark
+     theme the text tokens are already bright enough to double as fills. */
+  --ok-fill: #3FA68A;
+  --warn-fill: #E08A3C;
+  --bad-fill: #E36A64;
+  --green: var(--ok);
+  --red: var(--bad);
+  --yellow: var(--warn);
+  --r-surface: 4px;
+  --r-control: 999px;
+  --r-inner: 2px;
+  --radius: var(--r-surface);
+  --topbar-bg: rgba(15,20,34,0.92);
+  --shadow: 0 1px 0 rgba(255,255,255,0.04);
+}
+
+[data-theme="light"] .app {
+  --bg: #F4F5F9;
+  --surface: #FFFFFF;
+  --surface2: #EDEFF6;
+  --border: #E2E5EE;
+  --text: #141826;
+  --text-muted: #5D667F;
+  --accent: #24443B;
+  /* Dark pine green, not near-black: the same "ink" idea graphite carried
+     (a dark fill with a white label), with a green undertone the user asked
+     for after seeing graphite live. Still dark enough to double as its own
+     text colour, so no separate --accent-text value is needed. */
+  --accent-text: var(--accent);
+  --accent-border: color-mix(in srgb, var(--accent) 45%, var(--border));
+  --on-accent: #FFFFFF;
+  --on-ok: #FFFFFF;
+  --on-bad: #FFFFFF;
+  --ok: #27735F;
+  --warn: #96521A;
+  --bad: #C2403C;
+  --ok-fill: #3FA68A;
+  --warn-fill: #E0A33E;
+  --bad-fill: #E36A64;
+  --green: var(--ok);
+  --red: var(--bad);
+  --yellow: var(--warn);
+  --topbar-bg: rgba(244,245,249,0.92);
+  --shadow: 0 1px 0 rgba(0,0,0,0.08);
+  --card-shadow: 0 4px 16px rgba(20, 24, 38, 0.06);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -45,7 +129,7 @@ body {
   overflow-x: clip;
 }
 
-.app { display: flex; flex-direction: column; min-height: 100vh; }
+.app { display: flex; flex-direction: column; min-height: 100vh; background: var(--bg); color: var(--text); }
 
 .topbar {
   display: flex;
@@ -71,7 +155,7 @@ body {
 .theme-toggle {
   background: var(--surface2);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--r-control);
   width: 34px; height: 34px;
   display: flex; align-items: center; justify-content: center;
   font-size: 16px;
@@ -84,7 +168,7 @@ body {
 .btn-secondary {
   background: var(--surface2);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r-control);
   padding: 10px 16px;
   color: var(--text);
   font-size: 14px;
@@ -95,7 +179,7 @@ body {
 .logo-btn {
   background: none;
   border: none;
-  color: var(--accent);
+  color: var(--accent-text);
   font-size: 18px;
   font-weight: 700;
   cursor: pointer;
@@ -108,7 +192,7 @@ body {
   color: var(--text-muted);
   font-size: 14px;
   padding: 6px 12px;
-  border-radius: 8px;
+  border-radius: var(--r-control);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
@@ -141,7 +225,7 @@ body {
   transition: background 0.15s, color 0.15s;
 }
 .subnav-btn:hover { background: var(--surface2); color: var(--text); }
-.subnav-btn.active { background: var(--accent); color: #fff; font-weight: 500; }
+.subnav-btn.active { background: var(--accent); color: var(--on-accent); font-weight: 500; }
 
 /* Concerns/Hair sub-tabs (nested within concerns screen) */
 .concerns-subtabs {
@@ -255,7 +339,7 @@ body {
 .metric-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--r-surface);
   padding: 16px;
   text-align: left;
   cursor: pointer;
@@ -326,7 +410,7 @@ body {
   transition: all 0.15s;
 }
 .preset:hover { border-color: var(--accent); color: var(--text); }
-.preset.active { border-color: var(--accent); background: var(--accent); color: #fff; }
+.preset.active { border-color: var(--accent); background: var(--accent); color: var(--on-accent); }
 
 .stat-row { display: flex; gap: 32px; flex-wrap: wrap; margin-bottom: 8px; }
 .stat { font-size: 13px; color: var(--text-muted); display: flex; flex-direction: column; gap: 2px; }
@@ -544,9 +628,9 @@ body {
 .auth-form input:focus { border-color: var(--accent); }
 .btn-primary {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   border: none;
-  border-radius: 10px;
+  border-radius: var(--r-control);
   padding: 13px;
   font-size: 15px;
   font-weight: 600;
@@ -622,7 +706,7 @@ body {
 .quick-log-header h3 { font-size: 15px; font-weight: 600; }
 .btn-add {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   border: none;
   border-radius: 8px;
   padding: 6px 14px;
@@ -726,7 +810,7 @@ body {
 .stress-header h2 { margin-bottom: 4px; }
 .stress-sort-tabs { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 3px; gap: 2px; }
 .stress-sort-btn { background: none; border: none; padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--text-muted); cursor: pointer; transition: background 0.15s, color 0.15s; white-space: nowrap; }
-.stress-sort-btn.active { background: var(--accent); color: #fff; }
+.stress-sort-btn.active { background: var(--accent); color: var(--on-accent); }
 
 .source-toggle { display: flex; align-items: center; gap: 10px; cursor: pointer; flex-shrink: 0; margin-top: 8px; }
 .source-toggle-label { font-size: 13px; color: var(--text-muted); white-space: nowrap; }
@@ -997,7 +1081,7 @@ body {
 .readiness-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--r-surface);
   padding: 16px 20px;
   margin-bottom: 16px;
 }
@@ -1011,10 +1095,10 @@ body {
 .r-bar-row span { width: 104px; flex-shrink: 0; white-space: nowrap; }
 
 /* Текстовая кнопка-ссылка (напр. «Изменить» в настройках локации) */
-.link-btn { background: none; border: none; padding: 0; color: var(--accent, #6c8fff); font: inherit; font-size: 13px; cursor: pointer; text-decoration: underline; }
+.link-btn { background: none; border: none; padding: 0; color: var(--accent-text); font: inherit; font-size: 13px; cursor: pointer; text-decoration: underline; }
 .link-btn:hover { opacity: 0.8; }
-.r-bar-track { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
-.r-bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+.r-bar-track { flex: 1; height: 6px; background: var(--border); border-radius: var(--r-inner); overflow: hidden; }
+.r-bar-fill { height: 100%; border-radius: var(--r-inner); transition: width 0.4s ease; }
 
 /* ── Stress Days Card ─────────────────────────────────────── */
 .stress-days-card {
@@ -1022,7 +1106,7 @@ body {
   align-items: stretch;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--r-surface);
   margin-bottom: 16px;
   overflow: hidden;
 }
@@ -1033,32 +1117,32 @@ body {
   gap: 12px;
   padding: 14px 16px;
 }
-.sd-item.sd-bad { background: rgba(255, 107, 107, 0.05); }
-.sd-item.sd-good { background: rgba(91, 200, 150, 0.05); }
+.sd-item.sd-bad { background: color-mix(in srgb, var(--bad) 5%, transparent); }
+.sd-item.sd-good { background: color-mix(in srgb, var(--ok) 5%, transparent); }
 /* font-size looks unused now that Icon's `size` prop drives SVG dimensions —
    it isn't: it sizes the VITE_ICONS=0 emoji fallback (see lib/icons.tsx). */
 .sd-icon { font-size: 24px; flex-shrink: 0; }
 .sd-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 2px; }
 .sd-date { font-size: 15px; font-weight: 700; color: var(--text); }
 .sd-hrv { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-.sd-item.sd-bad .sd-date { color: var(--red); }
-.sd-item.sd-good .sd-date { color: var(--green); }
+.sd-item.sd-bad .sd-date { color: var(--bad); }
+.sd-item.sd-good .sd-date { color: var(--ok); }
 .sd-divider { width: 1px; background: var(--border); flex-shrink: 0; }
 
 /* ── Early Warning ────────────────────────────────────────── */
 .early-warning {
   display: flex;
   gap: 12px;
-  background: rgba(255, 107, 107, 0.08);
-  border: 1px solid rgba(255, 107, 107, 0.3);
-  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--bad) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--bad) 30%, transparent);
+  border-radius: var(--r-surface);
   padding: 14px 16px;
   margin-bottom: 16px;
   align-items: flex-start;
 }
 /* font-size sizes the VITE_ICONS=0 emoji fallback, not the SVG (see .sd-icon above). */
 .ew-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
-.early-warning strong { font-size: 14px; color: var(--red); display: block; margin-bottom: 4px; }
+.early-warning strong { font-size: 14px; color: var(--bad); display: block; margin-bottom: 4px; }
 .ew-list { margin: 4px 0 6px 16px; font-size: 13px; color: var(--text); line-height: 1.6; }
 .ew-hint { font-size: 12px; color: var(--text-muted); }
 
@@ -1067,7 +1151,7 @@ body {
   display: flex;
   gap: 12px;
   align-items: center;
-  border-radius: var(--radius);
+  border-radius: var(--r-surface);
   border-left: 3px solid;
   padding: 12px 16px;
   margin-bottom: 16px;
@@ -1104,7 +1188,7 @@ body {
   position: absolute; top: calc(100% + 10px); right: -60px; z-index: 150;
   width: min(300px, calc(100vw - 32px));
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: 18px; box-shadow: 0 12px 32px rgba(17, 17, 24, 0.12);
+  border-radius: var(--r-surface); box-shadow: 0 12px 32px rgba(17, 17, 24, 0.12);
   padding: 14px 16px;
   animation: fadeIn 0.18s ease-out;
   text-align: left;
@@ -1179,18 +1263,18 @@ body {
 .context-journal {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--r-surface);
   padding: 16px 20px;
   margin: 16px 0;
 }
 .cj-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .cj-label { font-size: 13px; font-weight: 600; color: var(--text-muted); }
-.cj-saved { font-size: 12px; color: var(--green); }
+.cj-saved { font-size: 12px; color: var(--ok); }
 .cj-textarea {
   width: 100%;
   background: var(--surface2);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--r-control);
   padding: 10px 12px;
   font-size: 14px;
   color: var(--text);
@@ -1243,7 +1327,7 @@ body {
 .rem-time-add button:hover { background: var(--border); }
 .rem-weekdays { display: flex; gap: 4px; flex-wrap: wrap; }
 .rem-wd { font-size: 12px; font-weight: 600; width: 32px; height: 30px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text-muted); cursor: pointer; transition: all 0.15s; }
-.rem-wd.on { background: var(--green); color: #fff; border-color: var(--green); }
+.rem-wd.on { background: var(--green); color: var(--on-ok); border-color: var(--green); }
 .rem-quiet { flex-wrap: wrap; }
 
 /* Report settings */
@@ -1369,18 +1453,18 @@ body {
 .readiness-dev { font-size: 13px; font-weight: 600; }
 
 /* Coach focus */
-.coach-focus-card { background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 14%, var(--surface)), var(--surface)); border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border)); border-radius: 14px; padding: 16px; margin-bottom: 16px; }
+.coach-focus-card { background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 14%, var(--surface)), var(--surface)); border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border)); border-radius: var(--r-surface); padding: 16px; margin-bottom: 16px; }
 .coach-focus-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-.coach-focus-label { font-size: 13px; font-weight: 700; color: var(--accent); }
+.coach-focus-label { font-size: 13px; font-weight: 700; color: var(--accent-text); }
 /* Inline icons sit on the text baseline where the replaced emoji used to
    sit — nudge them up so they read centered in the sentence, not low. */
 .coach-focus-label svg { vertical-align: -0.15em; }
 .coach-focus-count { font-size: 12px; color: var(--text-muted); }
 .coach-focus-text { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
-.coach-focus-btn { border: 1px solid var(--accent); background: transparent; color: var(--accent); border-radius: 10px; padding: 8px 16px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
-.coach-focus-btn.done { background: var(--green); border-color: var(--green); color: #fff; }
+.coach-focus-btn { border: 1px solid var(--accent); background: transparent; color: var(--accent-text); border-radius: var(--r-control); padding: 8px 16px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+.coach-focus-btn.done { background: var(--ok); border-color: var(--ok); color: var(--on-ok); }
 .coach-focus-btn:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
-.coach-focus-btn.done:hover { background: var(--green); opacity: 0.9; }
+.coach-focus-btn.done:hover { background: var(--ok); opacity: 0.9; }
 
 /* Lab markers */
 .labs-abn-count { font-size: 13px; color: var(--red); font-weight: 600; }
@@ -1482,7 +1566,7 @@ body {
   height: 52px;
   border-radius: 50%;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   border: none;
   cursor: pointer;
   display: flex;
@@ -1544,7 +1628,7 @@ body {
   cursor: pointer;
   transition: all 0.15s;
 }
-.chat-period-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.chat-period-btn.active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 
 .chat-messages {
   flex: 1;
@@ -1576,7 +1660,7 @@ body {
 .chat-bubble ul { margin: 8px 0 0; padding-left: 18px; }
 .chat-bubble li { margin: 2px 0; }
 .chat-bubble strong { font-weight: 600; }
-.chat-bubble.user { align-self: flex-end; background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
+.chat-bubble.user { align-self: flex-end; background: var(--accent); color: var(--on-accent); border-bottom-right-radius: 4px; }
 .chat-bubble.assistant { align-self: flex-start; background: var(--surface2); color: var(--text); border-bottom-left-radius: 4px; }
 
 .chat-debug {
@@ -1622,7 +1706,7 @@ body {
   height: 36px;
   border-radius: 50%;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   border: none;
   cursor: pointer;
   display: flex;
@@ -1665,7 +1749,7 @@ body {
 .goals-baseline-hint { font-weight: 400; color: var(--text-muted); font-size: 11px; }
 .goals-duration-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
 .goals-dur-btn { padding: 7px 14px; border-radius: 20px; border: 1px solid var(--border); background: none; color: var(--text-muted); font-size: 13px; cursor: pointer; transition: all 0.15s; }
-.goals-dur-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.goals-dur-btn.active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 
 /* Recommendation cards */
 .goals-recs-section { margin-bottom: 8px; }
@@ -1710,6 +1794,10 @@ body {
 
 /* Severity buttons */
 .severity-btn { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--border); background: none; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; color: var(--text-muted); }
+/* --sev-color is set inline per concern severity (SEVERITY_COLOR in
+   ConcernsScreen.tsx) and can resolve to literals other than --accent, so
+   there is no single on-* token guaranteed readable against it here.
+   Left as #fff deliberately — not an oversight. */
 .severity-btn.active { border-color: var(--sev-color, var(--accent)); background: var(--sev-color, var(--accent)); color: #fff; }
 .severity-btn:hover:not(.active) { border-color: var(--accent); }
 
@@ -1928,7 +2016,7 @@ input[type="date"].settings-input::-webkit-calendar-picker-indicator { cursor: p
 .meal-logger { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 20px; }
 .meal-logger-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
 .meal-tab { flex: 1; padding: 7px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface2); color: var(--text-muted); cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.15s; }
-.meal-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.meal-tab.active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .meal-drop { border: 2px dashed var(--border); border-radius: 10px; cursor: pointer; min-height: 120px; display: flex; align-items: center; justify-content: center; transition: border-color 0.15s; overflow: hidden; }
 .meal-drop:hover { border-color: var(--accent); }
 .meal-drop-hint { display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--text-muted); font-size: 13px; }
@@ -2084,7 +2172,7 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 }
 .streak-card {
   display: flex; flex-direction: column; gap: 1px;
-  background: var(--surface2); border-radius: 10px; padding: 8px 10px;
+  background: var(--surface2); border-radius: var(--r-inner); padding: 8px 10px;
 }
 .streak-card-value { font-size: 15px; font-weight: 700; display: inline-flex; align-items: baseline; gap: 5px; }
 /* font-size sizes the VITE_ICONS=0 emoji fallback, not the SVG (see .sd-icon above). */
@@ -2097,7 +2185,7 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
   display: inline-flex; align-items: center; gap: 6px;
   min-height: 34px; padding: 0 10px;
   color: var(--text); background: var(--surface2);
-  border: 1px solid var(--border); border-radius: 8px;
+  border: 1px solid var(--border); border-radius: var(--r-control);
   font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
 }
@@ -2110,7 +2198,7 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
   position: absolute; z-index: 20; top: calc(100% + 10px); right: 0;
   width: min(340px, calc(100vw - 32px)); max-height: calc(100vh - 78px);
   overflow-y: auto; background: var(--surface); border: 1px solid var(--border);
-  border-radius: 12px; box-shadow: var(--card-shadow); animation: fadeIn 0.18s ease-out;
+  border-radius: var(--r-surface); box-shadow: var(--card-shadow); animation: fadeIn 0.18s ease-out;
 }
 .streak-menu-head {
   display: flex; align-items: center; justify-content: space-between;
@@ -2133,14 +2221,14 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
    sit — nudge them up so they read centered in the sentence, not low. */
 .streak-menu-today-text svg { vertical-align: -0.15em; }
 .streak-menu-today-bar {
-  height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden;
+  height: 4px; background: var(--surface2); border-radius: var(--r-inner); overflow: hidden;
 }
 .streak-menu-today-fill {
-  height: 100%; background: var(--green); border-radius: 2px; transition: width 0.4s ease-out;
+  height: 100%; background: var(--ok-fill); border-radius: var(--r-inner); transition: width 0.4s ease-out;
 }
 .streak-menu-close {
   width: 24px; height: 24px; display: grid; place-items: center;
-  color: var(--text-muted); background: transparent; border: none; border-radius: 6px;
+  color: var(--text-muted); background: transparent; border: none; border-radius: var(--r-control);
   font-size: 20px; line-height: 1; cursor: pointer;
 }
 .streak-menu-close:hover { color: var(--text); background: var(--surface2); }
@@ -2154,7 +2242,7 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
   position: relative;
   width: 34px; min-height: 34px; display: grid; place-items: center;
   color: var(--text); background: var(--surface2);
-  border: 1px solid var(--border); border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--border); border-radius: var(--r-control); cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
 }
 .bell-trigger:hover, .bell-trigger.active { background: var(--border); border-color: var(--accent-border); }
@@ -2162,7 +2250,7 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
   position: absolute; top: -5px; right: -5px;
   min-width: 16px; height: 16px; padding: 0 4px;
   display: flex; align-items: center; justify-content: center;
-  background: var(--red, #e5484d); color: #fff;
+  background: var(--bad); color: var(--on-bad);
   border-radius: 999px; font-size: 10px; font-weight: 700; line-height: 1;
 }
 /* Панель в духе mate.academy: белая карточка с крупным радиусом, каждое
@@ -2172,7 +2260,7 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
   position: absolute; z-index: 20; top: calc(100% + 10px); right: 0;
   width: min(372px, calc(100vw - 32px)); max-height: calc(100vh - 78px);
   overflow-y: auto; background: var(--surface); border: 1px solid var(--border);
-  border-radius: 18px; box-shadow: 0 12px 32px rgba(17, 17, 24, 0.12);
+  border-radius: var(--r-surface); box-shadow: 0 12px 32px rgba(17, 17, 24, 0.12);
   animation: fadeIn 0.18s ease-out;
 }
 .bell-head {
@@ -2187,18 +2275,18 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 }
 .bell-item {
   display: flex; align-items: flex-start; gap: 12px;
-  padding: 12px; border-radius: 14px;
+  padding: 12px; border-radius: var(--r-surface);
   background: var(--surface2);
 }
 .bell-item-icon {
   width: 38px; height: 38px; flex-shrink: 0;
   display: grid; place-items: center;
-  font-size: 18px; line-height: 1; border-radius: 12px;
+  font-size: 18px; line-height: 1; border-radius: var(--r-inner);
   background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
-.bell-item.level-red .bell-item-icon { background: color-mix(in srgb, var(--red) 15%, transparent); }
-.bell-item.level-yellow .bell-item-icon { background: color-mix(in srgb, var(--yellow) 20%, transparent); }
-.bell-item.level-streak .bell-item-icon { background: color-mix(in srgb, #ff7a1a 16%, transparent); }
+.bell-item.level-red .bell-item-icon { background: color-mix(in srgb, var(--bad) 15%, transparent); }
+.bell-item.level-yellow .bell-item-icon { background: color-mix(in srgb, var(--warn) 20%, transparent); }
+.bell-item.level-streak .bell-item-icon { background: color-mix(in srgb, var(--accent) 32%, transparent); }
 .bell-item-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .bell-item-title { font-size: 13.5px; font-weight: 700; line-height: 1.35; }
 .bell-item-body { font-size: 12.5px; line-height: 1.45; color: var(--text-muted); white-space: pre-line; }
@@ -2209,7 +2297,7 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 /* Разворот совета: текстовая кнопка в строке с датой. */
 .bell-item-more {
   border: none; background: none; padding: 0;
-  font: inherit; font-weight: 600; color: var(--accent); cursor: pointer;
+  font: inherit; font-weight: 600; color: var(--accent-text); cursor: pointer;
 }
 .bell-item-advice { white-space: pre-line; }
 .bell-item-ack {
@@ -2221,7 +2309,7 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
   box-shadow: var(--shadow);
   transition: background 0.15s, color 0.15s;
 }
-.bell-item-ack:hover { color: var(--green); }
+.bell-item-ack:hover { color: var(--ok); }
 
 /* On a phone these panels are wider than the gap between their trigger and the
    left edge of the screen, so anchoring them to the button clips them. Pin them
@@ -2251,7 +2339,7 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 /* ── Gamified home: activity calendar ───────────────────────── */
 .activity-cal {
   border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 16px 18px; margin: 12px 0;
+  border-radius: var(--r-surface); padding: 16px 18px; margin: 12px 0;
   background: var(--surface);
   box-shadow: var(--shadow);
 }
@@ -2262,7 +2350,7 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 .activity-cal-month { font-weight: 600; font-size: 13px; }
 .activity-cal-arrow {
   width: 24px; height: 24px; display: grid; place-items: center;
-  color: var(--text); background: transparent; border: none; border-radius: 6px;
+  color: var(--text); background: transparent; border: none; border-radius: var(--r-control);
   font-size: 16px; line-height: 1; cursor: pointer;
 }
 .activity-cal-arrow:hover:not(:disabled) { background: var(--surface2); }
@@ -2280,14 +2368,14 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
   display: flex; align-items: center; justify-content: center;
   font-size: 9px; justify-self: center;
 }
-.activity-cal-week.done { background: var(--green); border-color: var(--green); color: #fff; }
+.activity-cal-week.done { background: var(--ok); border-color: var(--ok); color: var(--on-ok); }
 .activity-cal-cell.adjacent { color: var(--text-muted); opacity: 0.35; font-size: 11px; }
 .activity-cal-cell {
   width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
   border-radius: 999px; font-size: 12px;
 }
 .activity-cal-cell.blank { background: transparent; }
-.activity-cal-cell.status-active { background: var(--green); color: #fff; }
+.activity-cal-cell.status-active { background: var(--ok); color: var(--on-ok); }
 .activity-cal-cell.status-frozen { background: var(--surface2); }
 /* idle: дані є, поріг руху не закритий; missed: даних нема (дірка в синку) */
 .activity-cal-cell.status-idle { background: var(--surface2); color: var(--text-muted); }
@@ -2299,7 +2387,7 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 
 /* ── Gamified home: empty state ─────────────────────────────── */
 .empty-state {
-  border: 1px dashed var(--border); border-radius: var(--radius);
+  border: 1px dashed var(--border); border-radius: var(--r-surface);
   padding: 24px; text-align: center; margin: 12px 0;
   background: var(--surface);
 }
@@ -2308,8 +2396,8 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 .empty-state-title { font-weight: 600; margin-bottom: 4px; }
 .empty-state-text { font-size: 13px; color: var(--text-muted); margin: 0 0 12px; }
 .empty-state-cta {
-  border: none; border-radius: 999px; padding: 8px 16px; cursor: pointer;
-  background: var(--accent); color: #fff; font-weight: 600;
+  border: none; border-radius: var(--r-control); padding: 8px 16px; cursor: pointer;
+  background: var(--accent); color: var(--on-accent); font-weight: 600;
 }
 
 /* ── Отчёт для врача (SPEC-DOCTOR-REPORT) ─────────────────────────────────── */
@@ -2319,13 +2407,13 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 .dr-setup-row { display: flex; align-items: center; gap: 8px; margin: 14px 0; font-size: 14px; }
 .dr-setup-row > span { min-width: 120px; color: var(--text-muted); }
 .dr-chip { padding: 6px 14px; border-radius: 999px; border: 1px solid var(--border, #ccc); background: transparent; cursor: pointer; color: inherit; }
-.dr-chip-on { background: var(--accent, #4f6ef7); color: #fff; border-color: transparent; }
+.dr-chip-on { background: var(--accent, #4f6ef7); color: var(--on-accent); border-color: transparent; }
 .dr-setup-sections { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; font-size: 14px; }
 .dr-setup-sections > span { color: var(--text-muted); }
 .dr-check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .dr-setup-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
 .dr-btn { padding: 8px 18px; border-radius: 10px; border: 1px solid var(--border, #ccc); background: transparent; cursor: pointer; color: inherit; }
-.dr-btn-primary { background: var(--accent, #4f6ef7); color: #fff; border-color: transparent; }
+.dr-btn-primary { background: var(--accent, #4f6ef7); color: var(--on-accent); border-color: transparent; }
 .dr-toolbar { display: flex; gap: 10px; justify-content: flex-end; padding: 12px 24px; }
 .dr-ai-error { text-align: center; font-size: 13px; color: var(--red); }
 
