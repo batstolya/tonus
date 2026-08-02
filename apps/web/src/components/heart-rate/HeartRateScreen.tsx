@@ -33,15 +33,20 @@ const OVERLAYS = [
 // front of its (now plain-text) label. With the emoji gone, render the
 // registry icon at the line's top instead — recharts calls a function label
 // with the line's own viewBox, so this places it centered above the line.
-function OverlayMarker({ viewBox, icon, color }: {
+// The overlay-toggle checkbox above the chart names each event type too, so
+// this marker's icon isn't its sole carrier of meaning — but the marker can
+// land far from that legend on a wide chart, so it still gets its own title
+// rather than leaning entirely on nearby text.
+function OverlayMarker({ viewBox, icon, color, title }: {
   viewBox?: { x?: number; y?: number }
   icon: IconName
   color: string
+  title: string
 }) {
   if (viewBox?.x == null || viewBox?.y == null) return null
   return (
     <g transform={`translate(${viewBox.x - 8}, ${viewBox.y - 20})`} style={{ color }}>
-      <Icon name={icon} size={16} />
+      <Icon name={icon} size={16} title={title} />
     </g>
   )
 }
@@ -103,18 +108,18 @@ export function HeartRateScreen({ daily, intakeEvents = [] }: Props) {
 
   // Build reference lines for active overlays
   const referenceLines = useMemo(() => {
-    const lines: { date: string; color: string; icon: IconName }[] = []
+    const lines: { date: string; color: string; icon: IconName; label: string }[] = []
     for (const [date, events] of coffeeByDate.entries()) {
       for (const ev of events) {
         const overlay = OVERLAYS.find(o => o.key === ev.type)
         if (!overlay || !shown.has(ev.type)) continue
         const d = data.find(d => d.fullDate === date)
         if (!d) continue
-        lines.push({ date: d.date, color: overlay.color, icon: overlay.icon })
+        lines.push({ date: d.date, color: overlay.color, icon: overlay.icon, label: t(overlay.label) })
       }
     }
     return lines
-  }, [coffeeByDate, shown, data])
+  }, [coffeeByDate, shown, data, t])
 
   // «Неадекватно низкий» пульс: абсолютная брадикардия или заметно ниже
   // личной долгосрочной нормы — такие дни подсвечиваем в таблице.
@@ -177,7 +182,7 @@ export function HeartRateScreen({ daily, intakeEvents = [] }: Props) {
               strokeWidth={2}
               strokeDasharray="4 3"
               label={(props: { viewBox?: { x?: number; y?: number } }) => (
-                <OverlayMarker viewBox={props.viewBox} icon={l.icon} color={l.color} />
+                <OverlayMarker viewBox={props.viewBox} icon={l.icon} color={l.color} title={l.label} />
               )}
             />
           ))}

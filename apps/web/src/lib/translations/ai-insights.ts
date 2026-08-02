@@ -43,6 +43,12 @@ export const ai_insights: Record<string, Translation> = {
   'сильная связь': { uk: 'сильний звʼязок', en: 'strong link' },
   'заметная связь': { uk: 'помітний звʼязок', en: 'notable link' },
   'дн.': { uk: 'дн.', en: 'days' },
+  // The direction icon between factor and outcome (CorrelationsBlock.tsx) is
+  // the only thing in the card that says whether the link is positive or
+  // negative — corr-meta shows lag/strength/n, not sign — so it needs a
+  // title, not just a re-tinted arrow glyph.
+  'растёт': { uk: 'зростає', en: 'rises' },
+  'падает': { uk: 'падає', en: 'falls' },
   'Кофе': { uk: 'Кава', en: 'Coffee' },
   'Алкоголь': { uk: 'Алкоголь', en: 'Alcohol' },
   'Тренировки': { uk: 'Тренування', en: 'Workouts' },

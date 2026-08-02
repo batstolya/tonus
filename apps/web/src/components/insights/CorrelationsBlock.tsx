@@ -75,7 +75,7 @@ export function CorrelationsBlock({ daily, intakeEvents }: Props) {
           return (
             <div key={`${c.factor}-${c.outcome}-${c.lag}`} className={`corr-card ${c.strength}`}>
               <span className="corr-pair">
-                <Icon name={f.icon} size={14} /> {t(f.label)} → <Icon name={c.direction === 'up' ? 'trendUp' : 'trendDown'} size={14} /> {t(OUTCOME_LABELS[c.outcome])}
+                <Icon name={f.icon} size={14} /> {t(f.label)} → <Icon name={c.direction === 'up' ? 'trendUp' : 'trendDown'} size={14} title={t(c.direction === 'up' ? 'растёт' : 'падает')} /> {t(OUTCOME_LABELS[c.outcome])}
               </span>
               <span className="corr-meta">
                 {t(c.lag === 1 ? 'на следующий день' : 'в тот же день')}
