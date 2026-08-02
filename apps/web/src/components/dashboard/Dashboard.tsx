@@ -15,7 +15,6 @@ import { useT } from '../../lib/i18n'
 import { Icon } from '../../lib/icons'
 import { motion, MotionConfig, type Variants } from 'motion/react'
 import { CountUp } from '../common/CountUp'
-import { GeoStormBanner } from './GeoStormBanner'
 
 // Каскадное появление карточек метрик.
 const cardsGridV: Variants = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } }
@@ -424,7 +423,6 @@ export function Dashboard({ daily, events, onNavigate, user, quickLog }: Props) 
         />
       )}
 
-      <GeoStormBanner />
       <EarlyWarningBanner daily={daily} />
       {user && <CoachFocusCard user={user} daily={daily} />}
       <ReadinessCard daily={daily} />

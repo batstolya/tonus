@@ -179,7 +179,7 @@ describe('shared shell rules use tokens', () => {
 })
 
 describe('dashboard status surfaces use tokens', () => {
-  it.each(['.readiness-card', '.stress-days-card', '.early-warning', '.geostorm-banner', '.context-journal', '.coach-focus-card'])(
+  it.each(['.readiness-card', '.stress-days-card', '.early-warning', '.context-journal', '.coach-focus-card'])(
     '%s uses the surface radius token',
     selector => {
       expect(rule(css, selector)).toMatch(/border-radius:\s*var\(--r-surface\)/)
