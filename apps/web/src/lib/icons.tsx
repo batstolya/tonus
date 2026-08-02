@@ -1,10 +1,11 @@
 import {
   Alarm, ArrowDownRight, ArrowsClockwise, ArrowsLeftRight, ArrowUpRight, Barbell, Bed, Broadcast,
   Calendar, CalendarBlank, CalendarDots, Camera, CaretRight, ChartBar, CheckCircle, Circle, Clock,
-  CloudSun, Coffee, Compass, Eye, Fire, Gear, Globe, Heart, Heartbeat, Hourglass, Lightbulb,
-  Lightning, Link, Lock, Magnet, MagnifyingGlass, Microscope, Moon, Pause, PersonSimpleRun,
-  PersonSimpleWalk, SignOut, Sneaker, Snowflake, SoccerBall, Sparkle, SmileyMeh, SmileyNervous, Sun,
-  Target, TestTube, Thermometer, ThumbsUp, TrendDown, TrendUp, Trophy, Volleyball, Warning, Wind,
+  CloudSun, Coffee, Compass, Drop, Eye, Fire, ForkKnife, Gear, Globe, Heart, Heartbeat, Hourglass,
+  ImageSquare, Lightbulb, Lightning, Link, Lock, Magnet, MagnifyingGlass, Microscope, Moon,
+  NotePencil, Pause, Pencil, PencilSimple, PersonSimpleRun, PersonSimpleWalk, Pill, SignOut,
+  Sneaker, Snowflake, SoccerBall, Sparkle, SmileyMeh, SmileyNervous, Suitcase, Sun, Target,
+  TestTube, Thermometer, ThumbsUp, TrendDown, TrendUp, Trophy, Virus, Volleyball, Warning, Wind,
   Wine, type Icon as PhosphorIcon,
 } from '@phosphor-icons/react'
 
@@ -88,6 +89,20 @@ export const ICONS = {
   // flags the reminder-editor's alarm clock (⏰), one of the glyphs earlier
   // batches found the plan's grep ranges missed. Mirrors that precedent.
   reminder:   { icon: Alarm,      emoji: '⏰' },
+  meal:       { icon: ForkKnife,     emoji: '🍽' },
+  water:      { icon: Drop,          emoji: '💧' },
+  meds:       { icon: Pill,          emoji: '💊' },
+  workout:    { icon: Barbell,       emoji: '🏋' },
+  illness:    { icon: Virus,         emoji: '🤒' },
+  stress:     { icon: SmileyNervous, emoji: '😰' },
+  travel:     { icon: Suitcase,      emoji: '🧳' },
+  note:       { icon: NotePencil,    emoji: '📝' },
+  edit:       { icon: Pencil,        emoji: '✏' },
+  editSimple: { icon: PencilSimple,  emoji: '✎' },
+  // Brief specifies Camera here, same as `photo` — that would violate the
+  // no-shared-component rule with no colour to distinguish them, so this
+  // uses ImageSquare instead. `photo` already covers Camera (batch 3).
+  snapshot:   { icon: ImageSquare,   emoji: '📸' },
 } as const satisfies Record<string, Entry>
 
 export type IconName = keyof typeof ICONS

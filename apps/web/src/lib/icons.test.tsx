@@ -77,6 +77,17 @@ const expectedComponentName: Record<IconName, string> = {
   photo: 'CameraIcon',
   locked: 'LockIcon',
   reminder: 'AlarmIcon',
+  meal: 'ForkKnifeIcon',
+  water: 'DropIcon',
+  meds: 'PillIcon',
+  workout: 'BarbellIcon',
+  illness: 'VirusIcon',
+  stress: 'SmileyNervousIcon',
+  travel: 'SuitcaseIcon',
+  note: 'NotePencilIcon',
+  edit: 'PencilIcon',
+  editSimple: 'PencilSimpleIcon',
+  snapshot: 'ImageSquareIcon',
 }
 
 afterEach(() => {

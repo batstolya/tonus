@@ -4,6 +4,7 @@ import { isDemoActive } from '../../lib/demo'
 import { demoInsert, demoRemove, demoId } from '../../lib/demoDb'
 import type { User } from '@supabase/supabase-js'
 import { useT } from '../../lib/i18n'
+import { Icon } from '../../lib/icons'
 
 const EVENT_TYPES = [
   { type: 'coffee', label: '☕ Кофе', unit: 'мл', defaultAmount: 200 },
@@ -146,7 +147,7 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
 
       {todayCoffee.length > 0 && cafNow > 10 && (
         <div className="caffeine-bar" title={t('Упрощённая модель: 80мг на 200мл, период полувыведения 5.5ч')}>
-          <span className="caffeine-icon">☕</span>
+          <span className="caffeine-icon"><Icon name="coffee" /></span>
           <span className="caffeine-text">
             {t('Кофеин сейчас')}: <b style={{ color: cafNow > 50 ? 'var(--red)' : cafNow > 25 ? '#f59e0b' : 'var(--green)' }}>{cafNow}{t('мг')}</b>
             {' · '}{t('к 23:00')}: <b style={{ color: cafBed > 30 ? 'var(--red)' : cafBed > 15 ? '#f59e0b' : 'var(--text-muted)' }}>{cafBed}{t('мг')}</b>
@@ -200,7 +201,7 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
                 onClick={() => setCustomDt(c => c ? '' : localDtNow())}
                 type="button"
               >
-                📅 {t('Дата')}<span className="time-chip-sub">{t('выбрать')}</span>
+                <Icon name="calendar" /> {t('Дата')}<span className="time-chip-sub">{t('выбрать')}</span>
               </button>
             </div>
             {customDt && (

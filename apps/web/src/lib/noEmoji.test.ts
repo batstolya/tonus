@@ -32,6 +32,9 @@ const PILOT_FILES = [
   'components/supplements/SupplementsScreen.tsx',
   'components/supplements/TreatmentTracker.tsx',
   'components/concerns/ConcernsScreen.tsx',
+  'components/intake/QuickLog.tsx',
+  'components/nutrition/MealLogger.tsx',
+  'components/nutrition/NutritionScreen.tsx',
 ]
 
 const REPLACED = Object.values(ICONS).map(e => e.emoji)
@@ -73,6 +76,34 @@ const KNOWN_NON_REGISTRY_COLLISIONS: Partial<Record<string, string[]>> = {
   // conversion sites — they just happen to share chevronRight's glyph.
   'components/supplements/SupplementsScreen.tsx': ['›', '‹'],
   'components/concerns/ConcernsScreen.tsx': ['›'],
+  // Different story from the rest of this map: QuickLog.tsx's EVENT_TYPES
+  // labels (e.g. '☕ Кофе') embed these emoji as part of a translation key.
+  // translate() falls back to the Russian source string on a missing key,
+  // so rewriting a label without updating every dictionary entry would
+  // silently regress uk/en users to Russian — out of scope for the icon
+  // rollout, left for the i18n pass. Only the standalone caffeine-icon and
+  // date-picker emoji in this file were converted to <Icon>.
+  //
+  // The label's weight-lifter glyph carries a variation selector ('🏋️',
+  // matching `sportGym`'s registered emoji byte-for-byte) even though the
+  // `workout` entry above was minted from the bare codepoint ('🏋', no
+  // selector) per the task brief; both forms need listing here since the
+  // REPLACED literal-match below checks each registered emoji independently
+  // and the bare form is also a true substring of the file's VS16 form.
+  'components/intake/QuickLog.tsx':
+    ['☕', '🍷', '🍽', '💧', '💊', '🏋', '🏋️', '🤒', '😰', '🧳', '📝'],
+}
+
+// Mirrors KNOWN_NON_REGISTRY_COLLISIONS above but for the broader
+// Extended_Pictographic sweep below, which has no per-file exemption
+// mechanism of its own. Same QuickLog.tsx translation-key rationale as the
+// comment on that map — kept as a separate list because the two checks
+// exist to catch different failure modes (a registered emoji left behind
+// vs. any new, unregistered pictographic character), and conflating their
+// exemptions would let a genuinely new stray emoji in QuickLog.tsx slip
+// through unnoticed.
+const KNOWN_TRANSLATION_KEY_EMOJI: Partial<Record<string, string[]>> = {
+  'components/intake/QuickLog.tsx': ['☕', '🍷', '🍽', '💧', '💊', '🏋', '🤒', '😰', '🧳', '📝'],
 }
 
 describe('converted files carry no emoji', () => {
@@ -101,7 +132,9 @@ describe('converted files carry no emoji', () => {
   for (const file of PILOT_FILES) {
     it(`${file} carries no unregistered pictographic character`, () => {
       const source = readFileSync(join(__dirname, '..', file), 'utf8')
-      const found = [...source.matchAll(PICTOGRAPHIC)].map(m => m[0]).filter(ch => !ALLOWED.has(ch))
+      const exempt = KNOWN_TRANSLATION_KEY_EMOJI[file] ?? []
+      const found = [...source.matchAll(PICTOGRAPHIC)].map(m => m[0])
+        .filter(ch => !ALLOWED.has(ch) && !exempt.includes(ch))
       expect(found, `${file} still contains ${found.join(' ')}`).toEqual([])
     })
   }

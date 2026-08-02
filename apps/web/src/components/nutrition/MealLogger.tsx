@@ -5,6 +5,7 @@ import { callFunction } from '../../lib/edgeFunctions'
 import { isDemoActive } from '../../lib/demo'
 import { demoInsert, demoId } from '../../lib/demoDb'
 import { useT } from '../../lib/i18n'
+import { Icon } from '../../lib/icons'
 
 interface MealResult {
   dish: string | null
@@ -177,9 +178,9 @@ export function MealLogger({ user, onSaved }: Props) {
   return (
     <div className="meal-logger">
       <div className="meal-logger-tabs">
-        <button className={`meal-tab${tab === 'photo' ? ' active' : ''}`} onClick={() => switchTab('photo')}>📸 {t('Фото')}</button>
-        <button className={`meal-tab${tab === 'search' ? ' active' : ''}`} onClick={() => switchTab('search')}>🔍 {t('Поиск')}</button>
-        <button className={`meal-tab${tab === 'text' ? ' active' : ''}`} onClick={() => switchTab('text')}>✏️ {t('Текст')}</button>
+        <button className={`meal-tab${tab === 'photo' ? ' active' : ''}`} onClick={() => switchTab('photo')}><Icon name="snapshot" /> {t('Фото')}</button>
+        <button className={`meal-tab${tab === 'search' ? ' active' : ''}`} onClick={() => switchTab('search')}><Icon name="search" /> {t('Поиск')}</button>
+        <button className={`meal-tab${tab === 'text' ? ' active' : ''}`} onClick={() => switchTab('text')}><Icon name="edit" /> {t('Текст')}</button>
       </div>
 
       {tab === 'photo' && (
@@ -191,7 +192,7 @@ export function MealLogger({ user, onSaved }: Props) {
         >
           {preview
             ? <img src={preview} alt="" className="meal-preview" onClick={() => fileRef.current?.click()} />
-            : <div className="meal-drop-hint"><span>📷</span><span>{t('Нажми или перетащи фото блюда')}</span></div>}
+            : <div className="meal-drop-hint"><span><Icon name="photo" /></span><span>{t('Нажми или перетащи фото блюда')}</span></div>}
           {/* без capture — на телефоне OS даёт выбор: камера или галерея */}
           <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
             onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = '' }} />
@@ -266,7 +267,7 @@ export function MealLogger({ user, onSaved }: Props) {
 
       {editResult && (
         <div className="meal-result">
-          <div className="meal-result-dish">🍽 <b>{editResult.dish || t('Блюдо')}</b></div>
+          <div className="meal-result-dish"><Icon name="meal" /> <b>{editResult.dish || t('Блюдо')}</b></div>
           <div className="meal-result-fields">
             {([
               ['calories', t('ккал')],
