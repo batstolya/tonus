@@ -21,6 +21,7 @@ import {
   isAiConsentRequired,
 } from '../_shared/aiConsent.ts'
 import { corsHeadersFor } from '../_shared/cors.ts'
+import { langPrepositional } from '../_shared/replyLang.ts'
 import { consumeRateLimit, rateLimitedResponse } from '../_shared/rateLimit.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
@@ -120,9 +121,9 @@ serve(async (req) => {
     if (sessionId !== null && sessionId !== undefined && !isValidChatSessionId(sessionId)) {
       return new Response('Invalid session', { status: 400, headers: CORS })
     }
-    // Язык ответа = язык интерфейса пользователя (данные в контексте всегда на русском)
-    const LANG_NAMES: Record<string, string> = { ru: 'русском', uk: 'украинском', en: 'английском' }
-    const replyLang = LANG_NAMES[lang as string] ?? 'русском'
+    // Язык ответа = язык интерфейса пользователя (данные в контексте всегда
+    // по-русски). Таблица языков — общая с остальными AI-функциями.
+    const replyLang = langPrepositional(lang)
 
     // Resolve caller-supplied sessions before budget or health-data access. The
     // service-role client bypasses RLS, so both IDs are mandatory here.

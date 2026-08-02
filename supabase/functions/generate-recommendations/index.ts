@@ -3,6 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { checkBudget, budgetExceededMessage } from '../_shared/costGuard.ts'
 import { aiConsentRequiredResponse, fetchGeminiWithConsent, isAiConsentRequired } from '../_shared/aiConsent.ts'
 import { corsHeadersFor } from '../_shared/cors.ts'
+import { langInstruction } from '../_shared/replyLang.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -36,6 +37,9 @@ serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
     const { data: { user }, error } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
     if (error || !user) return new Response('Unauthorized', { status: 401, headers: CORS })
+
+    // Тело нужно только ради языка ответа; вызов без тела остаётся валидным.
+    const { lang } = await req.json().catch(() => ({ lang: undefined })) as { lang?: string }
     // AI Cost Guard
     const budget = await checkBudget(supabase, user.id)
     if (!budget.ok) return new Response(JSON.stringify({ error: 'budget_exceeded', message: budgetExceededMessage(budget) }), { status: 402, headers: { ...CORS, 'Content-Type': 'application/json' } })
@@ -105,7 +109,8 @@ ${digest}
 - Не предлагай агрессивных целей по калориям/нагрузке
 - Используй поддерживающий тон, без штрафных формулировок
 - Если данных по метрике нет — не включай в список
-- Максимум 3 рекомендации`
+- Максимум 3 рекомендации
+${langInstruction(lang)}`
 
     const geminiRes = await fetchGeminiWithConsent(
       supabase,
