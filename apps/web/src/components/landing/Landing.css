@@ -12,7 +12,7 @@
 }
 .lp-glow { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.16; }
 .lp-glow-a { width: 520px; height: 520px; top: -160px; left: 8%; background: var(--accent); animation: lp-breathe 12s ease-in-out infinite; }
-.lp-glow-b { width: 420px; height: 420px; top: 60px; right: 4%; background: #9f7cff; animation: lp-breathe 14s ease-in-out 2s infinite; }
+.lp-glow-b { width: 420px; height: 420px; top: 60px; right: 4%; background: var(--ok); animation: lp-breathe 14s ease-in-out 2s infinite; }
 /* Только transform: статичную opacity задаёт .lp-glow (у светлой темы своя) */
 @keyframes lp-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
 @media (prefers-reduced-motion: reduce) { .lp-glow { animation: none; } }
@@ -38,7 +38,7 @@
 }
 
 .lp-grad-text {
-  background: linear-gradient(100deg, var(--accent), #9f7cff);
+  background: linear-gradient(100deg, var(--accent), var(--ok));
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 
@@ -56,7 +56,7 @@
 .landing-lang { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; width: 34px; height: 34px; cursor: pointer; font-size: 15px; }
 .landing-ghost { background: none; border: none; color: var(--text-muted); padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 14px; }
 .landing-ghost:hover { color: var(--text); background: var(--surface2); }
-.landing-cta { background: var(--accent); color: #fff; border: none; border-radius: 12px; padding: 9px 18px; font-size: 14px; font-weight: 600; cursor: pointer; transition: transform .12s, filter .12s; }
+.landing-cta { background: var(--accent); color: var(--on-accent); border: none; border-radius: 12px; padding: 9px 18px; font-size: 14px; font-weight: 600; cursor: pointer; transition: transform .12s, filter .12s; }
 .landing-cta:hover { filter: brightness(1.08); transform: translateY(-1px); }
 .landing-cta-lg { padding: 14px 28px; font-size: 16px; }
 /* На узких экранах 5 кнопок топбара не влезают — прячем «Войти» (CTA остаётся) */
@@ -179,9 +179,9 @@
 .hiw-ab { display: flex; gap: 8px; width: 100%; max-width: 300px; }
 .hiw-period { flex: 1; height: 44px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 13px; }
 .hiw-period.a { background: color-mix(in srgb, var(--text-muted) 18%, transparent); }
-.hiw-period.b { background: color-mix(in srgb, var(--green, #5bc896) 30%, transparent); }
+.hiw-period.b { background: color-mix(in srgb, var(--green) 30%, transparent); }
 .hiw-result { display: flex; align-items: baseline; gap: 10px; font-size: 14px; color: var(--text-muted); }
-.hiw-result b { font-size: 32px; color: var(--green, #5bc896); }
+.hiw-result b { font-size: 32px; color: var(--green); }
 @media (max-width: 860px) {
   .hiw-grid { grid-template-columns: 1fr; }
   .hiw-sticky { display: none; }
@@ -194,7 +194,7 @@
 .chat-stage { max-width: 560px; margin: 0 auto 16px; padding: 20px; }
 .appchat { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 10px; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
 .appchat-msg { padding: 10px 14px; border-radius: 14px; max-width: 85%; }
-.appchat-msg.user { align-self: flex-end; background: var(--accent); color: #fff; }
+.appchat-msg.user { align-self: flex-end; background: var(--accent); color: var(--on-accent); }
 .appchat-msg.bot { align-self: flex-start; background: var(--surface2); }
 .appchat-typing { align-self: flex-start; color: var(--text-muted); font-size: 13px; }
 .appchat-caret { display: inline-block; width: 2px; height: 1em; background: var(--accent); margin-left: 2px; vertical-align: text-bottom; animation: lp-caret 0.8s step-start infinite; }
@@ -219,13 +219,13 @@
 .ld-ring-wrap { position: relative; width: 132px; flex: none; }
 .ld-ring { transform: rotate(-90deg); }
 .ld-ring-track { fill: none; stroke: var(--surface2); stroke-width: 9; }
-.ld-ring-fill { fill: none; stroke: var(--green, #5bc896); stroke-width: 9; stroke-linecap: round; }
+.ld-ring-fill { fill: none; stroke: var(--green); stroke-width: 9; stroke-linecap: round; }
 .ld-ring-num { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: 800; }
 .ld-ring-bars { flex: 1; display: flex; flex-direction: column; gap: 10px; }
 .ld-bar-row { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--text-muted); }
 .ld-bar-row > span { width: 110px; flex: none; }
 .ld-bar-track { flex: 1; height: 6px; border-radius: 4px; background: var(--surface2); overflow: hidden; }
-.ld-bar-fill { height: 100%; border-radius: 4px; background: var(--green, #5bc896); }
+.ld-bar-fill { height: 100%; border-radius: 4px; background: var(--green); }
 .ld-insights { display: flex; flex-direction: column; gap: 8px; padding: 4px 0; }
 .ld-insight { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; }
 .ld-insight-title { font-size: 13.5px; font-weight: 600; }
@@ -244,7 +244,7 @@
 .tg-phone-screen { border-radius: 22px; background: var(--bg); min-height: 340px; padding: 18px 12px; display: flex; flex-direction: column; gap: 10px; }
 .tg-msg { max-width: 85%; padding: 9px 12px; border-radius: 14px; font-size: 13.5px; line-height: 1.35; }
 .tg-msg.bot { background: var(--surface2); border-bottom-left-radius: 4px; align-self: flex-start; }
-.tg-msg.user { background: var(--accent); color: #fff; border-bottom-right-radius: 4px; align-self: flex-end; }
+.tg-msg.user { background: var(--accent); color: var(--on-accent); border-bottom-right-radius: 4px; align-self: flex-end; }
 .tg-chip { display: block; margin-top: 8px; font-size: 12px; color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent); border-radius: 8px; padding: 4px 10px; width: fit-content; }
 @media (max-width: 860px) { .tg-grid { grid-template-columns: 1fr; gap: 28px; } }
 
@@ -254,8 +254,8 @@
 
 [data-theme="light"] .lp-bg::before { opacity: 0.05; }
 [data-theme="light"] .lp-glow { opacity: 0.12; filter: blur(110px); }
-[data-theme="light"] .lp-glow-a { background: #b9c8ff; }
-[data-theme="light"] .lp-glow-b { background: #e6dcff; }
+[data-theme="light"] .lp-glow-a { background: color-mix(in srgb, var(--accent) 30%, transparent); }
+[data-theme="light"] .lp-glow-b { background: color-mix(in srgb, var(--ok) 35%, transparent); }
 
 /* Вместо стекла — белые карты с мягкой тенью */
 [data-theme="light"] .lp-glass {
@@ -277,14 +277,14 @@
 /* Фича-грид: пастельные карточки (фирменный приём mate) */
 [data-theme="light"] .feature-cell { border: none; box-shadow: none; }
 [data-theme="light"] .feature-cell:hover { box-shadow: 0 10px 26px rgba(17, 17, 24, 0.10); }
-[data-theme="light"] .feature-cell:nth-child(4n + 1) { background: #eef1ff; } /* лаванда */
-[data-theme="light"] .feature-cell:nth-child(4n + 2) { background: #e9f7ee; } /* мята */
-[data-theme="light"] .feature-cell:nth-child(4n + 3) { background: #fdf0e6; } /* персик */
-[data-theme="light"] .feature-cell:nth-child(4n)     { background: #fbf6e2; } /* лимон */
+[data-theme="light"] .feature-cell:nth-child(4n + 1) { background: color-mix(in srgb, var(--chart-1) 9%, var(--surface)); }
+[data-theme="light"] .feature-cell:nth-child(4n + 2) { background: color-mix(in srgb, var(--chart-2) 9%, var(--surface)); }
+[data-theme="light"] .feature-cell:nth-child(4n + 3) { background: color-mix(in srgb, var(--chart-3) 9%, var(--surface)); }
+[data-theme="light"] .feature-cell:nth-child(4n)     { background: color-mix(in srgb, var(--chart-4) 9%, var(--surface)); }
 
 /* Телефон Telegram: экран отличим от белой карты, бот-сообщения не сливаются */
-[data-theme="light"] .tg-phone-screen { background: #f2f2f7; }
-[data-theme="light"] .tg-msg.bot { background: #fff; border: 1px solid var(--border); }
+[data-theme="light"] .tg-phone-screen { background: var(--surface2); }
+[data-theme="light"] .tg-msg.bot { background: var(--surface); border: 1px solid var(--border); }
 
 /* Финальный CTA: свечение мягче, чем в тёмной */
 [data-theme="light"] .landing-final-cta::before {
