@@ -5,6 +5,7 @@ import {
 } from 'recharts'
 import type { DailyMetrics } from '../../types'
 import { useT } from '../../lib/i18n'
+import { Icon, type IconName } from '../../lib/icons'
 
 interface Props {
   daily: DailyMetrics[]
@@ -20,6 +21,19 @@ function getColor(steps: number): string {
   if (steps >= GOAL) return '#6c8fff'
   if (steps >= 5000) return '#f59e0b'
   return '#ff6b6b'
+}
+
+// The tooltip's level dot used to be a colored circle emoji (green/blue/
+// yellow/red) — the color alone carried the meaning, since all four are the
+// same glyph shape.
+// Phosphor's duotone Circle renders in a single currentColor regardless of
+// which registry name (dotOk/dotInfo/dotWarn/dotBad) it's under, so the hue
+// has to be reapplied explicitly here or all four render identically.
+function stepsLevel(steps: number): { icon: IconName; color: string; label: string } {
+  if (steps >= GREAT) return { icon: 'dotOk', color: 'var(--ok)', label: 'Отлично' }
+  if (steps >= GOAL) return { icon: 'dotInfo', color: 'var(--accent)', label: 'Цель достигнута' }
+  if (steps >= 5000) return { icon: 'dotWarn', color: 'var(--warn)', label: 'Умеренно' }
+  return { icon: 'dotBad', color: 'var(--bad)', label: 'Мало' }
 }
 
 // На уровне модуля (не внутри рендера): recharts вливает active/payload/label,
@@ -38,9 +52,15 @@ function CustomTooltip({ active, payload, label, t, locale }: {
     <div className="custom-tooltip">
       <p className="tooltip-date">{label}</p>
       <p style={{ color: getColor(steps) }}><strong>{steps.toLocaleString(locale)}</strong> {t('шагов')}</p>
-      {payload[0] && <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>
-        {steps >= GREAT ? `🟢 ${t('Отлично')}` : steps >= GOAL ? `🔵 ${t('Цель достигнута')}` : steps >= 5000 ? `🟡 ${t('Умеренно')}` : `🔴 ${t('Мало')}`}
-      </p>}
+      {payload[0] && (() => {
+        const lvl = stepsLevel(steps)
+        return (
+          <p style={{ color: 'var(--text-muted)', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ color: lvl.color, display: 'inline-flex' }}><Icon name={lvl.icon} size={10} /></span>
+            {t(lvl.label)}
+          </p>
+        )
+      })()}
     </div>
   )
 }

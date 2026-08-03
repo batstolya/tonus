@@ -11,15 +11,21 @@ import { loadNotesSummary } from '../../lib/chat'
 import { computeLevers, confidenceBadge, buildExperimentPrefill, EXPERIMENT_PREFILL_KEY, type Lever } from '../../lib/levers'
 import type { AppView } from '../../store/appStore'
 import { useT } from '../../lib/i18n'
+import { Icon, type IconName } from '../../lib/icons'
 
 interface Props { user: User; daily: DailyMetrics[]; onNavigate?: (view: AppView) => void }
 
 type Period = '14d' | '30d' | '90d'
 
-const BADGE: Record<'high' | 'medium' | 'low', { icon: string; title: string }> = {
-  high: { icon: '🟢', title: 'высокая уверенность' },
-  medium: { icon: '🟡', title: 'средняя уверенность' },
-  low: { icon: '🔴', title: 'мало данных' },
+// Phosphor's duotone Circle renders in `currentColor` regardless of which
+// registry name it's under (dotOk/dotWarn/dotBad all point at the same
+// component) — the green/yellow/red circle emoji this replaces carried the
+// hue on its own, so the color has to be reapplied explicitly on the
+// wrapping span or all three badges render identically.
+const BADGE: Record<'high' | 'medium' | 'low', { icon: IconName; title: string; color: string }> = {
+  high: { icon: 'dotOk', title: 'Высокая уверенность', color: 'var(--green)' },
+  medium: { icon: 'dotWarn', title: 'Средняя уверенность', color: 'var(--warn)' },
+  low: { icon: 'dotBad', title: 'Мало данных', color: 'var(--red)' },
 }
 
 function FindingRow({ f }: { f: Finding }) {
@@ -38,13 +44,13 @@ function FindingRow({ f }: { f: Finding }) {
     <div className="research-finding">
       <div className="research-finding-main">
         <span className="research-finding-pair">
-          {factorLabel(f.a, t)} {f.kind === 'corr' ? '↔' : '→'} {factorLabel(f.b, t)}
-          {f.modifiable === false && <span title={t('внешний фактор')} style={{ marginLeft: 4 }}>🌍</span>}
+          {factorLabel(f.a, t)} {f.kind === 'corr' ? <Icon name="swap" size={14} /> : '→'} {factorLabel(f.b, t)}
+          {f.modifiable === false && <span style={{ marginLeft: 4 }}><Icon name="world" size={12} title={t('внешний фактор')} /></span>}
         </span>
         <span className="research-finding-metric" style={{ color }}>{metric}</span>
       </div>
       <span className="research-finding-n">
-        {(() => { const b = BADGE[confidenceBadge(f)]; return <span title={b.title} style={{ marginRight: 6 }}>{b.icon}</span> })()}
+        {(() => { const b = BADGE[confidenceBadge(f)]; return <span style={{ marginRight: 6, color: b.color }}><Icon name={b.icon} size={12} title={t(b.title)} /></span> })()}
         n={f.n}
       </span>
     </div>
@@ -75,7 +81,7 @@ function LeversBlock({ levers, onTry }: { levers: Lever[]; onTry: (l: Lever) => 
               <span className="research-finding-pair">{factorLabel(l.factorLabel, t)} → {factorLabel(l.outcomeLabel, t)}</span>
               <span className="research-finding-metric" style={{ color: l.direction === 'neg' ? 'var(--red)' : 'var(--green)' }}>{l.impactText}</span>
             </div>
-            <span title={b.title} style={{ marginRight: 8 }}>{b.icon}</span>
+            <span style={{ marginRight: 8, color: b.color }}><Icon name={b.icon} size={12} title={t(b.title)} /></span>
             <button className="preset" onClick={() => onTry(l)}>{t('Проверить экспериментом')}</button>
           </div>
         )
@@ -169,7 +175,7 @@ export function ResearchScreen({ user, daily, onNavigate }: Props) {
             ))}
           </div>
           <button className="btn-primary" onClick={handleRun} disabled={loading}>
-            {loading ? <><span className="ai-spinner" /> {t('Анализируем…')}</> : `🔍 ${t('Найти взаимосвязи')}`}
+            {loading ? <><span className="ai-spinner" /> {t('Анализируем…')}</> : <><Icon name="search" size={14} /> {t('Найти взаимосвязи')}</>}
           </button>
         </div>
       </div>
@@ -180,7 +186,7 @@ export function ResearchScreen({ user, daily, onNavigate }: Props) {
 
       {migrationNeeded && (
         <div className="auth-error" style={{ marginBottom: 16, fontSize: 13 }}>
-          ⚠️ {t('Архив не сохраняется — запусти research.sql в Supabase SQL Editor.')}
+          <Icon name="warning" size={14} /> {t('Архив не сохраняется — запусти research.sql в Supabase SQL Editor.')}
         </div>
       )}
       {error && <p className="auth-error">{error}</p>}

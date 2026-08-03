@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { DailyMetrics } from '../../types'
 import { useT } from '../../lib/i18n'
+import { Icon, type IconName } from '../../lib/icons'
 import {
   computeResult, expStatusInfo, effectLabel, effectSegments, metricLabel,
   firstMetricDate, daysBetween, localDate, MIN_N,
@@ -16,10 +17,10 @@ interface Props {
   onDelete: (id: string) => void
 }
 
-const METRIC_ICONS: Record<string, string> = {
-  hrv: '💓', restingHeartRate: '🫀', heartRate: '❤️',
-  sleepHours: '😴', sleepDeep: '🌙', sleepREM: '💤',
-  steps: '👟', activeEnergy: '🔥', oxygenSaturation: '🫁',
+const METRIC_ICONS: Record<string, IconName> = {
+  hrv: 'pulse', restingHeartRate: 'alertHigh', heartRate: 'heart',
+  sleepHours: 'sleeping', sleepDeep: 'moon', sleepREM: 'sleepDebt',
+  steps: 'shoes', activeEnergy: 'streak', oxygenSaturation: 'breathing',
 }
 
 type T = (ru: string, vars?: Record<string, string | number>) => string
@@ -97,7 +98,7 @@ export function ExperimentCard({ exp, daily, aiLoading, aiError, onExplain, onDe
   return (
     <div className={`expc${st.kind === 'active' ? ' expc-hero' : ''}`}>
       <div className="expc-top">
-        <div className="expc-icon" aria-hidden>{METRIC_ICONS[exp.target_metric] ?? '📊'}</div>
+        <div className="expc-icon"><Icon name={METRIC_ICONS[exp.target_metric] ?? 'chart'} size={20} /></div>
         <div className="expc-heading">
           <h3 className="expc-title">{exp.hypothesis}</h3>
           <p className="expc-rule">{exp.change_rule}</p>
@@ -150,7 +151,7 @@ export function ExperimentCard({ exp, daily, aiLoading, aiError, onExplain, onDe
       {hasResult && exp.ai_explanation && (
         <div className="expc-ai">
           <button className="expc-ai-toggle" onClick={() => setShowAI(s => !s)}>
-            <span className="expc-ai-badge" aria-hidden>✨</span>
+            <span className="expc-ai-badge"><Icon name="magic" size={14} /></span>
             {t('Разбор ИИ')}
             <span className="expc-ai-chevron" aria-hidden>{showAI ? '▴' : '▾'}</span>
           </button>
@@ -161,7 +162,7 @@ export function ExperimentCard({ exp, daily, aiLoading, aiError, onExplain, onDe
         <div className="expc-foot">
           <span className="expc-caveat">{t('Наблюдение, не доказательство. Другие факторы могут объяснять изменение.')}</span>
           <button className="expc-ai-btn" disabled={aiLoading} onClick={() => onExplain(exp, result)}>
-            {aiLoading ? t('Объясняет ИИ…') : <>✨ {t('Объяснить результат (ИИ)')}</>}
+            {aiLoading ? t('Объясняет ИИ…') : <><Icon name="magic" size={14} /> {t('Объяснить результат (ИИ)')}</>}
           </button>
         </div>
       )}

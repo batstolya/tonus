@@ -18,6 +18,30 @@ const PILOT_FILES = [
   'components/dashboard/ActivityCalendar.tsx',
   'components/dashboard/AiAnalysisBlock.tsx',
   'components/ui/DataGapsBadge.tsx',
+  'components/research/ExperimentCard.tsx',
+  'components/research/ExperimentsScreen.tsx',
+  'components/research/ResearchScreen.tsx',
+  'components/goals/GoalsScreen.tsx',
+  'components/insights/CorrelationsBlock.tsx',
+  'components/insights/InsightsScreen.tsx',
+  'components/activity/ActivityScreen.tsx',
+  'components/heart-rate/HeartRateScreen.tsx',
+  'components/stress-map/StressMapScreen.tsx',
+  'components/supplements/AdherenceBlock.tsx',
+  'components/supplements/SupplementSchedule.tsx',
+  'components/supplements/SupplementsScreen.tsx',
+  'components/supplements/TreatmentTracker.tsx',
+  'components/concerns/ConcernsScreen.tsx',
+  'components/intake/QuickLog.tsx',
+  'components/nutrition/MealLogger.tsx',
+  'components/nutrition/NutritionScreen.tsx',
+  'components/settings/DoctorReport.tsx',
+  'components/settings/sections/EnvironmentSection.tsx',
+  'components/settings/sections/ExportSection.tsx',
+  'components/settings/sections/ImportSection.tsx',
+  'components/settings/sections/TelegramSection.tsx',
+  'components/upload/UploadScreen.tsx',
+  'components/onboarding/guide/StepSchedule.tsx',
 ]
 
 const REPLACED = Object.values(ICONS).map(e => e.emoji)
@@ -54,6 +78,60 @@ function derivePilotFiles(): string[] {
 // check for genuine leftover emoji.
 const KNOWN_NON_REGISTRY_COLLISIONS: Partial<Record<string, string[]>> = {
   'components/dashboard/ActivityCalendar.tsx': ['›'],
+  // Same story: SupplementsScreen's month-nav '›' and ConcernsScreen's card
+  // disclosure '›' predate the icon registry and aren't emoji->icon
+  // conversion sites — they just happen to share chevronRight's glyph.
+  // (SupplementsScreen's month-nav also renders a '‹' — no registry entry
+  // uses that glyph, so it was never flagged and needs no exemption here.)
+  'components/supplements/SupplementsScreen.tsx': ['›'],
+  'components/concerns/ConcernsScreen.tsx': ['›'],
+  // Different story from the rest of this map: QuickLog.tsx's EVENT_TYPES
+  // labels (e.g. '☕ Кофе') embed these emoji as part of a translation key.
+  // translate() falls back to the Russian source string on a missing key,
+  // so rewriting a label without updating every dictionary entry would
+  // silently regress uk/en users to Russian — out of scope for the icon
+  // rollout, left for the i18n pass. Only the standalone caffeine-icon and
+  // date-picker emoji in this file were converted to <Icon>.
+  //
+  // The label's weight-lifter glyph carries a variation selector ('🏋️'),
+  // byte-for-byte identical to `sportGym`'s registered emoji — that's the
+  // only weight-lifter form registered now. An earlier draft of this
+  // rollout also registered a `workout` entry for the bare, selector-less
+  // codepoint ('🏋', no variation selector), but that codepoint appears
+  // nowhere in the codebase (this label's glyph has always carried the
+  // selector) and `workout` reused `sportGym`'s Barbell component with no
+  // colour to distinguish them, so `workout` was removed as dead and
+  // colliding.
+  //
+  // The '›' below is the same story as the three files above, not an emoji at
+  // all: QuickLog's day-nav arrows are typographic chevrons that arrived with
+  // the day-paging feature, matching ActivityCalendar's and SupplementsScreen's
+  // month-nav. They predate no emoji and are not conversion sites.
+  'components/intake/QuickLog.tsx':
+    ['☕', '🍷', '🍽', '💧', '💊', '🏋️', '🤒', '😰', '🧳', '📝', '›'],
+}
+
+// Mirrors KNOWN_NON_REGISTRY_COLLISIONS above but for the broader
+// Extended_Pictographic sweep below, which has no per-file exemption
+// mechanism of its own. Same QuickLog.tsx translation-key rationale as the
+// comment on that map — kept as a separate list because the two checks
+// exist to catch different failure modes (a registered emoji left behind
+// vs. any new, unregistered pictographic character), and conflating their
+// exemptions would let a genuinely new stray emoji in QuickLog.tsx slip
+// through unnoticed.
+//
+// Each value is pinned to the exact number of times that glyph appears in
+// today's EVENT_TYPES label array (every glyph below appears exactly once,
+// as the first character of its label). A plain "these glyphs are exempt"
+// list would filter the glyph out of the *whole file's* source text, so an
+// extra occurrence added elsewhere in QuickLog.tsx — e.g. a fresh standalone
+// JSX node — would silently pass. Pinning the count instead means the sweep
+// below fails the moment the observed count no longer matches, catching
+// exactly the regression a bare allow-list would miss.
+const KNOWN_TRANSLATION_KEY_EMOJI_COUNTS: Partial<Record<string, Record<string, number>>> = {
+  'components/intake/QuickLog.tsx': {
+    '☕': 1, '🍷': 1, '🍽': 1, '💧': 1, '💊': 1, '🏋': 1, '🤒': 1, '😰': 1, '🧳': 1, '📝': 1,
+  },
 }
 
 describe('converted files carry no emoji', () => {
@@ -82,8 +160,25 @@ describe('converted files carry no emoji', () => {
   for (const file of PILOT_FILES) {
     it(`${file} carries no unregistered pictographic character`, () => {
       const source = readFileSync(join(__dirname, '..', file), 'utf8')
-      const found = [...source.matchAll(PICTOGRAPHIC)].map(m => m[0]).filter(ch => !ALLOWED.has(ch))
-      expect(found, `${file} still contains ${found.join(' ')}`).toEqual([])
+      const exemptCounts = KNOWN_TRANSLATION_KEY_EMOJI_COUNTS[file] ?? {}
+      const matches = [...source.matchAll(PICTOGRAPHIC)].map(m => m[0])
+
+      // Anything pictographic that isn't globally allowed and isn't one of
+      // this file's pinned-count exemptions is an unconditional failure.
+      const unexpected = matches.filter(ch => !ALLOWED.has(ch) && !(ch in exemptCounts))
+      expect(unexpected, `${file} still contains ${unexpected.join(' ')}`).toEqual([])
+
+      // Exempted glyphs are only exempt up to their pinned count: an extra
+      // occurrence (e.g. the same glyph reintroduced as a standalone JSX
+      // node) pushes the observed count past the pin and fails here.
+      const counts: Record<string, number> = {}
+      for (const ch of matches) counts[ch] = (counts[ch] ?? 0) + 1
+      for (const [ch, expectedCount] of Object.entries(exemptCounts)) {
+        expect(
+          counts[ch] ?? 0,
+          `${file}: expected exactly ${expectedCount} occurrence(s) of ${ch}, found ${counts[ch] ?? 0}`,
+        ).toBe(expectedCount)
+      }
     })
   }
 })

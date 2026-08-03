@@ -66,7 +66,14 @@ export const metrics: Record<string, Translation> = {
 
   // ── Карта стресса ──────────────────────────────────────────
   'Карта стресса': { uk: 'Карта стресу', en: 'Stress map' },
+  // StressMapScreen.tsx no longer renders the combined key below — the ↔ is
+  // now an Icon (registry: swap) between the two plain-text keys that follow
+  // it. Left in place unused rather than edited/removed: the icon rollout
+  // plan treats an emoji already baked into an existing translation key as
+  // off-limits to touch.
   'Карта стресса — пульс ↔ события': { uk: 'Карта стресу — пульс ↔ події', en: 'Stress map — heart rate ↔ events' },
+  'Карта стресса — пульс': { uk: 'Карта стресу — пульс', en: 'Stress map — heart rate' },
+  'события': { uk: 'події', en: 'events' },
   'События отсортированы по нагрузке на сердце (превышение над базовым уровнем). Физическая активность помечена отдельно.': { uk: 'Події відсортовані за навантаженням на серце (перевищення над базовим рівнем). Фізична активність позначена окремо.', en: 'Events are sorted by cardiac load (rise above baseline). Physical activity is marked separately.' },
   'По стрессу': { uk: 'За стресом', en: 'By stress' },
   'По дате': { uk: 'За датою', en: 'By date' },

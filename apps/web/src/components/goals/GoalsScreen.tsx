@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import type { User } from '@supabase/supabase-js'
 import type { DailyMetrics } from '../../types'
 import { useT } from '../../lib/i18n'
+import { Icon, type IconName } from '../../lib/icons'
 import {
   loadGoals, createGoal, updateGoalStatus, deleteGoal, finalizeExpiredGoals,
   loadRecommendations, updateRecommendationStatus,
@@ -42,10 +43,11 @@ const STATUS_COLOR: Record<string, string> = {
   no_data: 'var(--text-muted)',
 }
 
-const TREND_ICON: Record<string, string> = {
-  improving: '↗',
-  stable: '→',
-  worsening: '↘',
+// 'stable' stays a literal '→': it's not in Extended_Pictographic (unlike its
+// diagonal siblings below) so it never needed a registry entry.
+const TREND_ICON: Record<'improving' | 'worsening', IconName> = {
+  improving: 'arrowUpRight',
+  worsening: 'arrowDownRight',
 }
 
 const DURATION_OPTIONS = [
@@ -169,7 +171,7 @@ export function GoalsScreen({ user, daily }: Props) {
         <h2>{t('Цели и прогресс')}</h2>
         <div style={{ display: 'flex', gap: 10 }}>
           <button className="btn-secondary" onClick={handleGenerate} disabled={genLoading}>
-            {genLoading ? `⏳ ${t('Анализ…')}` : `✨ ${t('Предложить ИИ')}`}
+            {genLoading ? <><Icon name="pending" size={14} /> {t('Анализ…')}</> : <><Icon name="magic" size={14} /> {t('Предложить ИИ')}</>}
           </button>
           <button className="btn-primary" onClick={() => setShowForm(s => !s)}>
             {showForm ? t('Отмена') : `+ ${t('Цель')}`}
@@ -225,7 +227,7 @@ export function GoalsScreen({ user, daily }: Props) {
       {/* Recommendations */}
       {recs.length > 0 && (
         <div className="goals-recs-section">
-          <h3 className="goals-section-title">💡 {t('Рекомендации ИИ')}</h3>
+          <h3 className="goals-section-title"><Icon name="idea" size={16} /> {t('Рекомендации ИИ')}</h3>
           {recs.map(rec => (
             <div key={rec.id} className="goal-rec-card">
               <div className="goal-rec-body">
@@ -257,7 +259,7 @@ export function GoalsScreen({ user, daily }: Props) {
       {activeGoals.length === 0 && !showForm && recs.length === 0 && (
         <div className="goals-empty">
           <p>{t('Целей пока нет.')}</p>
-          <p>{t('Нажми')} <b>+ {t('Цель')}</b> {t('чтобы создать вручную или')} <b>✨ {t('Предложить ИИ')}</b> {t('для автоматических рекомендаций.')}</p>
+          <p>{t('Нажми')} <b>+ {t('Цель')}</b> {t('чтобы создать вручную или')} <b><Icon name="magic" size={14} /> {t('Предложить ИИ')}</b> {t('для автоматических рекомендаций.')}</p>
         </div>
       )}
 
@@ -279,7 +281,11 @@ export function GoalsScreen({ user, daily }: Props) {
                   <div className="goal-card-body">
                     <div className="goal-card-title">
                       {goal.title}
-                      {prog.trend && <span className="goal-trend" title={prog.trend}>{TREND_ICON[prog.trend]}</span>}
+                      {prog.trend && (
+                        <span className="goal-trend" title={prog.trend}>
+                          {prog.trend === 'stable' ? '→' : <Icon name={TREND_ICON[prog.trend]} size={12} />}
+                        </span>
+                      )}
                     </div>
                     <div className="goal-card-meta">
                       {cfg && goal.baseline_value !== null &&
@@ -298,7 +304,7 @@ export function GoalsScreen({ user, daily }: Props) {
                   <div className="goal-card-actions">
                     <button className="supp-delete" title={t('Пауза')}
                       onClick={() => { updateGoalStatus(goal.id, 'paused'); setGoals(g => g.filter(x => x.id !== goal.id)) }}>
-                      ⏸
+                      <Icon name="pause" size={13} title={t('Пауза')} />
                     </button>
                     <button className="supp-delete" title={t('Удалить')}
                       onClick={() => { deleteGoal(goal.id); setGoals(g => g.filter(x => x.id !== goal.id)) }}>
@@ -321,8 +327,10 @@ export function GoalsScreen({ user, daily }: Props) {
               const achieved = goal.status === 'achieved'
               return (
                 <div key={goal.id} className="goal-card goal-card-finished">
-                  <div className="goal-card-left" aria-hidden style={{ fontSize: 26, width: 52, textAlign: 'center' }}>
-                    {achieved ? '🏆' : '✕'}
+                  <div className="goal-card-left" style={{ width: 52, textAlign: 'center' }}>
+                    {achieved
+                      ? <span style={{ color: 'var(--warn)' }}><Icon name="trophy" size={26} /></span>
+                      : <span aria-hidden style={{ fontSize: 26 }}>✕</span>}
                   </div>
                   <div className="goal-card-body">
                     <div className="goal-card-title">{goal.title}</div>

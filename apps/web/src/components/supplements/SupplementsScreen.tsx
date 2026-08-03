@@ -7,6 +7,7 @@ import {
   type Supplement, type SupplementLog, type ReminderSetting,
 } from '../../lib/supplements'
 import { useT } from '../../lib/i18n'
+import { Icon } from '../../lib/icons'
 import { describeNextReminder } from '../../lib/reminderTime'
 import { TreatmentTracker } from './TreatmentTracker'
 import { SupplementSchedule } from './SupplementSchedule'
@@ -205,7 +206,7 @@ export function SupplementsScreen({ user }: Props) {
 
       {stockError && (
         <div className="auth-error" style={{ marginBottom: 12, fontSize: 13 }}>
-          ⚠️ {t('Колонка не найдена в БД. Запусти в Supabase SQL Editor:')}<br/>
+          <Icon name="warning" size={14} /> {t('Колонка не найдена в БД. Запусти в Supabase SQL Editor:')}<br/>
           <code style={{ fontSize: 11 }}>alter table supplements add column if not exists stock_count integer default null;</code>
           <button style={{ marginLeft: 8, fontSize: 11, cursor: 'pointer' }} onClick={() => setStockError(null)}>✕</button>
         </div>
@@ -213,7 +214,7 @@ export function SupplementsScreen({ user }: Props) {
 
       {remError && (
         <div className="auth-error" style={{ marginBottom: 12, fontSize: 13 }}>
-          ⚠️ {remError}
+          <Icon name="warning" size={14} /> {remError}
           <button style={{ marginLeft: 8, fontSize: 11, cursor: 'pointer' }} onClick={() => setRemError(null)}>✕</button>
         </div>
       )}
@@ -230,7 +231,7 @@ export function SupplementsScreen({ user }: Props) {
                   <div className="supp-stock-info">
                     <div className="supp-stock-name">{sup.name}</div>
                     <div className="supp-stock-dose">{sup.default_dose ? `${sup.default_dose}${sup.unit ? ` ${sup.unit}` : ''}` : ''}</div>
-                    {low && <div className="supp-stock-warn">⚠ {t('Заканчивается')}</div>}
+                    {low && <div className="supp-stock-warn"><Icon name="warningPlain" size={12} /> {t('Заканчивается')}</div>}
                   </div>
                   <div className="supp-stock-split">
                     <button
@@ -276,7 +277,7 @@ export function SupplementsScreen({ user }: Props) {
         </div>
       )}
 
-      {/* ── 🕐 Идеальное время приёма — AI schedule ───────────── */}
+      {/* ── Идеальное время приёма — AI schedule ───────────── */}
       <AdherenceBlock supplements={supplements} refreshKey={logsVersion} />
 
       <SupplementSchedule user={user} supplements={supplements} />
@@ -357,7 +358,7 @@ export function SupplementsScreen({ user }: Props) {
         )
       })}
 
-      {/* ── 🔬 Работает ли? — Treatment tracker ───────────────── */}
+      {/* ── Работает ли? — Treatment tracker ───────────────── */}
       <TreatmentTracker user={user} />
     </div>
   )
@@ -420,7 +421,7 @@ function ReminderEditor({ setting, onSave }: {
           : next.offsetDays === 1
             ? t('Ближайшее: завтра в {time}', { time: next.time })
             : t('Ближайшее: через {n} дн в {time}', { n: next.offsetDays, time: next.time })
-        return <div className="rem-next">⏰ {label}</div>
+        return <div className="rem-next"><Icon name="reminder" size={14} /> {label}</div>
       })()}
 
       <div className="rem-weekdays">

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { useT } from '../../../lib/i18n'
 import { exportAllJSON, exportMetricsCSV } from '../../../lib/exportData'
+import { Icon } from '../../../lib/icons'
 import { ArchiveBtn, type SectionProps } from './ArchiveBtn'
 
 interface Props extends SectionProps {
@@ -34,13 +35,13 @@ export function ExportSection({ archived, onArchive, user, onShowDoctorReport }:
       </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <button className="btn-secondary" onClick={() => handleExport('json')} disabled={exporting !== null}>
-          {exporting === 'json' ? '…' : `📦 ${t('Полный бэкап (JSON)')}`}
+          {exporting === 'json' ? '…' : <><Icon name="archive" size={14} /> {t('Полный бэкап (JSON)')}</>}
         </button>
         <button className="btn-secondary" onClick={() => handleExport('csv')} disabled={exporting !== null}>
-          {exporting === 'csv' ? '…' : `📊 ${t('Метрики (CSV)')}`}
+          {exporting === 'csv' ? '…' : <><Icon name="chart" size={14} /> {t('Метрики (CSV)')}</>}
         </button>
         <button className="btn-secondary" onClick={onShowDoctorReport}>
-          {`🖨 ${t('Отчёт для врача')}`}
+          <Icon name="print" size={14} /> {t('Отчёт для врача')}
         </button>
       </div>
     </section>

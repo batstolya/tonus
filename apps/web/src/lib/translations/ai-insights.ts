@@ -43,6 +43,12 @@ export const ai_insights: Record<string, Translation> = {
   'сильная связь': { uk: 'сильний звʼязок', en: 'strong link' },
   'заметная связь': { uk: 'помітний звʼязок', en: 'notable link' },
   'дн.': { uk: 'дн.', en: 'days' },
+  // The direction icon between factor and outcome (CorrelationsBlock.tsx) is
+  // the only thing in the card that says whether the link is positive or
+  // negative — corr-meta shows lag/strength/n, not sign — so it needs a
+  // title, not just a re-tinted arrow glyph.
+  'растёт': { uk: 'зростає', en: 'rises' },
+  'падает': { uk: 'падає', en: 'falls' },
   'Кофе': { uk: 'Кава', en: 'Coffee' },
   'Алкоголь': { uk: 'Алкоголь', en: 'Alcohol' },
   'Тренировки': { uk: 'Тренування', en: 'Workouts' },
@@ -135,6 +141,7 @@ export const ai_insights: Record<string, Translation> = {
 
 
   // ── Загрузка файла ─────────────────────────────────────────
+  'Предупреждение': { uk: 'Попередження', en: 'Warning' },
   'Читаем архив Xiaomi…': { uk: 'Читаємо архів Xiaomi…', en: 'Reading Xiaomi archive…' },
   'Разбираем CSV файлы…': { uk: 'Розбираємо CSV файли…', en: 'Parsing CSV files…' },
   'Формируем метрики…': { uk: 'Формуємо метрики…', en: 'Building metrics…' },
@@ -290,6 +297,9 @@ export const ai_insights: Record<string, Translation> = {
 
   // ── Исследования: факторы и метки экрана ───────────────────
   'Что важнее всего': { uk: 'Що найважливіше', en: 'What matters most' },
+  'Высокая уверенность': { uk: 'Висока впевненість', en: 'High confidence' },
+  'Средняя уверенность': { uk: 'Середня впевненість', en: 'Medium confidence' },
+  'Мало данных': { uk: 'Мало даних', en: 'Not enough data' },
   'Проверить экспериментом': { uk: 'Перевірити експериментом', en: 'Test with an experiment' },
   'Самочувствие': { uk: 'Самопочуття', en: 'Wellbeing' },
   'Алкоголь (день)': { uk: 'Алкоголь (день)', en: 'Alcohol (day)' },

@@ -111,6 +111,7 @@ export const dashboard: Record<string, Translation> = {
   'ккал/день': { uk: 'ккал/день', en: 'kcal/day' },
   'Калории по дням': { uk: 'Калорії по днях', en: 'Calories by day' },
   'История': { uk: 'Історія', en: 'History' },
+  'Редактировать': { uk: 'Редагувати', en: 'Edit' },
   'Болезнь': { uk: 'Хвороба', en: 'Illness' },
   'Тренировка': { uk: 'Тренування', en: 'Workout' },
   'Поездка': { uk: 'Поїздка', en: 'Travel' },

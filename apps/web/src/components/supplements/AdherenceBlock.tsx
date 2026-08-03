@@ -4,6 +4,7 @@ import { getAdherenceLogs } from '../../lib/api/supplements'
 import { isDemoActive } from '../../lib/demo'
 import { demoList } from '../../lib/demoDb'
 import { useT } from '../../lib/i18n'
+import { Icon } from '../../lib/icons'
 import type { Supplement } from '../../lib/supplements'
 
 // Соблюдение препаратов (F6 smart-tonus): скользящее окно 14/30 дней
@@ -40,7 +41,7 @@ export function AdherenceBlock({ supplements, refreshKey = 0 }: { supplements: S
   return (
     <div className="ins-block adherence-block">
       <div className="ins-block-head">
-        <h3 className="ins-title">📈 {t('Соблюдение')}</h3>
+        <h3 className="ins-title"><Icon name="trendUp" size={16} /> {t('Соблюдение')}</h3>
         <div className="adherence-tabs">
           {([14, 30] as const).map(w => (
             <button key={w} className={`chat-period-btn ${win === w ? 'active' : ''}`} onClick={() => setWin(w)}>
@@ -59,7 +60,7 @@ export function AdherenceBlock({ supplements, refreshKey = 0 }: { supplements: S
           <div key={i.id} className="adherence-row">
             <span className="adherence-name">
               {i.name}
-              {i.streak >= 3 && <span className="adherence-streak"> 🔥 {i.streak} {t('дн.')}</span>}
+              {i.streak >= 3 && <span className="adherence-streak"> <Icon name="streak" size={14} /> {i.streak} {t('дн.')}</span>}
             </span>
             <div className="adherence-bar">
               <div

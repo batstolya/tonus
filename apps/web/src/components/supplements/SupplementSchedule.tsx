@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { useT } from '../../lib/i18n'
+import { Icon } from '../../lib/icons'
 import { saveReminder, type Supplement } from '../../lib/supplements'
 import { loadProfileBasics, type ProfileBasics } from '../../lib/api/settings'
 import {
   fetchSupplementSchedule, scheduleToReminderTimes, type Schedule,
 } from '../../lib/supplementSchedule'
 
-// 🕐 AI "ideal supplement timing" card on the supplements page. Reads age + sex
+// AI "ideal supplement timing" card on the supplements page. Reads age + sex
 // from the profile, calls the supplement-schedule edge function, renders the day
 // plan, and can write the recommended times into the existing reminders. The
 // profile is edited in Settings — two editors for one field drift apart.
@@ -61,9 +62,9 @@ export function SupplementSchedule({ user, supplements }: { user: User; suppleme
   return (
     <div className="supp-sched" style={{ marginTop: 28 }}>
       <div className="supp-sched-head">
-        <h3>🕐 {t('Идеальное время приёма')}</h3>
+        <h3><Icon name="clock" size={16} /> {t('Идеальное время приёма')}</h3>
         <button className="btn-suggest" onClick={handleGenerate} disabled={loading}>
-          {loading ? <span className="ai-spinner" /> : '✨'} {t('Подобрать (ИИ)')}
+          {loading ? <span className="ai-spinner" /> : <Icon name="magic" size={14} />} {t('Подобрать (ИИ)')}
         </button>
       </div>
 
@@ -73,7 +74,7 @@ export function SupplementSchedule({ user, supplements }: { user: User; suppleme
 
       {error && (
         <div className="auth-error" style={{ marginBottom: 12, fontSize: 13 }}>
-          ⚠️ {error}
+          <Icon name="warning" size={14} /> {error}
           <button style={{ marginLeft: 8, fontSize: 11, cursor: 'pointer' }} onClick={() => setError(null)}>✕</button>
         </div>
       )}

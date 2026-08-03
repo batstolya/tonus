@@ -5,6 +5,7 @@ import { computeDailyScores } from '../../lib/scores'
 import { getEnvironmentDays } from '../../lib/api/insights'
 import { isDemoActive } from '../../lib/demo'
 import { useT } from '../../lib/i18n'
+import { Icon, type IconName } from '../../lib/icons'
 
 // «Связи в твоих данных» (F3 smart-tonus): детерминированные лаг-корреляции,
 // движок — src/lib/correlations.ts. Работает и в демо (фикстурные 90 дней).
@@ -14,17 +15,17 @@ interface Props {
   intakeEvents: { ts: string; type: string }[]
 }
 
-const FACTOR_LABELS: Record<CorrFactor, { emoji: string; label: string }> = {
-  coffee: { emoji: '☕', label: 'Кофе' },
-  alcohol: { emoji: '🍷', label: 'Алкоголь' },
-  exerciseMinutes: { emoji: '🏃', label: 'Тренировки' },
-  steps: { emoji: '👟', label: 'Шаги' },
-  bedtime: { emoji: '🌙', label: 'Поздний отбой' },
-  pressure: { emoji: '🧭', label: 'Давление' },
-  pressureDelta: { emoji: '🌦️', label: 'Перепад давления' },
-  temp: { emoji: '🌡️', label: 'Температура за окном' },
-  daylight: { emoji: '☀️', label: 'Световой день' },
-  magneticStorm: { emoji: '🧲', label: 'Магнитные бури' },
+const FACTOR_LABELS: Record<CorrFactor, { icon: IconName; label: string }> = {
+  coffee: { icon: 'coffee', label: 'Кофе' },
+  alcohol: { icon: 'alcohol', label: 'Алкоголь' },
+  exerciseMinutes: { icon: 'exercise', label: 'Тренировки' },
+  steps: { icon: 'shoes', label: 'Шаги' },
+  bedtime: { icon: 'moon', label: 'Поздний отбой' },
+  pressure: { icon: 'compass', label: 'Давление' },
+  pressureDelta: { icon: 'weather', label: 'Перепад давления' },
+  temp: { icon: 'temperature', label: 'Температура за окном' },
+  daylight: { icon: 'sun', label: 'Световой день' },
+  magneticStorm: { icon: 'magnet', label: 'Магнитные бури' },
 }
 
 const OUTCOME_LABELS: Record<CorrOutcome, string> = {
@@ -55,7 +56,7 @@ export function CorrelationsBlock({ daily, intakeEvents }: Props) {
   if ('needMoreDays' in res) {
     return (
       <div className="ins-block">
-        <h3 className="ins-title">🔗 {t('Связи в твоих данных')}</h3>
+        <h3 className="ins-title"><Icon name="link" size={16} /> {t('Связи в твоих данных')}</h3>
         <p className="settings-muted">
           {t('Нужно ещё {n} дней данных, чтобы искать связи.').replace('{n}', String(res.needMoreDays))}
         </p>
@@ -67,14 +68,14 @@ export function CorrelationsBlock({ daily, intakeEvents }: Props) {
 
   return (
     <div className="ins-block">
-      <h3 className="ins-title">🔗 {t('Связи в твоих данных')}</h3>
+      <h3 className="ins-title"><Icon name="link" size={16} /> {t('Связи в твоих данных')}</h3>
       <div className="corr-list">
         {res.correlations.map(c => {
           const f = FACTOR_LABELS[c.factor]
           return (
             <div key={`${c.factor}-${c.outcome}-${c.lag}`} className={`corr-card ${c.strength}`}>
               <span className="corr-pair">
-                {f.emoji} {t(f.label)} → {c.direction === 'up' ? '📈' : '📉'} {t(OUTCOME_LABELS[c.outcome])}
+                <Icon name={f.icon} size={14} /> {t(f.label)} → <Icon name={c.direction === 'up' ? 'trendUp' : 'trendDown'} size={14} title={t(c.direction === 'up' ? 'растёт' : 'падает')} /> {t(OUTCOME_LABELS[c.outcome])}
               </span>
               <span className="corr-meta">
                 {t(c.lag === 1 ? 'на следующий день' : 'в тот же день')}

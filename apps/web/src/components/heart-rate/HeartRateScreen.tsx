@@ -5,6 +5,7 @@ import {
 } from 'recharts'
 import type { DailyMetrics } from '../../types'
 import { useT } from '../../lib/i18n'
+import { Icon, type IconName } from '../../lib/icons'
 import { computePeriodStats } from './periodStats'
 
 interface IntakeEvent {
@@ -24,9 +25,31 @@ interface Props {
 type Preset = '7d' | '30d' | '90d' | 'all'
 
 const OVERLAYS = [
-  { key: 'coffee', label: '☕ Кофе', color: '#f59e0b' },
-  { key: 'alcohol', label: '🍷 Алкоголь', color: '#f43f5e' },
+  { key: 'coffee', icon: 'coffee' as IconName, label: 'Кофе', color: '#f59e0b' },
+  { key: 'alcohol', icon: 'alcohol' as IconName, label: 'Алкоголь', color: '#f43f5e' },
 ] as const
+
+// ReferenceLine's `label` used to be the overlay's own emoji, sliced off the
+// front of its (now plain-text) label. With the emoji gone, render the
+// registry icon at the line's top instead — recharts calls a function label
+// with the line's own viewBox, so this places it centered above the line.
+// The overlay-toggle checkbox above the chart names each event type too, so
+// this marker's icon isn't its sole carrier of meaning — but the marker can
+// land far from that legend on a wide chart, so it still gets its own title
+// rather than leaning entirely on nearby text.
+function OverlayMarker({ viewBox, icon, color, title }: {
+  viewBox?: { x?: number; y?: number }
+  icon: IconName
+  color: string
+  title: string
+}) {
+  if (viewBox?.x == null || viewBox?.y == null) return null
+  return (
+    <g transform={`translate(${viewBox.x - 8}, ${viewBox.y - 20})`} style={{ color }}>
+      <Icon name={icon} size={16} title={title} />
+    </g>
+  )
+}
 
 function filterDays(daily: DailyMetrics[], preset: Preset): DailyMetrics[] {
   const withData = daily.filter(d => d.heartRate || d.restingHeartRate)
@@ -85,18 +108,18 @@ export function HeartRateScreen({ daily, intakeEvents = [] }: Props) {
 
   // Build reference lines for active overlays
   const referenceLines = useMemo(() => {
-    const lines: { date: string; color: string; label: string }[] = []
+    const lines: { date: string; color: string; icon: IconName; label: string }[] = []
     for (const [date, events] of coffeeByDate.entries()) {
       for (const ev of events) {
         const overlay = OVERLAYS.find(o => o.key === ev.type)
         if (!overlay || !shown.has(ev.type)) continue
         const d = data.find(d => d.fullDate === date)
         if (!d) continue
-        lines.push({ date: d.date, color: overlay.color, label: overlay.label.split(' ')[0] })
+        lines.push({ date: d.date, color: overlay.color, icon: overlay.icon, label: t(overlay.label) })
       }
     }
     return lines
-  }, [coffeeByDate, shown, data])
+  }, [coffeeByDate, shown, data, t])
 
   // «Неадекватно низкий» пульс: абсолютная брадикардия или заметно ниже
   // личной долгосрочной нормы — такие дни подсвечиваем в таблице.
@@ -127,7 +150,9 @@ export function HeartRateScreen({ daily, intakeEvents = [] }: Props) {
                 checked={shown.has(o.key)}
                 onChange={() => toggleOverlay(o.key)}
               />
-              <span style={{ color: shown.has(o.key) ? o.color : 'var(--text-muted)' }}>{t(o.label)}</span>
+              <span style={{ color: shown.has(o.key) ? o.color : 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <Icon name={o.icon} size={14} /> {t(o.label)}
+              </span>
             </label>
           ))}
         </div>
@@ -156,7 +181,9 @@ export function HeartRateScreen({ daily, intakeEvents = [] }: Props) {
               stroke={l.color}
               strokeWidth={2}
               strokeDasharray="4 3"
-              label={{ value: l.label, position: 'top', fontSize: 18, fill: l.color }}
+              label={(props: { viewBox?: { x?: number; y?: number } }) => (
+                <OverlayMarker viewBox={props.viewBox} icon={l.icon} color={l.color} title={l.label} />
+              )}
             />
           ))}
         </LineChart>

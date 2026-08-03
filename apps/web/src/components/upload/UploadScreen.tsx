@@ -6,6 +6,7 @@ import { parseXiaomiCSV } from '../../parsers/xiaomiParser'
 import type { ParseProgress, CalendarEvent } from '../../types'
 import type { DeviceType } from '../../store/appStore'
 import { useT } from '../../lib/i18n'
+import { Icon } from '../../lib/icons'
 
 interface Props {
   onProgress: (p: ParseProgress) => void
@@ -160,7 +161,7 @@ export function UploadScreen({ onProgress, onDone, onEvents, onError, progress, 
 
       {xiaomiWarnings.length > 0 && (
         <div className="upload-warnings">
-          {xiaomiWarnings.map((w, i) => <p key={i}>⚠️ {w}</p>)}
+          {xiaomiWarnings.map((w, i) => <p key={i}><Icon name="warning" title={t('Предупреждение')} /> {w}</p>)}
         </div>
       )}
 

@@ -5,6 +5,7 @@ import { getExperiments, createExperiment, saveExperimentResult, deleteExperimen
 import { callFunction } from '../../lib/edgeFunctions'
 import { EXPERIMENT_PREFILL_KEY, type ExperimentPrefill } from '../../lib/levers'
 import { useT } from '../../lib/i18n'
+import { Icon } from '../../lib/icons'
 import {
   METRIC_OPTIONS, isValidMetric, metricLabel, localDate, addDays,
   computeBaselineStart, expStatusInfo, effectLabel,
@@ -238,7 +239,7 @@ export function ExperimentsScreen({ user, daily }: Props) {
           <button className="btn-suggest" onClick={handleSuggest} disabled={suggestLoading}>
             {suggestLoading
               ? <><span className="ai-spinner" />{t('Подбираю…')}</>
-              : <><span aria-hidden>✨</span>{t('Подобрать (ИИ)')}</>}
+              : <><Icon name="magic" size={14} />{t('Подобрать (ИИ)')}</>}
           </button>
           <button className="btn btn-primary" onClick={() => setShowForm(s => !s)}>
             {showForm ? t('Отмена') : t('+ Новый')}
@@ -255,7 +256,7 @@ export function ExperimentsScreen({ user, daily }: Props) {
       {suggestions.length > 0 && (
         <div className="exp-suggest-block">
           <div className="exp-suggest-head">
-            <span><span aria-hidden>✨</span> {t('Предложено ИИ на основе твоих данных')}</span>
+            <span><Icon name="magic" size={14} /> {t('Предложено ИИ на основе твоих данных')}</span>
             <button className="exp-suggest-hide" onClick={() => setSuggestions([])}>{t('Скрыть')}</button>
           </div>
           <div className="exp-suggest-grid">
@@ -279,7 +280,7 @@ export function ExperimentsScreen({ user, daily }: Props) {
       {showForm && (
         <form className="exp-form" onSubmit={handleCreate}>
           <div className="exp-ai-row">
-            <div className="exp-ai-row-head"><span aria-hidden>✨</span> {t('ИИ-ассистент')}</div>
+            <div className="exp-ai-row-head"><Icon name="magic" size={14} /> {t('ИИ-ассистент')}</div>
             <div className="exp-ai-row-input">
               <input className="settings-input" placeholder={t('Опиши идею своими словами…')}
                 value={refineIdea} onChange={e => setRefineIdea(e.target.value)}
@@ -326,7 +327,7 @@ export function ExperimentsScreen({ user, daily }: Props) {
 
       {exps.length === 0 && !showForm ? (
         <div className="exp-empty">
-          <div className="exp-empty-emoji" aria-hidden>🧪</div>
+          <div className="exp-empty-emoji"><Icon name="lab" size={32} /></div>
           <p>{t('Нет экспериментов. Создай первый — проверь гипотезу с цифрами.')}</p>
         </div>
       ) : (
