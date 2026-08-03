@@ -2558,7 +2558,7 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 .dr-toolbar { display: flex; gap: 10px; justify-content: flex-end; padding: 12px 24px; }
 .dr-ai-error { text-align: center; font-size: 13px; color: var(--red); }
 
-.dr-doc { max-width: 760px; margin: 0 auto; padding: 24px; background: #fff; color: #111; border-radius: 8px; font-size: 13px; line-height: 1.45; }
+.dr-doc { max-width: 760px; margin: 0 auto; padding: 24px; background: #fff; color: #111; border-radius: 8px; font-size: 13px; line-height: 1.45; overflow-x: auto; }
 .dr-doc h1 { font-size: 20px; margin: 0 0 4px; }
 .dr-doc h2 { font-size: 15px; margin: 18px 0 6px; border-bottom: 1px solid #ddd; padding-bottom: 3px; }
 .dr-doc h3 { font-size: 13px; margin: 12px 0 4px; }
@@ -2566,6 +2566,14 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 .dr-disclaimer { color: #777; font-size: 11px; margin: 0 0 8px; }
 .dr-doc table { width: 100%; border-collapse: collapse; margin: 6px 0; break-inside: avoid; }
 .dr-doc th, .dr-doc td { border: 1px solid #ccc; padding: 4px 8px; text-align: left; }
+/* A table cannot render narrower than its min-content, so `width: 100%` does
+   not save a wide one. The sleep-by-night table carries twelve columns, which
+   put its min-content at 808px against a 712px page and a 680px A4 body — it
+   ran off both. It gets denser type of its own rather than the whole report
+   shrinking, and rather than a blanket word-break rule, which let ordinary
+   headers split into "Средн ее" and "Надёжно сть". Measured at 653px. */
+.dr-sleep-table { font-size: 11px; }
+.dr-sleep-table th, .dr-sleep-table td { padding: 3px 5px; }
 .dr-doc th { background: #f3f3f3; font-weight: 600; }
 .dr-flagged td { background: #fff3f0; font-weight: 600; }
 .dr-ai-block { border: 1.5px dashed #888; border-radius: 8px; padding: 10px 14px; margin-top: 16px; }
@@ -2574,7 +2582,8 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 @media print {
   body * { visibility: hidden; }
   .dr-doc, .dr-doc * { visibility: visible; }
-  .dr-doc { position: absolute; inset: 0; max-width: none; border-radius: 0; padding: 0; }
+  /* overflow-x: auto would clip on paper, where there is nothing to scroll. */
+  .dr-doc { position: absolute; inset: 0; max-width: none; border-radius: 0; padding: 0; overflow: visible; }
   .dr-toolbar, .dr-ai-error { display: none; }
   @page { size: A4; margin: 15mm; }
 }
