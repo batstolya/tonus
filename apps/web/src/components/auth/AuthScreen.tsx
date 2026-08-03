@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useT } from '../../lib/i18n'
 import TelegramDemo from './TelegramDemo'
+import { Icon } from '../../lib/icons'
 
 type Mode = 'login' | 'signup' | 'reset' | 'sent' | 'reset-sent'
 
@@ -61,7 +62,7 @@ export function AuthScreen({ onBack }: { onBack?: () => void } = {}) {
     <div className="auth-screen">
       <div className="auth-card">
         <div className="auth-sent">
-          <div className="auth-sent-icon">✉️</div>
+          <div className="auth-sent-icon"><Icon name="envelope" size={40} /></div>
           <h2>{t('Подтверди email')}</h2>
           <p>{t('Письмо отправлено на')} <strong>{email}</strong>.<br />{t('Перейди по ссылке в письме, затем войди.')}</p>
           <button className="btn-primary" style={{ marginTop: 8 }} onClick={() => switchMode('login')}>{t('Войти')}</button>
@@ -75,7 +76,7 @@ export function AuthScreen({ onBack }: { onBack?: () => void } = {}) {
     <div className="auth-screen">
       <div className="auth-card">
         <div className="auth-sent">
-          <div className="auth-sent-icon">🔑</div>
+          <div className="auth-sent-icon"><Icon name="key" size={40} /></div>
           <h2>{t('Письмо отправлено')}</h2>
           <p>{t('Проверь')} <strong>{email}</strong> — {t('там ссылка для сброса пароля.')}</p>
           <button className="btn-ghost" onClick={() => switchMode('login')}>{t('Вернуться ко входу')}</button>

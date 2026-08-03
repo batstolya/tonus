@@ -1,5 +1,6 @@
 import { m } from 'motion/react'
 import { useT } from '../../../lib/i18n'
+import { Icon } from '../../../lib/icons'
 
 const MESSAGES: { from: 'bot' | 'user'; text: string; chip?: string }[] = [
   { from: 'bot', text: '💊 Магний 400мг — пора принять', chip: '✓ Принял' },
@@ -20,7 +21,7 @@ export function TelegramBlock() {
     <section className="landing-block">
       <div className="tg-grid">
         <div className="tg-copy">
-          <h2 className="block-title">✈️ {t('Telegram — пульт от твоего здоровья')}</h2>
+          <h2 className="block-title"><Icon name="telegram" size={20} /> {t('Telegram — пульт от твоего здоровья')}</h2>
           <ul className="tg-bullets">
             {BULLETS.map(b => <li key={b}>{t(b)}</li>)}
           </ul>

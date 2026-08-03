@@ -9,6 +9,7 @@ import { TelegramBlock } from './blocks/TelegramBlock'
 import { FeatureGrid } from './blocks/FeatureGrid'
 import { FinalCta } from './blocks/FinalCta'
 import './Landing.css'
+import { Icon } from '../../lib/icons'
 
 export function LandingScreen({ onTry, onDemo, theme, onToggleTheme }: {
   onTry: () => void
@@ -42,7 +43,7 @@ export function LandingScreen({ onTry, onDemo, theme, onToggleTheme }: {
             <span className="landing-logo">Tonus</span>
             <div className="landing-topbar-right">
               <button className="landing-lang" onClick={onToggleTheme} aria-label={t('Сменить тему')} title={t('Сменить тему')}>
-                {theme === 'dark' ? '☀️' : '🌙'}
+                <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={16} />
               </button>
               <button className="landing-lang" onClick={() => setLang(nextLang)} aria-label="Язык">
                 {flag}

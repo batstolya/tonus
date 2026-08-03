@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { m } from 'motion/react'
 import { useT } from '../../../lib/i18n'
 import { useInView } from '../useInView'
+import { Icon } from '../../../lib/icons'
 
 function reducedMotion(): boolean {
   return typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
@@ -72,7 +73,7 @@ export function ChatBlock() {
 
   return (
     <section className="landing-block" ref={ref}>
-      <h2 className="block-title">💬 {t('Спрашивай о своём здоровье — отвечает по твоим данным')}</h2>
+      <h2 className="block-title"><Icon name="chat" size={20} /> {t('Спрашивай о своём здоровье — отвечает по твоим данным')}</h2>
       <div className="chat-stage lp-glass">
         <div className="appchat">
           <Exchange {...EXCHANGES[0]} start={inView} onDone={() => setStage(s => Math.max(s, 1))} />
