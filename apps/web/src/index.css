@@ -497,7 +497,7 @@ body {
 .stress-item.physical { border-color: var(--green); }
 .stress-event-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
 .stress-title { font-weight: 600; font-size: 15px; }
-.badge { font-size: 11px; background: var(--surface2); padding: 2px 8px; border-radius: 20px; }
+.badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; background: var(--surface2); padding: 2px 8px; border-radius: 20px; }
 .stress-date { font-size: 12px; color: var(--text-muted); margin-left: auto; }
 .stress-stats { display: flex; gap: 16px; font-size: 13px; color: var(--text-muted); flex-wrap: wrap; }
 .no-data { color: var(--text-muted); font-style: italic; }
@@ -883,7 +883,10 @@ body {
 .stress-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 4px; }
 .stress-header h2 { margin-bottom: 4px; }
 .stress-sort-tabs { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 3px; gap: 2px; }
-.stress-sort-btn { background: none; border: none; padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--text-muted); cursor: pointer; transition: background 0.15s, color 0.15s; white-space: nowrap; }
+/* inline-flex, not a bare inline box: the tab's icon is an inline svg, so it
+   sat on the text baseline and rode ~1.5px above the button's optical centre.
+   Same treatment as .type-btn. */
+.stress-sort-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: none; border: none; padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--text-muted); cursor: pointer; transition: background 0.15s, color 0.15s; white-space: nowrap; }
 .stress-sort-btn.active { background: var(--accent); color: var(--on-accent); }
 
 .source-toggle { display: flex; align-items: center; gap: 10px; cursor: pointer; flex-shrink: 0; margin-top: 8px; }
@@ -1556,6 +1559,9 @@ body {
 /* Inline icons sit on the text baseline where the replaced emoji used to
    sit — nudge them up so they read centered in the sentence, not low. */
 .coach-focus-label svg { vertical-align: -0.15em; }
+/* Headings stay inline (flex would change how they wrap), so their icons get
+   the same baseline nudge as the other inline-icon text above. */
+.screen h2 svg, .screen h3 svg { vertical-align: -0.15em; }
 .coach-focus-count { font-size: 12px; color: var(--text-muted); }
 .coach-focus-text { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
 .coach-focus-btn { border: 1px solid var(--accent); background: transparent; color: var(--accent-text); border-radius: var(--r-control); padding: 8px 16px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
@@ -1612,7 +1618,7 @@ body {
 .supp-stock-info { flex: 1; padding: 12px 14px 10px; display: flex; flex-direction: column; }
 .supp-stock-name { font-size: 13px; font-weight: 600; line-height: 1.3; min-height: 2.6em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 2px; }
 .supp-stock-dose { font-size: 11px; color: var(--text-muted); min-height: 15px; }
-.supp-stock-warn { font-size: 11px; color: var(--red); margin-top: 4px; }
+.supp-stock-warn { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--red); margin-top: 4px; }
 
 /* Split button */
 .supp-stock-split { display: flex; border-top: 1px solid var(--border); height: 52px; }
@@ -2216,7 +2222,7 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
   background: var(--surface2); border: 1px solid transparent;
 }
 .corr-card.strong { border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
-.corr-pair { font-weight: 600; font-size: 14px; }
+.corr-pair { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; font-size: 14px; }
 .corr-meta { font-size: 12.5px; color: var(--muted, #888); }
 .corr-note { margin-top: 10px; font-size: 12.5px; }
 
@@ -2226,7 +2232,7 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 .adherence-list { display: flex; flex-direction: column; gap: 8px; }
 .adherence-row { display: grid; grid-template-columns: minmax(120px, 1fr) 2fr 44px; align-items: center; gap: 10px; }
 .adherence-name { font-size: 14px; }
-.adherence-streak { font-size: 12px; color: var(--warn); }
+.adherence-streak { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--warn); }
 .adherence-bar { height: 8px; border-radius: 4px; background: var(--surface2); overflow: hidden; }
 .adherence-fill { height: 100%; border-radius: 4px; transition: width .3s; }
 .adherence-pct { font-size: 13px; font-weight: 600; text-align: right; }

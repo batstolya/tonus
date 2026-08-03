@@ -64,7 +64,7 @@ export function StressMapScreen({ heartRateSamples, events, onGoogleCalendar, go
               {t('По дате')}
             </button>
             <button className={`stress-sort-btn${mode === 'charts' ? ' active' : ''}`} onClick={() => setMode('charts')}>
-              <Icon name="chart" size={16} /> {t('Графики')}
+              <Icon name="chart" size={16} />{t('Графики')}
             </button>
           </div>
           {googleConnected && onToggleGoogle && (
