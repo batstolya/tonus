@@ -23,6 +23,7 @@ const PILOT_FILES = [
   'components/research/ResearchScreen.tsx',
   'components/goals/GoalsScreen.tsx',
   'components/insights/CorrelationsBlock.tsx',
+  'components/metrics/MetricsScreen.tsx',
   'components/insights/InsightsScreen.tsx',
   'components/activity/ActivityScreen.tsx',
   'components/heart-rate/HeartRateScreen.tsx',

@@ -1503,7 +1503,28 @@ body {
 /* Chart event markers legend */
 .chart-events-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 4px 0 12px; font-size: 12px; color: var(--text-muted); }
 .chart-events-toggle { display: flex; align-items: center; gap: 5px; cursor: pointer; font-weight: 600; color: var(--text); }
-.chart-event-chip { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+/* A chip is a filter now, not a colour key: clicking it adds or removes that
+   event type from the chart. Off reads as outlined-and-faded rather than a
+   different colour, since colour no longer distinguishes the types at all. */
+.chart-event-chip {
+  display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-control);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.15s, border-color 0.15s, background 0.15s;
+}
+.chart-event-chip:hover { border-color: var(--text-muted); opacity: 0.8; }
+.chart-event-chip.active {
+  background: var(--surface2);
+  border-color: var(--accent-border);
+  color: var(--text);
+  opacity: 1;
+}
 
 /* Тултип графика: значения метрик + расшифровка точек-маркеров события. */
 .chart-tip {

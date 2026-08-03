@@ -5,31 +5,24 @@ import {
 import type { DailyMetrics, MetricKey } from '../../types'
 import type { IntakeEvent } from '../../lib/chat'
 import type { GroupedEventMarker } from '../../lib/chartEvents'
-import { eventMarkers, groupMarkersByDate, markersByDate, CHART_EVENT_TYPES, MAX_MARKER_DOTS } from '../../lib/chartEvents'
+import { eventMarkers, groupMarkersByDate, markersByDate, CHART_EVENT_TYPES } from '../../lib/chartEvents'
 import { useT } from '../../lib/i18n'
+import { Icon } from '../../lib/icons'
 
-// Полоса маркеров над графиком: на каждую дату с событиями — столбик мелких
-// точек, цвет = тип события (те же цвета, что в чипах легенды). Раньше здесь
-// были эмодзи-лейблы, но при десятке с лишним дат recharts клал их друг на
-// друга, поэтому их просто отключали и оставались голые линии.
-function EventMarkerDots({ events, viewBox }: {
-  events: GroupedEventMarker['events']
-  viewBox?: { x?: number; y?: number }
-}) {
+// Одна метка на дату, а не по точке на каждое событие дня. Точка на тип
+// работала, только пока у типов были разные цвета; теперь они одинаково
+// приглушённые, и стопка одинаковых точек сообщала лишь «что-то было» —
+// ровно то, что и так говорит сама линия. Какие именно события были в этот
+// день, называет тултип, а показать только один тип можно фильтром.
+function EventMarkerDot({ viewBox }: { viewBox?: { x?: number; y?: number } }) {
   if (viewBox?.x == null || viewBox.y == null) return null
-  return (
-    <g>
-      {events.slice(0, MAX_MARKER_DOTS).map((e, i) => (
-        <circle key={e.type} cx={viewBox.x} cy={viewBox.y! - 6 - i * 7} r={2.6} fill={e.color} />
-      ))}
-    </g>
-  )
+  return <circle cx={viewBox.x} cy={viewBox.y - 6} r={2.6} fill="var(--chart-axis)" />
 }
 
 interface TooltipEntry { name?: string; value?: number | string | null; color?: string }
 
-// Значения метрик плюс расшифровка событий дня — точки в полосе показывают
-// «что-то было», а название события читается здесь.
+// Значения метрик плюс расшифровка событий дня — метка над графиком говорит
+// «в этот день что-то было», а что именно, читается здесь.
 function ChartTooltip({ active, payload, label, markers, t }: {
   active?: boolean
   payload?: TooltipEntry[]
@@ -52,8 +45,7 @@ function ChartTooltip({ active, payload, label, markers, t }: {
         <div className="chart-tip-events">
           {day.events.map(e => (
             <span key={e.type} className="chart-tip-event">
-              <span className="chart-tip-swatch" style={{ background: e.color }} />
-              {e.emoji} {t(e.label)}
+              <Icon name={e.icon} size={14} /> {t(e.label)}
             </span>
           ))}
         </div>
@@ -101,6 +93,20 @@ interface Props {
 export function MetricsScreen({ daily, intakeEvents = [] }: Props) {
   const { t } = useT()
   const [showEvents, setShowEvents] = useState(true)
+  // Which event types are drawn. This is what replaced colour as the way to
+  // tell one type from another: instead of five hues nobody could separate,
+  // narrow the chart to the type you are actually asking about.
+  const [activeTypes, setActiveTypes] = useState<Set<string>>(
+    () => new Set(CHART_EVENT_TYPES.map(c => c.type)),
+  )
+  function toggleType(type: string) {
+    setActiveTypes(prev => {
+      const next = new Set(prev)
+      if (next.has(type)) next.delete(type)
+      else next.add(type)
+      return next
+    })
+  }
   const available = (Object.keys(METRIC_LABELS) as MetricKey[]).filter(
     k => daily.some(d => getValue(d, k) !== null)
   )
@@ -121,8 +127,8 @@ export function MetricsScreen({ daily, intakeEvents = [] }: Props) {
   const markers = useMemo(() => {
     if (!showEvents) return []
     const shown = new Set(chartData.map(d => d.date))
-    return groupMarkersByDate(eventMarkers(intakeEvents, shown, iso => iso.slice(5)))
-  }, [intakeEvents, chartData, showEvents])
+    return groupMarkersByDate(eventMarkers(intakeEvents, shown, iso => iso.slice(5), activeTypes))
+  }, [intakeEvents, chartData, showEvents, activeTypes])
   const markerIndex = useMemo(() => markersByDate(markers), [markers])
 
   return (
@@ -152,10 +158,15 @@ export function MetricsScreen({ daily, intakeEvents = [] }: Props) {
             {t('События')}
           </label>
           {showEvents && CHART_EVENT_TYPES.map(c => (
-            <span key={c.type} className="chart-event-chip">
-              <span className="chart-tip-swatch" style={{ background: c.color }} />
-              {c.emoji} {t(c.label)}
-            </span>
+            <button
+              key={c.type}
+              type="button"
+              className={`chart-event-chip${activeTypes.has(c.type) ? ' active' : ''}`}
+              aria-pressed={activeTypes.has(c.type)}
+              onClick={() => toggleType(c.type)}
+            >
+              <Icon name={c.icon} size={14} /> {t(c.label)}
+            </button>
           ))}
         </div>
       )}
@@ -168,8 +179,8 @@ export function MetricsScreen({ daily, intakeEvents = [] }: Props) {
           {secondary && <YAxis yAxisId="right" orientation="right" domain={['auto', 'auto']} tick={{ fontSize: 11 }} />}
           <Tooltip content={<ChartTooltip markers={markerIndex} t={t} />} />
           {markers.map(m => (
-            <ReferenceLine key={m.x} yAxisId="left" x={m.x} stroke={m.color} strokeOpacity={0.35} strokeDasharray="3 3"
-              label={<EventMarkerDots events={m.events} />} />
+            <ReferenceLine key={m.x} yAxisId="left" x={m.x} stroke="var(--chart-axis)" strokeOpacity={0.35} strokeDasharray="3 3"
+              label={<EventMarkerDot />} />
           ))}
           {/* isAnimationActive={false} обязателен: recharts v3 + React 19 иначе
               не дорисовывает серию и график остаётся пустым. */}
