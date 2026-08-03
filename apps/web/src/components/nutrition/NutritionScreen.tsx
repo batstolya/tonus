@@ -137,12 +137,12 @@ export function NutritionScreen({ user }: { user: User }) {
       <h3 className="nutr-subtitle">{t('Калории по дням')}</h3>
       <ResponsiveContainer width="100%" height={220}>
         <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
           <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
           <YAxis tick={{ fontSize: 11 }} />
           <Tooltip />
           <ReferenceLine y={goal} stroke="var(--text-muted)" strokeDasharray="4 3" />
-          <Bar dataKey="calories" name={t('ккал')} fill="#6c8fff" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="calories" name={t('ккал')} fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
 

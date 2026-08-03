@@ -157,8 +157,8 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
         <div className="caffeine-bar" title={t('Упрощённая модель: 80мг на 200мл, период полувыведения 5.5ч')}>
           <span className="caffeine-icon"><Icon name="coffee" /></span>
           <span className="caffeine-text">
-            {t('Кофеин сейчас')}: <b style={{ color: cafNow > 50 ? 'var(--red)' : cafNow > 25 ? '#f59e0b' : 'var(--green)' }}>{cafNow}{t('мг')}</b>
-            {' · '}{t('к 23:00')}: <b style={{ color: cafBed > 30 ? 'var(--red)' : cafBed > 15 ? '#f59e0b' : 'var(--text-muted)' }}>{cafBed}{t('мг')}</b>
+            {t('Кофеин сейчас')}: <b style={{ color: cafNow > 50 ? 'var(--red)' : cafNow > 25 ? 'var(--warn)' : 'var(--green)' }}>{cafNow}{t('мг')}</b>
+            {' · '}{t('к 23:00')}: <b style={{ color: cafBed > 30 ? 'var(--red)' : cafBed > 15 ? 'var(--warn)' : 'var(--text-muted)' }}>{cafBed}{t('мг')}</b>
             {cafBed > 30 && <span className="caffeine-warn"> {t('— может мешать сну')}</span>}
           </span>
         </div>

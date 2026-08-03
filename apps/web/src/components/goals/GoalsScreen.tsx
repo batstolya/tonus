@@ -39,7 +39,7 @@ function ProgressRing({ pct, size = 52, color }: { pct: number; size?: number; c
 const STATUS_COLOR: Record<string, string> = {
   on_track: 'var(--green)',
   achieved: 'var(--green)',
-  behind: '#f59e0b',
+  behind: 'var(--warn)',
   no_data: 'var(--text-muted)',
 }
 

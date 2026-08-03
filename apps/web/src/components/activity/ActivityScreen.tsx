@@ -16,11 +16,16 @@ type Preset = '14d' | '30d' | '90d'
 const GOAL = 8000
 const GREAT = 10000
 
+// Steps are an ordered magnitude, so the buckets ramp through one hue rather
+// than cycling four. The old red/amber/blue/green told a reader nothing about
+// which way was "more" — green is not obviously above blue — and spent the
+// status colours on a scale that has no failure state. The 8k and 10k
+// reference lines carry the goals now.
 function getColor(steps: number): string {
-  if (steps >= GREAT) return '#5bc896'
-  if (steps >= GOAL) return '#6c8fff'
-  if (steps >= 5000) return '#f59e0b'
-  return '#ff6b6b'
+  if (steps >= GREAT) return 'var(--chart-s4)'
+  if (steps >= GOAL) return 'var(--chart-s3)'
+  if (steps >= 5000) return 'var(--chart-s2)'
+  return 'var(--chart-s1)'
 }
 
 // The tooltip's level dot used to be a colored circle emoji (green/blue/
@@ -132,32 +137,32 @@ export function ActivityScreen({ daily }: Props) {
           </div>
         )}
         <div className="stat">
-          <span style={{ color: '#5bc896' }}>{goalDays}</span>
+          <span style={{ color: 'var(--chart-s3)' }}>{goalDays}</span>
           {t('дней с {n}+ шагов', { n: GOAL.toLocaleString(locale) })}
         </div>
         <div className="stat">
-          <span style={{ color: '#5bc896' }}>{greatDays}</span>
+          <span style={{ color: 'var(--chart-s4)' }}>{greatDays}</span>
           {t('дней с {n}+', { n: GREAT.toLocaleString(locale) })}
         </div>
       </div>
 
       {/* Steps goal legend */}
       <div className="activity-legend">
-        <span className="legend-dot" style={{ background: '#ff6b6b' }} /> &lt;5{k}
-        <span className="legend-dot" style={{ background: '#f59e0b' }} /> 5–8{k}
-        <span className="legend-dot" style={{ background: '#6c8fff' }} /> 8–10{k}
-        <span className="legend-dot" style={{ background: '#5bc896' }} /> 10{k}+
+        <span className="legend-dot" style={{ background: 'var(--chart-s1)' }} /> &lt;5{k}
+        <span className="legend-dot" style={{ background: 'var(--chart-s2)' }} /> 5–8{k}
+        <span className="legend-dot" style={{ background: 'var(--chart-s3)' }} /> 8–10{k}
+        <span className="legend-dot" style={{ background: 'var(--chart-s4)' }} /> 10{k}+
       </div>
 
       <ResponsiveContainer width="100%" height={260}>
         <BarChart data={data} margin={{ top: 8, right: 40, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
           <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
           <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v/1000).toFixed(0)}${k}`} />
           <Tooltip content={<CustomTooltip t={t} locale={locale} />} />
-          <ReferenceLine y={GOAL} stroke="#6c8fff" strokeDasharray="4 3" label={{ value: `8${k}`, position: 'right', fontSize: 11, fill: '#6c8fff' }} />
-          <ReferenceLine y={GREAT} stroke="#5bc896" strokeDasharray="4 3" label={{ value: `10${k}`, position: 'right', fontSize: 11, fill: '#5bc896' }} />
-          <Bar dataKey="steps" name={t('Шаги')} radius={[3, 3, 0, 0]}>
+          <ReferenceLine y={GOAL} stroke="var(--chart-axis)" strokeDasharray="4 3" label={{ value: `8${k}`, position: 'right', fontSize: 11, fill: 'var(--text-muted)' }} />
+          <ReferenceLine y={GREAT} stroke="var(--chart-axis)" strokeDasharray="4 3" label={{ value: `10${k}`, position: 'right', fontSize: 11, fill: 'var(--text-muted)' }} />
+          <Bar dataKey="steps" name={t('Шаги')} radius={[4, 4, 0, 0]}>
             {data.map((entry, i) => (
               <Cell key={i} fill={getColor(entry.steps)} />
             ))}
@@ -181,11 +186,11 @@ export function ActivityScreen({ daily }: Props) {
           <h3>{t('Дистанция (км)')}</h3>
           <ResponsiveContainer width="100%" height={160}>
             <BarChart data={data} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
               <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
               <YAxis tick={{ fontSize: 11 }} unit={t('км')} />
               <Tooltip formatter={(v) => [`${v} ${t('км')}`, t('Дистанция')]} />
-              <Bar dataKey="distance" fill="#6c8fff" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="distance" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

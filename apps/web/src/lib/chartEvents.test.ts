@@ -16,7 +16,7 @@ describe('groupMarkersByDate', () => {
     expect(grouped).toHaveLength(2)
     expect(grouped[0].x).toBe('07-01')
     expect(grouped[0].events.map(e => e.emoji)).toEqual(['🍷', '😰'])
-    expect(grouped[0].color).toBe('#f43f5e')
+    expect(grouped[0].color).toBe('var(--chart-axis)')
     expect(grouped[1].events.map(e => e.emoji)).toEqual(['🏋️'])
   })
 
@@ -27,8 +27,8 @@ describe('groupMarkersByDate', () => {
       iso => iso.slice(5),
     )
     expect(groupMarkersByDate(markers)[0].events).toEqual([
-      { type: 'alcohol', emoji: '🍷', color: '#f43f5e', label: 'Алкоголь' },
-      { type: 'stress', emoji: '😰', color: '#f59e0b', label: 'Стресс' },
+      { type: 'alcohol', emoji: '🍷', color: 'var(--chart-axis)', label: 'Алкоголь' },
+      { type: 'stress', emoji: '😰', color: 'var(--chart-axis)', label: 'Стресс' },
     ])
   })
 

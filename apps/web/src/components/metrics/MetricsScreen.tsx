@@ -162,7 +162,7 @@ export function MetricsScreen({ daily, intakeEvents = [] }: Props) {
 
       <ResponsiveContainer width="100%" height={320}>
         <LineChart data={chartData} margin={{ top: markers.length ? 30 : 8, right: 16, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
           <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
           <YAxis yAxisId="left" domain={['auto', 'auto']} tick={{ fontSize: 11 }} />
           {secondary && <YAxis yAxisId="right" orientation="right" domain={['auto', 'auto']} tick={{ fontSize: 11 }} />}
@@ -173,9 +173,9 @@ export function MetricsScreen({ daily, intakeEvents = [] }: Props) {
           ))}
           {/* isAnimationActive={false} обязателен: recharts v3 + React 19 иначе
               не дорисовывает серию и график остаётся пустым. */}
-          <Line yAxisId="left" type="monotone" dataKey="primary" name={t(METRIC_LABELS[primary])} stroke="#6c8fff" strokeWidth={2} dot={false} connectNulls isAnimationActive={false} />
+          <Line yAxisId="left" type="monotone" dataKey="primary" name={t(METRIC_LABELS[primary])} stroke="var(--chart-1)" strokeWidth={2} dot={false} connectNulls isAnimationActive={false} />
           {secondary && (
-            <Line yAxisId="right" type="monotone" dataKey="secondary" name={t(METRIC_LABELS[secondary as MetricKey])} stroke="#5bc896" strokeWidth={2} dot={false} connectNulls isAnimationActive={false} />
+            <Line yAxisId="right" type="monotone" dataKey="secondary" name={t(METRIC_LABELS[secondary as MetricKey])} stroke="var(--chart-2)" strokeWidth={2} dot={false} connectNulls isAnimationActive={false} />
           )}
         </LineChart>
       </ResponsiveContainer>

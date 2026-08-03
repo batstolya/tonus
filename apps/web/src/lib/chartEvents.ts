@@ -1,12 +1,19 @@
 import type { IntakeEvent } from './chat'
 
 // Контекстные события, которые объясняют изменения метрик на графиках (#6).
+// One recessive colour for all five, not five hues. These are annotations over
+// a metric line, and each already carries its own glyph plus a label in the
+// tooltip — identity never rests on the colour. Five separate hues could not be
+// made to pass the separation checks anyway (the categorical theme holds four),
+// and they competed with the series they were meant to annotate.
+const MARKER = 'var(--chart-axis)'
+
 export const CHART_EVENT_TYPES: { type: string; emoji: string; color: string; label: string }[] = [
-  { type: 'alcohol', emoji: '🍷', color: '#f43f5e', label: 'Алкоголь' },
-  { type: 'illness', emoji: '🤒', color: '#ef4444', label: 'Болезнь' },
-  { type: 'stress', emoji: '😰', color: '#f59e0b', label: 'Стресс' },
-  { type: 'workout', emoji: '🏋️', color: '#22c55e', label: 'Тренировка' },
-  { type: 'travel', emoji: '🧳', color: '#8b5cf6', label: 'Поездка' },
+  { type: 'alcohol', emoji: '🍷', color: MARKER, label: 'Алкоголь' },
+  { type: 'illness', emoji: '🤒', color: MARKER, label: 'Болезнь' },
+  { type: 'stress', emoji: '😰', color: MARKER, label: 'Стресс' },
+  { type: 'workout', emoji: '🏋️', color: MARKER, label: 'Тренировка' },
+  { type: 'travel', emoji: '🧳', color: MARKER, label: 'Поездка' },
 ]
 
 export interface EventMarker { x: string; emoji: string; color: string; type: string; label: string }

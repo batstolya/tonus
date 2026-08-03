@@ -19,7 +19,9 @@ function groupByMarker(results: LabResult[]): Record<string, { date: string; val
   return map
 }
 
-const COLORS = ['var(--accent)', 'var(--green)', '#e88c3b', '#a78bfa', '#f472b6']
+// One hue for every marker card. These are small multiples: each card is its
+// own single-series chart with its own title, so the title carries identity
+// and a rotating hue would encode nothing while looking like it did.
 
 export function LabsScreen({ user }: Props) {
   const { t } = useT()
@@ -167,7 +169,7 @@ export function LabsScreen({ user }: Props) {
         <div className="labs-section">
           <h3>{t('Тренды биомаркеров')}</h3>
           <div className="labs-trends">
-            {markers.map((marker, idx) => {
+            {markers.map(marker => {
               const pts = markerGroups[marker].sort((a, b) => a.date.localeCompare(b.date))
               if (pts.length < 2) return null
               return (
@@ -175,11 +177,11 @@ export function LabsScreen({ user }: Props) {
                   <div className="labs-trend-title">{marker} <span className="labs-unit">{pts[0].unit}</span></div>
                   <ResponsiveContainer width="100%" height={120}>
                     <LineChart data={pts} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                       <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={d => d.slice(5)} />
                       <YAxis tick={{ fontSize: 10 }} />
                       <Tooltip />
-                      <Line type="monotone" dataKey="value" stroke={COLORS[idx % COLORS.length]} dot strokeWidth={2} />
+                      <Line type="monotone" dataKey="value" stroke="var(--chart-1)" dot strokeWidth={2} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>

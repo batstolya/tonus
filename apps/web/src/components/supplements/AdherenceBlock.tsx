@@ -65,7 +65,7 @@ export function AdherenceBlock({ supplements, refreshKey = 0 }: { supplements: S
             <div className="adherence-bar">
               <div
                 className="adherence-fill"
-                style={{ width: `${i.pct}%`, background: i.pct >= 80 ? '#34d399' : i.pct >= 50 ? '#f59e0b' : '#ef4444' }}
+                style={{ width: `${i.pct}%`, background: i.pct >= 80 ? 'var(--ok-fill)' : i.pct >= 50 ? 'var(--warn-fill)' : 'var(--bad-fill)' }}
               />
             </div>
             <span className="adherence-pct">{i.pct}%</span>

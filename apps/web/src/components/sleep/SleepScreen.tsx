@@ -144,22 +144,22 @@ export function SleepScreen({ daily }: Props) {
         <ResponsiveContainer width="100%" height={220}>
           {hasPhases ? (
             <BarChart data={data} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
               <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
               <YAxis tick={{ fontSize: 11 }} unit={t('ч')} />
               <Tooltip formatter={(v) => v != null ? fmtHours(Number(v)) : '—'} />
               <Legend />
-              <Bar dataKey="deep" name={t('Глубокий')} stackId="a" fill="#6c8fff" />
-              <Bar dataKey="rem" name="REM" stackId="a" fill="#5bc896" />
-              <Bar dataKey="core" name={t('Основной')} stackId="a" fill="#8888a0" />
+              <Bar dataKey="deep" name={t('Глубокий')} stackId="a" fill="var(--chart-1)" stroke="var(--surface)" strokeWidth={1} />
+              <Bar dataKey="rem" name="REM" stackId="a" fill="var(--chart-2)" stroke="var(--surface)" strokeWidth={1} />
+              <Bar dataKey="core" name={t('Основной')} stackId="a" fill="var(--chart-neutral)" stroke="var(--surface)" strokeWidth={1} />
             </BarChart>
           ) : (
             <BarChart data={data} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
               <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
               <YAxis tick={{ fontSize: 11 }} unit={t('ч')} />
               <Tooltip formatter={(v) => v != null ? fmtHours(Number(v)) : '—'} />
-              <Bar dataKey="total" name={t('Сон')} fill="var(--accent)" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="total" name={t('Сон')} fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
             </BarChart>
           )}
         </ResponsiveContainer>
@@ -170,7 +170,7 @@ export function SleepScreen({ daily }: Props) {
         <h3>{t('Время засыпания и пробуждения')}</h3>
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={data} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
             <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
             <YAxis
               tick={{ fontSize: 11 }}
@@ -179,8 +179,8 @@ export function SleepScreen({ daily }: Props) {
             />
             <Tooltip content={<CustomBedtimeTooltip />} />
             <Legend />
-            <Line type="monotone" dataKey="bedtime" name={t('Засыпание')} stroke="var(--accent)" dot={false} connectNulls />
-            <Line type="monotone" dataKey="wake" name={t('Пробуждение')} stroke="var(--green)" dot={false} connectNulls />
+            <Line type="monotone" dataKey="bedtime" name={t('Засыпание')} stroke="var(--chart-1)" strokeWidth={2} dot={false} connectNulls />
+            <Line type="monotone" dataKey="wake" name={t('Пробуждение')} stroke="var(--chart-2)" strokeWidth={2} dot={false} connectNulls />
           </LineChart>
         </ResponsiveContainer>
         <p className="chart-hint">{t('Ось Y — время суток')}</p>
