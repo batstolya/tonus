@@ -116,6 +116,23 @@ describe('QuickLog', () => {
     expect(new Set(shapes).size, 'every event type should draw its own shape').toBe(10)
   })
 
+  // The date chip used to render its icon as a bare sibling of the label, so
+  // the column flex gave that one chip three rows and a taller box than the
+  // five beside it. jsdom has no layout, so pin the structure that decides it:
+  // exactly one main row and one sub row per chip.
+  it('builds every time chip from the same two rows', async () => {
+    renderWithProviders(<QuickLog user={user} events={[]} onEventsChange={vi.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: /\+ Add/ }))
+
+    const chips = [...document.querySelectorAll('.time-chips .time-chip')]
+    expect(chips).toHaveLength(6)
+    for (const chip of chips) {
+      expect(chip.querySelectorAll(':scope > .time-chip-main')).toHaveLength(1)
+      expect(chip.querySelectorAll(':scope > .time-chip-sub')).toHaveLength(1)
+      expect(chip.children).toHaveLength(2)
+    }
+  })
+
   it('deletes an event through the API module', async () => {
     const onEventsChange = vi.fn()
     renderWithProviders(<QuickLog user={user} events={[event]} onEventsChange={onEventsChange} />)
