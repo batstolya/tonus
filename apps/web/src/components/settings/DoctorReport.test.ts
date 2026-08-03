@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { translations } from '../../lib/translations'
+// Imported at module scope on purpose. As a dynamic import inside the test it
+// was billed against the 5s test timeout, and transforming this component's
+// module graph takes longer than that on a loaded machine — it flaked twice in
+// one afternoon. Collection has no such timer.
+import * as doctorReportModule from './DoctorReport'
 
 // Ключи экрана «Отчёт для врача» (DoctorReport.tsx) — и UI подготовки (t),
 // и тело отчёта (rt: en-значения словаря). 1-в-1 со строками компонента.
@@ -223,8 +228,7 @@ describe('DoctorReport translations', () => {
 })
 
 describe('DoctorReport export', () => {
-  it('module exports DoctorReport', async () => {
-    const mod = await import('./DoctorReport')
-    expect(mod.DoctorReport).toBeDefined()
+  it('module exports DoctorReport', () => {
+    expect(doctorReportModule.DoctorReport).toBeDefined()
   })
 })
