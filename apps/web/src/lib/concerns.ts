@@ -52,7 +52,7 @@ export const CATEGORIES: Record<string, string> = {
 
 export const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   active:    { label: 'Активна', color: 'var(--red)' },
-  improving: { label: 'Улучшается', color: '#f59e0b' },
+  improving: { label: 'Улучшается', color: 'var(--warn)' },
   resolved:  { label: 'Решена', color: 'var(--green)' },
 }
 

@@ -90,9 +90,9 @@ export function LiveDemoPanel({ onDemo }: { onDemo?: () => void }) {
                 <BarChart data={data.sleep14} margin={{ top: 8, right: 4, left: 4, bottom: 0 }}>
                   <XAxis dataKey="date" hide />
                   <YAxis hide domain={[0, 12]} />
-                  <Bar dataKey="deep" stackId="s" fill="#6c8fff" isAnimationActive={false} />
-                  <Bar dataKey="rem" stackId="s" fill="#5bc896" isAnimationActive={false} />
-                  <Bar dataKey="core" stackId="s" fill="#8888a0" radius={[3, 3, 0, 0]} isAnimationActive={false} />
+                  <Bar dataKey="deep" stackId="s" fill="var(--chart-1)" isAnimationActive={false} />
+                  <Bar dataKey="rem" stackId="s" fill="var(--chart-2)" isAnimationActive={false} />
+                  <Bar dataKey="core" stackId="s" fill="var(--chart-neutral)" radius={[3, 3, 0, 0]} isAnimationActive={false} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -102,7 +102,7 @@ export function LiveDemoPanel({ onDemo }: { onDemo?: () => void }) {
                   <XAxis dataKey="date" hide />
                   <YAxis hide domain={['dataMin - 5', 'dataMax + 5']} />
                   <Line dataKey="resting" stroke="var(--accent)" strokeWidth={2} dot={false} isAnimationActive={false} />
-                  <Line dataKey="max" stroke="#ff6b6b" strokeWidth={1.5} strokeDasharray="4 2" dot={false} isAnimationActive={false} />
+                  <Line dataKey="max" stroke="var(--chart-3)" strokeWidth={1.5} strokeDasharray="4 2" dot={false} isAnimationActive={false} />
                 </LineChart>
               </ResponsiveContainer>
             )}

@@ -32,7 +32,7 @@ function FindingRow({ f }: { f: Finding }) {
   const { t } = useT()
   const strong = f.strength >= 0.7
   const med = f.strength >= 0.5
-  const color = strong ? 'var(--red)' : med ? '#f59e0b' : 'var(--green)'
+  const color = strong ? 'var(--red)' : med ? 'var(--warn)' : 'var(--green)'
   let metric: string
   if (f.kind === 'corr') {
     metric = `r = ${f.r!.toFixed(2)}`

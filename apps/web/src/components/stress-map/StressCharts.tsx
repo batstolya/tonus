@@ -12,7 +12,7 @@ interface Props {
 // Цвет по приросту пульса над базовым уровнем
 function deltaColor(d: number): string {
   if (d >= 30) return 'var(--red)'
-  if (d >= 15) return '#f59e0b'
+  if (d >= 15) return 'var(--warn)'
   return 'var(--green)'
 }
 
@@ -104,7 +104,7 @@ export function StressCharts({ entries }: Props) {
         <div className="chart-sub">{t('Средний прирост пульса над базовым уровнем')}</div>
         <ResponsiveContainer width="100%" height={240}>
           <BarChart data={byHour} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
             <XAxis dataKey="label" tick={axisTick} interval="preserveStartEnd" />
             <YAxis tick={axisTick} />
             <Tooltip
@@ -124,7 +124,7 @@ export function StressCharts({ entries }: Props) {
         <div className="chart-sub">{t('Средний прирост пульса над базовым уровнем')}</div>
         <ResponsiveContainer width="100%" height={240}>
           <BarChart data={byWeekday} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
             <XAxis dataKey="label" tick={axisTick} />
             <YAxis tick={axisTick} />
             <Tooltip
@@ -144,7 +144,7 @@ export function StressCharts({ entries }: Props) {
         <div className="chart-sub">{t('Топ событий по приросту пульса')}</div>
         <ResponsiveContainer width="100%" height={Math.max(180, topEvents.length * 40)}>
           <BarChart data={topEvents} layout="vertical" margin={{ top: 0, right: 16, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" horizontal={false} />
             <XAxis type="number" tick={axisTick} />
             <YAxis
               type="category"

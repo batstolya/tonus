@@ -15,7 +15,18 @@ import { isMasked, loadPinHash, unlock } from '../../lib/privacy'
 interface Props { user: User; onNavigateHair?: () => void }
 
 const SEVERITY_LABELS = ['', '1 — Почти нет', '2 — Слабо', '3 — Умеренно', '4 — Сильно', '5 — Очень сильно']
-const SEVERITY_COLOR = ['', 'var(--green)', '#84cc16', '#f59e0b', '#f97316', 'var(--red)']
+// Severity 1..5 is an ordered judgement, so it ramps across the status family
+// instead of cycling five unrelated hues. The in-between steps are mixed from
+// the tokens either side rather than hardcoded, so both themes stay correct
+// and no two levels ever land on the same colour.
+const SEVERITY_COLOR = [
+  '',
+  'var(--ok)',
+  'color-mix(in srgb, var(--ok) 50%, var(--warn))',
+  'var(--warn)',
+  'color-mix(in srgb, var(--warn) 50%, var(--bad))',
+  'var(--bad)',
+]
 
 function SeverityDot({ v }: { v: number }) {
   return <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: SEVERITY_COLOR[v] ?? 'var(--border)', flexShrink: 0 }} />

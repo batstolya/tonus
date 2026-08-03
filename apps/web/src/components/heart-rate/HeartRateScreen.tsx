@@ -25,8 +25,14 @@ interface Props {
 type Preset = '7d' | '30d' | '90d' | 'all'
 
 const OVERLAYS = [
-  { key: 'coffee', icon: 'coffee' as IconName, label: 'Кофе', color: '#f59e0b' },
-  { key: 'alcohol', icon: 'alcohol' as IconName, label: 'Алкоголь', color: '#f43f5e' },
+  // Annotations, not series: these are vertical rules over the three heart-rate
+  // lines, and their identity is carried by the icon and the label above each
+  // rule. Giving them their own hues meant competing with the lines for the
+  // same four categorical slots — coffee ended up sharing brass with the
+  // resting line — and a fifth hue is not available: violet fails the
+  // separation floor against plum in both themes. So they stay recessive.
+  { key: 'coffee', icon: 'coffee' as IconName, label: 'Кофе', color: 'var(--chart-axis)' },
+  { key: 'alcohol', icon: 'alcohol' as IconName, label: 'Алкоголь', color: 'var(--chart-axis)' },
 ] as const
 
 // ReferenceLine's `label` used to be the overlay's own emoji, sliced off the
@@ -166,14 +172,14 @@ export function HeartRateScreen({ daily, intakeEvents = [] }: Props) {
 
       <ResponsiveContainer width="100%" height={340}>
         <LineChart data={data} margin={{ top: 32, right: 16, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
           <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
           <YAxis domain={['auto', 'auto']} tick={{ fontSize: 11 }} />
           <Tooltip />
           <Legend />
-          <Line type="monotone" dataKey="avg" name={t('Средний')} stroke="#6c8fff" strokeWidth={2} dot={false} connectNulls />
-          <Line type="monotone" dataKey="resting" name={t('Покой')} stroke="#5bc896" strokeWidth={2} dot={false} connectNulls />
-          <Line type="monotone" dataKey="max" name={t('Макс')} stroke="#ff6b6b" strokeWidth={1.5} dot={false} connectNulls strokeDasharray="4 2" />
+          <Line type="monotone" dataKey="avg" name={t('Средний')} stroke="var(--chart-1)" strokeWidth={2} dot={false} connectNulls />
+          <Line type="monotone" dataKey="resting" name={t('Покой')} stroke="var(--chart-2)" strokeWidth={2} dot={false} connectNulls />
+          <Line type="monotone" dataKey="max" name={t('Макс')} stroke="var(--chart-3)" strokeWidth={1.5} dot={false} connectNulls strokeDasharray="4 2" />
           {referenceLines.map((l, i) => (
             <ReferenceLine
               key={i}
