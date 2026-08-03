@@ -75,7 +75,10 @@ export function HeartRateScreen({ daily, intakeEvents = [] }: Props) {
     date: d.date.slice(5),
     fullDate: d.date,
     avg: d.heartRate?.avg ? Math.round(d.heartRate.avg) : null,
-    max: d.heartRate?.max ?? null,
+    // Rounded here like its two neighbours, not only in the table cell. The
+    // chart tooltip reads this value straight, so max was the one number on the
+    // screen carrying a tail of decimals.
+    max: d.heartRate?.max != null ? Math.round(d.heartRate.max) : null,
     resting: d.restingHeartRate ? Math.round(d.restingHeartRate) : null,
   })), [filtered])
 
@@ -215,7 +218,7 @@ export function HeartRateScreen({ daily, intakeEvents = [] }: Props) {
                     <td>{d.fullDate}</td>
                     <td>{d.avg ?? '—'}</td>
                     <td>{d.resting ?? '—'}</td>
-                    <td>{d.max !== null ? Math.round(d.max) : '—'}</td>
+                    <td>{d.max ?? '—'}</td>
                     <td>{isLowDay(d) ? <span className="hr-low-badge">↓ {t('низкий')}</span> : null}</td>
                   </tr>
                 ))}

@@ -211,6 +211,18 @@ export const demo: Record<string, Translation> = {
     uk: 'Демо-розбір (заглушка, не справжній ШІ). За період видно три речі. Перше: сон стабільно коротший у дні з кавою після 16:00 — у середньому на 40 хвилин. Друге: HRV зранку вищий після активних днів з 8000+ кроків. Третє: у дні магнітних бур відновлення просідає, але ефект слабкий. У застосунку такий розбір пише ШІ за твоїми даними.',
     en: 'Demo analysis (a stub, not real AI). Three things stand out over the period. First: sleep is consistently shorter on days with coffee after 4pm — about 40 minutes on average. Second: morning HRV is higher after active days with 8,000+ steps. Third: recovery dips on geomagnetic storm days, though the effect is weak. In the app this analysis is written by AI from your own data.',
   },
+  'Восстановление держится в норме, пульс покоя стабилен.': {
+    uk: 'Відновлення тримається в нормі, пульс спокою стабільний.',
+    en: 'Recovery is holding steady and the resting pulse is stable.',
+  },
+  'Кофе после 16:00 и поздний отбой в будни укорачивают сон.': {
+    uk: 'Кава після 16:00 і пізній відбій у будні вкорочують сон.',
+    en: 'Coffee after 16:00 and late weekday bedtimes cut sleep short.',
+  },
+  'Ложиться до 23:00 хотя бы пять дней в неделю.': {
+    uk: 'Лягати до 23:00 хоча б п’ять днів на тиждень.',
+    en: 'Get to bed before 23:00 at least five days a week.',
+  },
   'Демо-анализ (заглушка, не настоящий ИИ). Общая картина спокойная: восстановление в норме, пульс покоя стабилен, сна в среднем 7 часов. Слабое место — вечерний кофе и поздний отбой в будни. Из анализов: ферритин подтянулся с 24 до 41, витамин D вышел в норму.': {
     uk: 'Демо-аналіз (заглушка, не справжній ШІ). Загальна картина спокійна: відновлення в нормі, пульс спокою стабільний, сну в середньому 7 годин. Слабке місце — вечірня кава та пізній відбій у будні. З аналізів: феритин підтягнувся з 24 до 41, вітамін D вийшов у норму.',
     en: 'Demo analysis (a stub, not real AI). The overall picture is calm: recovery is normal, resting heart rate is steady, sleep averages 7 hours. The weak spot is evening coffee and late weekday bedtimes. From the labs: ferritin climbed from 24 to 41 and vitamin D is back in range.',

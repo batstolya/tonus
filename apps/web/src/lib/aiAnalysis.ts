@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { normalizeAnalysis } from './aiAnalysisShape'
 import { callFunction } from './edgeFunctions'
 import type { DailyMetrics } from '../types'
 
@@ -107,7 +108,8 @@ export async function runAnalysis(
   const periodEnd = slice[slice.length - 1].date
   const digest = buildDigest(slice, prevSlice)
 
-  return callFunction<AiAnalysis>('analyze-health', { digest, periodStart, periodEnd })
+  const row = await callFunction<Partial<AiAnalysis>>('analyze-health', { digest, periodStart, periodEnd })
+  return normalizeAnalysis(row)
 }
 
 export async function deleteAnalysis(id: string): Promise<void> {
@@ -121,5 +123,5 @@ export async function loadAnalyses(userId: string): Promise<AiAnalysis[]> {
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(10)
-  return (data ?? []) as AiAnalysis[]
+  return ((data ?? []) as Partial<AiAnalysis>[]).map(normalizeAnalysis)
 }
