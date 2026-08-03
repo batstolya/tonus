@@ -1,7 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { useT } from '../../../lib/i18n'
 import { loadProfileBasics, saveProfileBasics, type Sex } from '../../../lib/api/settings'
+import { getAvatarUrl, uploadAvatar, removeAvatar } from '../../../lib/api/avatar'
+import { Avatar } from '../../ui/Avatar'
+import { AVATAR_CHANGED } from '../../../lib/avatarEvent'
 import { ArchiveBtn, type SectionProps } from './ArchiveBtn'
 
 interface Props extends SectionProps { user?: User }
@@ -12,6 +15,9 @@ export function ProfileSection({ archived, onArchive, user }: Props) {
   const { t } = useT()
   const [year, setYear] = useState('')
   const [sex, setSex] = useState<Sex | ''>('')
+  const [avatar, setAvatar] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const fileInput = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!user) return
@@ -21,6 +27,32 @@ export function ProfileSection({ archived, onArchive, user }: Props) {
       setSex(p.sex ?? '')
     })
   }, [user])
+
+  useEffect(() => {
+    if (!user) return
+    getAvatarUrl(user.id).then(setAvatar)
+  }, [user])
+
+  // The topbar draws the same photo from its own copy, so tell it to re-read
+  // rather than leave a stale face on screen until the next page load.
+  function announce() {
+    window.dispatchEvent(new Event(AVATAR_CHANGED))
+  }
+
+  async function handlePick(file: File | undefined) {
+    if (!user || !file) return
+    setBusy(true)
+    const url = await uploadAvatar(user.id, file)
+    if (url) { setAvatar(url); announce() }
+    setBusy(false)
+  }
+
+  async function handleRemove() {
+    if (!user) return
+    setBusy(true)
+    if (await removeAvatar(user.id)) { setAvatar(null); announce() }
+    setBusy(false)
+  }
 
   function commitYear() {
     if (!user) return
@@ -43,6 +75,27 @@ export function ProfileSection({ archived, onArchive, user }: Props) {
       <p className="settings-muted" style={{ marginBottom: 14, fontSize: 13 }}>
         {t('Возраст и пол попадают в отчёт для врача — по ним читаются референсные диапазоны анализов.')}
       </p>
+      <div className="profile-photo-row">
+        <Avatar url={avatar} size={64} alt={t('Фото профиля')} />
+        <div className="profile-photo-actions">
+          <input
+            ref={fileInput}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={e => { void handlePick(e.target.files?.[0]); e.target.value = '' }}
+          />
+          <button className="btn-secondary" disabled={busy} onClick={() => fileInput.current?.click()}>
+            {avatar ? t('Заменить фото') : t('Добавить фото')}
+          </button>
+          {avatar && (
+            <button className="btn-ghost" disabled={busy} onClick={() => void handleRemove()}>
+              {t('Убрать')}
+            </button>
+          )}
+        </div>
+      </div>
+
       <div className="rep-setting">
         <label className="settings-label" htmlFor="profile-birth-year">{t('Год рождения')}</label>
         <input

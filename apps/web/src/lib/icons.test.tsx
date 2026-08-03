@@ -101,6 +101,7 @@ const expectedComponentName: Record<IconName, string> = {
   exportData: 'ExportIcon',
   envelope: 'EnvelopeIcon',
   key: 'KeyIcon',
+  person: 'UserIcon',
 }
 
 afterEach(() => {
