@@ -77,65 +77,85 @@ function resolveToken(scope: Record<string, string>, name: string): string {
   throw new Error(`resolveToken: chain too deep starting from ${name} (stopped at ${current})`)
 }
 
+// One palette, defined once. :root is the dark default and carries it; the
+// light block restates it; .app overrides shape only. The landing and the auth
+// screen render outside .app and so read the same colours the app does.
 const rootTokens = tokens(css, ':root')
-const appDark = tokens(css, '.app')
-const appLight = tokens(css, '[data-theme="light"] .app')
+const appScope = tokens(css, '.app')
+const darkTokens = rootTokens
+const lightTokens = { ...rootTokens, ...tokens(css, '[data-theme="light"]') }
 
-describe('token isolation from the landing', () => {
-  it('every token overridden in .app has a :root default', () => {
-    for (const scope of [appDark, appLight]) {
-      const missing = Object.keys(scope).filter(t => !(t in rootTokens))
-      expect(missing).toEqual([])
-    }
+const RADII = ['--r-surface', '--r-control', '--r-field', '--r-inner', '--radius']
+
+describe('one palette, two shapes', () => {
+  // The rule that keeps the product from drifting into two products again: if
+  // .app ever redefines a colour, the landing stops matching it.
+  it('the app overrides shape and nothing else', () => {
+    const nonRadius = Object.keys(appScope).filter(t => !RADII.includes(t))
+    expect(nonRadius).toEqual([])
   })
 
-  it('preserves the legacy values the landing renders today', () => {
-    // Landing.css:195 reads var(--radius); .btn-primary is used by landing and auth.
-    expect(rootTokens['--radius']).toBe('var(--r-surface)')
+  it('every token the app overrides has a :root default', () => {
+    expect(Object.keys(appScope).filter(t => !(t in rootTokens))).toEqual([])
+  })
+
+  // Deliberate, and the thing most likely to be revisited: the landing keeps
+  // softer corners than the app. Written out so changing it is a decision
+  // rather than an accident.
+  it('the landing keeps its own radii, softer than the app', () => {
     expect(rootTokens['--r-surface']).toBe('14px')
     expect(rootTokens['--r-control']).toBe('10px')
     expect(rootTokens['--r-field']).toBe('10px')
     expect(rootTokens['--r-inner']).toBe('6px')
-    expect(rootTokens['--on-accent']).toBe('#fff')
-    expect(rootTokens['--on-ok']).toBe('#fff')
-    expect(rootTokens['--on-bad']).toBe('#fff')
-    expect(rootTokens['--accent']).toBe('#6c8fff')
-    expect(rootTokens['--ok']).toBe('#5bc896')
-    expect(rootTokens['--warn']).toBe('#ffd166')
-    expect(rootTokens['--bad']).toBe('#ff6b6b')
+    expect(rootTokens['--radius']).toBe('var(--r-surface)')
+    expect(appScope['--r-surface']).toBe('4px')
+    expect(appScope['--r-control']).toBe('999px')
+  })
+
+  it('the landing takes the app palette, pine and not the old blue', () => {
+    expect(darkTokens['--accent']).toBe('#D3E6DD')
+    expect(lightTokens['--accent']).toBe('#24443B')
+    // A label on the accent fill must come from the pair, not a fixed white:
+    // white on the dark theme's pale mint measures 1.30:1.
+    expect(darkTokens['--on-accent']).toBe('#0F1422')
+    expect(lightTokens['--on-accent']).toBe('#FFFFFF')
+  })
+
+  // :root is the dark default, so it must hold the dark chart steps. It used to
+  // hold the light ones, which left the landing's demo chart drawing
+  // light-theme steps on a dark page.
+  it('each theme holds its own chart steps', () => {
+    expect(darkTokens['--chart-1']).toBe('#3FA68A')
+    expect(lightTokens['--chart-1']).toBe('#0F7F63')
+    expect(darkTokens['--heat-1']).toBe('#296556')
+    expect(lightTokens['--heat-1']).toBe('#60C7AE')
   })
 })
 
 describe('role tokens', () => {
   it('keeps the colour-named tokens as aliases so existing call sites work', () => {
-    for (const scope of [rootTokens, appDark, appLight]) {
+    for (const scope of [darkTokens, lightTokens]) {
       expect(scope['--green']).toBe('var(--ok)')
       expect(scope['--red']).toBe('var(--bad)')
       expect(scope['--yellow']).toBe('var(--warn)')
     }
   })
 
-  it('defaults the -fill tokens to their text counterpart in :root, unchanged outside .app', () => {
-    expect(rootTokens['--ok-fill']).toBe('var(--ok)')
-    expect(rootTokens['--warn-fill']).toBe('var(--warn)')
-    expect(rootTokens['--bad-fill']).toBe('var(--bad)')
-  })
-
-  it('converges dark and light .app on one bright set of -fill values', () => {
+  it('converges dark and light on one bright set of -fill values', () => {
     // The point of the split: unlike --warn (which must go brown in light
     // theme to stay text-safe), --warn-fill carries no text and both themes
     // land on (almost) the same bright amber.
-    expect(appDark['--ok-fill']).toBe(appLight['--ok-fill'])
-    expect(appDark['--bad-fill']).toBe(appLight['--bad-fill'])
-    expect(appDark['--warn-fill']).toBe('#E08A3C')
-    expect(appLight['--warn-fill']).toBe('#E0A33E')
-    expect(appDark['--warn-fill']).not.toBe(appLight['--warn-fill'])
+    expect(darkTokens['--ok-fill']).toBe(lightTokens['--ok-fill'])
+    expect(darkTokens['--bad-fill']).toBe(lightTokens['--bad-fill'])
+    expect(darkTokens['--warn-fill']).toBe('#E08A3C')
+    expect(lightTokens['--warn-fill']).toBe('#E0A33E')
+    expect(darkTokens['--warn-fill']).not.toBe(lightTokens['--warn-fill'])
   })
 })
 
 describe.each([
-  ['dark', appDark],
-  ['light', appLight],
+  ['dark', darkTokens],
+  ['light', lightTokens],
 ])('%s theme contrast', (_name, t) => {
   const pairs: Array<[string, string, string]> = [
     ['body text on background', '--text', '--bg'],

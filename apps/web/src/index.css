@@ -4,84 +4,10 @@
    carry the current design. When the landing is brought onto the new palette,
    the .app blocks move up into :root and these defaults are deleted. */
 :root {
-  --bg: #0f0f12;
-  --surface: #1a1a20;
-  --surface2: #23232c;
-  --border: #2e2e3a;
-  --text: #e8e8f0;
-  --text-muted: #8888a0;
-  --accent: #6c8fff;
-  --accent-text: var(--accent);
-  --accent-border: color-mix(in srgb, var(--accent) 45%, var(--border));
-  --on-accent: #fff;
-  --on-ok: #fff;
-  --on-bad: #fff;
-  --ok: #5bc896;
-  --warn: #ffd166;
-  --bad: #ff6b6b;
-  --ok-fill: var(--ok);
-  --warn-fill: var(--warn);
-  --bad-fill: var(--bad);
-  --green: var(--ok);
-  --red: var(--bad);
-  --yellow: var(--warn);
-  --r-surface: 14px;
-  --r-control: 10px;
-  /* Text-entry fields sit apart from --r-control: that token goes fully
-     round in the light theme, which reads as a pill on a button and as a
-     mistake on a multi-line textarea. */
-  --r-field: 10px;
-  --r-inner: 6px;
-  --radius: var(--r-surface);
-  --card-shadow: none;
-  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --topbar-bg: rgba(15,15,18,0.92);
-  --shadow: 0 1px 0 rgba(255,255,255,0.04);
-  /* Chart palette. Three jobs, three token families — never mix them:
-     --chart-N   categorical, identity only, assigned in fixed order
-     --chart-sN  sequential, one hue light->dark, for ordered magnitude
-     --ok/--warn/--bad already cover status and stay reserved for it.
-     Every set below was checked with the data-viz validator against its own
-     surface: lightness band, chroma floor, colour-blind separation and
-     contrast. Dark is its own set of steps, not an automatic flip. */
-  --chart-1: #0F7F63;
-  --chart-2: #B5761F;
-  --chart-3: #3D6CA8;
-  --chart-4: #9A4A6E;
-  --chart-s1: #8CBFAC;
-  --chart-s2: #5AA48E;
-  --chart-s3: #2E8770;
-  --chart-s4: #155C4A;
-  --chart-grid: #ECEFF4;
-  --chart-axis: #9AA3B5;
-  /* For a series that means "the rest" rather than a thing of its own —
-     core sleep against REM and deep. A hue there would claim an identity the
-     data does not have, and it is the largest segment, so it would dominate. */
-  --chart-neutral: #7B8497;
-  --heat-1: #60C7AE; --heat-1-ink: #141826;
-  --heat-2: #3DAE91; --heat-2-ink: #141826;
-  --heat-3: #2D806C; --heat-3-ink: #FFFFFF;
-  --heat-4: #1D5346; --heat-4-ink: #FFFFFF;
-}
-
-[data-theme="light"] {
-  --bg: #f6f6f9;
-  --surface: #ffffff;
-  --surface2: #f2f2f7;
-  --border: #ececf2;
-  --text: #111118;
-  --text-muted: #6e6e80;
-  --accent: #4a6fff;
-  --ok: #34c678;
-  --warn: #f59e0b;
-  --bad: #e53935;
-  --topbar-bg: rgba(255,255,255,0.92);
-  --shadow: 0 1px 0 rgba(0,0,0,0.08);
-  --card-shadow: 0 4px 16px rgba(17, 17, 24, 0.06);
-}
-
-/* Night indigo + brass. Scoped to the app shell; see the comment on :root. */
-.app {
+  /* One palette for the whole product. It used to live in .app while :root
+     held a separate legacy set for the landing and the auth screen, so the two
+     halves of the site were different colours. Colour now lives here once;
+     .app keeps only what it genuinely differs in, which is its radii. */
   --bg: #0F1422;
   --surface: #161C2D;
   --surface2: #1E2538;
@@ -106,13 +32,32 @@
   --green: var(--ok);
   --red: var(--bad);
   --yellow: var(--warn);
-  --r-surface: 4px;
-  --r-control: 999px;
-  --r-field: 8px;
-  --r-inner: 2px;
+  /* Landing radii. The app overrides these in .app; keeping the two apart is
+     deliberate, so switching the landing onto the app's shapes later means
+     deleting one block rather than hunting through files. */
+  --r-surface: 14px;
+  --r-control: 10px;
+  /* Text-entry fields sit apart from --r-control: that token goes fully
+     round in the light theme, which reads as a pill on a button and as a
+     mistake on a multi-line textarea. */
+  --r-field: 10px;
+  --r-inner: 6px;
   --radius: var(--r-surface);
+  --card-shadow: none;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --topbar-bg: rgba(15,20,34,0.92);
   --shadow: 0 1px 0 rgba(255,255,255,0.04);
+  /* Chart palette. Three jobs, three token families — never mix them:
+     --chart-N   categorical, identity only, assigned in fixed order
+     --chart-sN  sequential, one hue light->dark, for ordered magnitude
+     --ok/--warn/--bad already cover status and stay reserved for it.
+     Every set was checked with the data-viz validator against its own
+     surface: lightness band, chroma floor, colour-blind separation and
+     contrast. Dark is its own set of steps, not an automatic flip.
+     These are the dark steps because :root is the dark default — the light
+     ones sit in the [data-theme="light"] block. They used to be the other way
+     round, which left the landing's demo chart drawing light-theme steps on a
+     dark page. */
   --chart-1: #3FA68A;
   --chart-2: #CE7C2E;
   --chart-3: #5B8FD6;
@@ -123,6 +68,12 @@
   --chart-s4: #5CC2A2;
   --chart-grid: #232B3F;
   --chart-axis: #6E7794;
+  /* For a series that means "the rest" rather than a thing of its own —
+     core sleep against REM and deep. A hue there would claim an identity the
+     data does not have, and it is the largest segment, so it would dominate.
+     Deliberately below the validator's chroma floor: it is meant to read as
+     grey. That is legal only because identity never rests on it alone — the
+     legend names it and the screen carries a table of the same numbers. */
   --chart-neutral: #6B748C;
   /* Heat-map ramp. Separate from --chart-s* on purpose: those fill bars, which
      carry no text, so their middle steps sit at the lightness where neither
@@ -135,18 +86,17 @@
   --heat-4: #A8DCCF; --heat-4-ink: #0F1422;
 }
 
-[data-theme="light"] .app {
+[data-theme="light"] {
   --bg: #F4F5F9;
   --surface: #FFFFFF;
   --surface2: #EDEFF6;
   --border: #E2E5EE;
   --text: #141826;
   --text-muted: #5D667F;
-  --accent: #24443B;
   /* Dark pine green, not near-black: the same "ink" idea graphite carried
-     (a dark fill with a white label), with a green undertone the user asked
-     for after seeing graphite live. Still dark enough to double as its own
-     text colour, so no separate --accent-text value is needed. */
+     (a dark fill with a white label), with a green undertone. Still dark
+     enough to double as its own text colour, so no separate --accent-text. */
+  --accent: #24443B;
   --accent-text: var(--accent);
   --accent-border: color-mix(in srgb, var(--accent) 45%, var(--border));
   --on-accent: #FFFFFF;
@@ -180,6 +130,19 @@
   --heat-3: #2D806C; --heat-3-ink: #FFFFFF;
   --heat-4: #1D5346; --heat-4-ink: #FFFFFF;
 }
+
+/* Night indigo + brass. Scoped to the app shell; see the comment on :root. */
+/* The app differs from the landing in shape, not colour: squarer surfaces and
+   fully round controls. Colour comes from :root. */
+.app {
+  --r-surface: 4px;
+  --r-control: 999px;
+  --r-field: 8px;
+  --r-inner: 2px;
+  --radius: var(--r-surface);
+}
+
+
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
