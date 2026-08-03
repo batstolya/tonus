@@ -4,7 +4,6 @@ import type { DailyMetrics, HeartRateSample, CalendarEvent } from '../../types'
 import type { AppView } from '../../store/appStore'
 import { generateInsights } from '../../lib/insights'
 import { AiAnalysisBlock } from './AiAnalysisBlock'
-import { DataGaps } from '../ui/DataGaps'
 import { EmptyState } from '../ui/EmptyState'
 import { computeReadiness, computeEarlyWarning, readinessVerdict } from '../../lib/readiness'
 import { baselineDeviations } from '../../lib/scores'
@@ -15,7 +14,6 @@ import { useT } from '../../lib/i18n'
 import { Icon } from '../../lib/icons'
 import { motion, MotionConfig, type Variants } from 'motion/react'
 import { CountUp } from '../common/CountUp'
-import { GeoStormBanner } from './GeoStormBanner'
 
 // Каскадное появление карточек метрик.
 const cardsGridV: Variants = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } }
@@ -424,7 +422,6 @@ export function Dashboard({ daily, events, onNavigate, user, quickLog }: Props) 
         />
       )}
 
-      <GeoStormBanner />
       <EarlyWarningBanner daily={daily} />
       {user && <CoachFocusCard user={user} daily={daily} />}
       <ReadinessCard daily={daily} />
@@ -459,14 +456,13 @@ export function Dashboard({ daily, events, onNavigate, user, quickLog }: Props) 
           <h3>{t('Инсайты')}</h3>
           {insights.slice(0, 3).map(i => (
             <div key={i.id} className="insight-item">
-              <span className="insight-metric">{i.metric}</span>
-              <p>{i.text}</p>
+              <span className="insight-metric">{t(i.metric)}</span>
+              <p>{t(i.key, i.vars)}</p>
             </div>
           ))}
         </div>
       )}
 
-      <DataGaps daily={daily} days={14} />
       {user && <AiAnalysisBlock daily={daily} userId={user.id} />}
     </div>
     </MotionConfig>

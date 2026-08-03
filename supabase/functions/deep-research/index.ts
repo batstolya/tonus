@@ -3,6 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { checkBudget, budgetExceededMessage } from '../_shared/costGuard.ts'
 import { aiConsentRequiredResponse, fetchGeminiWithConsent, isAiConsentRequired } from '../_shared/aiConsent.ts'
 import { corsHeadersFor } from '../_shared/cors.ts'
+import { langPrepositional } from '../_shared/replyLang.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
@@ -23,7 +24,7 @@ serve(async (req) => {
     if (!budget.ok) return new Response(JSON.stringify({ error: 'budget_exceeded', message: budgetExceededMessage(budget) }), { status: 402, headers: { ...CORS, 'Content-Type': 'application/json' } })
 
 
-    const { findings, periodLabel, notes } = await req.json()
+    const { findings, periodLabel, notes, lang } = await req.json()
     if (!findings || typeof findings !== 'string' || !findings.trim()) {
       return new Response(JSON.stringify({ reply: 'Недостаточно данных для анализа взаимосвязей. Нужно больше дней с метриками, событиями и наблюдениями.' }), {
         headers: { ...CORS, 'Content-Type': 'application/json' },
@@ -36,7 +37,7 @@ serve(async (req) => {
 ПОСЧИТАННЫЕ ВЗАИМОСВЯЗИ:
 ${findings}
 ${notes ? `\nЗАМЕТКИ ДНЯ (контекст со слов пользователя):\n${notes}\n` : ''}
-Напиши разбор на русском, plain text (без markdown-звёздочек и решёток), с emoji для заголовков:
+Напиши разбор на ${langPrepositional(lang)}, plain text (без markdown-звёздочек и решёток), с emoji для заголовков:
 
 🔍 Главные находки
 — переформулируй 3-5 самых сильных связей простым языком, с числами. Что с чем связано и в какую сторону.

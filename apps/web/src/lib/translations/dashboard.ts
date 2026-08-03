@@ -13,6 +13,9 @@ export const dashboard: Record<string, Translation> = {
   'Дата': { uk: 'Дата', en: 'Date' },
   'выбрать': { uk: 'обрати', en: 'pick' },
   'Вчера': { uk: 'Вчора', en: 'Yesterday' },
+  'Предыдущий день': { uk: 'Попередній день', en: 'Previous day' },
+  'Следующий день': { uk: 'Наступний день', en: 'Next day' },
+  'Пока ничего не записано': { uk: 'Поки нічого не записано', en: 'Nothing logged yet' },
   'Сегодня': { uk: 'Сьогодні', en: 'Today' },
   'м': { uk: 'хв', en: 'm' },
   '☕ Кофе': { uk: '☕ Кава', en: '☕ Coffee' },
@@ -129,7 +132,7 @@ export const dashboard: Record<string, Translation> = {
   'Заметка дня': { uk: 'Нотатка дня', en: 'Day note' },
   'сохранено': { uk: 'збережено', en: 'saved' },
   'Как прошёл день? Важные события, самочувствие, стресс… (используется как контекст в ИИ-анализе)': { uk: 'Як минув день? Важливі події, самопочуття, стрес… (використовується як контекст в ШІ-аналізі)', en: 'How was your day? Key events, well-being, stress… (used as context in AI analysis)' },
-  'Пульс покоя': { uk: 'Пульс спокою', en: 'Resting HR' },
+  'Пульс покоя': { uk: 'Пульс у спокої', en: 'Resting HR' },
   'Средний ЧСС покоя': { uk: 'Середній пульс спокою', en: 'Avg resting HR' },
   'Средний HRV': { uk: 'Середній HRV', en: 'Avg HRV' },
   'за 30 дней': { uk: 'за 30 днів', en: 'over 30 days' },
@@ -137,16 +140,18 @@ export const dashboard: Record<string, Translation> = {
   'ч': { uk: 'год', en: 'h' },
   '{h}ч {m}м': { uk: '{h}год {m}хв', en: '{h}h {m}m' },
   'Шаги': { uk: 'Кроки', en: 'Steps' },
+  'Калории': { uk: 'Калорії', en: 'Calories' },
+  'SpO₂': { uk: 'SpO₂', en: 'SpO₂' },
   'Событий в календаре': { uk: 'Подій у календарі', en: 'Calendar events' },
   'Дней данных': { uk: 'Днів даних', en: 'Days of data' },
   'Показатели': { uk: 'Показники', en: 'Metrics' },
 
 
   // ── Data completeness / DataGaps ───────────────────────────────────────────
-  'Неполные данные': { uk: 'Неповні дані', en: 'Incomplete data' },
   'Пробелы в данных за': { uk: 'Прогалини в даних за', en: 'Data gaps in the last' },
   'нет': { uk: 'нема', en: 'missing' },
-  'Выводы ИИ менее точны при пробелах в данных.': { uk: 'Висновки ШІ менш точні за наявності прогалин у даних.', en: 'AI insights are less accurate when data has gaps.' },
+  'нет данных за': { uk: 'немає даних за', en: 'no data for' },
+  'Выводы ИИ менее точны при пробелах в данных.': { uk: 'Висновки ШІ менш точні через прогалини в даних.', en: 'AI insights are less accurate when data has gaps.' },
 
 
   // ── Серия (геймифицированный home) ─────────────────────────

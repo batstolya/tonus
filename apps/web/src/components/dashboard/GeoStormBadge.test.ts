@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest'
-import { GeoStormBanner } from './GeoStormBanner'
 import { GeoStormBadge } from './GeoStormBadge'
 import { stormHintKey } from '../../lib/geoStorm'
 import { translations } from '../../lib/translations'
@@ -13,8 +12,7 @@ const KEYS = [
 ]
 
 describe('GeoStorm indicator', () => {
-  it('exports components', () => {
-    expect(typeof GeoStormBanner).toBe('function')
+  it('exports the badge', () => {
     expect(typeof GeoStormBadge).toBe('function')
   })
 

@@ -17,7 +17,7 @@ const PILOT_FILES = [
   'components/dashboard/StreakMenu.tsx',
   'components/dashboard/ActivityCalendar.tsx',
   'components/dashboard/AiAnalysisBlock.tsx',
-  'components/ui/DataGaps.tsx',
+  'components/ui/DataGapsBadge.tsx',
   'components/research/ExperimentCard.tsx',
   'components/research/ExperimentsScreen.tsx',
   'components/research/ResearchScreen.tsx',
@@ -102,8 +102,13 @@ const KNOWN_NON_REGISTRY_COLLISIONS: Partial<Record<string, string[]>> = {
   // selector) and `workout` reused `sportGym`'s Barbell component with no
   // colour to distinguish them, so `workout` was removed as dead and
   // colliding.
+  //
+  // The '›' below is the same story as the three files above, not an emoji at
+  // all: QuickLog's day-nav arrows are typographic chevrons that arrived with
+  // the day-paging feature, matching ActivityCalendar's and SupplementsScreen's
+  // month-nav. They predate no emoji and are not conversion sites.
   'components/intake/QuickLog.tsx':
-    ['☕', '🍷', '🍽', '💧', '💊', '🏋️', '🤒', '😰', '🧳', '📝'],
+    ['☕', '🍷', '🍽', '💧', '💊', '🏋️', '🤒', '😰', '🧳', '📝', '›'],
 }
 
 // Mirrors KNOWN_NON_REGISTRY_COLLISIONS above but for the broader

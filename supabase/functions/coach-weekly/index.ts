@@ -4,6 +4,7 @@ import { checkBudget } from '../_shared/costGuard.ts'
 import { isValidCronSecret } from '../_shared/auth.ts'
 import { aiConsentRequiredResponse, fetchGeminiWithConsent, isAiConsentRequired } from '../_shared/aiConsent.ts'
 import { corsHeadersFor } from '../_shared/cors.ts'
+import { langInstruction, loadUserLang, normalizeLang, type ProfileLangClient, type ReplyLang } from '../_shared/replyLang.ts'
 import { sendTelegram } from '../_shared/telegram.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
@@ -62,7 +63,7 @@ type IntakeRow = { ts: string; type: string; note: string | null }
 const tgSend = (chatId: string, text: string) => sendTelegram(TG_TOKEN, chatId, text)
 
 // Разбор для одного пользователя
-async function runForUser(supabase: SupabaseClient, userId: string): Promise<string | null> {
+async function runForUser(supabase: SupabaseClient, userId: string, lang: ReplyLang): Promise<string | null> {
   const budget = await checkBudget(supabase, userId)
   if (!budget.ok) return null // превышен бюджет — пропускаем разбор
   const now = Date.now()
@@ -135,7 +136,9 @@ JSON строго одной из форм (target — добавь только
 {"predicate":{"kind":"event_absent","event":"alcohol"}}
 {"predicate":{"kind":"wellbeing_gte","value":4}}
 event ∈ coffee|alcohol|meal|water|meds|workout|illness|stress|travel. ВСЕГДА привязывай CHECK, если фокус хоть как-то выразим этими формами — цели про еду/сон/шаги/время отбоя/кофе/алкоголь/тренировки/самочувствие почти всегда выразимы. CHECK: none — только когда измерить действительно невозможно. Не выдумывай поля.
-Без диагнозов. Опирайся на цифры, не выдумывай. На русском.`
+Без диагнозов. Опирайся на цифры, не выдумывай.
+${langInstruction(lang)}
+Строки FOCUS: и CHECK: — служебные метки, их названия не переводи; текст фокуса после FOCUS: пиши на языке ответа.`
 
   const res = await fetchGeminiWithConsent(
     supabase,
@@ -184,7 +187,7 @@ serve(async (req) => {
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
     const authHeader = req.headers.get('Authorization') ?? ''
-    const body: { userId?: unknown } = await req.json().catch(() => ({}))
+    const body: { userId?: unknown; lang?: unknown } = await req.json().catch(() => ({}))
     // Явные пути (спека §3.2): cron-секрет → массовый режим; JWT → свой юзер; иначе 401.
     // Отсутствие Authorization больше НЕ означает доверие, и service key не является маркером.
     const cronMode = isValidCronSecret(req, CRON_SECRET)
@@ -202,7 +205,8 @@ serve(async (req) => {
         const { data: last } = await supabase.from('coach_events').select('created_at').eq('user_id', l.user_id).eq('type', 'weekly').order('created_at', { ascending: false }).limit(1).maybeSingle()
         if (last && (Date.now() - new Date(last.created_at).getTime()) < 6 * 86400000) continue
         try {
-          const text = await runForUser(supabase, l.user_id)
+          // cron не знает язык интерфейса — берём его из профиля пользователя.
+          const text = await runForUser(supabase, l.user_id, await loadUserLang(supabase as unknown as ProfileLangClient, l.user_id))
           if (text && l.telegram_chat_id) { await tgSend(l.telegram_chat_id, `🧭 Разбор недели\n\n${text}`); sent++ }
         } catch (e) {
           if (!isAiConsentRequired(e)) throw e
@@ -215,7 +219,7 @@ serve(async (req) => {
     // ручной вызов с токеном пользователя — вернуть текст (для кнопки на сайте)
     const { data, error } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
     if (error || !data.user) return new Response('Unauthorized', { status: 401, headers: CORS })
-    const text = await runForUser(supabase, data.user.id)
+    const text = await runForUser(supabase, data.user.id, normalizeLang(body.lang))
     return new Response(JSON.stringify({ text }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
   } catch (e) {
     if (isAiConsentRequired(e)) return aiConsentRequiredResponse(CORS)

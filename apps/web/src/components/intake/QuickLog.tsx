@@ -5,6 +5,7 @@ import { demoInsert, demoRemove, demoId } from '../../lib/demoDb'
 import type { User } from '@supabase/supabase-js'
 import { useT } from '../../lib/i18n'
 import { Icon } from '../../lib/icons'
+import { dayKey, logDays } from '../../lib/intakeDays'
 
 const EVENT_TYPES = [
   { type: 'coffee', label: '☕ Кофе', unit: 'мл', defaultAmount: 200 },
@@ -39,13 +40,13 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
   const [time, setTime] = useState(nowTimeStr)
   const [customDt, setCustomDt] = useState('') // datetime-local: 'YYYY-MM-DDTHH:MM'
   const [saving, setSaving] = useState(false)
+  const [dayIndex, setDayIndex] = useState(0)
 
   const preset = EVENT_TYPES.find(e => e.type === selectedType)!
 
   function buildTs() {
     if (customDt) return new Date(customDt).toISOString()
-    const today = new Date().toISOString().slice(0, 10)
-    return new Date(`${today}T${time}:00`).toISOString()
+    return new Date(`${dayKey(new Date())}T${time}:00`).toISOString()
   }
 
   function localDtNow() {
@@ -64,7 +65,7 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
         calories: null, protein_g: null, carbs_g: null, fat_g: null, source: null,
       })
       onEventsChange([row as IntakeEvent, ...events])
-      setNote(''); setAmount(''); setTime(nowTimeStr()); setCustomDt(''); setOpen(false)
+      setNote(''); setAmount(''); setTime(nowTimeStr()); setCustomDt(''); setOpen(false); setDayIndex(0)
       setSaving(false)
       return
     }
@@ -83,6 +84,7 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
       setTime(nowTimeStr())
       setCustomDt('')
       setOpen(false)
+      setDayIndex(0)
     }
     setSaving(false)
   }
@@ -93,14 +95,14 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
     onEventsChange(events.filter(e => e.id !== id))
   }
 
-  const today = new Date().toISOString().slice(0, 10)
-  const yesterday = new Date(new Date().getTime() - 864e5).toISOString().slice(0, 10)
+  const today = dayKey(new Date())
+  const yesterday = dayKey(new Date(new Date().getTime() - 864e5))
 
-  // Group events by date, show last 3 days
-  const recentDays = [today, yesterday, new Date(new Date().getTime() - 2 * 864e5).toISOString().slice(0, 10)]
-  const grouped = recentDays
-    .map(date => ({ date, items: events.filter(e => e.ts.slice(0, 10) === date) }))
-    .filter(g => g.items.length > 0)
+  // One day at a time: the whole history at once turned the panel into a wall
+  // of rows. days[0] is always today, so dayIndex 0 is the writing day.
+  const days = logDays(events, today)
+  const viewDay = days[Math.min(dayIndex, days.length - 1)]
+  const items = events.filter(e => dayKey(new Date(e.ts)) === viewDay)
 
   function dayLabel(date: string) {
     if (date === today) return t('Сегодня')
@@ -112,7 +114,7 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
   function caffeineNow(): number {
     const nowMs = new Date().getTime()
     return events
-      .filter(e => e.type === 'coffee' && e.ts.slice(0, 10) === today)
+      .filter(e => e.type === 'coffee' && dayKey(new Date(e.ts)) === today)
       .reduce((total, ev) => {
         const dose = ((ev.amount ?? 200) / 200) * 80
         const hoursElapsed = (nowMs - new Date(ev.ts).getTime()) / 3600000
@@ -123,7 +125,7 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
     const bedtime = new Date(); bedtime.setHours(23, 0, 0, 0)
     const targetMs = bedtime.getTime()
     return events
-      .filter(e => e.type === 'coffee' && e.ts.slice(0, 10) === today)
+      .filter(e => e.type === 'coffee' && dayKey(new Date(e.ts)) === today)
       .reduce((total, ev) => {
         const dose = ((ev.amount ?? 200) / 200) * 80
         const hoursElapsed = (targetMs - new Date(ev.ts).getTime()) / 3600000
@@ -132,7 +134,7 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
       }, 0)
   }
 
-  const todayCoffee = events.filter(e => e.type === 'coffee' && e.ts.slice(0, 10) === today)
+  const todayCoffee = events.filter(e => e.type === 'coffee' && dayKey(new Date(e.ts)) === today)
   const cafNow = Math.round(caffeineNow())
   const cafBed = Math.round(caffeineAtBedtime())
 
@@ -227,10 +229,27 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
         </div>
       )}
 
-      {grouped.map(({ date, items }) => (
-        <div key={date} className="log-today">
-          <p className="log-today-label">{dayLabel(date)}</p>
-          {items.map(ev => {
+      <div className="log-day-nav">
+        <button
+          type="button"
+          className="log-day-arrow"
+          onClick={() => setDayIndex(i => i + 1)}
+          disabled={dayIndex >= days.length - 1}
+          aria-label={t('Предыдущий день')}
+        >‹</button>
+        <span className="log-day-label">{dayLabel(viewDay)}</span>
+        <button
+          type="button"
+          className="log-day-arrow"
+          onClick={() => setDayIndex(i => Math.max(0, i - 1))}
+          disabled={dayIndex === 0}
+          aria-label={t('Следующий день')}
+        >›</button>
+      </div>
+
+      <div className="log-today">
+        {items.length === 0 && <p className="log-day-empty">{t('Пока ничего не записано')}</p>}
+        {items.map(ev => {
             const et = EVENT_TYPES.find(x => x.type === ev.type)
             const etLabel = et ? t(et.label) : ''
             return (
@@ -247,9 +266,8 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
                 <button className="log-delete" onClick={() => handleDelete(ev.id)}>×</button>
               </div>
             )
-          })}
-        </div>
-      ))}
+        })}
+      </div>
     </div>
   )
 }
