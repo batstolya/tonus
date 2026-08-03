@@ -324,8 +324,8 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                 {sleep.nights.map(n => (
                   <tr key={n.date}>
                     <td>{n.date}</td><td>{rt(n.weekday)}</td>
-                    <td>{n.bedtime ? <>{n.bedtime}{n.bedtimeDate ? ` (${n.bedtimeDate})` : ''}{n.suspicious && <> <Icon name="warning" title={t('Подозрительная запись')} /></>}</> : dash}</td>
-                    <td>{n.wakeTime ? <>{n.wakeTime}{n.wakeDate ? ` (${n.wakeDate})` : ''}{n.suspicious && <> <Icon name="warning" title={t('Подозрительная запись')} /></>}</> : dash}</td>
+                    <td>{n.bedtime ? <>{n.bedtime}{n.bedtimeDate ? ` (${n.bedtimeDate})` : ''}{n.suspicious && <> <Icon name="warningPlain" title={t('Подозрительная запись')} /></>}</> : dash}</td>
+                    <td>{n.wakeTime ? <>{n.wakeTime}{n.wakeDate ? ` (${n.wakeDate})` : ''}{n.suspicious && <> <Icon name="warningPlain" title={t('Подозрительная запись')} /></>}</> : dash}</td>
                     <td>{n.hours.toFixed(1)}</td>
                     <td>{n.deep?.toFixed(1) ?? dash}</td>
                     <td>{n.rem?.toFixed(1) ?? dash}</td>
@@ -348,7 +348,7 @@ export function DoctorReport({ user, daily, onClose }: Props) {
             )}
             {sleep.suspiciousNights > 0 && (
               <p className="dr-note">
-                {rt('Ночей, где промежуток между отбоем и подъёмом не может вместить записанный сон')} (<Icon name="warning" />): {sleep.suspiciousNights}. {rt('Такой промежуток длиннее 16 часов, равен нулю или короче самого сна — источник склеил или разорвал сессию. Длительность сна в этих строках остаётся измеренной, а отбой и подъём доверия не заслуживают и в средние времена не входят.')}
+                {rt('Ночей, где промежуток между отбоем и подъёмом не может вместить записанный сон')} (<Icon name="warningPlain" />): {sleep.suspiciousNights}. {rt('Такой промежуток длиннее 16 часов, равен нулю или короче самого сна — источник склеил или разорвал сессию. Длительность сна в этих строках остаётся измеренной, а отбой и подъём доверия не заслуживают и в средние времена не входят.')}
               </p>
             )}
             {sleep.phasesOverTotal > 0 && (

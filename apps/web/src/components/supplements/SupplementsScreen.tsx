@@ -231,7 +231,7 @@ export function SupplementsScreen({ user }: Props) {
                   <div className="supp-stock-info">
                     <div className="supp-stock-name">{sup.name}</div>
                     <div className="supp-stock-dose">{sup.default_dose ? `${sup.default_dose}${sup.unit ? ` ${sup.unit}` : ''}` : ''}</div>
-                    {low && <div className="supp-stock-warn"><Icon name="warning" size={12} /> {t('Заканчивается')}</div>}
+                    {low && <div className="supp-stock-warn"><Icon name="warningPlain" size={12} /> {t('Заканчивается')}</div>}
                   </div>
                   <div className="supp-stock-split">
                     <button

@@ -19,14 +19,14 @@ export function DataGaps({ daily, days = 14, compact = false }: Props) {
   if (compact) {
     return (
       <span className="data-gaps-compact" title={significant.map(g => `${g.label}: нет ${g.missingDays} дн`).join(', ')}>
-        <Icon name="warning" size={14} /> {t('Неполные данные')} ({significant.length})
+        <Icon name="warningPlain" size={14} /> {t('Неполные данные')} ({significant.length})
       </span>
     )
   }
 
   return (
     <div className="data-gaps">
-      <div className="data-gaps-title"><Icon name="warning" size={14} /> {t('Пробелы в данных за')} {days} {t('дн')}:</div>
+      <div className="data-gaps-title"><Icon name="warningPlain" size={14} /> {t('Пробелы в данных за')} {days} {t('дн')}:</div>
       <div className="data-gaps-list">
         {significant.map(g => (
           <span key={g.metric} className="data-gaps-chip">

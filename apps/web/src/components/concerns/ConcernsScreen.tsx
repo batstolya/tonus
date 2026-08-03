@@ -325,7 +325,7 @@ export function ConcernsScreen({ user, onNavigateHair }: Props) {
               onClick={() => masked ? (setUnlockFor(c), setPinError(false)) : setSelected(c)}>
               <div className="concern-card-top">
                 <span className="concern-name">{masked
-                  ? <><Icon name="locked" size={12} title={t('Скрытая запись')} /> {t('Скрытая запись')}</>
+                  ? <><Icon name="locked" size={12} /> {t('Скрытая запись')}</>
                   : <>{c.is_private && <><Icon name="locked" size={12} title={t('Приватная запись')} /> </>}{c.name}</>}</span>
                 {!masked && (
                   <span className="concern-status" style={{ color: STATUS_LABELS[c.status]?.color }}>
@@ -361,7 +361,7 @@ export function ConcernsScreen({ user, onNavigateHair }: Props) {
                     onClick={() => masked ? (setUnlockFor(c), setPinError(false)) : setSelected(c)}>
                     <div className="concern-card-top">
                       <span className="concern-name">{masked
-                        ? <><Icon name="locked" size={12} title={t('Скрытая запись')} /> {t('Скрытая запись')}</>
+                        ? <><Icon name="locked" size={12} /> {t('Скрытая запись')}</>
                         : c.name}</span>
                       {!masked && (
                         <span className="concern-status" style={{ color: STATUS_LABELS[c.status]?.color }}>

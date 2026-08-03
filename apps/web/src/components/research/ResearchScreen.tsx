@@ -24,7 +24,7 @@ type Period = '14d' | '30d' | '90d'
 // wrapping span or all three badges render identically.
 const BADGE: Record<'high' | 'medium' | 'low', { icon: IconName; title: string; color: string }> = {
   high: { icon: 'dotOk', title: 'Высокая уверенность', color: 'var(--green)' },
-  medium: { icon: 'dotWarn', title: 'Средняя уверенность', color: '#f59e0b' },
+  medium: { icon: 'dotWarn', title: 'Средняя уверенность', color: 'var(--warn)' },
   low: { icon: 'dotBad', title: 'Мало данных', color: 'var(--red)' },
 }
 

@@ -203,7 +203,7 @@ function EarlyWarningBanner({ daily }: { daily: DailyMetrics[] }) {
   if (!w.active) return null
   return (
     <div className="early-warning">
-      <span className="ew-icon"><Icon name="warning" size={18} /></span>
+      <span className="ew-icon"><Icon name="warningPlain" size={18} /></span>
       <div>
         <strong>{t('Организм под нагрузкой')}</strong>
         <ul className="ew-list">

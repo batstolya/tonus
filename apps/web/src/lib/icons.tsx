@@ -1,12 +1,12 @@
 import {
   Alarm, ArrowDownRight, ArrowsClockwise, ArrowsLeftRight, ArrowUpRight, Barbell, Bed, Broadcast,
-  Calendar, CalendarBlank, CalendarDots, Camera, CaretRight, ChartBar, ChatCircle, CheckCircle,
-  Circle, Clock, CloudSun, Coffee, Compass, DownloadSimple, Drop, Eye, Fire, ForkKnife, Gear,
+  Calendar, CalendarBlank, CalendarDots, Camera, CaretRight, ChartBar, CheckCircle,
+  Circle, Clock, CloudSun, Coffee, Compass, DownloadSimple, Eye, Fire, ForkKnife, Gear,
   Globe, Heart, Heartbeat, Hourglass, ImageSquare, Lightbulb, Lightning, Link, Lock, Magnet,
-  MagnifyingGlass, MapPin, Microscope, Moon, NotePencil, Package, Pause, Pencil, PencilSimple,
-  PersonSimpleRun, PersonSimpleWalk, Pill, Printer, SignOut, Sneaker, Snowflake, SoccerBall,
-  Sparkle, SmileyMeh, SmileyNervous, Suitcase, Sun, Target, TestTube, Thermometer, ThumbsUp,
-  TrendDown, TrendUp, Trophy, Virus, Volleyball, Warning, Wind, Wine, type Icon as PhosphorIcon,
+  MagnifyingGlass, MapPin, Microscope, Moon, MoonStars, Package, Pause, Pencil, PencilSimple,
+  PersonSimpleRun, PersonSimpleWalk, Printer, Pulse, SignOut, Sneaker, Snowflake, SoccerBall,
+  Sparkle, SmileyMeh, SmileyNervous, Sun, Target, TestTube, Thermometer, ThumbsUp,
+  TrendDown, TrendUp, Trophy, Volleyball, Warning, Wind, Wine, type Icon as PhosphorIcon,
 } from '@phosphor-icons/react'
 
 // Every entry keeps the emoji it replaces so VITE_ICONS=0 restores the old
@@ -19,7 +19,16 @@ type Entry = { icon: PhosphorIcon; emoji: string }
 export const ICONS = {
   stressed:   { icon: SmileyNervous,    emoji: '😓' },
   calm:       { icon: SmileyMeh,        emoji: '😌' },
-  warning:    { icon: Warning,          emoji: '⚠' },
+  warning:    { icon: Warning,          emoji: '⚠️' },
+  // Same Warning shape, deliberately: both entries are the same "heads up"
+  // triangle, just carrying the two different literal byte-forms the source
+  // files actually used (⚠️ with U+FE0F vs. bare ⚠). Splitting rather than
+  // picking a "majority" form — the real tally across every warning site is
+  // 6 with the selector to 7 without, not the lopsided split once assumed —
+  // keeps VITE_ICONS=0 byte-identical to source everywhere instead of
+  // guessing. Mirrors the existing dayMet/planDone precedent of two names
+  // sharing one component for the same concept.
+  warningPlain: { icon: Warning,        emoji: '⚠' },
   focus:      { icon: Target,           emoji: '🎯' },
   auto:       { icon: ArrowsClockwise,  emoji: '🔄' },
   dayMet:     { icon: CheckCircle,      emoji: '🟢' },
@@ -43,11 +52,20 @@ export const ICONS = {
   chevronRight:    { icon: CaretRight, emoji: '›' },
   signOut:         { icon: SignOut,    emoji: '🚪' },
   magic:      { icon: Sparkle,        emoji: '✨' },
-  heart:      { icon: Heart,          emoji: '❤' },
+  heart:      { icon: Heart,          emoji: '❤️' },
   moon:       { icon: Moon,           emoji: '🌙' },
   shoes:      { icon: Sneaker,        emoji: '👟' },
-  pulse:      { icon: Heartbeat,      emoji: '💓' },
-  sleepDebt:  { icon: Bed,            emoji: '💤' },
+  // Was Heartbeat, same as alertHigh — indistinguishable on an experiment
+  // card when one tracks hrv and another restingHeartRate. Pulse (an ECG
+  // trace) fits the HRV metric this name is actually used for; alertHigh
+  // keeps Heartbeat since it also carries NotificationBell's general
+  // high-severity alert, not just this one metric.
+  pulse:      { icon: Pulse,          emoji: '💓' },
+  // Was Bed, same as sleeping — indistinguishable when one card tracks
+  // sleepHours and another sleepREM. MoonStars fits the REM/night-phase
+  // concept better than a literal bed; sleeping keeps Bed for the
+  // total-hours-in-bed metric.
+  sleepDebt:  { icon: MoonStars,      emoji: '💤' },
   sleeping:   { icon: Bed,            emoji: '😴' },
   chart:      { icon: ChartBar,       emoji: '📊' },
   breathing:  { icon: Wind,           emoji: '🫁' },
@@ -64,11 +82,11 @@ export const ICONS = {
   swap:           { icon: ArrowsLeftRight,  emoji: '↔' },
   pending:        { icon: Hourglass,        emoji: '⏳' },
   pause:          { icon: Pause,            emoji: '⏸' },
-  sun:           { icon: Sun,            emoji: '☀' },
+  sun:           { icon: Sun,            emoji: '☀️' },
   coffee:        { icon: Coffee,         emoji: '☕' },
   alcohol:       { icon: Wine,           emoji: '🍷' },
-  temperature:   { icon: Thermometer,    emoji: '🌡' },
-  weather:       { icon: CloudSun,       emoji: '🌦' },
+  temperature:   { icon: Thermometer,    emoji: '🌡️' },
+  weather:       { icon: CloudSun,       emoji: '🌦️' },
   link:          { icon: Link,           emoji: '🔗' },
   compass:       { icon: Compass,        emoji: '🧭' },
   magnet:        { icon: Magnet,         emoji: '🧲' },
@@ -90,19 +108,12 @@ export const ICONS = {
   // batches found the plan's grep ranges missed. Mirrors that precedent.
   reminder:   { icon: Alarm,      emoji: '⏰' },
   meal:       { icon: ForkKnife,     emoji: '🍽' },
-  water:      { icon: Drop,          emoji: '💧' },
-  meds:       { icon: Pill,          emoji: '💊' },
-  illness:    { icon: Virus,         emoji: '🤒' },
-  stress:     { icon: SmileyNervous, emoji: '😰' },
-  travel:     { icon: Suitcase,      emoji: '🧳' },
-  note:       { icon: NotePencil,    emoji: '📝' },
-  edit:       { icon: Pencil,        emoji: '✏' },
+  edit:       { icon: Pencil,        emoji: '✏️' },
   editSimple: { icon: PencilSimple,  emoji: '✎' },
   // Brief specifies Camera here, same as `photo` — that would violate the
   // no-shared-component rule with no colour to distinguish them, so this
   // uses ImageSquare instead. `photo` already covers Camera (batch 3).
   snapshot:   { icon: ImageSquare,   emoji: '📸' },
-  chat:     { icon: ChatCircle,     emoji: '💬' },
   location: { icon: MapPin,         emoji: '📍' },
   archive:  { icon: Package,        emoji: '📦' },
   print:    { icon: Printer,        emoji: '🖨' },

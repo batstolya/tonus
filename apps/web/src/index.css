@@ -2161,7 +2161,7 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 .adherence-list { display: flex; flex-direction: column; gap: 8px; }
 .adherence-row { display: grid; grid-template-columns: minmax(120px, 1fr) 2fr 44px; align-items: center; gap: 10px; }
 .adherence-name { font-size: 14px; }
-.adherence-streak { font-size: 12px; color: var(--muted, #888); }
+.adherence-streak { font-size: 12px; color: var(--warn); }
 .adherence-bar { height: 8px; border-radius: 4px; background: var(--surface2); overflow: hidden; }
 .adherence-fill { height: 100%; border-radius: 4px; transition: width .3s; }
 .adherence-pct { font-size: 13px; font-weight: 600; text-align: right; }

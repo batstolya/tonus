@@ -78,10 +78,12 @@ function derivePilotFiles(): string[] {
 // check for genuine leftover emoji.
 const KNOWN_NON_REGISTRY_COLLISIONS: Partial<Record<string, string[]>> = {
   'components/dashboard/ActivityCalendar.tsx': ['›'],
-  // Same story: SupplementsScreen's month-nav '‹'/'›' and ConcernsScreen's
-  // card disclosure '›' predate the icon registry and aren't emoji->icon
+  // Same story: SupplementsScreen's month-nav '›' and ConcernsScreen's card
+  // disclosure '›' predate the icon registry and aren't emoji->icon
   // conversion sites — they just happen to share chevronRight's glyph.
-  'components/supplements/SupplementsScreen.tsx': ['›', '‹'],
+  // (SupplementsScreen's month-nav also renders a '‹' — no registry entry
+  // uses that glyph, so it was never flagged and needs no exemption here.)
+  'components/supplements/SupplementsScreen.tsx': ['›'],
   'components/concerns/ConcernsScreen.tsx': ['›'],
   // Different story from the rest of this map: QuickLog.tsx's EVENT_TYPES
   // labels (e.g. '☕ Кофе') embed these emoji as part of a translation key.

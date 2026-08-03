@@ -117,7 +117,7 @@ export function InsightsScreen({ daily, intakeEvents = [] }: Props) {
       {/* Рекорды и серии */}
       {(records.length > 0 || streaks.length > 0) && (
         <div className="ins-block">
-          <SectionTitle><Icon name="trophy" size={16} /> {t('Рекорды и серии')}</SectionTitle>
+          <SectionTitle><span style={{ color: 'var(--warn)' }}><Icon name="trophy" size={16} /></span> {t('Рекорды и серии')}</SectionTitle>
           <div className="ins-chips">
             {streaks.map(s => (
               <span key={s.label} className="ins-chip ins-chip--streak">
@@ -137,7 +137,7 @@ export function InsightsScreen({ daily, intakeEvents = [] }: Props) {
       {/* Аномалии */}
       {anomalies.length > 0 && (
         <div className="ins-block">
-          <SectionTitle><Icon name="warning" size={16} /> {t('Дни-выбросы')}</SectionTitle>
+          <SectionTitle><span style={{ color: 'var(--warn)' }}><Icon name="warning" size={16} /></span> {t('Дни-выбросы')}</SectionTitle>
           <div className="ins-chips">
             {anomalies.map((a, i) => (
               <span key={i} className="ins-chip ins-chip--warn">

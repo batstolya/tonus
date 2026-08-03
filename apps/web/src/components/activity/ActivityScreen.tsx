@@ -56,7 +56,7 @@ function CustomTooltip({ active, payload, label, t, locale }: {
         const lvl = stepsLevel(steps)
         return (
           <p style={{ color: 'var(--text-muted)', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span style={{ color: lvl.color, display: 'inline-flex' }}><Icon name={lvl.icon} size={10} title={t(lvl.label)} /></span>
+            <span style={{ color: lvl.color, display: 'inline-flex' }}><Icon name={lvl.icon} size={10} /></span>
             {t(lvl.label)}
           </p>
         )
