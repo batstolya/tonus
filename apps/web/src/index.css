@@ -741,7 +741,10 @@ body {
 .type-btn:hover { border-color: var(--accent); color: var(--text); }
 .type-btn.active { border-color: var(--accent); background: rgba(108,143,255,0.12); color: var(--accent); font-weight: 600; }
 .quick-log-inputs { display: flex; flex-direction: column; gap: 8px; }
-.time-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+/* Grid, not wrapping flex: content-sized chips made every one a different
+   width, and the date chip a different height on top of that. Equal tracks
+   give one shape for all six. */
+.time-chips { display: grid; grid-template-columns: repeat(auto-fit, minmax(74px, 1fr)); gap: 6px; }
 .time-chip {
   display: flex;
   flex-direction: column;
@@ -758,6 +761,9 @@ body {
   transition: border-color 0.15s, background 0.15s;
   line-height: 1.2;
 }
+/* Both rows are their own element so the date chip's icon sits beside its
+   word instead of becoming a third row of the column flex. */
+.time-chip-main { display: inline-flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; }
 .time-chip-sub { font-size: 10px; font-weight: 400; color: var(--text-muted); }
 .time-chip.active { border-color: var(--accent); background: rgba(99,102,241,0.1); color: var(--accent); }
 .time-chip.active .time-chip-sub { color: var(--accent); }

@@ -200,7 +200,8 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
                     onClick={() => { setTime(val); setCustomDt('') }}
                     type="button"
                   >
-                    {label}<span className="time-chip-sub">{val}</span>
+                    <span className="time-chip-main">{label}</span>
+                    <span className="time-chip-sub">{val}</span>
                   </button>
                 )
               })}
@@ -209,7 +210,8 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
                 onClick={() => setCustomDt(c => c ? '' : localDtNow())}
                 type="button"
               >
-                <Icon name="calendar" /> {t('Дата')}<span className="time-chip-sub">{t('выбрать')}</span>
+                <span className="time-chip-main"><Icon name="calendar" size={14} /> {t('Дата')}</span>
+                <span className="time-chip-sub">{t('выбрать')}</span>
               </button>
             </div>
             {customDt && (
