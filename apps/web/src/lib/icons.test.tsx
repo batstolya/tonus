@@ -86,6 +86,12 @@ const expectedComponentName: Record<IconName, string> = {
   archive: 'PackageIcon',
   print: 'PrinterIcon',
   import: 'DownloadSimpleIcon',
+  water: 'DropIcon',
+  meds: 'PillIcon',
+  illness: 'VirusIcon',
+  travel: 'SuitcaseIcon',
+  note: 'NotePencilIcon',
+  stressAnxious: 'SmileyNervousIcon',
 }
 
 afterEach(() => {

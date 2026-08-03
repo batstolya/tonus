@@ -18,16 +18,11 @@ export const dashboard: Record<string, Translation> = {
   'Пока ничего не записано': { uk: 'Поки нічого не записано', en: 'Nothing logged yet' },
   'Сегодня': { uk: 'Сьогодні', en: 'Today' },
   'м': { uk: 'хв', en: 'm' },
-  '☕ Кофе': { uk: '☕ Кава', en: '☕ Coffee' },
-  '🍷 Алкоголь': { uk: '🍷 Алкоголь', en: '🍷 Alcohol' },
-  '🍽 Еда': { uk: '🍽 Їжа', en: '🍽 Meal' },
-  '💧 Вода': { uk: '💧 Вода', en: '💧 Water' },
-  '💊 Лекарства': { uk: '💊 Ліки', en: '💊 Meds' },
-  '🏋️ Тренировка': { uk: '🏋️ Тренування', en: '🏋️ Workout' },
-  '🤒 Болезнь': { uk: '🤒 Хвороба', en: '🤒 Illness' },
-  '😰 Стресс': { uk: '😰 Стрес', en: '😰 Stress' },
-  '🧳 Поездка': { uk: '🧳 Подорож', en: '🧳 Travel' },
-  '📝 Другое': { uk: '📝 Інше', en: '📝 Other' },
+  // Quick-log event labels. The emoji used to be part of the key itself
+  // ('☕ Кофе'); QuickLog now renders the icon separately, so these are plain
+  // words and reuse the same keys the charts and settings already translate.
+  'Вода': { uk: 'Вода', en: 'Water' },
+  'Другое': { uk: 'Інше', en: 'Other' },
 
 
   // ── Дашборд ────────────────────────────────────────────────

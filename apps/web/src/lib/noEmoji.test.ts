@@ -85,53 +85,11 @@ const KNOWN_NON_REGISTRY_COLLISIONS: Partial<Record<string, string[]>> = {
   // uses that glyph, so it was never flagged and needs no exemption here.)
   'components/supplements/SupplementsScreen.tsx': ['›'],
   'components/concerns/ConcernsScreen.tsx': ['›'],
-  // Different story from the rest of this map: QuickLog.tsx's EVENT_TYPES
-  // labels (e.g. '☕ Кофе') embed these emoji as part of a translation key.
-  // translate() falls back to the Russian source string on a missing key,
-  // so rewriting a label without updating every dictionary entry would
-  // silently regress uk/en users to Russian — out of scope for the icon
-  // rollout, left for the i18n pass. Only the standalone caffeine-icon and
-  // date-picker emoji in this file were converted to <Icon>.
-  //
-  // The label's weight-lifter glyph carries a variation selector ('🏋️'),
-  // byte-for-byte identical to `sportGym`'s registered emoji — that's the
-  // only weight-lifter form registered now. An earlier draft of this
-  // rollout also registered a `workout` entry for the bare, selector-less
-  // codepoint ('🏋', no variation selector), but that codepoint appears
-  // nowhere in the codebase (this label's glyph has always carried the
-  // selector) and `workout` reused `sportGym`'s Barbell component with no
-  // colour to distinguish them, so `workout` was removed as dead and
-  // colliding.
-  //
-  // The '›' below is the same story as the three files above, not an emoji at
-  // all: QuickLog's day-nav arrows are typographic chevrons that arrived with
-  // the day-paging feature, matching ActivityCalendar's and SupplementsScreen's
-  // month-nav. They predate no emoji and are not conversion sites.
-  'components/intake/QuickLog.tsx':
-    ['☕', '🍷', '🍽', '💧', '💊', '🏋️', '🤒', '😰', '🧳', '📝', '›'],
-}
-
-// Mirrors KNOWN_NON_REGISTRY_COLLISIONS above but for the broader
-// Extended_Pictographic sweep below, which has no per-file exemption
-// mechanism of its own. Same QuickLog.tsx translation-key rationale as the
-// comment on that map — kept as a separate list because the two checks
-// exist to catch different failure modes (a registered emoji left behind
-// vs. any new, unregistered pictographic character), and conflating their
-// exemptions would let a genuinely new stray emoji in QuickLog.tsx slip
-// through unnoticed.
-//
-// Each value is pinned to the exact number of times that glyph appears in
-// today's EVENT_TYPES label array (every glyph below appears exactly once,
-// as the first character of its label). A plain "these glyphs are exempt"
-// list would filter the glyph out of the *whole file's* source text, so an
-// extra occurrence added elsewhere in QuickLog.tsx — e.g. a fresh standalone
-// JSX node — would silently pass. Pinning the count instead means the sweep
-// below fails the moment the observed count no longer matches, catching
-// exactly the regression a bare allow-list would miss.
-const KNOWN_TRANSLATION_KEY_EMOJI_COUNTS: Partial<Record<string, Record<string, number>>> = {
-  'components/intake/QuickLog.tsx': {
-    '☕': 1, '🍷': 1, '🍽': 1, '💧': 1, '💊': 1, '🏋': 1, '🤒': 1, '😰': 1, '🧳': 1, '📝': 1,
-  },
+  // QuickLog's day-nav arrows, same story as the three files above: they
+  // arrived with the day-paging feature and match ActivityCalendar's and
+  // SupplementsScreen's month-nav. The event-type emoji that used to be
+  // exempt here are gone — the labels no longer carry them.
+  'components/intake/QuickLog.tsx': ['›'],
 }
 
 describe('converted files carry no emoji', () => {
@@ -160,25 +118,15 @@ describe('converted files carry no emoji', () => {
   for (const file of PILOT_FILES) {
     it(`${file} carries no unregistered pictographic character`, () => {
       const source = readFileSync(join(__dirname, '..', file), 'utf8')
-      const exemptCounts = KNOWN_TRANSLATION_KEY_EMOJI_COUNTS[file] ?? {}
       const matches = [...source.matchAll(PICTOGRAPHIC)].map(m => m[0])
 
-      // Anything pictographic that isn't globally allowed and isn't one of
-      // this file's pinned-count exemptions is an unconditional failure.
-      const unexpected = matches.filter(ch => !ALLOWED.has(ch) && !(ch in exemptCounts))
+      // No per-file exemptions any more. QuickLog's translation-key emoji were
+      // the only ones, and they carried a pinned-count mechanism so an extra
+      // occurrence could not hide behind a bare allow-list. Decoupling the
+      // icon from the key removed the last of them, so the sweep is now
+      // unconditional: any pictographic character outside ALLOWED fails.
+      const unexpected = matches.filter(ch => !ALLOWED.has(ch))
       expect(unexpected, `${file} still contains ${unexpected.join(' ')}`).toEqual([])
-
-      // Exempted glyphs are only exempt up to their pinned count: an extra
-      // occurrence (e.g. the same glyph reintroduced as a standalone JSX
-      // node) pushes the observed count past the pin and fails here.
-      const counts: Record<string, number> = {}
-      for (const ch of matches) counts[ch] = (counts[ch] ?? 0) + 1
-      for (const [ch, expectedCount] of Object.entries(exemptCounts)) {
-        expect(
-          counts[ch] ?? 0,
-          `${file}: expected exactly ${expectedCount} occurrence(s) of ${ch}, found ${counts[ch] ?? 0}`,
-        ).toBe(expectedCount)
-      }
     })
   }
 })

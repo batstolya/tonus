@@ -731,7 +731,12 @@ body {
   color: var(--text-muted);
   cursor: pointer;
   transition: all 0.15s;
-  text-align: center;
+  /* Icon and word are separate nodes now (they used to be one emoji-prefixed
+     string), so centre them as a pair rather than relying on text-align. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 .type-btn:hover { border-color: var(--accent); color: var(--text); }
 .type-btn.active { border-color: var(--accent); background: rgba(108,143,255,0.12); color: var(--accent); font-weight: 600; }
@@ -796,7 +801,7 @@ body {
   padding: 8px 10px;
   font-size: 13px;
 }
-.log-item-icon { font-size: 16px; }
+.log-item-icon { display: inline-flex; align-items: center; font-size: 16px; }
 .log-item-text { flex: 1; color: var(--text); }
 .log-item-time { font-size: 11px; color: var(--text-muted); }
 .log-delete { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px; padding: 0 2px; line-height: 1; }

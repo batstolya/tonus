@@ -83,6 +83,39 @@ describe('QuickLog', () => {
     await waitFor(() => expect(screen.getByText(/fresh note/)).toBeTruthy())
   })
 
+  // The icon rollout's recurring regression was visual, not functional: a
+  // label that still rendered fine while its icon had silently become the
+  // same shape as a neighbour's, or vanished into an empty span. Reviews
+  // caught those by eye every time because no test looked at the drawing.
+  // These two do.
+  it('gives every event type an icon and a translated word', async () => {
+    renderWithProviders(<QuickLog user={user} events={[]} onEventsChange={vi.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: /\+ Add/ }))
+
+    const words = ['Coffee', 'Alcohol', 'Meal', 'Water', 'Medication',
+      'Workout', 'Illness', 'Stress', 'Travel', 'Other']
+    for (const word of words) {
+      const btn = await screen.findByRole('button', { name: new RegExp(`^${word}$`) })
+      expect(btn.querySelector('svg'), `${word} button should render an icon`).not.toBeNull()
+    }
+  })
+
+  it('draws a distinct icon per event type', async () => {
+    renderWithProviders(<QuickLog user={user} events={[]} onEventsChange={vi.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: /\+ Add/ }))
+
+    const grid = document.querySelector('.type-grid')!
+    const buttons = [...grid.querySelectorAll('button')]
+    expect(buttons).toHaveLength(10)
+
+    // Compare the actual drawn geometry, not the component identity: two
+    // registry names pointing at one Phosphor component would render the same
+    // paths, which is exactly the collision that kept slipping past review.
+    const shapes = buttons.map(b => [...b.querySelectorAll('svg path')].map(p => p.getAttribute('d')).join('|'))
+    expect(shapes.every(s => s.length > 0)).toBe(true)
+    expect(new Set(shapes).size, 'every event type should draw its own shape').toBe(10)
+  })
+
   it('deletes an event through the API module', async () => {
     const onEventsChange = vi.fn()
     renderWithProviders(<QuickLog user={user} events={[event]} onEventsChange={onEventsChange} />)

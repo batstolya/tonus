@@ -1,12 +1,13 @@
 import {
   Alarm, ArrowDownRight, ArrowsClockwise, ArrowsLeftRight, ArrowUpRight, Barbell, Bed, Broadcast,
   Calendar, CalendarBlank, CalendarDots, Camera, CaretRight, ChartBar, CheckCircle,
-  Circle, Clock, CloudSun, Coffee, Compass, DownloadSimple, Eye, Fire, ForkKnife, Gear,
+  Circle, Clock, CloudSun, Coffee, Compass, DownloadSimple, Drop, Eye, Fire, ForkKnife, Gear,
   Globe, Heart, Heartbeat, Hourglass, ImageSquare, Lightbulb, Lightning, Link, Lock, Magnet,
-  MagnifyingGlass, MapPin, Microscope, Moon, MoonStars, Package, Pause, Pencil, PencilSimple,
-  PersonSimpleRun, PersonSimpleWalk, Printer, Pulse, SignOut, Sneaker, Snowflake, SoccerBall,
-  Sparkle, SmileyMeh, SmileyNervous, Sun, Target, TestTube, Thermometer, ThumbsUp,
-  TrendDown, TrendUp, Trophy, Volleyball, Warning, Wind, Wine, type Icon as PhosphorIcon,
+  MagnifyingGlass, MapPin, Microscope, Moon, MoonStars, NotePencil, Package, Pause, Pencil,
+  PencilSimple, PersonSimpleRun, PersonSimpleWalk, Pill, Printer, Pulse, SignOut, Sneaker,
+  Snowflake, SoccerBall, Sparkle, SmileyMeh, SmileyNervous, Suitcase, Sun, Target, TestTube,
+  Thermometer, ThumbsUp, TrendDown, TrendUp, Trophy, Virus, Volleyball, Warning, Wind, Wine,
+  type Icon as PhosphorIcon,
 } from '@phosphor-icons/react'
 
 // Every entry keeps the emoji it replaces so VITE_ICONS=0 restores the old
@@ -118,6 +119,24 @@ export const ICONS = {
   archive:  { icon: Package,        emoji: '📦' },
   print:    { icon: Printer,        emoji: '🖨' },
   import:   { icon: DownloadSimple, emoji: '📥' },
+  // Quick-log event types. These emoji were the one batch the icon rollout
+  // deliberately skipped: they were embedded in the translation keys
+  // themselves ('☕ Кофе'), so converting them meant decoupling icon from key
+  // across three dictionaries first. `coffee`, `alcohol`, `meal` and
+  // `sportGym` above already cover four of the ten.
+  water:    { icon: Drop,           emoji: '💧' },
+  meds:     { icon: Pill,           emoji: '💊' },
+  // 🤒 is a face holding a thermometer, but `temperature` already registers
+  // Thermometer for the weather reading. Virus keeps illness distinguishable
+  // from a warm afternoon rather than drawing both the same.
+  illness:  { icon: Virus,          emoji: '🤒' },
+  travel:   { icon: Suitcase,       emoji: '🧳' },
+  note:     { icon: NotePencil,     emoji: '📝' },
+  // Same SmileyNervous as `stressed`, deliberately: one concept, two literal
+  // emoji forms in the source (😓 there, 😰 here). Follows the
+  // warning/warningPlain precedent — a name per byte-form keeps VITE_ICONS=0
+  // byte-identical to what each call site used to render.
+  stressAnxious: { icon: SmileyNervous, emoji: '😰' },
 } as const satisfies Record<string, Entry>
 
 export type IconName = keyof typeof ICONS
