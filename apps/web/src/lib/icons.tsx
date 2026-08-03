@@ -10,7 +10,8 @@ import {
   PencilSimple, PersonSimpleRun, PersonSimpleWalk, Pill, Printer, Pulse, SignOut, Sneaker,
   Snowflake, SoccerBall, Sparkle, SmileyMeh, SmileyNervous, Stethoscope, Suitcase, Sun, Target,
   TestTube,
-  Thermometer, ThumbsUp, TrendDown, TrendUp, Trophy, Virus, Volleyball, Warning, Watch, Wind,
+  Thermometer, ThumbsUp, TrendDown, TrendUp, Trophy, User, Virus, Volleyball, Warning, Watch,
+  Wind,
   Wine,
   type Icon as PhosphorIcon,
 } from '@phosphor-icons/react'
@@ -157,6 +158,10 @@ export const ICONS = {
   exportData: { icon: Export,         emoji: '📤' },
   envelope:   { icon: Envelope,       emoji: '✉️' },
   key:        { icon: Key,            emoji: '🔑' },
+  // Stands in for a profile photo that has not been set. No emoji ancestor —
+  // nothing in the app ever drew a person — so VITE_ICONS=0 falls back to the
+  // bust glyph a placeholder would otherwise have been written as.
+  person:     { icon: User,           emoji: '👤' },
 } as const satisfies Record<string, Entry>
 
 export type IconName = keyof typeof ICONS

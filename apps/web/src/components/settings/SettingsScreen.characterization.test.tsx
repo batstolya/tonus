@@ -17,7 +17,17 @@ function chain(): unknown {
   ;(p as { then: unknown }).then = (res: (v: { data: null; error: null }) => unknown) => res({ data: null, error: null })
   return p
 }
-vi.mock('../../lib/supabase', () => ({ supabase: { from: () => chain() } }))
+// storage as well as from: the profile section reads the user's photo on mount,
+// and a mock narrower than what the screen touches surfaces as an unhandled
+// error rather than a failing assertion.
+vi.mock('../../lib/supabase', () => ({
+  supabase: {
+    from: () => chain(),
+    // Storage has its own shape — chain() models the query builder, and
+    // borrowing it here would answer createSignedUrl with a query object.
+    storage: { from: () => ({ createSignedUrl: async () => ({ data: null, error: null }) }) },
+  },
+}))
 
 vi.mock('../../lib/aiUsage', () => ({
   loadMonthUsage: vi.fn().mockResolvedValue({ costUsd: 0, totalTokens: 0, bySource: {} }),
