@@ -1274,10 +1274,13 @@ body {
 .topbar-pop-title { display: block; font-size: 13.5px; font-weight: 700; margin-bottom: 4px; }
 .topbar-pop-text { margin: 0 0 6px; font-size: 12.5px; line-height: 1.45; }
 .topbar-pop-note { margin: 0; font-size: 12px; line-height: 1.45; color: var(--text-muted); }
-.data-gaps-badge { color: #BA7517; }
-.geostorm-badge.minor { color: #BA7517; }
-.geostorm-badge.strong { color: #D85A30; }
-.geostorm-badge.extreme { color: #E24B4A; }
+/* Same story as .caffeine-bar: these were fixed hexes and stayed put when the
+   theme changed. The storm scale is ordered, so its middle step is mixed from
+   the tokens either side rather than being a fourth invented colour. */
+.data-gaps-badge { color: var(--warn); }
+.geostorm-badge.minor { color: var(--warn); }
+.geostorm-badge.strong { color: color-mix(in srgb, var(--warn) 50%, var(--bad)); }
+.geostorm-badge.extreme { color: var(--bad); }
 .geostorm-badge.strong, .geostorm-badge.extreme { animation: geostorm-pulse 2s ease-in-out infinite; }
 @keyframes geostorm-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
@@ -1573,12 +1576,12 @@ body {
 .labs-abn-count { font-size: 13px; color: var(--red); font-weight: 600; }
 .labs-markers { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; }
 .labs-marker { padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface2); display: flex; flex-direction: column; gap: 2px; }
-.labs-marker.high { border-color: rgba(255,107,107,0.5); background: rgba(255,107,107,0.08); }
-.labs-marker.low { border-color: rgba(245,158,11,0.5); background: rgba(245,158,11,0.08); }
+.labs-marker.high { border-color: color-mix(in srgb, var(--bad) 50%, transparent); background: color-mix(in srgb, var(--bad) 8%, transparent); }
+.labs-marker.low { border-color: color-mix(in srgb, var(--warn) 50%, transparent); background: color-mix(in srgb, var(--warn) 8%, transparent); }
 .labs-marker-name { font-size: 12px; color: var(--text-muted); }
 .labs-marker-val { font-size: 15px; }
 .labs-marker.high .labs-marker-val { color: var(--red); }
-.labs-marker.low .labs-marker-val { color: #f59e0b; }
+.labs-marker.low .labs-marker-val { color: var(--warn); }
 .labs-marker-ref { font-size: 11px; color: var(--text-muted); }
 .rem-quiet input { font-size: 13px; padding: 3px 6px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); }
 .rem-hint { font-size: 11px; color: var(--text-muted); }
@@ -2058,9 +2061,13 @@ input[type="date"].settings-input::-webkit-calendar-picker-indicator { cursor: p
 .data-gaps-chip { font-size: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; }
 
 /* Caffeine model bar */
-.caffeine-bar { display: flex; align-items: center; gap: 8px; background: color-mix(in srgb, #92400e 10%, transparent); border: 1px solid color-mix(in srgb, #92400e 25%, transparent); border-radius: 8px; padding: 7px 12px; margin-bottom: 10px; font-size: 13px; }
+/* Built from --warn, not a fixed hex. The hardcoded amber-800 it used to carry
+   was frozen across themes: on the dark surface the border fell to 1.17:1 and
+   the panel read as a smudge rather than a warning. The token lifts it to
+   1.52:1 there and is unchanged to the eye in light. */
+.caffeine-bar { display: flex; align-items: center; gap: 8px; background: color-mix(in srgb, var(--warn) 10%, transparent); border: 1px solid color-mix(in srgb, var(--warn) 25%, transparent); border-radius: 8px; padding: 7px 12px; margin-bottom: 10px; font-size: 13px; }
 .caffeine-icon { font-size: 16px; }
-.caffeine-warn { color: var(--red); font-size: 12px; }
+.caffeine-warn { color: var(--text-muted); font-size: 12px; }
 
 /* Language picker dropdown */
 .lang-picker { position: relative; }
