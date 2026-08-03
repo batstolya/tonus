@@ -110,6 +110,8 @@ export const dashboard: Record<string, Translation> = {
   'Болезнь': { uk: 'Хвороба', en: 'Illness' },
   'Тренировка': { uk: 'Тренування', en: 'Workout' },
   'Поездка': { uk: 'Поїздка', en: 'Travel' },
+  'Скрыть до утра': { uk: 'Сховати до ранку', en: 'Hide until morning' },
+  'Показать карточку': { uk: 'Показати картку', en: 'Show the card' },
   'Фокус недели': { uk: 'Фокус тижня', en: 'Weekly focus' },
   'из 7 дней': { uk: 'із 7 днів', en: 'of 7 days' },
   'Сегодня держусь': { uk: 'Сьогодні тримаюсь', en: 'On track today' },

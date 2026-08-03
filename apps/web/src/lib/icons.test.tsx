@@ -37,6 +37,7 @@ const expectedComponentName: Record<IconName, string> = {
   sportGym: 'BarbellIcon',
   settings: 'GearIcon',
   chevronRight: 'CaretRightIcon',
+  collapse: 'CaretUpIcon',
   signOut: 'SignOutIcon',
   magic: 'SparkleIcon',
   heart: 'HeartIcon',

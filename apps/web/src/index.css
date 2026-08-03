@@ -1580,7 +1580,11 @@ body {
 
 /* Coach focus */
 .coach-focus-card { background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 14%, var(--surface)), var(--surface)); border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border)); border-radius: var(--r-surface); padding: 16px; margin-bottom: 16px; }
-.coach-focus-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+/* Label left, count and hide button together on the right. space-between
+   alone worked while there were two children; the third pushed the count into
+   the middle of the row. */
+.coach-focus-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.coach-focus-count { margin-left: auto; }
 .coach-focus-label { font-size: 13px; font-weight: 700; color: var(--accent-text); }
 /* Inline icons sit on the text baseline where the replaced emoji used to
    sit — nudge them up so they read centered in the sentence, not low. */
@@ -1593,6 +1597,18 @@ body {
 .coach-focus-btn { border: 1px solid var(--accent); background: transparent; color: var(--accent-text); border-radius: var(--r-control); padding: 8px 16px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
 .coach-focus-btn.done { background: var(--ok); border-color: var(--ok); color: var(--on-ok); }
 .coach-focus-btn:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+/* Sits at the end of the card header, past the count. */
+.coach-focus-hide {
+  display: inline-flex; align-items: center; justify-content: center;
+  margin-left: 8px; padding: 2px;
+  background: none; border: none; border-radius: var(--r-inner);
+  color: var(--text-muted); cursor: pointer;
+  opacity: 0.6; transition: opacity 0.15s, color 0.15s;
+}
+.coach-focus-hide:hover { opacity: 1; color: var(--text); }
+/* The badge the card collapses into: icon plus the progress it was showing. */
+.focus-badge { gap: 5px; }
+.focus-badge-count { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .coach-focus-btn.done:hover { background: var(--ok); opacity: 0.9; }
 
 /* Lab markers */
