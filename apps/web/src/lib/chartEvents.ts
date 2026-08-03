@@ -1,44 +1,41 @@
 import type { IntakeEvent } from './chat'
+import type { IconName } from './icons'
 
 // Контекстные события, которые объясняют изменения метрик на графиках (#6).
-// One recessive colour for all five, not five hues. These are annotations over
-// a metric line, and each already carries its own glyph plus a label in the
-// tooltip — identity never rests on the colour. Five separate hues could not be
-// made to pass the separation checks anyway (the categorical theme holds four),
-// and they competed with the series they were meant to annotate.
-const MARKER = 'var(--chart-axis)'
-
-export const CHART_EVENT_TYPES: { type: string; emoji: string; color: string; label: string }[] = [
-  { type: 'alcohol', emoji: '🍷', color: MARKER, label: 'Алкоголь' },
-  { type: 'illness', emoji: '🤒', color: MARKER, label: 'Болезнь' },
-  { type: 'stress', emoji: '😰', color: MARKER, label: 'Стресс' },
-  { type: 'workout', emoji: '🏋️', color: MARKER, label: 'Тренировка' },
-  { type: 'travel', emoji: '🧳', color: MARKER, label: 'Поездка' },
+//
+// No colour field at all. These are annotations over a metric line, and every
+// way of colouring them failed: five distinct hues cannot pass the separation
+// checks (the categorical theme holds four), and the hues they did take
+// collided with the series they annotate. Painting all five the same recessive
+// grey then made them indistinguishable, which is worse — a row of identical
+// dots says only "something happened". Identity now comes from the icon and
+// label in the tooltip, and from the filter chips that decide which types are
+// drawn at all.
+export const CHART_EVENT_TYPES: { type: string; icon: IconName; label: string }[] = [
+  { type: 'alcohol', icon: 'alcohol', label: 'Алкоголь' },
+  { type: 'illness', icon: 'illness', label: 'Болезнь' },
+  { type: 'stress', icon: 'stressAnxious', label: 'Стресс' },
+  { type: 'workout', icon: 'sportGym', label: 'Тренировка' },
+  { type: 'travel', icon: 'travel', label: 'Поездка' },
 ]
 
-export interface EventMarker { x: string; emoji: string; color: string; type: string; label: string }
+export interface EventMarker { x: string; icon: IconName; type: string; label: string }
 
 export interface GroupedEventMarker {
   x: string
-  // Один элемент на тип события: рисуем точку на каждый, называем в тултипе.
-  events: { type: string; emoji: string; color: string; label: string }[]
-  // Цвет самой вертикальной линии — по первому событию дня.
-  color: string
+  // Один элемент на тип события: тултип называет каждое.
+  events: { type: string; icon: IconName; label: string }[]
 }
-
-// Точек на дату рисуем не больше: пять типов в один день — редкость, а лишние
-// точки размывают полосу. Полный список всё равно виден в тултипе.
-export const MAX_MARKER_DOTS = 3
 
 // Одна вертикальная линия на дату вместо линии на каждое событие: несколько
 // событий в день сливаются в один маркер.
 export function groupMarkersByDate(markers: EventMarker[]): GroupedEventMarker[] {
   const byDate = new Map<string, GroupedEventMarker>()
   for (const m of markers) {
-    const entry = { type: m.type, emoji: m.emoji, color: m.color, label: m.label }
+    const entry = { type: m.type, icon: m.icon, label: m.label }
     const g = byDate.get(m.x)
     if (g) g.events.push(entry)
-    else byDate.set(m.x, { x: m.x, events: [entry], color: m.color })
+    else byDate.set(m.x, { x: m.x, events: [entry] })
   }
   return [...byDate.values()]
 }
@@ -50,10 +47,12 @@ export function markersByDate(grouped: GroupedEventMarker[]): Map<string, Groupe
 
 // Маркеры для событий, попадающих в показанные даты графика.
 // dateKey(ts) приводит timestamp к той же форме, что dataKey оси X.
+// activeTypes ограничивает выборку типами, включёнными в легенде-фильтре.
 export function eventMarkers(
   events: IntakeEvent[],
   shownDates: Set<string>,
   dateKey: (isoDate: string) => string,
+  activeTypes?: Set<string>,
 ): EventMarker[] {
   const byType = new Map(CHART_EVENT_TYPES.map(e => [e.type, e]))
   const seen = new Set<string>()
@@ -61,13 +60,14 @@ export function eventMarkers(
   for (const ev of events) {
     const cfg = byType.get(ev.type)
     if (!cfg) continue
+    if (activeTypes && !activeTypes.has(ev.type)) continue
     const isoDate = (ev.ts ?? '').slice(0, 10)
     const x = dateKey(isoDate)
     if (!shownDates.has(x)) continue
     const k = `${x}:${ev.type}`
     if (seen.has(k)) continue
     seen.add(k)
-    out.push({ x, emoji: cfg.emoji, color: cfg.color, type: ev.type, label: cfg.label })
+    out.push({ x, icon: cfg.icon, type: ev.type, label: cfg.label })
   }
   return out
 }

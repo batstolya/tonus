@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { eventMarkers, groupMarkersByDate, markersByDate, MAX_MARKER_DOTS } from './chartEvents'
+import { eventMarkers, groupMarkersByDate, markersByDate } from './chartEvents'
 import type { IntakeEvent } from './chat'
 
 const ev = (ts: string, type: string): IntakeEvent =>
@@ -15,9 +15,8 @@ describe('groupMarkersByDate', () => {
     const grouped = groupMarkersByDate(markers)
     expect(grouped).toHaveLength(2)
     expect(grouped[0].x).toBe('07-01')
-    expect(grouped[0].events.map(e => e.emoji)).toEqual(['🍷', '😰'])
-    expect(grouped[0].color).toBe('var(--chart-axis)')
-    expect(grouped[1].events.map(e => e.emoji)).toEqual(['🏋️'])
+    expect(grouped[0].events.map(e => e.icon)).toEqual(['alcohol', 'stressAnxious'])
+    expect(grouped[1].events.map(e => e.icon)).toEqual(['sportGym'])
   })
 
   it('carries the label of every event type so the tooltip can name them', () => {
@@ -27,8 +26,8 @@ describe('groupMarkersByDate', () => {
       iso => iso.slice(5),
     )
     expect(groupMarkersByDate(markers)[0].events).toEqual([
-      { type: 'alcohol', emoji: '🍷', color: 'var(--chart-axis)', label: 'Алкоголь' },
-      { type: 'stress', emoji: '😰', color: 'var(--chart-axis)', label: 'Стресс' },
+      { type: 'alcohol', icon: 'alcohol', label: 'Алкоголь' },
+      { type: 'stress', icon: 'stressAnxious', label: 'Стресс' },
     ])
   })
 
@@ -38,12 +37,36 @@ describe('groupMarkersByDate', () => {
       new Set(['07-01']),
       iso => iso.slice(5),
     )
-    expect(groupMarkersByDate(markers)[0].events.map(e => e.emoji)).toEqual(['🍷'])
+    expect(groupMarkersByDate(markers)[0].events.map(e => e.icon)).toEqual(['alcohol'])
   })
 
-  it('caps how many dots a single date draws', () => {
-    expect(MAX_MARKER_DOTS).toBeGreaterThan(0)
-    expect(MAX_MARKER_DOTS).toBeLessThanOrEqual(5)
+  it('drops the types the filter has switched off', () => {
+    const markers = eventMarkers(
+      [ev('2026-07-01T10:00:00Z', 'alcohol'), ev('2026-07-01T18:00:00Z', 'stress')],
+      new Set(['07-01']),
+      iso => iso.slice(5),
+      new Set(['stress']),
+    )
+    expect(markers.map(m => m.type)).toEqual(['stress'])
+  })
+
+  it('draws every type when no filter is given', () => {
+    const markers = eventMarkers(
+      [ev('2026-07-01T10:00:00Z', 'alcohol'), ev('2026-07-01T18:00:00Z', 'stress')],
+      new Set(['07-01']),
+      iso => iso.slice(5),
+    )
+    expect(markers.map(m => m.type)).toEqual(['alcohol', 'stress'])
+  })
+
+  it('draws nothing when the filter is empty', () => {
+    const markers = eventMarkers(
+      [ev('2026-07-01T10:00:00Z', 'alcohol')],
+      new Set(['07-01']),
+      iso => iso.slice(5),
+      new Set(),
+    )
+    expect(markers).toEqual([])
   })
 })
 
