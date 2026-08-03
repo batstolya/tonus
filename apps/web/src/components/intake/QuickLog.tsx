@@ -4,20 +4,26 @@ import { isDemoActive } from '../../lib/demo'
 import { demoInsert, demoRemove, demoId } from '../../lib/demoDb'
 import type { User } from '@supabase/supabase-js'
 import { useT } from '../../lib/i18n'
-import { Icon } from '../../lib/icons'
+import { Icon, type IconName } from '../../lib/icons'
 import { dayKey, logDays } from '../../lib/intakeDays'
 
-const EVENT_TYPES = [
-  { type: 'coffee', label: '☕ Кофе', unit: 'мл', defaultAmount: 200 },
-  { type: 'alcohol', label: '🍷 Алкоголь', unit: 'мл', defaultAmount: 150 },
-  { type: 'meal', label: '🍽 Еда', unit: null, defaultAmount: null },
-  { type: 'water', label: '💧 Вода', unit: 'мл', defaultAmount: 250 },
-  { type: 'meds', label: '💊 Лекарства', unit: null, defaultAmount: null },
-  { type: 'workout', label: '🏋️ Тренировка', unit: null, defaultAmount: null },
-  { type: 'illness', label: '🤒 Болезнь', unit: null, defaultAmount: null },
-  { type: 'stress', label: '😰 Стресс', unit: null, defaultAmount: null },
-  { type: 'travel', label: '🧳 Поездка', unit: null, defaultAmount: null },
-  { type: 'custom', label: '📝 Другое', unit: null, defaultAmount: null },
+// The icon is a separate field from the label, not the label's first
+// character. It used to be baked into the translation key itself (the emoji
+// prefixed the Russian word), which is why this was the one screen the icon
+// rollout skipped: t() looks the whole string up, so editing a label without
+// editing every dictionary would have dropped uk/en users back to the Russian
+// source silently.
+const EVENT_TYPES: { type: string; icon: IconName; label: string; unit: string | null; defaultAmount: number | null }[] = [
+  { type: 'coffee',  icon: 'coffee',        label: 'Кофе',       unit: 'мл', defaultAmount: 200 },
+  { type: 'alcohol', icon: 'alcohol',       label: 'Алкоголь',   unit: 'мл', defaultAmount: 150 },
+  { type: 'meal',    icon: 'meal',          label: 'Еда',        unit: null, defaultAmount: null },
+  { type: 'water',   icon: 'water',         label: 'Вода',       unit: 'мл', defaultAmount: 250 },
+  { type: 'meds',    icon: 'meds',          label: 'Лекарства',  unit: null, defaultAmount: null },
+  { type: 'workout', icon: 'sportGym',      label: 'Тренировка', unit: null, defaultAmount: null },
+  { type: 'illness', icon: 'illness',       label: 'Болезнь',    unit: null, defaultAmount: null },
+  { type: 'stress',  icon: 'stressAnxious', label: 'Стресс',     unit: null, defaultAmount: null },
+  { type: 'travel',  icon: 'travel',        label: 'Поездка',    unit: null, defaultAmount: null },
+  { type: 'custom',  icon: 'note',          label: 'Другое',     unit: null, defaultAmount: null },
 ]
 
 interface Props {
@@ -167,7 +173,7 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
                 className={`type-btn${selectedType === et.type ? ' active' : ''}`}
                 onClick={() => setSelectedType(et.type)}
               >
-                {t(et.label)}
+                <Icon name={et.icon} /> {t(et.label)}
               </button>
             ))}
           </div>
@@ -251,12 +257,11 @@ export function QuickLog({ user, events, onEventsChange }: Props) {
         {items.length === 0 && <p className="log-day-empty">{t('Пока ничего не записано')}</p>}
         {items.map(ev => {
             const et = EVENT_TYPES.find(x => x.type === ev.type)
-            const etLabel = et ? t(et.label) : ''
             return (
               <div key={ev.id} className="log-item">
-                <span className="log-item-icon">{etLabel.split(' ')[0]}</span>
+                <span className="log-item-icon">{et && <Icon name={et.icon} />}</span>
                 <span className="log-item-text">
-                  {etLabel.slice(etLabel.indexOf(' ') + 1)}
+                  {et ? t(et.label) : ''}
                   {ev.amount ? ` — ${ev.amount}${ev.unit ?? ''}` : ''}
                   {ev.note ? ` · ${ev.note}` : ''}
                 </span>

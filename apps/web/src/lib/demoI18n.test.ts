@@ -74,6 +74,11 @@ describe('lib labels are translatable', () => {
   })
 
   it('translates quick-log event labels', () => {
-    for (const key of ['🏋️ Тренировка', '🤒 Болезнь', '😰 Стресс', '🧳 Поездка']) expectTranslated(key)
+    // Every label, not the four the emoji-key era happened to list: the icon
+    // now lives outside the key, so all ten are ordinary words and there is
+    // no reason to guard only some of them.
+    const labels = ['Кофе', 'Алкоголь', 'Еда', 'Вода', 'Лекарства',
+      'Тренировка', 'Болезнь', 'Стресс', 'Поездка', 'Другое']
+    for (const key of labels) expectTranslated(key)
   })
 })
