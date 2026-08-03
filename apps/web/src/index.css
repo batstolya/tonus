@@ -174,6 +174,13 @@ body {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
+/* recharts puts tabindex="0" on its <svg>, so clicking a chart focused it and
+   the browser drew its own blue ring. Hide it for the pointer, keep it for the
+   keyboard — the chart really is focusable, and a keyboard user needs to see
+   where they are. :focus-visible is what tells the two apart. */
+.recharts-surface:focus { outline: none; }
+.recharts-surface:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
 /* Profile photo. The circle is the same component in the topbar and in
    settings, so the shape lives here once and only the size varies. */
 .avatar {

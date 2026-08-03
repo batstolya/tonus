@@ -132,8 +132,11 @@ export function ChatWidget(_props: Props) {
               <div className="chat-empty">
                 <p>{t('Привет! Я вижу твои данные, цели и эксперименты за последние 30 дней. Задай любой вопрос.')}</p>
                 <div className="chat-suggestions">
+                  {/* The strings are dictionary keys, so the button showed a
+                      translation while putting the Russian key into the input.
+                      What the user sees is what gets asked. */}
                   {['Как мой сон за период?', 'Что с HRV?', 'Как продвигаются мои цели?'].map(s => (
-                    <button key={s} className="chat-suggestion" onClick={() => { setInput(s); inputRef.current?.focus() }}>{t(s)}</button>
+                    <button key={s} className="chat-suggestion" onClick={() => { setInput(t(s)); inputRef.current?.focus() }}>{t(s)}</button>
                   ))}
                 </div>
               </div>

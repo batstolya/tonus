@@ -34,6 +34,12 @@ const HEALTH_ANALYSIS =
   'пульс покоя стабилен, сна в среднем 7 часов. Слабое место — вечерний кофе и поздний отбой в будни. ' +
   'Из анализов: ферритин подтянулся с 24 до 41, витамин D вышел в норму.'
 
+// Sections of the demo analysis. Separate strings because the card shows them
+// under their own headings, and because each is a dictionary key.
+const ANALYSIS_GOOD = 'Восстановление держится в норме, пульс покоя стабилен.'
+const ANALYSIS_IMPROVE = 'Кофе после 16:00 и поздний отбой в будни укорачивают сон.'
+const ANALYSIS_FOCUS = 'Ложиться до 23:00 хотя бы пять дней в неделю.'
+
 const RECOMMENDATIONS = [
   {
     metric: 'hrv',
@@ -73,8 +79,26 @@ export function demoFunctionResponse(name: string, body?: unknown): unknown | nu
     case 'deep-research':
       return { reply: tr(DEEP_RESEARCH) }
     case 'analyze-health': {
+      // The real function returns a whole AiAnalysis row and the dashboard
+      // renders it directly. This used to answer with three loose text fields,
+      // so the card showed "Invalid Date" and expanding it blanked the app on
+      // `good.length`. The periods come from the caller, which already
+      // computed them.
       const text = tr(HEALTH_ANALYSIS)
-      return { analysis: text, reply: text, summary: text }
+      const period = (body ?? {}) as { periodStart?: string; periodEnd?: string }
+      const today = new Date().toISOString().slice(0, 10)
+      return {
+        id: demoId('demo-analysis'),
+        period_start: period.periodStart ?? today,
+        period_end: period.periodEnd ?? today,
+        created_at: new Date().toISOString(),
+        summary: text,
+        good: [tr(ANALYSIS_GOOD)],
+        improve: [tr(ANALYSIS_IMPROVE)],
+        focus: [tr(ANALYSIS_FOCUS)],
+        model: 'demo',
+        tokens_used: null,
+      }
     }
     case 'generate-recommendations': {
       // Настоящая функция пишет рекомендации в БД, экран потом их перечитывает —
