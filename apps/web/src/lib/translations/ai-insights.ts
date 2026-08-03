@@ -212,7 +212,6 @@ export const ai_insights: Record<string, Translation> = {
   'Воскресенье': { uk: 'Неділя', en: 'Sunday' },
   'Наведи на день, чтобы увидеть число': { uk: 'Наведи на день, щоб побачити число', en: 'Hover a day to see the value' },
   'норма': { uk: 'норма', en: 'target' },
-  'зелёный': { uk: 'зелений', en: 'green' },
   'вне нормы': { uk: 'поза нормою', en: 'out of range' },
   'Импорт данных': { uk: 'Імпорт даних', en: 'Import data' },
   'Архив': { uk: 'Архів', en: 'Archive' },

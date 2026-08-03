@@ -25,11 +25,16 @@ function Heatmap({ daily }: { daily: DailyMetrics[] }) {
   const { cells } = buildHeatmap(daily, mk.key, mk.betterHigh)
   if (!cells.length) return null
 
-  function color(pct: number | null) {
-    if (pct == null) return 'var(--surface2)'
-    const hue = pct * 130
-    const light = 62 - pct * 8
-    return `hsl(${hue} 72% ${light}%)`
+  // Four steps of one hue, not a hue rotation. The old ramp swept red->green
+  // by hue, which reads as a traffic light over what is an ordered quantity —
+  // and it was fixed hsl, so it ignored the theme. The step classes let CSS own
+  // both the fill and the ink that stays readable on it in each theme.
+  function step(pct: number | null): string {
+    if (pct == null) return 'empty'
+    if (pct >= 0.75) return 's4'
+    if (pct >= 0.5) return 's3'
+    if (pct >= 0.25) return 's2'
+    return 's1'
   }
   const fmtVal = (v: number | null) =>
     v == null ? '—' : v.toLocaleString(locale, { maximumFractionDigits: mk.decimals })
@@ -55,14 +60,15 @@ function Heatmap({ daily }: { daily: DailyMetrics[] }) {
         {hover
           ? <><b>{fmtD(hover.date)}</b> — {fmtVal(hover.v)}{mk.unit ? ' ' + t(mk.unit) : ''}</>
           : <span className="settings-muted">
-              {t('норма')}: {mk.betterHigh ? '≥' : '≤'} {mk.greenAt.toLocaleString(locale)}{mk.unit ? ' ' + t(mk.unit) : ''} — {t('зелёный')}
+              {/* No colour word any more: the scale is one hue, so "green" told
+                  the reader nothing. The threshold is the useful part. */}
+              {t('норма')}: {mk.betterHigh ? '≥' : '≤'} {mk.greenAt.toLocaleString(locale)}{mk.unit ? ' ' + t(mk.unit) : ''}
             </span>}
       </div>
       <div className="heatmap">
         {cells.map(cell => (
           <div key={cell.date}
-            className={`heat-cell${cell.v == null ? ' empty' : ''}`}
-            style={{ background: color(cell.pct) }}
+            className={`heat-cell ${step(cell.pct)}`}
             onMouseEnter={() => setHover({ date: cell.date, v: cell.v })}
             onClick={() => setHover({ date: cell.date, v: cell.v })}
             title={`${fmtD(cell.date)}: ${fmtVal(cell.v)}`}>
