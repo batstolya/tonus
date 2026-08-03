@@ -58,6 +58,10 @@
      core sleep against REM and deep. A hue there would claim an identity the
      data does not have, and it is the largest segment, so it would dominate. */
   --chart-neutral: #7B8497;
+  --heat-1: #60C7AE; --heat-1-ink: #141826;
+  --heat-2: #3DAE91; --heat-2-ink: #141826;
+  --heat-3: #2D806C; --heat-3-ink: #FFFFFF;
+  --heat-4: #1D5346; --heat-4-ink: #FFFFFF;
 }
 
 [data-theme="light"] {
@@ -120,6 +124,15 @@
   --chart-grid: #232B3F;
   --chart-axis: #6E7794;
   --chart-neutral: #6B748C;
+  /* Heat-map ramp. Separate from --chart-s* on purpose: those fill bars, which
+     carry no text, so their middle steps sit at the lightness where neither
+     black nor white clears 4.5:1 — exactly where a cell's number has to be
+     legible. These steps skip that dead band, and each carries the ink that
+     wins on it (the switch point is not the same in both themes). */
+  --heat-1: #296556; --heat-1-ink: #E6E9F2;
+  --heat-2: #419F88; --heat-2-ink: #0F1422;
+  --heat-3: #6EC4AE; --heat-3-ink: #0F1422;
+  --heat-4: #A8DCCF; --heat-4-ink: #0F1422;
 }
 
 [data-theme="light"] .app {
@@ -162,6 +175,10 @@
   --chart-grid: #ECEFF4;
   --chart-axis: #9AA3B5;
   --chart-neutral: #7B8497;
+  --heat-1: #60C7AE; --heat-1-ink: #141826;
+  --heat-2: #3DAE91; --heat-2-ink: #141826;
+  --heat-3: #2D806C; --heat-3-ink: #FFFFFF;
+  --heat-4: #1D5346; --heat-4-ink: #FFFFFF;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1463,9 +1480,15 @@ body {
 /* Heatmap */
 .heat-hint { font-size: 13px; margin-bottom: 10px; min-height: 18px; color: var(--text); }
 .heatmap { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, 34px); grid-auto-columns: 34px; gap: 3px; overflow-x: auto; }
-.heat-cell { border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; color: rgba(0,0,0,0.7); font-variant-numeric: tabular-nums; }
-.heat-cell.empty { background: var(--surface2) !important; color: transparent; }
-[data-theme="light"] .heat-cell.empty { background: rgba(0,0,0,0.05) !important; }
+.heat-cell { border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; font-variant-numeric: tabular-nums; }
+/* One hue in four steps, each with the ink that clears 4.5:1 on it. Steps run
+   pale->deep in light and dim->bright in dark, so "more" always reads as
+   "stronger" without a second hue. */
+.heat-cell.s1 { background: var(--heat-1); color: var(--heat-1-ink); }
+.heat-cell.s2 { background: var(--heat-2); color: var(--heat-2-ink); }
+.heat-cell.s3 { background: var(--heat-3); color: var(--heat-3-ink); }
+.heat-cell.s4 { background: var(--heat-4); color: var(--heat-4-ink); }
+.heat-cell.empty { background: var(--surface2); color: transparent; }
 
 /* AI observation cards */
 .ins-ai-list { display: flex; flex-direction: column; gap: 10px; }
