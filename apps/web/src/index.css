@@ -231,6 +231,10 @@ body {
 .theme-toggle svg { stroke: currentColor; }
 .theme-toggle:hover { background: var(--border); color: var(--text); }
 .btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: var(--r-control);
@@ -692,6 +696,10 @@ body {
 }
 .auth-form input:focus { border-color: var(--accent); }
 .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   background: var(--accent);
   color: var(--on-accent);
   border: none;
@@ -1326,7 +1334,7 @@ body {
 .settings-screen { max-width: 600px; padding: 0 0 40px; }
 .settings-screen h2 { margin-bottom: 24px; }
 .settings-section { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
-.settings-section-title { font-size: 15px; font-weight: 600; margin: 0 0 16px; }
+.settings-section-title { display: flex; align-items: center; font-size: 15px; font-weight: 600; margin: 0 0 16px; }
 .settings-section.is-archived, .archivable-block.is-archived { display: none; }
 .archivable-block { position: relative; }
 .section-archive-btn { position: absolute; top: 14px; right: 14px; z-index: 2; display: inline-flex; align-items: center; justify-content: center; padding: 5px; border: none; background: none; color: var(--text-muted); cursor: pointer; border-radius: 7px; opacity: 0.45; transition: opacity .15s, background .15s, color .15s; }
