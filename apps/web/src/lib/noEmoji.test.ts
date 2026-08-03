@@ -45,6 +45,12 @@ const PILOT_FILES = [
   'components/settings/sections/TelegramSection.tsx',
   'components/upload/UploadScreen.tsx',
   'components/onboarding/guide/StepSchedule.tsx',
+  'components/landing/LandingScreen.tsx',
+  'components/landing/blocks/ChatBlock.tsx',
+  'components/landing/blocks/FeatureGrid.tsx',
+  'components/landing/blocks/TelegramBlock.tsx',
+  'components/landing/blocks/TrustStrip.tsx',
+  'components/auth/AuthScreen.tsx',
 ]
 
 const REPLACED = Object.values(ICONS).map(e => e.emoji)
@@ -93,6 +99,20 @@ const KNOWN_NON_REGISTRY_COLLISIONS: Partial<Record<string, string[]>> = {
   // SupplementsScreen's month-nav. The event-type emoji that used to be
   // exempt here are gone — the labels no longer carry them.
   'components/intake/QuickLog.tsx': ['›'],
+  // Not a conversion site: these three sit inside mock Telegram messages that
+  // depict what the bot actually sends. Telegram is a place where emoji are
+  // native, so drawing our icon set there would make the mock-up look less
+  // like Telegram, not more like us. Same reason TelegramDemo.tsx keeps its
+  // whole chat in emoji and never imports the registry at all.
+  'components/landing/blocks/TelegramBlock.tsx': ['💊', '☕', '📊'],
+}
+
+// The broad pictographic sweep below has no per-file mechanism of its own, so
+// the one file with a legitimate exemption gets its counts pinned here. A bare
+// allow-list would let a fourth, genuinely stray emoji hide behind the three
+// that belong; pinning the count fails the moment the number moves.
+const MOCK_MESSAGE_EMOJI: Partial<Record<string, Record<string, number>>> = {
+  'components/landing/blocks/TelegramBlock.tsx': { '💊': 1, '☕': 1, '📊': 1 },
 }
 
 describe('converted files carry no emoji', () => {
@@ -122,14 +142,20 @@ describe('converted files carry no emoji', () => {
     it(`${file} carries no unregistered pictographic character`, () => {
       const source = readFileSync(join(__dirname, '..', file), 'utf8')
       const matches = [...source.matchAll(PICTOGRAPHIC)].map(m => m[0])
+      const pinned = MOCK_MESSAGE_EMOJI[file] ?? {}
 
-      // No per-file exemptions any more. QuickLog's translation-key emoji were
-      // the only ones, and they carried a pinned-count mechanism so an extra
-      // occurrence could not hide behind a bare allow-list. Decoupling the
-      // icon from the key removed the last of them, so the sweep is now
-      // unconditional: any pictographic character outside ALLOWED fails.
-      const unexpected = matches.filter(ch => !ALLOWED.has(ch))
+      const unexpected = matches.filter(ch => !ALLOWED.has(ch) && !(ch in pinned))
       expect(unexpected, `${file} still contains ${unexpected.join(' ')}`).toEqual([])
+
+      // Exempt glyphs are exempt only up to their pinned count.
+      const counts: Record<string, number> = {}
+      for (const ch of matches) counts[ch] = (counts[ch] ?? 0) + 1
+      for (const [ch, expected] of Object.entries(pinned)) {
+        expect(
+          counts[ch] ?? 0,
+          `${file}: expected exactly ${expected} occurrence(s) of ${ch}, found ${counts[ch] ?? 0}`,
+        ).toBe(expected)
+      }
     })
   }
 })

@@ -93,6 +93,14 @@ const expectedComponentName: Record<IconName, string> = {
   travel: 'SuitcaseIcon',
   note: 'NotePencilIcon',
   stressAnxious: 'SmileyNervousIcon',
+  chat: 'ChatCircleIcon',
+  telegram: 'PaperPlaneTiltIcon',
+  watch: 'WatchIcon',
+  stethoscope: 'StethoscopeIcon',
+  fastFood: 'HamburgerIcon',
+  exportData: 'ExportIcon',
+  envelope: 'EnvelopeIcon',
+  key: 'KeyIcon',
 }
 
 afterEach(() => {

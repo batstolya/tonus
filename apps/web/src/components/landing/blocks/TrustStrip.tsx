@@ -1,11 +1,12 @@
 import { m } from 'motion/react'
 import { useT } from '../../../lib/i18n'
+import { Icon, type IconName } from '../../../lib/icons'
 
-const ITEMS = [
-  { icon: '⌚', label: 'Apple Watch — синк сам' },
-  { icon: '✈️', label: 'Telegram-бот' },
-  { icon: '✨', label: 'AI на Gemini' },
-  { icon: '🔐', label: 'Данные твои — экспорт в один клик' },
+const ITEMS: { icon: IconName; label: string }[] = [
+  { icon: 'watch', label: 'Apple Watch — синк сам' },
+  { icon: 'telegram', label: 'Telegram-бот' },
+  { icon: 'magic', label: 'AI на Gemini' },
+  { icon: 'locked', label: 'Данные твои — экспорт в один клик' },
 ]
 
 export function TrustStrip() {
@@ -21,7 +22,7 @@ export function TrustStrip() {
           viewport={{ once: true, amount: 0.6 }}
           transition={{ delay: i * 0.08, duration: 0.45 }}
         >
-          <span aria-hidden="true">{it.icon}</span> {t(it.label)}
+          <Icon name={it.icon} size={16} /> {t(it.label)}
         </m.span>
       ))}
     </section>

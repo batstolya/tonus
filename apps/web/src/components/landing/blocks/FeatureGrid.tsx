@@ -1,15 +1,16 @@
 import { m } from 'motion/react'
 import { useT } from '../../../lib/i18n'
+import { Icon, type IconName } from '../../../lib/icons'
 
-const ITEMS = [
-  { icon: '💊', label: 'Препараты и лечение' },
-  { icon: '🧪', label: 'Анализы из лаборатории' },
-  { icon: '🍔', label: 'Питание' },
-  { icon: '🎯', label: 'Цели' },
-  { icon: '🔬', label: 'Эксперименты' },
-  { icon: '🩺', label: 'Проблемы и симптомы' },
-  { icon: '📤', label: 'Экспорт данных' },
-  { icon: '🌍', label: 'Два языка: uk / en' },
+const ITEMS: { icon: IconName; label: string }[] = [
+  { icon: 'meds', label: 'Препараты и лечение' },
+  { icon: 'lab', label: 'Анализы из лаборатории' },
+  { icon: 'fastFood', label: 'Питание' },
+  { icon: 'focus', label: 'Цели' },
+  { icon: 'microscope', label: 'Эксперименты' },
+  { icon: 'stethoscope', label: 'Проблемы и симптомы' },
+  { icon: 'exportData', label: 'Экспорт данных' },
+  { icon: 'world', label: 'Два языка: uk / en' },
 ]
 
 export function FeatureGrid() {
@@ -27,7 +28,7 @@ export function FeatureGrid() {
             viewport={{ once: true, amount: 0.3 }}
             transition={{ delay: (i % 4) * 0.07, duration: 0.45 }}
           >
-            <span className="feature-icon">{it.icon}</span>
+            <span className="feature-icon"><Icon name={it.icon} size={24} /></span>
             <span>{t(it.label)}</span>
           </m.div>
         ))}
