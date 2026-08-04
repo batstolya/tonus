@@ -118,16 +118,20 @@ async function fetchAllRows<T>(
   table: 'metrics_daily' | 'sleep_sessions',
   userId: string,
   orderCol: string,
+  range?: { since?: string; before?: string },
 ): Promise<T[]> {
   const pageSize = 1000
   const rows: T[] = []
   let from = 0
   while (true) {
-    const { data, error } = await supabase
+    let q = supabase
       .from(table)
       .select('*')
       .eq('user_id', userId)
       .order(orderCol)
+    if (range?.since) q = q.gte(orderCol, range.since)
+    if (range?.before) q = q.lt(orderCol, range.before)
+    const { data, error } = await q
       .range(from, from + pageSize - 1)
     if (error) { console.warn(`${table} load error:`, error.message); break }
     if (!data || data.length === 0) break
@@ -138,10 +142,21 @@ async function fetchAllRows<T>(
   return rows
 }
 
-export async function loadMetricsFromSupabase(userId: string): Promise<DailyMetrics[]> {
+/**
+ * Days from storage, optionally limited to a date range.
+ *
+ * metrics_daily is EAV — one row per metric per day — so a full history is
+ * thousands of rows fetched a thousand at a time. The dashboard only ever
+ * reads the tail, so it asks for a window first and the rest arrives after the
+ * screen is already on.
+ */
+export async function loadMetricsFromSupabase(
+  userId: string,
+  range?: { since?: string; before?: string },
+): Promise<DailyMetrics[]> {
   const [metricsData, sleepData] = await Promise.all([
-    fetchAllRows<MetricsDailyRow>('metrics_daily', userId, 'date'),
-    fetchAllRows<SleepSessionRow>('sleep_sessions', userId, 'date'),
+    fetchAllRows<MetricsDailyRow>('metrics_daily', userId, 'date', range),
+    fetchAllRows<SleepSessionRow>('sleep_sessions', userId, 'date', range),
   ])
   const metricsRes = { data: metricsData }
   const sleepRes = { data: sleepData }

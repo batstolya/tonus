@@ -291,7 +291,6 @@ export default function App() {
           <div className="dashboard-layout">
             <Dashboard
               daily={state.daily}
-              heartRateSamples={state.heartRateSamples}
               events={visibleEvents}
               onNavigate={setView}
               user={user}
@@ -307,6 +306,7 @@ export default function App() {
         ) : state.view === 'stress-map' ? (
           <StressMapScreen
             heartRateSamples={state.heartRateSamples}
+            userId={user.id}
             events={visibleEvents}
             onGoogleCalendar={isGoogleCalendarAvailable() ? handleGoogleCalendar : undefined}
             googleConnected={googleConnected}
