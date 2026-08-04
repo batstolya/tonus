@@ -13,7 +13,11 @@ const TODAY = new Date('2026-07-10T18:00:00')
 describe('buildBellItems', () => {
   it('returns nothing when today is closed and data is fresh', () => {
     const daily = [day('2026-07-08'), day('2026-07-09'), day('2026-07-10')]
-    expect(buildBellItems(daily, TODAY)).toEqual([])
+    // Narrowed to the two kinds this case is about: sparse fixtures also
+    // trigger the data-gaps item, which has its own tests below.
+    const kinds = buildBellItems(daily, TODAY).map(i => i.kind)
+    expect(kinds).not.toContain('streak-risk')
+    expect(kinds).not.toContain('stale-sync')
   })
 
   it('warns about the streak when today is below the threshold', () => {
@@ -125,5 +129,60 @@ describe('localizeAlertText', () => {
 
   it('passes unknown lines through unchanged', () => {
     expect(localizeAlertText('Неизвестная строка', tFor('uk'))).toBe('Неизвестная строка')
+  })
+})
+
+describe('buildBellItems: data gaps', () => {
+  // Every metric dataCompleteness tracks, so "full" really is full.
+  const full = (date: string): DailyMetrics => ({
+    date, steps: 12000, sleepHours: 7, oxygenSaturation: 0.97,
+    hrv: 45, restingHeartRate: 55, activeEnergy: 600,
+  })
+  // Same, minus SpO2 on every day.
+  const partial = (date: string): DailyMetrics => {
+    const d = full(date)
+    delete d.oxygenSaturation
+    return d
+  }
+
+  const window = (make: (d: string) => DailyMetrics) =>
+    Array.from({ length: 14 }, (_, i) => {
+      const d = new Date(TODAY)
+      d.setDate(d.getDate() - i)
+      return make(d.toISOString().slice(0, 10))
+    })
+
+  it('says nothing when every tracked metric is covered', () => {
+    const items = buildBellItems(window(full), TODAY)
+    expect(items.some(i => i.kind === 'data-gaps')).toBe(false)
+  })
+
+  it('reports a metric that is missing on enough days', () => {
+    const items = buildBellItems(window(partial), TODAY)
+    const gaps = items.find(i => i.kind === 'data-gaps')
+    expect(gaps).toBeDefined()
+    if (gaps?.kind !== 'data-gaps') throw new Error('wrong kind')
+    expect(gaps.gaps.some(g => g.metric === 'oxygenSaturation')).toBe(true)
+    expect(gaps.gaps.every(g => g.missingDays >= 3)).toBe(true)
+  })
+
+  it('ignores a metric missing on only a day or two', () => {
+    const days = window(full)
+    days[0] = { ...days[0], oxygenSaturation: undefined }
+    const items = buildBellItems(days, TODAY)
+    expect(items.some(i => i.kind === 'data-gaps')).toBe(false)
+  })
+
+  // The id carries the date, so dismissing it lasts the day and the reminder
+  // comes back tomorrow if the gap is still there.
+  it('stamps the id with today so a dismissal expires', () => {
+    const gaps = buildBellItems(window(partial), TODAY).find(i => i.kind === 'data-gaps')
+    expect(gaps?.id).toBe('data-gaps:2026-07-10')
+  })
+
+  it('reads the window relative to the date it is given, not the clock', () => {
+    // Same data, a year later: nothing falls inside the window any more.
+    const later = new Date('2027-07-10T18:00:00')
+    expect(buildBellItems(window(partial), later).some(i => i.kind === 'data-gaps')).toBe(false)
   })
 })

@@ -175,6 +175,7 @@ body {
   -webkit-backdrop-filter: blur(12px);
 }
 .stress-more { align-self: center; margin-top: 4px; }
+.ai-gaps-caveat { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 12px; color: var(--text-muted); }
 
 /* recharts puts tabindex="0" on its <svg>, so clicking a chart focused it and
    the browser drew its own blue ring. Hide it for the pointer, keep it for the
