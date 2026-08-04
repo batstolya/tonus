@@ -174,6 +174,8 @@ body {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
+.stress-more { align-self: center; margin-top: 4px; }
+
 /* recharts puts tabindex="0" on its <svg>, so clicking a chart focused it and
    the browser drew its own blue ring. Hide it for the pointer, keep it for the
    keyboard — the chart really is focusable, and a keyboard user needs to see

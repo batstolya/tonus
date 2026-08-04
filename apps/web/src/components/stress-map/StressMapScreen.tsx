@@ -23,6 +23,11 @@ function fmtDate(d: Date, locale: string): string {
 
 type Mode = 'stress' | 'date' | 'charts'
 
+// The list is sorted by how much an event moved the pulse, so the answer is
+// almost always in the first few rows. Rendering all of them (about 400 here)
+// costs a lot of DOM for lines nobody scrolls to.
+const PAGE = 20
+
 // The samples this screen needs are tens of thousands of rows, so they are
 // fetched when it opens rather than during app start-up, where every other
 // screen used to wait behind them. A fresh import seeds them through the prop,
@@ -30,6 +35,7 @@ type Mode = 'stress' | 'date' | 'charts'
 export function StressMapScreen({ heartRateSamples, userId, events, onGoogleCalendar, googleConnected = false, showGoogle = true, onToggleGoogle }: Props) {
   const { t, locale } = useT()
   const [mode, setMode] = useState<Mode>('stress')
+  const [shown, setShown] = useState(PAGE)
   // Derived, not mirrored: a fresh import hands the samples in through the
   // prop, and only when it does not do we go and fetch them.
   const [fetched, setFetched] = useState<HeartRateSample[] | null>(null)
@@ -93,10 +99,10 @@ export function StressMapScreen({ heartRateSamples, userId, events, onGoogleCale
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
           <div className="stress-sort-tabs">
-            <button className={`stress-sort-btn${mode === 'stress' ? ' active' : ''}`} onClick={() => setMode('stress')}>
+            <button className={`stress-sort-btn${mode === 'stress' ? ' active' : ''}`} onClick={() => { setMode('stress'); setShown(PAGE) }}>
               {t('По стрессу')}
             </button>
-            <button className={`stress-sort-btn${mode === 'date' ? ' active' : ''}`} onClick={() => setMode('date')}>
+            <button className={`stress-sort-btn${mode === 'date' ? ' active' : ''}`} onClick={() => { setMode('date'); setShown(PAGE) }}>
               {t('По дате')}
             </button>
             <button className={`stress-sort-btn${mode === 'charts' ? ' active' : ''}`} onClick={() => setMode('charts')}>
@@ -118,7 +124,7 @@ export function StressMapScreen({ heartRateSamples, userId, events, onGoogleCale
         <StressCharts entries={rawEntries} />
       ) : (
       <div className="stress-list">
-        {entries.map(entry => (
+        {entries.slice(0, shown).map(entry => (
           <div
             key={entry.event.uid}
             className={`stress-item${entry.isPhysicalActivity ? ' physical' : ''}`}
@@ -148,6 +154,11 @@ export function StressMapScreen({ heartRateSamples, userId, events, onGoogleCale
             )}
           </div>
         ))}
+        {entries.length > shown && (
+          <button className="btn-secondary stress-more" onClick={() => setShown(n => n + PAGE)}>
+            {t('Показать ещё')} ({entries.length - shown})
+          </button>
+        )}
       </div>
       )}
     </div>
