@@ -5,6 +5,7 @@ import { Icon } from '../../lib/icons'
 import { buildStressMap } from '../../lib/stressMap'
 import { loadHRSamples } from '../../lib/sync'
 import { StressCharts } from './StressCharts'
+import { StressListSkeleton } from '../ui/Skeleton'
 
 interface Props {
   /** Seeded by a file import; empty on a normal page load. */
@@ -66,7 +67,7 @@ export function StressMapScreen({ heartRateSamples, userId, events, onGoogleCale
     return (
       <div className="screen">
         <h2>{t('Карта стресса')}</h2>
-        <p className="empty-hint">{t('Загружаю данные пульса…')}</p>
+        <StressListSkeleton />
       </div>
     )
   }
