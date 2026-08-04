@@ -207,8 +207,14 @@
 .appchat { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 10px; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
 .appchat-msg { padding: 10px 14px; border-radius: 14px; max-width: 85%; }
 .appchat-msg.user { align-self: flex-end; background: var(--accent); color: var(--on-accent); }
-.appchat-msg.bot { align-self: flex-start; background: var(--surface2); }
-.appchat-typing { align-self: flex-start; color: var(--text-muted); font-size: 13px; }
+/* Two layers in one grid cell: an invisible copy of the finished answer sets
+   the size, the visible one is whatever has been typed so far. Without it the
+   bubble grew line by line and shoved the page down. */
+.appchat-msg.bot { align-self: flex-start; background: var(--surface2); display: grid; }
+.appchat-msg.bot > * { grid-area: 1 / 1; }
+.appchat-sizer { visibility: hidden; }
+.appchat-msg.bot.is-pending { opacity: 0; }
+.appchat-typing { color: var(--text-muted); font-size: 13px; }
 .appchat-caret { display: inline-block; width: 2px; height: 1em; background: var(--accent); margin-left: 2px; vertical-align: text-bottom; animation: lp-caret 0.8s step-start infinite; }
 @keyframes lp-caret { 50% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .appchat-caret { animation: none; } }
