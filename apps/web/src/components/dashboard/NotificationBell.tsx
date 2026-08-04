@@ -6,6 +6,7 @@ import { buildBellItems, parseAlertMessage, splitAlertBody, localizeAlertText, t
 import { ACTIVE_STEPS_MIN, ACTIVE_EXERCISE_MIN } from '../../lib/streak'
 import { useT } from '../../lib/i18n'
 import { Icon, type IconName } from '../../lib/icons'
+import { pluralDays } from '../../lib/plural'
 
 interface Props {
   daily: DailyMetrics[]
@@ -33,7 +34,7 @@ function persistDismissed(ids: Set<string>) {
 // Колокольчик в топбаре: алерты стража (health_alerts) + клиентские сигналы
 // (стрик под угрозой, протухший синк). Паттерн попапа — как у StreakMenu.
 export function NotificationBell({ daily, userId, demo }: Props) {
-  const { t, locale } = useT()
+  const { t, locale, lang } = useT()
   const [open, setOpen] = useState(false)
   // Демо: фикстуры ленивым инициализатором (setState в эффекте — лишний рендер
   // и ошибка react-hooks/set-state-in-effect).
@@ -114,6 +115,22 @@ export function NotificationBell({ daily, userId, demo }: Props) {
             {item.freezes > 0
               ? t('Иначе сгорит заморозка (осталось {n})', { n: item.freezes })
               : t('Заморозок нет — стрик обнулится в полночь')}
+          </>
+        ),
+      }
+    }
+    if (item.kind === 'data-gaps') {
+      return {
+        icon: 'warning',
+        title: `${t('Пробелы в данных за')} 14 ${pluralDays(14, lang)}`,
+        body: (
+          <>
+            {item.gaps.map((g, i) => (
+              <span key={g.metric}>
+                {i > 0 && ' · '}
+                {t(g.label)}: {t('нет данных за')} {g.missingDays} {pluralDays(g.missingDays, lang)}
+              </span>
+            ))}
           </>
         ),
       }

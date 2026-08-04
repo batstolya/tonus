@@ -1,5 +1,6 @@
 import type { DailyMetrics } from '../types'
 import { computeStreak, isActiveDay, hasDayData } from './streak'
+import { computeGaps, type GapInfo } from './dataCompleteness'
 
 // Порог «данные протухли»: последний день с метриками старше этого — сигнал.
 export const STALE_AFTER_DAYS = 2
@@ -10,6 +11,12 @@ export const STALE_AFTER_DAYS = 2
 export type BellItem =
   | { kind: 'streak-risk'; id: string; streak: number; steps: number; exercise: number; freezes: number }
   | { kind: 'stale-sync'; id: string; days: number }
+  | { kind: 'data-gaps'; id: string; gaps: GapInfo[] }
+
+// Same window and threshold the topbar badge used, so nothing about what
+// counts as a gap changed when it moved here.
+const GAP_WINDOW_DAYS = 14
+const GAP_MIN_DAYS = 3
 
 function ymd(date: Date): string {
   const y = date.getFullYear()
@@ -47,6 +54,12 @@ export function buildBellItems(daily: DailyMetrics[], today: Date = new Date()):
       items.push({ kind: 'stale-sync', id: `stale-sync:${todayStr}`, days: diffDays })
     }
   }
+
+  // Metrics the watch stopped reporting. This used to be its own topbar icon
+  // with a popover of its own; it is the same kind of derived advisory as the
+  // two above, so it lives with them and inherits their dismissal.
+  const gaps = computeGaps(daily, GAP_WINDOW_DAYS, today).filter(g => g.missingDays >= GAP_MIN_DAYS)
+  if (gaps.length) items.push({ kind: 'data-gaps', id: `data-gaps:${todayStr}`, gaps })
 
   return items
 }

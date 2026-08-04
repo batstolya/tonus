@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import type { DailyMetrics } from '../../types'
 import { runAnalysis, loadAnalyses, deleteAnalysis, type AiAnalysis, type AnalysisPeriod } from '../../lib/aiAnalysis'
 import { useT } from '../../lib/i18n'
 import { isAiConsentRequiredError, loadAiConsent } from '../../lib/aiConsent'
 import { Icon } from '../../lib/icons'
+import { computeGaps } from '../../lib/dataCompleteness'
 
 interface Props {
   daily: DailyMetrics[]
@@ -69,6 +70,7 @@ function AnalysisCard({ item, onDelete }: { item: AiAnalysis; onDelete: (id: str
 }
 
 export function AiAnalysisBlock({ daily, userId }: Props) {
+  const gaps = useMemo(() => computeGaps(daily).filter(g => g.missingDays >= 3), [daily])
   const { t } = useT()
   const [analyses, setAnalyses] = useState<AiAnalysis[]>([])
   const [loading, setLoading] = useState(false)
@@ -143,6 +145,15 @@ export function AiAnalysisBlock({ daily, userId }: Props) {
           </button>
         </div>
       </div>
+
+      {/* The caveat sits with the result it qualifies, not in a topbar popover:
+          it only means anything at the moment someone is about to trust the
+          analysis. Which metrics are missing is the bell's job. */}
+      {gaps.length > 0 && (
+        <p className="ai-gaps-caveat">
+          <Icon name="warningPlain" size={13} /> {t('Выводы ИИ менее точны при пробелах в данных.')}
+        </p>
+      )}
 
       {error && <p className="auth-error" style={{ marginTop: 8 }}>{error}</p>}
 

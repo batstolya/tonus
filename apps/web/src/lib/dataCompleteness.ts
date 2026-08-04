@@ -16,9 +16,16 @@ const TRACKED: { key: keyof DailyMetrics; label: string }[] = [
   { key: 'oxygenSaturation', label: 'SpO₂' },
 ]
 
-export function computeGaps(daily: DailyMetrics[], days = 14): GapInfo[] {
+/**
+ * Metrics with missing days inside the trailing window.
+ *
+ * `today` is injectable so callers that already work from a fixed date — the
+ * bell builds its items that way — stay testable instead of depending on the
+ * wall clock.
+ */
+export function computeGaps(daily: DailyMetrics[], days = 14, today: Date = new Date()): GapInfo[] {
   if (!daily.length) return []
-  const cutoff = new Date()
+  const cutoff = new Date(today)
   cutoff.setDate(cutoff.getDate() - days)
   const cutoffStr = cutoff.toISOString().slice(0, 10)
 

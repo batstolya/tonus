@@ -18,7 +18,6 @@ const Dashboard = lazy(() => import('./components/dashboard/Dashboard').then(m =
 const StreakMenu = lazy(() => import('./components/dashboard/StreakMenu').then(m => ({ default: m.StreakMenu })))
 const NotificationBell = lazy(() => import('./components/dashboard/NotificationBell').then(m => ({ default: m.NotificationBell })))
 const GeoStormBadge = lazy(() => import('./components/dashboard/GeoStormBadge').then(m => ({ default: m.GeoStormBadge })))
-const DataGapsBadge = lazy(() => import('./components/ui/DataGapsBadge').then(m => ({ default: m.DataGapsBadge })))
 const FocusBadge = lazy(() => import('./components/dashboard/FocusBadge').then(m => ({ default: m.FocusBadge })))
 const TopbarAvatar = lazy(() => import('./components/ui/TopbarAvatar').then(m => ({ default: m.TopbarAvatar })))
 const HeartRateScreen = lazy(() => import('./components/heart-rate/HeartRateScreen').then(m => ({ default: m.HeartRateScreen })))
@@ -140,7 +139,6 @@ export default function App() {
                 <Suspense fallback={null}>
                   <GeoStormBadge />
                   {user && <FocusBadge user={user} daily={state.daily} />}
-                  <DataGapsBadge daily={state.daily} />
                   <StreakMenu daily={state.daily} />
                   <NotificationBell daily={state.daily} userId={user?.id ?? null} demo={demo} />
                 </Suspense>

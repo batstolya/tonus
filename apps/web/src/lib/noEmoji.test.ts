@@ -19,7 +19,6 @@ const PILOT_FILES = [
   'components/dashboard/AiAnalysisBlock.tsx',
   'components/dashboard/CoachFocusCard.tsx',
   'components/dashboard/FocusBadge.tsx',
-  'components/ui/DataGapsBadge.tsx',
   'components/research/ExperimentCard.tsx',
   'components/research/ExperimentsScreen.tsx',
   'components/research/ResearchScreen.tsx',

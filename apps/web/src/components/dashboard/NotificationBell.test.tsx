@@ -89,3 +89,26 @@ describe('NotificationBell', () => {
     expect(text).toMatch(/30 min\.\s*Otherwise a freeze burns \(1 left\)/)
   })
 })
+
+// The data-gaps item used to be its own topbar icon with its own popover.
+// Demo fixtures have no gaps, so this state is unreachable in the browser.
+describe('NotificationBell: data gaps', () => {
+  it('lists the metrics with gaps and how many days each is missing', async () => {
+    api.getOpenHealthAlerts.mockResolvedValue([])
+    vi.mocked(buildBellItems).mockReturnValueOnce([{
+      kind: 'data-gaps',
+      id: 'data-gaps:2026-07-17',
+      gaps: [
+        { metric: 'sleepHours', label: 'Сон', missingDays: 5 },
+        { metric: 'oxygenSaturation', label: 'SpO₂', missingDays: 3 },
+      ],
+    }])
+    renderWithProviders(<NotificationBell daily={daily} userId="u1" demo={false} />)
+    fireEvent.click(screen.getByRole('button', { name: /notification/i }))
+
+    expect(await screen.findByText(/Data gaps/i)).toBeTruthy()
+    const panel = document.querySelector('.bell-panel')!
+    expect(panel.textContent).toContain('5')
+    expect(panel.textContent).toContain('3')
+  })
+})
