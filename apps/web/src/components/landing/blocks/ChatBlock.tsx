@@ -54,14 +54,31 @@ function Exchange({ q, a, start, onDone }: { q: string; a: string; start: boolea
 
   useEffect(() => { if (answer.done) onDone() }, [answer.done, onDone])
 
-  if (!start) return null
+  // Both bubbles are always in the DOM, at their final size, and only fade in.
+  // They used to mount as the conversation played and the answer grew a
+  // character at a time, so the block climbed from 140px to 348px in a dozen
+  // steps and pushed the rest of the page down with it each time.
   return (
     <>
-      <m.div className="appchat-msg user" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.35 }}>
+      <m.div
+        className="appchat-msg user"
+        initial={{ opacity: 0, x: 24 }}
+        animate={start ? { opacity: 1, x: 0 } : { opacity: 0, x: 24 }}
+        transition={{ duration: 0.35 }}
+      >
         {t(q)}
       </m.div>
-      {showTyping && <div className="appchat-typing">{t('печатает…')}</div>}
-      {showAnswer && <div className="appchat-msg bot">{answer.out}{!answer.done && <span className="appchat-caret" />}</div>}
+      <div className={`appchat-msg bot${showTyping || showAnswer ? '' : ' is-pending'}`}>
+        {/* Holds the bubble open at the height of the finished answer. The
+            visible layer sits in the same grid cell, so nothing reflows as the
+            text is typed into it. */}
+        <span className="appchat-sizer" aria-hidden="true">{t(a)}</span>
+        <span className="appchat-live">
+          {showTyping
+            ? <span className="appchat-typing">{t('печатает…')}</span>
+            : <>{answer.out}{!answer.done && <span className="appchat-caret" />}</>}
+        </span>
+      </div>
     </>
   )
 }
