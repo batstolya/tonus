@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { renderWithProviders, screen, waitFor, cleanup } from '../../test/utils'
+import { renderWithProviders, screen, fireEvent, waitFor, cleanup } from '../../test/utils'
 
 const sync = vi.hoisted(() => ({ loadHRSamples: vi.fn() }))
 vi.mock('../../lib/sync', () => sync)
@@ -53,13 +53,26 @@ describe('StressMapScreen sample loading', () => {
     expect(screen.queryByText('Планёрка')).toBeNull()
   })
 
-  it('draws the list once they arrive', async () => {
+  it('opens on the charts, with the list a click away', async () => {
+    sync.loadHRSamples.mockResolvedValue([sample])
+    renderWithProviders(
+      <StressMapScreen heartRateSamples={[]} userId="u1" events={[event]} />,
+    )
+    // The charts answer the question people come here with; the event list is
+    // the follow-up.
+    const byDate = await screen.findByRole('button', { name: /по дате|за датою|by date/i })
+    expect(screen.queryByText('Планёрка')).toBeNull()
+
+    fireEvent.click(byDate)
+    expect(await screen.findByText('Планёрка')).toBeTruthy()
+  })
+
+  it('drops the placeholder once the samples arrive', async () => {
     sync.loadHRSamples.mockResolvedValue([sample])
     const { container } = renderWithProviders(
       <StressMapScreen heartRateSamples={[]} userId="u1" events={[event]} />,
     )
-    expect(await screen.findByText('Планёрка')).toBeTruthy()
-    expect(container.querySelectorAll('.sk-card')).toHaveLength(0)
+    await waitFor(() => expect(container.querySelectorAll('.sk-card')).toHaveLength(0))
   })
 
   // A file import hands them straight in; fetching then would be a wasted
@@ -68,6 +81,7 @@ describe('StressMapScreen sample loading', () => {
     renderWithProviders(
       <StressMapScreen heartRateSamples={[sample]} userId="u1" events={[event]} />,
     )
+    fireEvent.click(await screen.findByRole('button', { name: /по дате|за датою|by date/i }))
     expect(await screen.findByText('Планёрка')).toBeTruthy()
     expect(sync.loadHRSamples).not.toHaveBeenCalled()
   })
@@ -78,6 +92,7 @@ describe('StressMapScreen sample loading', () => {
       <StressMapScreen heartRateSamples={[]} userId="u1" events={[event]} />,
     )
     await waitFor(() => expect(container.querySelectorAll('.sk-card')).toHaveLength(0))
+    fireEvent.click(screen.getByRole('button', { name: /по дате|за датою|by date/i }))
     expect(screen.getByText('Планёрка')).toBeTruthy()
   })
 })
