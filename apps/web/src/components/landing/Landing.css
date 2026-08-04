@@ -53,7 +53,19 @@
 }
 .landing-logo { font-size: 18px; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; }
 .landing-topbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
-.landing-lang { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; width: 34px; height: 34px; cursor: pointer; font-size: 15px; }
+/* Mirrors .theme-toggle in the app shell. This copy had lost two things: the
+   colour, so the icon fell back to the browser's default button ink — pure
+   black in both themes here, and something else again on iOS, which is why it
+   vanished on dark and looked wrong on a phone; and the centring, so an inline
+   svg sat on the text baseline. */
+.landing-lang {
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; min-width: 34px; height: 34px; padding: 0 8px;
+  color: var(--text); font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: background 0.15s, color 0.15s;
+}
+.landing-lang:hover { background: var(--border); }
 .landing-ghost { background: none; border: none; color: var(--text-muted); padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 14px; }
 .landing-ghost:hover { color: var(--text); background: var(--surface2); }
 .landing-cta { background: var(--accent); color: var(--on-accent); border: none; border-radius: 12px; padding: 9px 18px; font-size: 14px; font-weight: 600; cursor: pointer; transition: transform .12s, filter .12s; }

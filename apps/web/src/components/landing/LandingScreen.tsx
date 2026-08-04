@@ -20,7 +20,6 @@ export function LandingScreen({ onTry, onDemo, theme, onToggleTheme }: {
   const { t, lang, setLang } = useT()
   // Русский скрыт — переключаем только между украинским и английским.
   const nextLang = lang === 'uk' ? 'en' : 'uk'
-  const flag = lang === 'uk' ? '🇺🇦' : '🇬🇧'
   const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
@@ -45,8 +44,8 @@ export function LandingScreen({ onTry, onDemo, theme, onToggleTheme }: {
               <button className="landing-lang" onClick={onToggleTheme} aria-label={t('Сменить тему')} title={t('Сменить тему')}>
                 <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={16} />
               </button>
-              <button className="landing-lang" onClick={() => setLang(nextLang)} aria-label="Язык">
-                {flag}
+              <button className="landing-lang" onClick={() => setLang(nextLang)} aria-label={t('Язык')}>
+                <Icon name="world" size={16} /> {lang === 'uk' ? 'UA' : 'EN'}
               </button>
               <button className="landing-ghost" onClick={onTry}>{t('Войти')}</button>
               <button className="landing-cta" onClick={onTry}>{t('Попробовать')}</button>
