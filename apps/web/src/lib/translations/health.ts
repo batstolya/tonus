@@ -18,6 +18,7 @@ export const health: Record<string, Translation> = {
   'Идеальное время приёма': { uk: 'Ідеальний час прийому', en: 'Ideal timing' },
   'Нет рекомендаций': { uk: 'Немає рекомендацій', en: 'No recommendations' },
   'Колонки возраста нет в БД. Запусти в Supabase SQL Editor:': { uk: 'Колонки віку немає в БД. Запусти в Supabase SQL Editor:', en: 'Age column missing in DB. Run in Supabase SQL Editor:' },
+  'Загружаю данные пульса…': { uk: 'Завантажую дані пульсу…', en: 'Loading heart-rate data…' },
   'Фото профиля': { uk: 'Фото профілю', en: 'Profile photo' },
   'Добавить фото': { uk: 'Додати фото', en: 'Add a photo' },
   'Заменить фото': { uk: 'Замінити фото', en: 'Replace photo' },

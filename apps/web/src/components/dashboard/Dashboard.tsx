@@ -1,6 +1,6 @@
 import type { User } from '@supabase/supabase-js'
 import React, { useState, useEffect, useRef } from 'react'
-import type { DailyMetrics, HeartRateSample, CalendarEvent } from '../../types'
+import type { DailyMetrics, CalendarEvent } from '../../types'
 import type { AppView } from '../../store/appStore'
 import { generateInsights } from '../../lib/insights'
 import { AiAnalysisBlock } from './AiAnalysisBlock'
@@ -23,7 +23,6 @@ const cardItemV: Variants = {
 
 interface Props {
   daily: DailyMetrics[]
-  heartRateSamples: HeartRateSample[]
   events: CalendarEvent[]
   onNavigate: (view: AppView) => void
   user?: User
