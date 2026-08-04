@@ -51,6 +51,23 @@ export function ScreenSkeleton() {
   )
 }
 
+// Скелетон списка карты стресса: те же .stress-item-«коробки», что и у готового
+// списка, поэтому подмена контентом не двигает вёрстку. Отдельный от
+// ScreenSkeleton — тот нарисован под дашборд (карточка готовности + сетка
+// метрик) и на этом экране показывал бы форму, которой здесь не будет.
+export function StressListSkeleton({ rows = 4 }: { rows?: number }) {
+  return (
+    <div className="stress-list" aria-busy="true" aria-label="Загрузка">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="stress-item sk-card">
+          <Skeleton width="45%" height={14} />
+          <Skeleton width="70%" height={12} style={{ marginTop: 10 }} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // Полноэкранный скелетон (обёрнут в .main-content) — для загрузок вне шелла:
 // начальная проверка сессии и загрузка данных дашборда.
 export function DashboardSkeleton() {
