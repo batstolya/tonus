@@ -35,7 +35,10 @@ const PAGE = 20
 // and then there is nothing to fetch.
 export function StressMapScreen({ heartRateSamples, userId, events, onGoogleCalendar, googleConnected = false, showGoogle = true, onToggleGoogle }: Props) {
   const { t, locale } = useT()
-  const [mode, setMode] = useState<Mode>('stress')
+  // Charts first: they answer "when am I under load" at a glance, which is why
+  // people open this screen. The event list is the follow-up question, and it
+  // is one click away.
+  const [mode, setMode] = useState<Mode>('charts')
   const [shown, setShown] = useState(PAGE)
   // Derived, not mirrored: a fresh import hands the samples in through the
   // prop, and only when it does not do we go and fetch them.
