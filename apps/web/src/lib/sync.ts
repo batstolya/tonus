@@ -249,22 +249,35 @@ export async function loadHRSamples(userId: string): Promise<HeartRateSample[]> 
   const cutoff = new Date()
   cutoff.setDate(cutoff.getDate() - 90)
 
+  // PostgREST caps a response at 1000 rows, and there are tens of thousands of
+  // samples in this window — 38k on the author's account. Walking the pages in
+  // a loop meant 39 requests each waiting for the one before it. Ask for the
+  // count with the first page, then fetch the remainder at once.
   const pageSize = 1000
-  const allData: { ts: string; bpm: number; source: string | null }[] = []
-  let from = 0
-  while (true) {
-    const { data, error } = await supabase
-      .from('heart_rate_samples')
-      .select('ts,bpm,source')
-      .eq('user_id', userId)
-      .gte('ts', cutoff.toISOString())
-      .order('ts')
-      .range(from, from + pageSize - 1)
-    if (error) { console.warn('hr_samples load error:', error.message); break }
-    if (!data || data.length === 0) break
-    allData.push(...data)
-    if (data.length < pageSize) break
-    from += pageSize
+  const page = (from: number) => supabase
+    .from('heart_rate_samples')
+    .select('ts,bpm,source', from === 0 ? { count: 'exact' } : undefined)
+    .eq('user_id', userId)
+    .gte('ts', cutoff.toISOString())
+    .order('ts')
+    .range(from, from + pageSize - 1)
+
+  const first = await page(0)
+  if (first.error) { console.warn('hr_samples load error:', first.error.message); return [] }
+
+  const allData = [...(first.data ?? [])]
+  const total = first.count ?? allData.length
+  if (total > pageSize) {
+    const offsets: number[] = []
+    for (let from = pageSize; from < total; from += pageSize) offsets.push(from)
+    const rest = await Promise.all(offsets.map(page))
+    for (const r of rest) {
+      if (r.error) { console.warn('hr_samples load error:', r.error.message); continue }
+      allData.push(...(r.data ?? []))
+    }
+    // Concurrent pages resolve out of order; the stress map sorts anyway, but
+    // callers should not have to know that.
+    allData.sort((a, b) => a.ts.localeCompare(b.ts))
   }
 
   return allData.map(r => ({

@@ -25,21 +25,40 @@ function buildHourBaseline(samples: HeartRateSample[]): Map<number, number> {
   return baseline
 }
 
+// First index whose timestamp is >= t, over an ascending array of timestamps.
+function lowerBound(times: number[], t: number): number {
+  let lo = 0, hi = times.length
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1
+    if (times[mid] < t) lo = mid + 1
+    else hi = mid
+  }
+  return lo
+}
+
 export function buildStressMap(
   events: CalendarEvent[],
   samples: HeartRateSample[],
 ): StressMapEntry[] {
   const baseline = buildHourBaseline(samples)
 
+  // Sort once and binary-search per event, instead of scanning every sample
+  // for every event. On real data — 297 events over 38k samples — that was
+  // 11.4 million comparisons and about 100ms on a laptop, several times that
+  // on a phone, all on the main thread while the screen sat there. The values
+  // below are unchanged; only how the range is found is different.
+  const ordered = [...samples].sort((a, b) => a.time.getTime() - b.time.getTime())
+  const times = ordered.map(s => s.time.getTime())
+
   return events.map((event): StressMapEntry => {
     const start = event.start.getTime()
     const end = event.end.getTime()
-    const eventSamples = samples.filter(s => {
-      const t = s.time.getTime()
-      return t >= start && t <= end
-    })
+    // end is inclusive, as it was with `t <= end`.
+    const from = lowerBound(times, start)
+    const to = lowerBound(times, end + 1)
 
-    const values = eventSamples.map(s => s.value)
+    const values: number[] = []
+    for (let i = from; i < to; i++) values.push(ordered[i].value)
     const avg = values.length ? values.reduce((a, b) => a + b, 0) / values.length : null
     const peak = values.length ? Math.max(...values) : null
 
