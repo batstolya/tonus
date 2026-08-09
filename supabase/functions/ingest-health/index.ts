@@ -5,7 +5,9 @@ import { detectAnomaly, shouldSendAlert, buildAlertMessage, type AnomalyDay } fr
 import { withObservability } from '../_shared/observability.ts'
 import { consumeRateLimit, hashRateLimitSubject, rateLimitedResponse } from '../_shared/rateLimit.ts'
 import { sendTelegram } from '../_shared/telegram.ts'
-import { parseHAE, parseHRSamples, type HaePayload } from '../_shared/hae.ts'
+import { parseHAE, parseHRSamples } from '../_shared/hae.ts'
+import { isVitalPortPayload } from '../_shared/vitalport.ts'
+import { normalizeHealthPayload } from './normalize.ts'
 
 // Приём данных Apple Health от Health Auto Export (SPEC-AUTOSYNC).
 // Изолировано: пишет в *_staging; в боевые таблицы — только при mode='live'.
@@ -37,14 +39,21 @@ const handler = async (req: Request) => {
     if (!tok) return new Response('Invalid token', { status: 401, headers: CORS })
     const userId = tok.user_id
 
-    const payload: HaePayload | null = await req.json().catch(() => null)
+    const payload: unknown = await req.json().catch(() => null)
     if (!payload) return new Response('Bad JSON', { status: 400, headers: CORS })
 
     // 1) всегда сохраняем сырой JSON
     await supabase.from('ingest_raw').insert({ user_id: userId, payload })
 
+    let timezone = 'UTC'
+    if (isVitalPortPayload(payload)) {
+      const { data: profile } = await supabase.from('profiles').select('timezone').eq('id', userId).maybeSingle()
+      if (typeof profile?.timezone === 'string' && profile.timezone.trim()) timezone = profile.timezone
+    }
+    const normalizedPayload = normalizeHealthPayload(payload, timezone)
+
     // 2) разбор → staging
-    const { metrics, sleep } = parseHAE(userId, payload)
+    const { metrics, sleep } = parseHAE(userId, normalizedPayload)
     let mErr: string | null = null, sErr: string | null = null
     if (metrics.length) {
       const { error } = await supabase.from('metrics_daily_staging').upsert(
@@ -71,7 +80,7 @@ const handler = async (req: Request) => {
         if (!error) promoted += sleep.length
       }
       // сырой пульс для карты стресса (если HAE прислал сэмплы, а не дневной агрегат)
-      const hrSamples = parseHRSamples(userId, payload)
+      const hrSamples = parseHRSamples(userId, normalizedPayload)
       for (let i = 0; i < hrSamples.length; i += 500) {
         await supabase.from('heart_rate_samples').upsert(hrSamples.slice(i, i + 500), { onConflict: 'user_id,ts' })
       }
