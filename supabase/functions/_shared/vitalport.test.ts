@@ -27,6 +27,12 @@ describe('VitalPort payload recognition', () => {
     expect(isVitalPortPayload({ days: [snapshot] })).toBe(true)
   })
 
+  it('recognizes unsupported observed measurements without emitting a substitute metric', () => {
+    const restingEnergyOnly = { snapshots: [{ id: 'resting-energy', date: '2026-08-05T22:00:00Z', restingEnergyKcal: 1464 }] }
+    expect(isVitalPortPayload(restingEnergyOnly)).toBe(true)
+    expect(adaptVitalPortPayload(restingEnergyOnly, 'Europe/Berlin')).toEqual({ data: { metrics: [] } })
+  })
+
   it('rejects non-VitalPort shapes and malformed snapshots', () => {
     expect(isVitalPortPayload({})).toBe(false)
     expect(isVitalPortPayload({ metrics: [{ name: 'step_count', data: [] }] })).toBe(false)
@@ -38,6 +44,19 @@ describe('VitalPort payload recognition', () => {
 
   it('returns null rather than guessing an unrelated payload', () => {
     expect(adaptVitalPortPayload({ data: { metrics: [] } }, 'Europe/Berlin')).toBeNull()
+  })
+
+  it('recognizes an envelope with malformed entries and adapts its valid snapshots independently', () => {
+    const payload = adaptVitalPortPayload({
+      snapshots: [
+        { id: 'bad-date', date: 'not-a-date', stepCount: 99 },
+        { id: 'valid-day', date: '2026-08-05T22:00:00Z', stepCount: 10 },
+      ],
+    }, 'Europe/Berlin')
+    expect(payload).not.toBeNull()
+    expect(payload!.data!.metrics!.find(metric => metric.name === 'step_count')!.data).toEqual([
+      { date: '2026-08-06', source: SOURCE, qty: 10 },
+    ])
   })
 })
 

@@ -5,6 +5,7 @@ const MEASUREMENT_KEYS = new Set([
   'stepCount',
   'walkingRunningDistanceMeters',
   'activeEnergyKcal',
+  'restingEnergyKcal',
   'exerciseMinutes',
   'restingHeartRate',
   'hrv',
@@ -13,6 +14,9 @@ const MEASUREMENT_KEYS = new Set([
   'vo2Max',
   'sleepHours',
   'sleepBreakdown',
+  'weightKg',
+  'bodyFatPercentage',
+  'workouts',
 ])
 const SOURCE = 'VitalPort · Apple Health'
 
@@ -42,7 +46,9 @@ function snapshotsFrom(value: unknown): Record<string, unknown>[] | null {
   if (!isRecord(value)) return null
   for (const key of ENVELOPE_KEYS) {
     const snapshots = value[key]
-    if (Array.isArray(snapshots) && snapshots.length > 0 && snapshots.every(isSnapshot)) return snapshots
+    if (!Array.isArray(snapshots)) continue
+    const validSnapshots = snapshots.filter(isSnapshot)
+    if (validSnapshots.length > 0) return validSnapshots
   }
   return null
 }
