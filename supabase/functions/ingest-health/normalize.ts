@@ -28,8 +28,12 @@ export async function storeNormalizeAndParseHealthPayload(
 
   let timezone = 'UTC'
   if (isVitalPortPayload(value)) {
-    const storedTimezone = await dependencies.loadTimezone()
-    if (typeof storedTimezone === 'string' && storedTimezone.trim()) timezone = storedTimezone.trim()
+    try {
+      const storedTimezone = await dependencies.loadTimezone()
+      if (typeof storedTimezone === 'string' && storedTimezone.trim()) timezone = storedTimezone.trim()
+    } catch {
+      // A profile read is advisory; raw storage and health writes still use UTC.
+    }
   }
 
   const normalizedPayload = normalizeHealthPayload(value, timezone)

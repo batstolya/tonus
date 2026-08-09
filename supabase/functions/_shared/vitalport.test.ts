@@ -70,6 +70,16 @@ describe('VitalPort HAE adaptation', () => {
     expect(utcFallback.data!.metrics!.find(metric => metric.name === 'step_count')!.data![0].date).toBe('2026-08-05')
   })
 
+  it('maps UTC instants bracketing the Europe/Berlin DST transition to hand-derived local dates', () => {
+    const payload = adaptSnapshots([
+      snapshot({ id: 'before-dst', date: '2026-03-28T23:30:00Z' }),
+      snapshot({ id: 'after-dst', date: '2026-03-29T22:30:00Z' }),
+    ])
+    const steps = payload.data!.metrics!.find(metric => metric.name === 'step_count')!
+
+    expect(steps.data!.map(point => point.date)).toEqual(['2026-03-29', '2026-03-30'])
+  })
+
   it('maps only supported metrics with exact names, units, source, and rounding', () => {
     const payload = adaptSnapshots([snapshot({
       stepCount: 10.6,

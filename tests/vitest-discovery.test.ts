@@ -49,4 +49,9 @@ describe('Vitest discovery', () => {
     const config = fs.readFileSync('vitest.config.ts', 'utf8')
     expect(config).toContain("supabase/functions/**/*.test.ts")
   })
+
+  it('runs the TypeScript script tests from the root repo project', () => {
+    const config = fs.readFileSync('vitest.config.ts', 'utf8')
+    expect(config).toContain("scripts/**/*.test.ts")
+  })
 })

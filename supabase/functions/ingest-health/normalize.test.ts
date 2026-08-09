@@ -92,6 +92,31 @@ describe('stored health payload normalization', () => {
 })
 
 describe('post-auth health write pipeline', () => {
+  it('falls back to UTC and continues staging when the profile timezone lookup rejects', async () => {
+    const calls: string[] = []
+    let stored: unknown
+    let stagedMetrics: { date: string; metric: string }[] = []
+
+    const result = await processHealthPayload(USER, fixture, 'staging', {
+      storeRaw: async value => { calls.push('raw'); stored = value },
+      loadTimezone: async () => { calls.push('timezone'); throw new Error('profile unavailable') },
+      writeMetricsStaging: async rows => {
+        calls.push('metrics-staging')
+        stagedMetrics = rows
+        return null
+      },
+      writeSleepStaging: async () => { calls.push('sleep-staging'); return null },
+      writeMetricsLive: async () => { calls.push('metrics-live'); return true },
+      writeSleepLive: async () => { calls.push('sleep-live'); return true },
+      writeHeartRateSamples: async () => { calls.push('heart-rate') },
+    })
+
+    expect(stored).toBe(fixture)
+    expect(calls).toEqual(['raw', 'timezone', 'metrics-staging', 'sleep-staging'])
+    expect(stagedMetrics.find(row => row.metric === 'steps')?.date).toBe('2026-08-05')
+    expect(result.metrics.find(row => row.metric === 'steps')?.date).toBe('2026-08-05')
+  })
+
   it('completes staging and live metric writes before parsing heart-rate samples', async () => {
     const payload = { data: { metrics: [
       { name: 'step_count', data: [{ date: '2026-08-05', qty: 10 }] },
