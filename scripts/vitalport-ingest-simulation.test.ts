@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import fixture from '../supabase/functions/_shared/fixtures/vitalport-xiaomi.json'
-import { simulateVitalPortIngest } from './simulate-vitalport-ingest.ts'
+import { simulateVitalPortIngest } from './simulate-vitalport-ingest-core.ts'
 
 const USER = '00000000-0000-0000-0000-000000000001'
 
