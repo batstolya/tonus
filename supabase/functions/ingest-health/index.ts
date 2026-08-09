@@ -70,7 +70,7 @@ const handler = async (req: Request) => {
       },
     })
 
-    // 3) промоут в боевые таблицы ТОЛЬКО при mode='live'
+    // Recompute scores and detect anomalies only after a live ingest.
     if (tok.mode === 'live') {
       // Пересчёт дневных оценок (readiness/recovery/stress/baseline) из автосинка,
       // чтобы они не отставали, когда веб-приложение не открывают. Best-effort —
