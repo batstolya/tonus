@@ -15,6 +15,7 @@ const OWNERS: { prefix: string; owner: string }[] = [
   { prefix: 'apps/mobile/', owner: 'apps/mobile (тестов пока нет — логика живёт в packages/shared)' },
   { prefix: 'packages/shared/src/', owner: 'packages/shared/vitest.config.ts' },
   { prefix: 'tests/', owner: 'vitest.config.ts → project "repo"' },
+  { prefix: 'scripts/', owner: 'vitest.config.ts → project "repo"' },
   { prefix: 'supabase/functions/', owner: 'vitest.config.ts → project "functions"' },
 ]
 

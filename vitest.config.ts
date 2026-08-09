@@ -22,7 +22,7 @@ export default defineConfig({
         test: {
           name: 'repo',
           environment: 'node',
-          include: ['tests/**/*.test.ts'],
+          include: ['tests/**/*.test.ts', 'scripts/**/*.test.ts'],
           exclude: ['**/node_modules/**', 'apps/**', 'packages/**', '.claude/**'],
         },
       },
