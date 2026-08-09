@@ -1,4 +1,4 @@
-import type { HaePayload } from './hae.ts'
+import type { HaeMetric, HaePayload } from './hae.ts'
 
 const ENVELOPE_KEYS = ['snapshots', 'dailySnapshots', 'days'] as const
 const MEASUREMENT_KEYS = new Set([
@@ -20,7 +20,7 @@ const MEASUREMENT_KEYS = new Set([
 ])
 const SOURCE = 'VitalPort · Apple Health'
 
-const METRICS = [
+const METRICS: readonly { field: string; name: string; units: string; min: number; max: number; round?: boolean }[] = [
   { field: 'stepCount', name: 'step_count', units: 'count', min: 0, max: 200000, round: true },
   { field: 'walkingRunningDistanceMeters', name: 'distance_walking_running', units: 'm', min: 0, max: 500000 },
   { field: 'activeEnergyKcal', name: 'active_energy', units: 'kcal', min: 0, max: 20000 },
@@ -30,7 +30,7 @@ const METRICS = [
   { field: 'bloodOxygenSaturationPercent', name: 'blood_oxygen_saturation', units: '%', min: 0, max: 100 },
   { field: 'respiratoryRate', name: 'respiratory_rate', units: 'count/min', min: 1, max: 100 },
   { field: 'vo2Max', name: 'vo2_max', units: 'mL/kg/min', min: 1, max: 100 },
-] as const
+]
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -92,7 +92,7 @@ export function adaptVitalPortPayload(value: unknown, timezone: string): HaePayl
   const snapshots = snapshotsFrom(value)
   if (!snapshots) return null
 
-  const metrics = METRICS.flatMap(metric => {
+  const metrics: HaeMetric[] = METRICS.flatMap(metric => {
     const data = snapshots.flatMap(snapshot => {
       const quantity = validNumber(snapshot[metric.field], metric.min, metric.max)
       if (quantity === null) return []
