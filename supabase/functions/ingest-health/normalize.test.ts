@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import fixture from '../_shared/fixtures/vitalport-xiaomi.json'
 import { parseHRSamples } from '../_shared/hae.ts'
-import { normalizeHealthPayload, storeNormalizeAndParseHealthPayload } from './normalize.ts'
+import { normalizeHealthPayload, processHealthPayload, storeNormalizeAndParseHealthPayload } from './normalize.ts'
 
 const USER = '00000000-0000-0000-0000-000000000001'
 
@@ -88,5 +88,30 @@ describe('stored health payload normalization', () => {
 
     expect(prepared.metrics.find(metric => metric.metric === 'steps')?.sum_val).toBe(10)
     expect(() => parseHRSamples(USER, prepared.normalizedPayload)).toThrow('Invalid time value')
+  })
+})
+
+describe('post-auth health write pipeline', () => {
+  it('completes staging and live metric writes before parsing heart-rate samples', async () => {
+    const payload = { data: { metrics: [
+      { name: 'step_count', data: [{ date: '2026-08-05', qty: 10 }] },
+      { name: 'sleep_analysis', data: [{ date: '2026-08-05', totalSleep: 7 }] },
+      { name: 'heart_rate', data: [{ date: 'not-a-date', qty: 72 }] },
+    ] } }
+    const calls: string[] = []
+    let stored: unknown
+
+    await expect(processHealthPayload(USER, payload, 'live', {
+      storeRaw: async value => { calls.push('raw'); stored = value },
+      loadTimezone: async () => { calls.push('timezone'); return 'UTC' },
+      writeMetricsStaging: async () => { calls.push('metrics-staging'); return null },
+      writeSleepStaging: async () => { calls.push('sleep-staging'); return null },
+      writeMetricsLive: async () => { calls.push('metrics-live'); return true },
+      writeSleepLive: async () => { calls.push('sleep-live'); return true },
+      writeHeartRateSamples: async () => { calls.push('heart-rate') },
+    })).rejects.toThrow('Invalid time value')
+
+    expect(stored).toBe(payload)
+    expect(calls).toEqual(['raw', 'metrics-staging', 'sleep-staging', 'metrics-live', 'sleep-live'])
   })
 })
