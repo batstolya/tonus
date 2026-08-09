@@ -1,0 +1,45 @@
+{
+  "snapshots": [
+    {
+      "id": "01EECDCA-105B-485B-807B-D7EB8E5FE9A8",
+      "date": "2026-08-05T22:00:00Z",
+      "stepCount": 7124,
+      "walkingRunningDistanceMeters": 4865.2,
+      "activeEnergyKcal": 200,
+      "restingEnergyKcal": 1464,
+      "exerciseMinutes": null,
+      "restingHeartRate": null,
+      "hrv": null,
+      "bloodOxygenSaturationPercent": null,
+      "respiratoryRate": null,
+      "vo2Max": null,
+      "sleepHours": 0,
+      "sleepBreakdown": {
+        "asleepSeconds": 0,
+        "inBedSeconds": 23020.45742201805,
+        "rawSampleCount": 1,
+        "stages": []
+      },
+      "workouts": []
+    },
+    {
+      "id": "3BB300DB-8FB4-4EA1-A5AE-61497FD76E18",
+      "date": "2026-08-08T22:00:00Z",
+      "stepCount": 4788,
+      "walkingRunningDistanceMeters": 3371.9,
+      "activeEnergyKcal": 160,
+      "sleepHours": 0,
+      "sleepBreakdown": {
+        "asleepSeconds": 0,
+        "inBedSeconds": 3653,
+        "rawSampleCount": 33,
+        "stages": []
+      },
+      "workouts": []
+    }
+  ],
+  "units": {
+    "canonicalWeight": "kg",
+    "displayWeight": "kg"
+  }
+}
