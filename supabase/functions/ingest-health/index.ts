@@ -5,9 +5,7 @@ import { detectAnomaly, shouldSendAlert, buildAlertMessage, type AnomalyDay } fr
 import { withObservability } from '../_shared/observability.ts'
 import { consumeRateLimit, hashRateLimitSubject, rateLimitedResponse } from '../_shared/rateLimit.ts'
 import { sendTelegram } from '../_shared/telegram.ts'
-import { parseHAE, parseHRSamples } from '../_shared/hae.ts'
-import { isVitalPortPayload } from '../_shared/vitalport.ts'
-import { normalizeHealthPayload } from './normalize.ts'
+import { storeNormalizeAndParseHealthPayload } from './normalize.ts'
 
 // Приём данных Apple Health от Health Auto Export (SPEC-AUTOSYNC).
 // Изолировано: пишет в *_staging; в боевые таблицы — только при mode='live'.
@@ -42,18 +40,16 @@ const handler = async (req: Request) => {
     const payload: unknown = await req.json().catch(() => null)
     if (!payload) return new Response('Bad JSON', { status: 400, headers: CORS })
 
-    // 1) всегда сохраняем сырой JSON
-    await supabase.from('ingest_raw').insert({ user_id: userId, payload })
-
-    let timezone = 'UTC'
-    if (isVitalPortPayload(payload)) {
-      const { data: profile } = await supabase.from('profiles').select('timezone').eq('id', userId).maybeSingle()
-      if (typeof profile?.timezone === 'string' && profile.timezone.trim()) timezone = profile.timezone
-    }
-    const normalizedPayload = normalizeHealthPayload(payload, timezone)
-
-    // 2) разбор → staging
-    const { metrics, sleep } = parseHAE(userId, normalizedPayload)
+    // 1) сохраняем сырой JSON; 2) нормализуем и разбираем → staging
+    const { metrics, sleep, hrSamples } = await storeNormalizeAndParseHealthPayload(userId, payload, tok.mode === 'live', {
+      storeRaw: async value => {
+        await supabase.from('ingest_raw').insert({ user_id: userId, payload: value })
+      },
+      loadTimezone: async () => {
+        const { data: profile } = await supabase.from('profiles').select('timezone').eq('id', userId).maybeSingle()
+        return profile?.timezone
+      },
+    })
     let mErr: string | null = null, sErr: string | null = null
     if (metrics.length) {
       const { error } = await supabase.from('metrics_daily_staging').upsert(
@@ -80,7 +76,6 @@ const handler = async (req: Request) => {
         if (!error) promoted += sleep.length
       }
       // сырой пульс для карты стресса (если HAE прислал сэмплы, а не дневной агрегат)
-      const hrSamples = parseHRSamples(userId, normalizedPayload)
       for (let i = 0; i < hrSamples.length; i += 500) {
         await supabase.from('heart_rate_samples').upsert(hrSamples.slice(i, i + 500), { onConflict: 'user_id,ts' })
       }
