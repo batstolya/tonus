@@ -55,7 +55,10 @@ export function TopbarAvatar({
   useEffect(() => {
     if (!open) return
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') closeMenu()
+      if (event.key === 'Escape') {
+        setOpen(false)
+        setView('main')
+      }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
@@ -84,7 +87,7 @@ export function TopbarAvatar({
         onClick={() => setOpen(value => !value)}
         title={t('Профиль')}
         aria-label={t('Профиль')}
-        aria-haspopup="menu"
+        aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls="account-menu-panel"
       >
@@ -92,7 +95,7 @@ export function TopbarAvatar({
       </button>
       {open && <>
         <div className="account-menu-overlay" onClick={closeMenu} />
-        <div id="account-menu-panel" className="account-menu-panel" role="menu">
+        <div id="account-menu-panel" className="account-menu-panel" role="dialog" aria-label={t('Профиль')}>
           {view === 'main' && <>
             <div className="account-menu-email">{user.email}</div>
             <button type="button" onClick={() => setView('language')}>
