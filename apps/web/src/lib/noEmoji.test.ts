@@ -51,6 +51,7 @@ const PILOT_FILES = [
   'components/landing/blocks/TrustStrip.tsx',
   'components/auth/AuthScreen.tsx',
   'components/ui/Avatar.tsx',
+  'components/ui/TopbarAvatar.tsx',
 ]
 
 const REPLACED = Object.values(ICONS).map(e => e.emoji)
