@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { getAvatarUrl } from '../../lib/api/avatar'
 import { AVATAR_CHANGED } from '../../lib/avatarEvent'
@@ -38,6 +38,7 @@ export function TopbarAvatar({
   const [url, setUrl] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
   const [view, setView] = useState<AccountMenuView>('main')
+  const menuRef = useRef<HTMLDivElement>(null)
 
   const closeMenu = () => {
     setOpen(false)
@@ -54,14 +55,23 @@ export function TopbarAvatar({
 
   useEffect(() => {
     if (!open) return
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.target instanceof Node && menuRef.current?.contains(event.target)) return
+      setOpen(false)
+      setView('main')
+    }
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setOpen(false)
         setView('main')
       }
     }
+    document.addEventListener('pointerdown', onPointerDown, true)
     window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown, true)
+      window.removeEventListener('keydown', onKeyDown)
+    }
   }, [open])
 
   const themeLabel = (mode: ThemeMode) => {
@@ -81,7 +91,7 @@ export function TopbarAvatar({
   }
 
   return (
-    <div className="account-menu">
+    <div className="account-menu" ref={menuRef}>
       <button
         className="topbar-avatar"
         onClick={() => setOpen(value => !value)}
@@ -93,8 +103,7 @@ export function TopbarAvatar({
       >
         <Avatar url={url} size={28} />
       </button>
-      {open && <>
-        <div className="account-menu-overlay" onClick={closeMenu} />
+      {open && (
         <div id="account-menu-panel" className="account-menu-panel" role="dialog" aria-label={t('Профиль')}>
           {view === 'main' && <>
             <div className="account-menu-email">{user.email}</div>
@@ -124,7 +133,7 @@ export function TopbarAvatar({
             ))}
           </>}
         </div>
-      </>}
+      )}
     </div>
   )
 }

@@ -21,7 +21,10 @@ const props = {
 }
 
 function renderAvatar() {
-  return renderWithProviders(<TopbarAvatar {...props} />)
+  return renderWithProviders(<>
+    <button type="button" onPointerDown={event => event.stopPropagation()}>Outside account menu</button>
+    <TopbarAvatar {...props} />
+  </>)
 }
 
 function openMenu() {
@@ -84,14 +87,24 @@ describe('TopbarAvatar account menu', () => {
     expect(screen.queryByText('test@example.com')).not.toBeInTheDocument()
   })
 
-  it('closes on an outside click', () => {
-    const { container } = renderAvatar()
+  it('closes on a pointer press outside the component', () => {
+    renderAvatar()
     openMenu()
 
-    fireEvent.click(container.querySelector('.account-menu-overlay')!)
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Outside account menu' }))
 
     expect(screen.getByRole('button', { name: 'Profile' })).toHaveAttribute('aria-expanded', 'false')
     expect(screen.queryByText('test@example.com')).not.toBeInTheDocument()
+  })
+
+  it('stays open for a pointer press inside the panel', () => {
+    renderAvatar()
+    openMenu()
+
+    fireEvent.pointerDown(screen.getByText('test@example.com'))
+
+    expect(screen.getByRole('button', { name: 'Profile' })).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByText('test@example.com')).toBeInTheDocument()
   })
 
   it('closes on Escape', () => {

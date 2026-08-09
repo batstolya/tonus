@@ -203,7 +203,6 @@ body {
   outline: 2px solid var(--accent); outline-offset: 3px;
 }
 .account-menu { position: relative; }
-.account-menu-overlay { position: fixed; inset: 0; z-index: 149; }
 .account-menu-panel {
   position: absolute; top: calc(100% + 10px); right: 0; z-index: 150;
   width: min(300px, calc(100vw - 24px));
