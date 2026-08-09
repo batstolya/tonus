@@ -5,6 +5,7 @@ import { detectAnomaly, shouldSendAlert, buildAlertMessage, type AnomalyDay } fr
 import { withObservability } from '../_shared/observability.ts'
 import { consumeRateLimit, hashRateLimitSubject, rateLimitedResponse } from '../_shared/rateLimit.ts'
 import { sendTelegram } from '../_shared/telegram.ts'
+import { parseHRSamples } from '../_shared/hae.ts'
 import { storeNormalizeAndParseHealthPayload } from './normalize.ts'
 
 // Приём данных Apple Health от Health Auto Export (SPEC-AUTOSYNC).
@@ -41,7 +42,7 @@ const handler = async (req: Request) => {
     if (!payload) return new Response('Bad JSON', { status: 400, headers: CORS })
 
     // 1) сохраняем сырой JSON; 2) нормализуем и разбираем → staging
-    const { metrics, sleep, hrSamples } = await storeNormalizeAndParseHealthPayload(userId, payload, tok.mode === 'live', {
+    const { metrics, sleep, normalizedPayload } = await storeNormalizeAndParseHealthPayload(userId, payload, {
       storeRaw: async value => {
         await supabase.from('ingest_raw').insert({ user_id: userId, payload: value })
       },
@@ -76,6 +77,7 @@ const handler = async (req: Request) => {
         if (!error) promoted += sleep.length
       }
       // сырой пульс для карты стресса (если HAE прислал сэмплы, а не дневной агрегат)
+      const hrSamples = parseHRSamples(userId, normalizedPayload)
       for (let i = 0; i < hrSamples.length; i += 500) {
         await supabase.from('heart_rate_samples').upsert(hrSamples.slice(i, i + 500), { onConflict: 'user_id,ts' })
       }

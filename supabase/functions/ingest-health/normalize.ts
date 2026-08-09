@@ -1,4 +1,4 @@
-import { parseHAE, parseHRSamples, type HaePayload } from '../_shared/hae.ts'
+import { parseHAE, type HaePayload } from '../_shared/hae.ts'
 import { adaptVitalPortPayload, isVitalPortPayload } from '../_shared/vitalport.ts'
 
 export function normalizeHealthPayload(value: unknown, timezone: string): HaePayload {
@@ -14,7 +14,6 @@ interface HealthPayloadDependencies {
 export async function storeNormalizeAndParseHealthPayload(
   userId: string,
   value: unknown,
-  includeHeartRate: boolean,
   dependencies: HealthPayloadDependencies,
 ) {
   await dependencies.storeRaw(value)
@@ -27,6 +26,5 @@ export async function storeNormalizeAndParseHealthPayload(
 
   const normalizedPayload = normalizeHealthPayload(value, timezone)
   const { metrics, sleep } = parseHAE(userId, normalizedPayload)
-  const hrSamples = includeHeartRate ? parseHRSamples(userId, normalizedPayload) : []
-  return { metrics, sleep, hrSamples }
+  return { metrics, sleep, normalizedPayload }
 }
