@@ -56,16 +56,26 @@ deduplication, units, and promotion rules.
 
 ## Payload recognition and validation
 
-A request is treated as VitalPort only when the expected daily snapshot array
-is present. Merely sharing an individual field name such as `stepCount` is not
-enough. Unknown or malformed JSON continues to produce no parsed rows rather
-than being guessed into the wrong format.
+A request is treated as VitalPort only when a top-level array contains snapshot
+objects with a string `id`, a parseable string `date`, and at least one known
+VitalPort measurement key. The array may be named `snapshots`,
+`dailySnapshots`, or `days`; no recursive or arbitrary-array search is used.
+Merely sharing an individual field name such as `stepCount` is not enough.
+Unknown or malformed JSON continues to produce no parsed rows rather than being
+guessed into the wrong format.
 
 Each snapshot is processed independently. A value is emitted only when it is a
 finite number and passes the metric-specific range check. `null`, missing
 fields, numeric strings, booleans, `NaN`, infinities, and negative values are
 not measurements and are omitted. A real zero remains valid for cumulative
 activity metrics but does not create a zero-length sleep session.
+
+Accepted inclusive ranges are: steps `0..200000`, walking/running distance
+`0..500000` metres, active energy `0..20000` kcal, exercise `0..1440` minutes,
+resting heart rate `20..250` bpm, HRV `0..1000` ms, oxygen saturation `0..100`
+percent, respiratory rate `1..100` breaths/minute, and VO2 max `1..100`.
+Sleep candidates must be greater than zero and no more than 57,600 seconds
+(16 hours). Values outside these bounds remain only in `ingest_raw`.
 
 The original unmodified VitalPort body is stored in `ingest_raw`, preserving
 fields Tonus does not yet model and evidence for troubleshooting.
