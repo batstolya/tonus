@@ -23,6 +23,7 @@ export interface DailyMetrics {
   sleepDeep?: number      // hours
   sleepREM?: number       // hours
   sleepCore?: number      // hours
+  sleepAwake?: number     // hours awake during the night; undefined = unknown, 0 = measured zero
   steps?: number
   distance?: number
   activeEnergy?: number

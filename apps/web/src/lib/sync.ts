@@ -11,6 +11,20 @@ export interface SyncResult {
   periodEnd: string | null
 }
 
+type SleepSessionRowLike = Pick<SleepSessionRow,
+  'duration_hours' | 'bedtime' | 'wake_time' | 'deep_hours' | 'rem_hours' | 'core_hours' | 'awake_hours'>
+
+/** One sleep_sessions row onto the daily model. `null` becomes `undefined`; a measured 0 survives. */
+export function applySleepRow(d: DailyMetrics, row: SleepSessionRowLike): void {
+  d.sleepHours = row.duration_hours ?? undefined
+  d.sleepBedtime = row.bedtime ?? undefined
+  d.sleepWakeTime = row.wake_time ?? undefined
+  d.sleepDeep = row.deep_hours ?? undefined
+  d.sleepREM = row.rem_hours ?? undefined
+  d.sleepCore = row.core_hours ?? undefined
+  d.sleepAwake = row.awake_hours ?? undefined
+}
+
 export async function syncMetricsToSupabase(
   userId: string,
   daily: DailyMetrics[],
@@ -50,6 +64,7 @@ export async function syncMetricsToSupabase(
     user_id: string; date: string;
     bedtime?: string | null; wake_time?: string | null; duration_hours?: number | null;
     deep_hours?: number | null; rem_hours?: number | null; core_hours?: number | null;
+    awake_hours?: number | null;
   }[] = []
 
   for (const d of newDays) {
@@ -82,6 +97,7 @@ export async function syncMetricsToSupabase(
         deep_hours: d.sleepDeep ?? null,
         rem_hours: d.sleepREM ?? null,
         core_hours: d.sleepCore ?? null,
+        awake_hours: d.sleepAwake ?? null,
       })
     }
   }
@@ -202,12 +218,7 @@ export async function loadMetricsFromSupabase(
     if (best != null && dur <= best) continue // уже есть более длинный сон за этот день
     mainSleep.set(row.date, dur)
     const d = byDate.get(row.date)!
-    d.sleepHours = row.duration_hours ?? undefined
-    d.sleepBedtime = row.bedtime ?? undefined
-    d.sleepWakeTime = row.wake_time ?? undefined
-    d.sleepDeep = row.deep_hours ?? undefined
-    d.sleepREM = row.rem_hours ?? undefined
-    d.sleepCore = row.core_hours ?? undefined
+    applySleepRow(d, row)
   }
 
   return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date))
