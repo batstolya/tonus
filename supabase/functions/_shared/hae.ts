@@ -28,14 +28,14 @@ export const SUM_METRICS = new Set(['steps', 'distance', 'activeEnergy', 'exerci
 export const dayOf = (s: unknown) => typeof s === 'string' ? s.slice(0, 10) : ''
 
 export interface MetricRow { user_id: string; date: string; metric: string; avg_val?: number | null; min_val?: number | null; max_val?: number | null; sum_val?: number | null }
-export interface SleepRow { user_id: string; date: string; duration_hours: number; deep_hours: number | null; rem_hours: number | null; core_hours: number | null; bedtime: string | null; wake_time: string | null }
+export interface SleepRow { user_id: string; date: string; duration_hours: number; deep_hours: number | null; rem_hours: number | null; core_hours: number | null; awake_hours: number | null; bedtime: string | null; wake_time: string | null }
 
 // Структура HAE JSON — внешний формат, поля произвольны, значения проверяем в рантайме.
 export interface HaePoint {
   date?: unknown; source?: string
   qty?: unknown; value?: unknown
   Avg?: unknown; avg?: unknown; Min?: unknown; min?: unknown; Max?: unknown; max?: unknown
-  totalSleep?: unknown; asleep?: unknown; total?: unknown; deep?: unknown; rem?: unknown; core?: unknown
+  totalSleep?: unknown; asleep?: unknown; total?: unknown; deep?: unknown; rem?: unknown; core?: unknown; awake?: unknown
   sleepStart?: unknown; sleepEnd?: unknown; startDate?: unknown
 }
 export interface HaeMetric { name?: string; units?: unknown; data?: HaePoint[] }
@@ -79,15 +79,22 @@ export function parseHAE(userId: string, payload: HaePayload): { metrics: Metric
         // HAE отдаёт фазы в часах: asleep/total, deep, rem, core; иногда в минутах
         let total = num(p.totalSleep ?? p.asleep ?? p.total ?? p.value)
         let deep = num(p.deep), rem = num(p.rem), core = num(p.core)
+        let awake = num(p.awake)
         // если значения выглядят как минуты (>16) — переведём в часы
         const toH = (x: number | null) => x == null ? null : (x > 16 ? x / 60 : x)
         total = toH(total); deep = toH(deep); rem = toH(rem); core = toH(core)
+        awake = toH(awake)
+        // Ночное бодрствование дольше 6 ч — испорченное значение. Гасим только
+        // его: длительность сна в этой же записи измерена независимо и остаётся
+        // годной. NULL здесь означает «не знаем», а не «ноль».
+        if (awake != null && (awake < 0 || awake > 6)) awake = null
         if (total == null || total <= 0 || total > 16) continue // отбрасываем мусор
         const prev = byDay[date]
         if (!prev || total > prev.duration_hours) {
           byDay[date] = {
             user_id: userId, date, duration_hours: total,
             deep_hours: deep, rem_hours: rem, core_hours: core,
+            awake_hours: awake,
             // полные дата-время (боевая колонка — timestamptz); HH:MM не подходит
             bedtime: p.sleepStart ? String(p.sleepStart) : null,
             wake_time: p.sleepEnd ? String(p.sleepEnd) : null,
