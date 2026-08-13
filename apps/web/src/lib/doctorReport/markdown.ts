@@ -61,7 +61,7 @@ export const MISSING_LINES = [
   'ЭКГ, аритмий и любых клинических измерений',
   'Время и длительность эпизодов низкого или высокого пульса: в отчёте есть только суточные минимум, максимум и среднее',
   'Тип тренировки и пульс во время неё: есть только минуты упражнений и активные калории',
-  'Время в постели, засыпание, ночные пробуждения и эффективность сна',
+  'Количество ночных пробуждений и время каждого: в отчёте есть только суммарное время бодрствования за ночь и эффективность сна, и только за те ночи, где источник их измерил',
   'События (болезнь, стресс, поездки), еду и воду пациент отмечает в приложении, но в этот отчёт они не включены; кофе, алкоголь и лекарства — включены отдельной секцией',
   'Всё перечисленное отсутствует, а не равно нулю: не делай выводов о том, чего здесь нет.',
 ]
@@ -170,7 +170,9 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
     p()
     table(
       [t('Дата'), t('День'), t('Отбой'), t('Подъём'), t('Сон, ч'), t('Глубокий, ч'),
-        t('REM, ч'), t('Лёгкий, ч'), t('Не классифицировано, ч'), t('Глубокий, %'), t('REM, %'), t('Тип')],
+        t('REM, ч'), t('Лёгкий, ч'), t('Не классифицировано, ч'),
+        t('Бодрствование, ч'), t('В постели, ч'), t('Эффективность'),
+        t('Глубокий, %'), t('REM, %'), t('Тип')],
       s.nights.map(n => [
         n.date, t(n.weekday),
         n.bedtime ? n.bedtime + (n.bedtimeDate ? ` (${n.bedtimeDate})` : '') + (n.suspicious ? ' ⚠' : '') : dash,
@@ -178,6 +180,9 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
         n.hours.toFixed(1),
         n.deep?.toFixed(1) ?? dash, n.rem?.toFixed(1) ?? dash, n.core?.toFixed(1) ?? dash,
         n.unclassified != null ? n.unclassified.toFixed(1) : dash,
+        n.awake != null ? n.awake.toFixed(2) : dash,
+        n.timeInBed != null ? n.timeInBed.toFixed(1) : dash,
+        n.efficiencyPct != null ? `${n.efficiencyPct}%` : dash,
         n.deepPct != null ? `${n.deepPct}%` : dash,
         n.remPct != null ? `${n.remPct}%` : dash,
         n.daytime ? t('дневной эпизод') : '',
