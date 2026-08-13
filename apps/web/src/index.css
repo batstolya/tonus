@@ -184,6 +184,13 @@ body {
 .recharts-surface:focus { outline: none; }
 .recharts-surface:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
+/* recharts v3 nests the drawing in <g class="recharts-zIndex-layer_*"> groups and
+   gives each tabindex="-1". A click lands focus there, not on the <svg>, so the
+   rule above never matched and the ring came back — the blue rectangle around
+   every chart. tabindex="-1" means the keyboard can never reach these groups,
+   so there is no focus state worth showing on them at all. */
+.recharts-wrapper g[tabindex="-1"]:focus { outline: none; }
+
 /* Profile photo. The circle is the same component in the topbar and in
    settings, so the shape lives here once and only the size varies. */
 .avatar {
