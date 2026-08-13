@@ -10,7 +10,7 @@
  * data does not make.
  */
 
-const known = (v: number | null | undefined): v is number => v != null && isFinite(v)
+const known = (v: number | null | undefined): v is number => v != null && isFinite(v) && v >= 0
 
 /** Asleep plus awake-in-bed. Null when either side is unknown. */
 export function timeInBedHours(
@@ -28,5 +28,6 @@ export function sleepEfficiencyPct(
 ): number | null {
   const inBed = timeInBedHours(durationHours, awakeHours)
   if (inBed == null || inBed <= 0) return null
-  return Math.round((durationHours! / inBed) * 100)
+  if (!known(durationHours)) return null
+  return Math.round((durationHours / inBed) * 100)
 }

@@ -18,6 +18,10 @@ describe('timeInBedHours', () => {
   it('treats a measured zero as a value, not as missing', () => {
     expect(timeInBedHours(8, 0)).toBeCloseTo(8)
   })
+
+  it('is null when duration is negative', () => {
+    expect(timeInBedHours(-8, 0)).toBeNull()
+  })
 })
 
 describe('sleepEfficiencyPct', () => {
@@ -35,5 +39,13 @@ describe('sleepEfficiencyPct', () => {
 
   it('is null rather than NaN when there is no time in bed', () => {
     expect(sleepEfficiencyPct(0, 0)).toBeNull()
+  })
+
+  it('is null when duration is negative', () => {
+    expect(sleepEfficiencyPct(-2, 10)).toBeNull()
+  })
+
+  it('is null when awake hours is negative', () => {
+    expect(sleepEfficiencyPct(10, -8)).toBeNull()
   })
 })
