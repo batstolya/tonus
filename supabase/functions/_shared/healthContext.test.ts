@@ -166,6 +166,24 @@ describe('healthContextToText: sleep timing', () => {
     expect(text).not.toContain('засыпание')
     expect(text).not.toContain('Среднее время засыпания')
   })
+
+  const nightWith = (awake: number | null) => ({
+    date: '2026-08-13', bedtime: null, wake_time: null,
+    duration_hours: 8.35, deep_hours: 0.52, rem_hours: 2.11, core_hours: 5.71,
+    awake_hours: awake,
+  })
+
+  it('reports night-time awake time and efficiency', () => {
+    const text = healthContextToText({ ...emptyCtx, sleep: [nightWith(0.15)] })
+    expect(text).toContain('бодрств 9 мин')
+    expect(text).toContain('98%')
+  })
+
+  it('says nothing about efficiency when awake time is unknown', () => {
+    const text = healthContextToText({ ...emptyCtx, sleep: [nightWith(null)] })
+    expect(text).not.toContain('бодрств')
+    expect(text).not.toContain('%')
+  })
 })
 
 describe('healthContextToText: weekly comparison blocks', () => {
