@@ -20,7 +20,7 @@ export const CHAT_TOOL_DECLARATIONS = [
   },
   {
     name: 'get_sleep_range',
-    description: 'Вернуть данные сна (время засыпания/пробуждения и фазы) за произвольный диапазон дат, максимум 60 дней. Результат содержит rows (по ночам) и summary.averages — уже посчитанные на сервере средние (duration_hours, deep_hours, rem_hours, core_hours). В ответе пользователю длительности ОБЯЗАТЕЛЬНО показывай из *_display и summary.averages.*.display в формате «N год M хв»; сырые числовые часы используй только для анализа. Для любого «средний сон / средний глубокий …» бери значение из summary.averages, НЕ считай сам.',
+    description: 'Вернуть данные сна (время засыпания/пробуждения, фазы и время бодрствования ночью) за произвольный диапазон дат, максимум 60 дней. Результат содержит rows (по ночам) и summary.averages — уже посчитанные на сервере средние (duration_hours, deep_hours, rem_hours, core_hours, awake_hours). В ответе пользователю длительности ОБЯЗАТЕЛЬНО показывай из *_display и summary.averages.*.display в формате «N год M хв»; сырые числовые часы используй только для анализа. Для любого «средний сон / средний глубокий / среднее бодрствование …» бери значение из summary.averages, НЕ считай сам.',
     parameters: {
       type: 'OBJECT',
       properties: {
@@ -58,7 +58,7 @@ export const CHAT_TOOL_DECLARATIONS = [
     parameters: {
       type: 'OBJECT',
       properties: {
-        metric: { type: 'STRING', enum: ['deep_hours', 'rem_hours', 'core_hours', 'duration_hours', 'sleep_hours', 'hrv', 'resting_heart_rate', 'steps', 'active_energy', 'oxygen_saturation'], description: 'Метрика' },
+        metric: { type: 'STRING', enum: ['deep_hours', 'rem_hours', 'core_hours', 'duration_hours', 'awake_hours', 'sleep_hours', 'hrv', 'resting_heart_rate', 'steps', 'active_energy', 'oxygen_saturation'], description: 'Метрика' },
         direction: { type: 'STRING', enum: ['highest', 'lowest'], description: 'highest — самые большие значения, lowest — самые маленькие' },
         limit: { type: 'NUMBER', description: 'Сколько дней вернуть (по умолчанию 5, максимум 10)' },
       },
@@ -173,7 +173,7 @@ export async function executeChatTool(
     const table = name === 'get_metrics_range' ? 'daily_metrics' : 'sleep_sessions'
     const cols = name === 'get_metrics_range'
       ? 'date, resting_heart_rate, hrv, sleep_hours, steps, active_energy, oxygen_saturation'
-      : 'date, bedtime, wake_time, duration_hours, deep_hours, rem_hours, core_hours'
+      : 'date, bedtime, wake_time, duration_hours, deep_hours, rem_hours, core_hours, awake_hours'
     const { data, error } = await supabase.from(table).select(cols)
       .eq('user_id', userId).gte('date', start_date).lte('date', end_date)
       .order('date', { ascending: true })
@@ -187,7 +187,7 @@ export async function executeChatTool(
     if (name === 'get_sleep_range') {
       const { data: tzRows } = await supabase.from('profiles').select('timezone').eq('id', userId).limit(1)
       const tz = (tzRows?.[0] as { timezone?: string } | undefined)?.timezone || 'Europe/Kyiv'
-      const sleepDurationKeys = ['duration_hours', 'deep_hours', 'rem_hours', 'core_hours'] as const
+      const sleepDurationKeys = ['duration_hours', 'deep_hours', 'rem_hours', 'core_hours', 'awake_hours'] as const
       const rows = (data ?? []).map((r) => {
         const row = r as Record<string, unknown> & { bedtime?: string; wake_time?: string; duration_hours?: number }
         const displays = Object.fromEntries(sleepDurationKeys.flatMap((key) => {
@@ -284,7 +284,7 @@ export async function executeChatTool(
     // найдёт максимум в грубом контексте (был баг: «лучший сон» за 2 недели).
     const metric = args.metric as string | undefined
     const direction = args.direction as string | undefined
-    const SLEEP_COLS = ['deep_hours', 'rem_hours', 'core_hours', 'duration_hours']
+    const SLEEP_COLS = ['deep_hours', 'rem_hours', 'core_hours', 'duration_hours', 'awake_hours']
     const METRIC_COLS = ['sleep_hours', 'hrv', 'resting_heart_rate', 'steps', 'active_energy', 'oxygen_saturation']
     if (!metric || (!SLEEP_COLS.includes(metric) && !METRIC_COLS.includes(metric))) {
       return { error: 'metric обязателен и должен быть одной из известных метрик' }
