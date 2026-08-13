@@ -312,13 +312,13 @@ export function DoctorReport({ user, daily, onClose }: Props) {
         {sections.sleep && sleep && (
           <section>
             <h2>{rt('Сон по дням')}</h2>
-            <p className="dr-note">{rt('Все ночи периода без агрегации. В таблице только измеренные значения: доли фаз считаются от общего сна за ночь; время, не отнесённое ни к одной фазе, показано отдельной колонкой.')}</p>
+            <p className="dr-note">{rt('Все ночи периода без агрегации. В таблице только измеренные значения: доли фаз считаются от общего сна за ночь; время, не отнесённое ни к одной фазе, показано отдельной колонкой. Время в постели и эффективность — не измерения источника, а арифметика по двум измеренным числам.')}</p>
             <table className="dr-sleep-table">
               <thead><tr>
                 <th>{rt('Дата')}</th><th>{rt('День')}</th><th>{rt('Отбой')}</th><th>{rt('Подъём')}</th>
                 <th>{rt('Сон, ч')}</th><th>{rt('Глубокий, ч')}</th><th>{rt('REM, ч')}</th>
                 <th>{rt('Лёгкий, ч')}</th><th>{rt('Не классифицировано, ч')}</th>
-                <th>{rt('Бодрствование, ч')}</th><th>{rt('В постели, ч')}</th><th>{rt('Эффективность')}</th>
+                <th>{rt('Бодрствование, мин')}</th><th>{rt('В постели, ч')}</th><th>{rt('Эффективность')}</th>
                 <th>{rt('Глубокий, %')}</th><th>{rt('REM, %')}</th><th>{rt('Тип')}</th>
               </tr></thead>
               <tbody>
@@ -332,7 +332,7 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                     <td>{n.rem?.toFixed(1) ?? dash}</td>
                     <td>{n.core?.toFixed(1) ?? dash}</td>
                     <td>{n.unclassified != null ? n.unclassified.toFixed(1) : dash}</td>
-                    <td>{n.awake != null ? n.awake.toFixed(2) : dash}</td>
+                    <td>{n.awake != null ? Math.round(n.awake * 60) : dash}</td>
                     <td>{n.timeInBed != null ? n.timeInBed.toFixed(1) : dash}</td>
                     <td>{n.efficiencyPct != null ? `${n.efficiencyPct}%` : dash}</td>
                     <td>{n.deepPct != null ? `${n.deepPct}%` : dash}</td>
