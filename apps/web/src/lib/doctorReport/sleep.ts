@@ -33,6 +33,7 @@ export interface SleepNight {
    * a false "phases fully accounted for". `null` when the source reported no
    * phase at all, so a dash prints instead of a claimed zero.
    */
+  unclassified: number | null
   /**
    * Hours awake during the night, as measured by the source. `null` on every
    * night that arrived before `awake_hours` existed and on every XML-imported
@@ -44,7 +45,6 @@ export interface SleepNight {
   timeInBed: number | null
   /** Asleep over time in bed, whole percent. `null` whenever `awake` is. */
   efficiencyPct: number | null
-  unclassified: number | null
   deepPct: number | null
   remPct: number | null
   /** A short episode starting during the daytime window — not counted as a night. */
