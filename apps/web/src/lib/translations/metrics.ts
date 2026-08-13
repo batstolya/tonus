@@ -58,6 +58,7 @@ export const metrics: Record<string, Translation> = {
   'Глубокий сон (ч)': { uk: 'Глибокий сон (год)', en: 'Deep sleep (h)' },
   'REM сон (ч)': { uk: 'REM сон (год)', en: 'REM sleep (h)' },
   'Основной сон (ч)': { uk: 'Основний сон (год)', en: 'Core sleep (h)' },
+  'Бодрствование ночью (ч)': { uk: 'Неспання вночі (год)', en: 'Awake at night (h)' },
   'Дистанция (м)': { uk: 'Дистанція (м)', en: 'Distance (m)' },
   'Активная энергия (ккал)': { uk: 'Активна енергія (ккал)', en: 'Active energy (kcal)' },
   'Минуты тренировки': { uk: 'Хвилини тренування', en: 'Exercise minutes' },
