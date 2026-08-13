@@ -1720,6 +1720,7 @@ export type Database = {
       }
       sleep_sessions: {
         Row: {
+          awake_hours: number | null
           bedtime: string | null
           core_hours: number | null
           date: string
@@ -1731,6 +1732,7 @@ export type Database = {
           wake_time: string | null
         }
         Insert: {
+          awake_hours?: number | null
           bedtime?: string | null
           core_hours?: number | null
           date: string
@@ -1742,6 +1744,7 @@ export type Database = {
           wake_time?: string | null
         }
         Update: {
+          awake_hours?: number | null
           bedtime?: string | null
           core_hours?: number | null
           date?: string
@@ -1756,6 +1759,7 @@ export type Database = {
       }
       sleep_sessions_staging: {
         Row: {
+          awake_hours: number | null
           bedtime: string | null
           core_hours: number | null
           date: string
@@ -1767,6 +1771,7 @@ export type Database = {
           wake_time: string | null
         }
         Insert: {
+          awake_hours?: number | null
           bedtime?: string | null
           core_hours?: number | null
           date: string
@@ -1778,6 +1783,7 @@ export type Database = {
           wake_time?: string | null
         }
         Update: {
+          awake_hours?: number | null
           bedtime?: string | null
           core_hours?: number | null
           date?: string

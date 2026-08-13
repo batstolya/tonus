@@ -29,6 +29,7 @@ export type CtxMetricsRow = {
 export type CtxSleepRow = {
   date: string; bedtime: string | null; wake_time: string | null
   duration_hours: number | null; deep_hours: number | null; rem_hours: number | null; core_hours: number | null
+  awake_hours: number | null
 }
 export interface CtxLabRow { marker: string; value: number; unit: string | null; ref_range: string | null; flag: string | null; date: string }
 export interface CtxIntakeRow {
@@ -141,7 +142,7 @@ export async function buildHealthContext(
       .select('date, resting_heart_rate, hrv, sleep_hours, steps, active_energy, oxygen_saturation')
       .eq('user_id', userId).gte('date', sinceStr).order('date', { ascending: true }),
     supabase.from('sleep_sessions')
-      .select('date, bedtime, wake_time, duration_hours, deep_hours, rem_hours, core_hours')
+      .select('date, bedtime, wake_time, duration_hours, deep_hours, rem_hours, core_hours, awake_hours')
       .eq('user_id', userId).gte('date', sinceStr).order('date', { ascending: false }),
     supabase.from('lab_results')
       .select('marker, value, unit, ref_range, flag, date')
@@ -358,7 +359,10 @@ export function healthContextToText(ctx: HealthContext): string {
       const times = s.bedtime && s.wake_time
         ? ` [засыпание ${fmtLocalTime(s.bedtime, ctx.timezone)}, подъём ${fmtLocalTime(s.wake_time, ctx.timezone)}]`
         : ''
-      return `${s.date}: всего ${s.duration_hours?.toFixed?.(1) ?? '—'}ч (глуб ${s.deep_hours?.toFixed?.(1) ?? '—'}, REM ${s.rem_hours?.toFixed?.(1) ?? '—'})${times}`
+      const awake = s.awake_hours != null && s.duration_hours != null && s.duration_hours + s.awake_hours > 0
+        ? `, бодрств ${Math.round(s.awake_hours * 60)} мин (эффективность ${Math.round((s.duration_hours / (s.duration_hours + s.awake_hours)) * 100)}%)`
+        : ''
+      return `${s.date}: всего ${s.duration_hours?.toFixed?.(1) ?? '—'}ч (глуб ${s.deep_hours?.toFixed?.(1) ?? '—'}, REM ${s.rem_hours?.toFixed?.(1) ?? '—'})${awake}${times}`
     }).join('\n')
     parts.push(`Последние ночи:\n${recent}`)
     const fmtSleepWeek = (arr: typeof ctx.sleep) => {

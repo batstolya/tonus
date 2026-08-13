@@ -6,6 +6,7 @@ import {
 import type { DailyMetrics } from '../../types'
 import { useT } from '../../lib/i18n'
 import { hoursToHM, effectiveWake } from '../../lib/sleepFormat'
+import { sleepEfficiencyPct } from '../../lib/sleepQuality'
 
 interface Props {
   daily: DailyMetrics[]
@@ -83,6 +84,19 @@ export function SleepScreen({ daily }: Props) {
 
   const hasPhases = slice.some(d => d.sleepDeep || d.sleepREM)
 
+  const withAwake = slice.filter(d => d.sleepAwake != null)
+  const hasAwake = withAwake.length > 0
+
+  // Average efficiency is computed only over nights where both sleepHours and
+  // awake time are measured: a night missing either is not "0%", it is
+  // unknown, and must be dropped from the average rather than folded in as 0.
+  const efficiencies = withAwake
+    .map(d => sleepEfficiencyPct(d.sleepHours, d.sleepAwake))
+    .filter((v): v is number => v != null)
+  const avgEfficiency = efficiencies.length
+    ? Math.round(efficiencies.reduce((a, v) => a + v, 0) / efficiencies.length)
+    : null
+
   const avgSleep = slice.length
     ? slice.reduce((a, d) => a + (d.sleepHours ?? 0), 0) / slice.length
     : null
@@ -126,6 +140,14 @@ export function SleepScreen({ daily }: Props) {
         {avgSleep && <div className="stat"><span style={{ color: durColor(avgSleep) }}>{fmtHours(avgSleep)}</span> {t('средняя длительность')}</div>}
         {avgBed !== null && <div className="stat"><span style={{ color: bedColor(avgBed) }}>{chartValToTime(avgBed)}</span> {t('среднее засыпание')}</div>}
         {avgWake !== null && <div className="stat"><span style={{ color: wakeColor(avgWake) }}>{chartValToTime(avgWake)}</span> {t('среднее пробуждение')}</div>}
+        {avgEfficiency !== null && (
+          <div className="stat">
+            <span style={{ color: avgEfficiency >= 90 ? 'var(--green)' : avgEfficiency >= 85 ? 'var(--yellow)' : 'var(--red)' }}>
+              {avgEfficiency}%
+            </span>
+            {t('эффективность сна')}
+          </div>
+        )}
         {bedtimeDays.length > 0 && (
           <div className="stat">
             <span>
@@ -196,6 +218,7 @@ export function SleepScreen({ daily }: Props) {
               <th>{t('Пробуждение')}</th>
               <th>{t('Итого')}</th>
               {hasPhases && <><th>{t('Глубокий')}</th><th>REM</th><th>{t('Основной')}</th></>}
+              {hasAwake && <th>{t('Бодрствование')}</th>}
             </tr>
           </thead>
           <tbody>
@@ -212,6 +235,7 @@ export function SleepScreen({ daily }: Props) {
                     <td>{d.sleepCore ? fmtHours(d.sleepCore) : '—'}</td>
                   </>
                 )}
+                {hasAwake && <td>{d.sleepAwake != null ? fmtHours(d.sleepAwake) : '—'}</td>}
               </tr>
             ))}
           </tbody>

@@ -138,6 +138,71 @@ describe('parseHAE', () => {
     expect(sleep[0].bedtime).toBe('2026-07-19 23:10:00 +0000')
   })
 
+  it('reads night-time awake hours', () => {
+    const { sleep } = parseHAE(USER, {
+      data: {
+        metrics: [{
+          name: 'sleep_analysis',
+          data: [{
+            date: '2026-08-13 00:00:00 +0200',
+            totalSleep: 8.35, deep: 0.52, rem: 2.11, core: 5.71, awake: 0.1498,
+          }],
+        }],
+      },
+    })
+    expect(sleep[0].awake_hours).toBeCloseTo(0.1498)
+  })
+
+  it('converts a minutes-shaped awake value to hours', () => {
+    const { sleep } = parseHAE(USER, {
+      data: {
+        metrics: [{
+          name: 'sleep_analysis',
+          data: [{ date: '2026-08-13 00:00:00 +0200', totalSleep: 8.35, awake: 45 }],
+        }],
+      },
+    })
+    expect(sleep[0].awake_hours).toBeCloseTo(0.75)
+  })
+
+  it('reports a missing awake field as null, never zero', () => {
+    const { sleep } = parseHAE(USER, {
+      data: {
+        metrics: [{
+          name: 'sleep_analysis',
+          data: [{ date: '2026-08-13 00:00:00 +0200', totalSleep: 8.35 }],
+        }],
+      },
+    })
+    expect(sleep[0].awake_hours).toBeNull()
+  })
+
+  it('keeps a measured zero as zero', () => {
+    const { sleep } = parseHAE(USER, {
+      data: {
+        metrics: [{
+          name: 'sleep_analysis',
+          data: [{ date: '2026-08-13 00:00:00 +0200', totalSleep: 8.35, awake: 0 }],
+        }],
+      },
+    })
+    expect(sleep[0].awake_hours).toBe(0)
+  })
+
+  it('nulls an implausible awake value but keeps the night', () => {
+    const { sleep } = parseHAE(USER, {
+      data: {
+        metrics: [{
+          name: 'sleep_analysis',
+          data: [{ date: '2026-08-13 00:00:00 +0200', totalSleep: 8.35, awake: 9 }],
+        }],
+      },
+    })
+    expect(sleep).toHaveLength(1)
+    expect(sleep[0].duration_hours).toBeCloseTo(8.35)
+    expect(sleep[0].awake_hours).toBeNull()
+  })
+
   it('ignores metrics the server does not map', () => {
     const { metrics } = parseHAE(USER, {
       data: { metrics: [{ name: 'handwashing', data: [{ date: DAY, qty: 3 }] }] },
