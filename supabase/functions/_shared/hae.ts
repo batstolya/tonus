@@ -83,6 +83,11 @@ export function parseHAE(userId: string, payload: HaePayload): { metrics: Metric
         // если значения выглядят как минуты (>16) — переведём в часы
         const toH = (x: number | null) => x == null ? null : (x > 16 ? x / 60 : x)
         total = toH(total); deep = toH(deep); rem = toH(rem); core = toH(core)
+        // Residual ambiguity: awake is the one field whose real values can fall
+        // inside this same 0..16 band (a source reporting minutes could send 5
+        // or 9), so a minutes-awake value here would be silently read as hours.
+        // Production is verified to send hours (0.1498 h on 2026-08-13), so this
+        // is latent, not live — noted so the next reader knows it was weighed.
         awake = toH(awake)
         // Ночное бодрствование дольше 6 ч — испорченное значение. Гасим только
         // его: длительность сна в этой же записи измерена независимо и остаётся
