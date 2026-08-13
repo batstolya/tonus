@@ -8,10 +8,14 @@
 -- from the Apple Health XML export (back to 2021) keep awake_hours NULL: the
 -- XML importer discards awake intervals, and NULL is the honest answer there.
 --
--- The two rules below mirror _shared/hae.ts exactly. If that heuristic ever
+-- The four rules below mirror _shared/hae.ts exactly. If that heuristic ever
 -- changes, this script is wrong and must change with it:
+--   * the night is keyed by left(date, 10)::date — a local-date string slice,
+--     matching dayOf() in hae.ts, never a timestamptz cast (which shifts
+--     dates near local midnight by a day)
 --   * a value above 16 is minutes, not hours
 --   * a value below 0 or above 6 hours is not a night's awake time
+--   * a total_sleep of 0, or above 16 hours, is not a night's sleep either
 --
 -- Run:  psql "$TONUS_DB_URL" -f scripts/backfill-sleep-awake.sql
 
