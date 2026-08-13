@@ -19,9 +19,14 @@ begin;
 
 with points as (
   select r.user_id,
-         (p.value ->> 'date')::timestamptz::date as night,
+         -- String slice, not timestamptz cast: dayOf() in hae.ts:28 takes the local
+         -- date exactly as written (e.g., "2026-08-13" from "2026-08-13 00:00:00 +0200").
+         -- A ::timestamptz cast would convert to UTC first, shifting dates near
+         -- local midnight by one day (2026-08-13 00:00:00 +0200 → 2026-08-12 22:00:00 UTC).
+         -- Match hae.ts exactly: left(string, 10)::date.
+         left(p.value ->> 'date', 10)::date      as night,
          (p.value ->> 'awake')::numeric          as raw_awake,
-         (p.value ->> 'totalSleep')::numeric     as total_sleep
+         (p.value ->> 'totalSleep')::numeric     as raw_total_sleep
     from public.ingest_raw r
     cross join lateral jsonb_array_elements(r.payload -> 'data' -> 'metrics') m(value)
     cross join lateral jsonb_array_elements(m.value -> 'data') p(value)
@@ -30,14 +35,16 @@ with points as (
      and p.value ->> 'date' is not null
 ),
 normalized as (
-  select user_id, night, total_sleep,
-         case when raw_awake > 16 then raw_awake / 60 else raw_awake end as awake_hours
+  select user_id, night,
+         case when raw_awake > 16 then raw_awake / 60 else raw_awake end as awake_hours,
+         case when raw_total_sleep > 16 then raw_total_sleep / 60 else raw_total_sleep end as total_sleep
     from points
 ),
 plausible as (
   select user_id, night, awake_hours, total_sleep
     from normalized
    where awake_hours >= 0 and awake_hours <= 6
+     and total_sleep is not null and total_sleep > 0 and total_sleep <= 16
 ),
 -- One payload can carry several sessions for a night, and a night can appear
 -- in several payloads. hae.ts keeps the longest sleep; do the same here.
