@@ -87,12 +87,14 @@ export function SleepScreen({ daily }: Props) {
   const withAwake = slice.filter(d => d.sleepAwake != null)
   const hasAwake = withAwake.length > 0
 
-  // Average efficiency is computed only over nights where awake time is
-  // measured: a night without it is not "100%", it is unknown.
-  const avgEfficiency = hasAwake
-    ? Math.round(
-        withAwake.reduce((a, d) => a + (sleepEfficiencyPct(d.sleepHours, d.sleepAwake) ?? 0), 0) / withAwake.length,
-      )
+  // Average efficiency is computed only over nights where both sleepHours and
+  // awake time are measured: a night missing either is not "0%", it is
+  // unknown, and must be dropped from the average rather than folded in as 0.
+  const efficiencies = withAwake
+    .map(d => sleepEfficiencyPct(d.sleepHours, d.sleepAwake))
+    .filter((v): v is number => v != null)
+  const avgEfficiency = efficiencies.length
+    ? Math.round(efficiencies.reduce((a, v) => a + v, 0) / efficiencies.length)
     : null
 
   const avgSleep = slice.length
