@@ -319,7 +319,7 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                 <th>{rt('Дата')}</th><th>{rt('День')}</th><th>{rt('Отбой')}</th><th>{rt('Подъём')}</th>
                 <th>{rt('Сон, ч')}</th><th>{rt('Глубокий, ч')}</th><th>{rt('REM, ч')}</th>
                 <th>{rt('Лёгкий, ч')}</th><th className="dr-col-tight">{rt('Не классифицировано, ч')}</th>
-                <th className="dr-col-tight">{rt('Бодрствование, мин')}</th><th>{rt('В постели, ч')}</th><th>{rt('Эффективность')}</th>
+                <th className="dr-col-tight">{rt('Бодрствование, мин')}</th><th>{rt('В постели, ч')}</th><th className="dr-col-tight">{rt('Эффективность')}</th>
                 <th>{rt('Глубокий, %')}</th><th>{rt('REM, %')}</th><th>{rt('Тип')}</th>
               </tr></thead>
               <tbody>
