@@ -10,7 +10,8 @@ export interface ConcernLine {
   startedAt: string | null
   note: string | null
   severity: { count: number; avg: number; firstHalf: number; secondHalf: number } | null
-  recentLogs: { date: string; severity: number | null; note: string }[]
+  /** Every noted entry of the period, oldest first. */
+  logs: { date: string; severity: number | null; note: string }[]
 }
 
 const round1 = (n: number) => +n.toFixed(1)
@@ -41,9 +42,12 @@ export function buildConcerns(
             secondHalf: round1(avg(sev.slice(half))),
           }
         : null,
-      recentLogs: own
+      // Whole history of the period, not a tail of it: the doctor reads this
+      // section for the course of the complaint, and a truncated list reads as
+      // "that is all there was". Entries without a note carry nothing to read
+      // — they are already counted in the severity block above.
+      logs: own
         .filter((l): l is ConcernLog & { note: string } => !!l.note)
-        .slice(-3)
         .map(l => ({ date: l.date, severity: l.severity, note: l.note })),
     }
   })

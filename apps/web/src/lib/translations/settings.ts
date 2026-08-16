@@ -241,7 +241,7 @@ export const settings: Record<string, Translation> = {
   'среднее': { uk: 'середнє', en: 'average' },
   'первая половина периода': { uk: 'перша половина періоду', en: 'first half of the period' },
   'вторая': { uk: 'друга', en: 'second' },
-  'Последние записи': { uk: 'Останні записи', en: 'Latest entries' },
+  'Записи за период': { uk: 'Записи за період', en: 'Entries in the period' },
   'тяжесть': { uk: 'тяжкість', en: 'severity' },
   'Самочувствие и дневник': { uk: 'Самопочуття і щоденник', en: 'Wellbeing and journal' },
   'Самооценка самочувствия (1–5)': { uk: 'Самооцінка самопочуття (1–5)', en: 'Self-reported wellbeing (1–5)' },

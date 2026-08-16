@@ -557,12 +557,13 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                     {rt('Тяжесть (шкала 1–5, самооценка)')}: {c.severity.count} {rt('записей')}, {rt('среднее')} {c.severity.avg}; {rt('первая половина периода')} {c.severity.firstHalf} → {rt('вторая')} {c.severity.secondHalf}
                   </p>
                 )}
-                {c.recentLogs.length > 0 && (
+                {c.logs.length > 0 && (
                   <>
-                    <p>{rt('Последние записи')}:</p>
+                    <p>{rt('Записи за период')}:</p>
                     <ul>
-                      {c.recentLogs.map(l => (
-                        <li key={l.date}>
+                      {c.logs.map((l, i) => (
+                        // Several entries can share a date, so the index joins the key.
+                        <li key={`${l.date}-${i}`}>
                           {l.date}{l.severity != null ? ` (${rt('тяжесть')} ${l.severity}/5)` : ''}: {l.note}
                         </li>
                       ))}
