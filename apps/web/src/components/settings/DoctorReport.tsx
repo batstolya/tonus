@@ -138,7 +138,7 @@ export function DoctorReport({ user, daily, onClose }: Props) {
             ['sleep', t('Сон по дням')],
             ['labs', t('Анализы')],
             ['supplements', t('Добавки и приём')],
-            ['nutrition', t('Питание и вода')],
+            ['nutrition', t('Питание и напитки')],
             ['concerns', t('Проблемы')],
             ['journal', t('Самочувствие и дневник')],
             ['ai', t('Вопросы для обсуждения (ИИ)')],
@@ -537,7 +537,7 @@ export function DoctorReport({ user, daily, onClose }: Props) {
 
         {sections.nutrition && nutrition && (
           <section>
-            <h2>{rt('Питание и вода')}</h2>
+            <h2>{rt('Питание и напитки')}</h2>
             <p>
               {rt('Приёмы пищи отмечены в')} {nutrition.days} {rt('из')} {nutrition.calendarDays} {rt('дней периода')},
               {' '}{rt('всего отметок')}: {nutrition.meals}.
@@ -566,11 +566,27 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                 {rt('Типичное время приёма пищи')}: {nutrition.mealTime.median} · {rt('половина')} {nutrition.mealTime.q1}–{nutrition.mealTime.q3}.
               </p>
             )}
-            {nutrition.water && (
-              <p>
-                {rt('Вода')}: {rt('отмечена в')} {nutrition.water.days} {rt('из')} {nutrition.calendarDays} {rt('дней')}
-                {nutrition.water.medianMl != null && `, ${rt('медиана за день с отметкой')} ${nutrition.water.medianMl} ${rt('мл')}`}.
-              </p>
+            {nutrition.drinks.length > 0 && (
+              <>
+                <h3>{rt('Напитки')}</h3>
+                <table>
+                  <thead><tr>
+                    <th>{rt('Напиток')}</th><th>{rt('Дней с отметками')}</th><th>{rt('Всего отметок')}</th>
+                    <th>{rt('Медиана за день с отметкой')}</th><th>{rt('Типичное время')}</th>
+                  </tr></thead>
+                  <tbody>
+                    {nutrition.drinks.map(d => (
+                      <tr key={d.type}>
+                        <td>{rt(INTAKE_LABELS[d.type] ?? d.type)}</td>
+                        <td>{d.days} {rt('из')} {d.calendarDays}</td>
+                        <td>{d.events}</td>
+                        <td>{d.medianPerDay != null ? `${d.medianPerDay}${d.unit ? ` ${d.unit}` : ''}` : dash}</td>
+                        <td>{d.time ? `${d.time.median} · ${rt('половина')} ${d.time.q1}–${d.time.q3}` : dash}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </>
             )}
             {nutrition.list.length > 0 && (
               <>

@@ -17,8 +17,10 @@ Taken in brainstorming, 2026-08-16:
 
 1. **Depth** — summary *and* the full list of meals, not a truncated sample.
    A doctor reading a 90-day report wants to scan the actual entries.
-2. **Drinks** — water joins the nutrition section. Coffee, alcohol and
-   medication stay where they are, in «Отмеченный приём», untouched.
+2. **Drinks** — water *and coffee* join the nutrition section: what the
+   patient ate and drank is one question, and answering it should not mean
+   flipping between two sections. Alcohol and medication stay in «Отмеченный
+   приём», which is now purely about exposures.
 3. **Default** — the «Питание» section is on by default, like the others.
 
 ## Shape
@@ -36,11 +38,13 @@ New module `lib/doctorReport/nutrition.ts`, mirroring how `intake.ts` and
     day of one: calories, protein, carbs, fat;
   - `mealTime` — `timeOfDayStats` over meal timestamps, reusing
     `INTAKE_ORIGIN_MIN` (04:00) so the evening meal isn't split by midnight;
-  - `water` — days with a mark and median ml per such day, `null` when the
-    patient never logged water;
+  - `drinks` — one line per drink present (water first, then coffee), reusing
+    `summarizeIntakeType` from `intake.ts` so a cup of coffee and a dose of
+    medication are counted by identical rules; a drink never logged is omitted
+    rather than printed as zero;
   - `meals` list, chronological, complete.
 - `buildNutrition(events, frame)` returns `null` when the period holds neither
-  meals nor water, so the section disappears rather than printing zeros.
+  meals nor drinks, so the section disappears rather than printing zeros.
 
 ## Honesty rules
 
@@ -55,7 +59,7 @@ voice as the intake section:
   thin the record is before reading a median.
 
 `MISSING_LINES` loses «Питания» and the clause about food and water being
-excluded; what remains uncovered (portion weights, micronutrients) is stated
+excluded, and now points food, water and coffee at the nutrition section; what remains uncovered (portion weights, micronutrients) is stated
 instead.
 
 ## Surfaces
@@ -65,8 +69,9 @@ instead.
   keep its narrow column list and its own type filter. Added to
   `ReportSources` as `nutrition`, failure-tolerant like every other source.
 - **Model** — `nutrition: NutritionSection | null` on `DoctorReportModel`.
-- **Markdown** — `## Питание и вода` after the intake section: coverage and
-  median table, water line, then the full meal table
+- **Markdown** — `## Питание и напитки` after the intake section: coverage and
+  median table, a drinks table (напиток | дней с отметками | всего отметок |
+  медиана за день | типичное время), then the full meal table
   (дата | время | что | ккал | Б | Ж | У).
 - **Print** — new `SectionKey` `'nutrition'`, default on, rendering the same
   two tables from the same model.

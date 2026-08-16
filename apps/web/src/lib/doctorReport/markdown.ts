@@ -73,7 +73,7 @@ export const nutritionMacroRows = (
  * The nutrition caveat, worded like the intake one: these are ticks in an
  * app, and the macros are whatever the patient or their food tracker typed.
  */
-export const NUTRITION_CAVEAT = 'Это отметки пациента в приложении, а не измерения. Отсутствие отметки не означает, что приёма пищи не было, а калории и макронутриенты — введённые пациентом значения, а не измеренный состав еды. Вес порций и микронутриенты не учитываются.'
+export const NUTRITION_CAVEAT = 'Это отметки пациента в приложении, а не измерения. Отсутствие отметки не означает, что приёма пищи или напитка не было, а калории, макронутриенты и объёмы — введённые пациентом значения, а не измеренный состав. Вес порций и микронутриенты не учитываются.'
 
 /**
  * Same list in both renderers: the closing "what this data does not
@@ -88,7 +88,7 @@ export const MISSING_LINES = [
   'Время и длительность эпизодов низкого или высокого пульса: в отчёте есть только суточные минимум, максимум и среднее',
   'Тип тренировки и пульс во время неё: есть только минуты упражнений и активные калории',
   'Время в постели, засыпание, ночные пробуждения и эффективность сна',
-  'События (болезнь, стресс, поездки) пациент отмечает в приложении, но в этот отчёт они не включены; кофе, алкоголь и лекарства — включены отдельной секцией, еда и вода — своей',
+  'События (болезнь, стресс, поездки) пациент отмечает в приложении, но в этот отчёт они не включены; еда, вода и кофе — в секции питания, алкоголь и лекарства — своей секцией',
   'Всё перечисленное отсутствует, а не равно нулю: не делай выводов о том, чего здесь нет.',
 ]
 
@@ -352,7 +352,7 @@ export function toMarkdown(model: DoctorReportModel, lang: ReportLang): string {
 
   if (model.nutrition) {
     const n = model.nutrition
-    p(`## ${t('Питание и вода')}`)
+    p(`## ${t('Питание и напитки')}`)
     p()
     p(`${t('Приёмы пищи отмечены в')} ${n.days} ${t('из')} ${n.calendarDays} ${t('дней периода')}, ${t('всего отметок')}: ${n.meals}.`)
     const macros = nutritionMacroRows(n, t)
@@ -370,9 +370,19 @@ export function toMarkdown(model: DoctorReportModel, lang: ReportLang): string {
       p(`${t('Типичное время приёма пищи')}: ${n.mealTime.median} · ${t('половина')} ${n.mealTime.q1}–${n.mealTime.q3}.`)
       p()
     }
-    if (n.water) {
-      p(`${t('Вода')}: ${t('отмечена в')} ${n.water.days} ${t('из')} ${n.calendarDays} ${t('дней')}${n.water.medianMl != null ? `, ${t('медиана за день с отметкой')} ${n.water.medianMl} ${t('мл')}` : ''}.`)
+    if (n.drinks.length) {
+      p(`### ${t('Напитки')}`)
       p()
+      table(
+        [t('Напиток'), t('Дней с отметками'), t('Всего отметок'), t('Медиана за день с отметкой'), t('Типичное время')],
+        n.drinks.map(d => [
+          t(INTAKE_LABELS[d.type] ?? d.type),
+          `${d.days} ${t('из')} ${d.calendarDays}`,
+          String(d.events),
+          d.medianPerDay != null ? `${d.medianPerDay}${d.unit ? ` ${d.unit}` : ''}` : dash,
+          d.time ? `${d.time.median} · ${t('половина')} ${d.time.q1}–${d.time.q3}` : dash,
+        ]),
+      )
     }
     if (n.list.length) {
       p(`### ${t('Записи о приёмах пищи')}`)

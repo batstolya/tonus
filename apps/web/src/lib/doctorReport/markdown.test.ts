@@ -92,7 +92,7 @@ describe('toMarkdown', () => {
       'Время и длительность эпизодов низкого или высокого пульса: в отчёте есть только суточные минимум, максимум и среднее',
       'Тип тренировки и пульс во время неё: есть только минуты упражнений и активные калории',
       'Время в постели, засыпание, ночные пробуждения и эффективность сна',
-      'События (болезнь, стресс, поездки) пациент отмечает в приложении, но в этот отчёт они не включены; кофе, алкоголь и лекарства — включены отдельной секцией, еда и вода — своей',
+      'События (болезнь, стресс, поездки) пациент отмечает в приложении, но в этот отчёт они не включены; еда, вода и кофе — в секции питания, алкоголь и лекарства — своей секцией',
       'Всё перечисленное отсутствует, а не равно нулю: не делай выводов о том, чего здесь нет.',
     ])
   })
@@ -507,7 +507,7 @@ describe('toMarkdown nutrition', () => {
   })
 
   it('omits the section entirely when nothing was logged', () => {
-    expect(withNutrition([])).not.toContain('Питание и вода')
+    expect(withNutrition([])).not.toContain('Питание и напитки')
   })
 
   it('prints coverage, medians and every meal', () => {
@@ -516,10 +516,10 @@ describe('toMarkdown nutrition', () => {
       ev({ ts: `${addDays(today, -1)}T13:00:00`, type: 'meal', note: 'борщ', calories: 600, protein_g: 20 }),
       ev({ ts: `${addDays(today, -1)}T09:00:00`, type: 'water', amount: 1500, unit: 'мл' }),
     ])
-    expect(md).toContain('## Питание и вода')
+    expect(md).toContain('## Питание и напитки')
     expect(md).toContain('Приёмы пищи отмечены в 2 из 30 дней периода, всего отметок: 2.')
     expect(md).toContain('| Калории, ккал | 500 |')
-    expect(md).toContain('Вода: отмечена в 1 из 30 дней, медиана за день с отметкой 1500 мл.')
+    expect(md).toContain('| Вода | 1 из 30 | 1 | 1500 мл |')
     // The meal list is complete and chronological, newest last.
     expect(md).toContain(`| ${addDays(today, -2)} | 09:00 | овсянка | 400 | 12 | — | — |`)
     expect(md).toContain(`| ${addDays(today, -1)} | 13:00 | борщ | 600 | 20 | — | — |`)
@@ -549,14 +549,15 @@ describe('toMarkdown nutrition', () => {
     ]
     const model2 = buildReportModel({ daily, sources: { ...sources, nutrition }, periodDays: 30, today })
     for (const [lang, heading, macro] of [
-      ['uk', '## Харчування та вода', '| Калорії, ккал |'],
-      ['en', '## Nutrition and water', '| Calories, kcal |'],
+      ['uk', '## Харчування та напої', '| Калорії, ккал |'],
+      ['en', '## Nutrition and drinks', '| Calories, kcal |'],
     ] as const) {
       const md = toMarkdown(model2, lang)
       expect(md).toContain(heading)
       expect(md).toContain(macro)
       // The section must not fall back to the Russian source keys.
-      expect(md).not.toContain('Питание и вода')
+      expect(md).not.toContain('Питание и напитки')
+      expect(md).not.toContain('### Напитки')
       expect(md).not.toContain('Записи о приёмах пищи')
       expect(md).not.toContain('Приёмы пищи отмечены в')
     }
@@ -565,5 +566,16 @@ describe('toMarkdown nutrition', () => {
   it('no longer claims the report omits food and water', () => {
     expect(MISSING_LINES).not.toContain('Питания')
     expect(MISSING_LINES.join(' ')).not.toContain('еду и воду пациент отмечает')
+  })
+
+  it('prints coffee among the drinks, not in the intake section', () => {
+    const md = withNutrition([
+      ev({ ts: `${addDays(today, -1)}T09:00:00`, type: 'coffee', amount: 200, unit: 'мл' }),
+      ev({ ts: `${addDays(today, -1)}T10:00:00`, type: 'water', amount: 500, unit: 'мл' }),
+    ])
+    const nutrition = md.slice(md.indexOf('## Питание и напитки'))
+    expect(nutrition).toContain('| Вода | 1 из 30 | 1 | 500 мл |')
+    expect(nutrition).toContain('| Кофе | 1 из 30 | 1 | 200 мл |')
+    expect(md).not.toContain('## Отмеченный приём (со слов пациента)')
   })
 })

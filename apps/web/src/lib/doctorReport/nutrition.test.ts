@@ -100,28 +100,50 @@ describe('buildNutrition', () => {
     expect(s.mealTime?.count).toBe(3)
   })
 
-  it('sums water per day and takes the median over days with a mark', () => {
+  it('sums a drink per day and takes the median over days with a mark', () => {
     // Day one: 250 + 250 = 500 ml. Day two: 1500 ml.
     const s = buildNutrition([
       ev({ ts: '2026-07-29T09:00:00', type: 'water', amount: 250, unit: 'мл' }),
       ev({ ts: '2026-07-29T14:00:00', type: 'water', amount: 250, unit: 'мл' }),
       ev({ ts: '2026-07-30T09:00:00', type: 'water', amount: 1500, unit: 'мл' }),
     ], frame)!
-    expect(s.water).toEqual({ days: 2, medianMl: 1000 })
-    // Water alone still produces a section, with no meals in it.
+    expect(s.drinks).toHaveLength(1)
+    expect(s.drinks[0]).toMatchObject({
+      type: 'water', days: 2, events: 3, medianPerDay: 1000, unit: 'мл', calendarDays: 30,
+    })
+    // A drink alone still produces a section, with no meals in it.
     expect(s.meals).toBe(0)
     expect(s.list).toEqual([])
   })
 
-  it('leaves water absent rather than zero when it was never logged', () => {
+  it('carries coffee in the same section as food and water', () => {
+    const s = buildNutrition([
+      ev({ ts: '2026-07-29T09:00:00', type: 'coffee', amount: 200, unit: 'мл' }),
+      ev({ ts: '2026-07-30T09:00:00', type: 'water', amount: 500, unit: 'мл' }),
+    ], frame)!
+    // Water leads: it is the baseline drink, coffee the exposure on top of it.
+    expect(s.drinks.map(d => d.type)).toEqual(['water', 'coffee'])
+    expect(s.drinks[1]).toMatchObject({ type: 'coffee', days: 1, events: 1, medianPerDay: 200 })
+  })
+
+  it('reports the typical time of a drink, like the intake section does', () => {
+    const s = buildNutrition([
+      ev({ ts: '2026-07-28T08:00:00', type: 'coffee', amount: 200, unit: 'мл' }),
+      ev({ ts: '2026-07-29T09:00:00', type: 'coffee', amount: 200, unit: 'мл' }),
+      ev({ ts: '2026-07-30T10:00:00', type: 'coffee', amount: 200, unit: 'мл' }),
+    ], frame)!
+    expect(s.drinks[0].time?.median).toBe('09:00')
+  })
+
+  it('leaves a drink out entirely rather than printing it as zero', () => {
     const s = buildNutrition([meal('2026-07-30T13:00:00', { calories: 500 })], frame)!
-    expect(s.water).toBeNull()
+    expect(s.drinks).toEqual([])
   })
 
   it('ignores intake types the section does not own', () => {
     expect(buildNutrition([
-      ev({ ts: '2026-07-30T09:00:00', type: 'coffee', amount: 200, unit: 'мл' }),
       ev({ ts: '2026-07-30T21:00:00', type: 'alcohol', amount: 1, unit: 'доза' }),
+      ev({ ts: '2026-07-30T09:00:00', type: 'meds', amount: 1, unit: null }),
     ], frame)).toBeNull()
   })
 })

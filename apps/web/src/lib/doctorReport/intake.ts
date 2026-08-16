@@ -10,18 +10,19 @@ import type { PeriodFrame } from './metrics'
 export const INTAKE_ORIGIN_MIN = 4 * 60
 
 /**
- * The intake a doctor asks about out loud. `intake_events` also carries water,
- * meals, workouts and life events; those are recorded far more erratically and
- * are listed as absent rather than printed as if complete.
+ * The intake a doctor asks about as exposure rather than as diet. Coffee used
+ * to sit here too; it moved to the nutrition section, where the patient's food
+ * and every drink are read together. Workouts and life events stay unprinted:
+ * they are recorded far more erratically and are listed as absent instead.
  *
- * Order is the print order: medication first, then alcohol, then coffee.
+ * Order is the print order: medication first, then alcohol.
  */
-export const REPORTED_TYPES = ['meds', 'alcohol', 'coffee'] as const
+export const REPORTED_TYPES = ['meds', 'alcohol'] as const
 export type ReportedIntakeType = (typeof REPORTED_TYPES)[number]
 
 /** One spelling for both renderers, the same way the labs module owns its status text. */
-export const INTAKE_LABELS: Record<ReportedIntakeType, string> = {
-  meds: 'Лекарства', alcohol: 'Алкоголь', coffee: 'Кофе',
+export const INTAKE_LABELS: Record<string, string> = {
+  meds: 'Лекарства', alcohol: 'Алкоголь', coffee: 'Кофе', water: 'Вода',
 }
 
 export interface IntakeName {
@@ -31,7 +32,8 @@ export interface IntakeName {
 }
 
 export interface IntakeLine {
-  type: ReportedIntakeType
+  /** Widened past `ReportedIntakeType`: the nutrition section reuses this shape for drinks. */
+  type: string
   /** Calendar days of the period carrying at least one event of this type. */
   days: number
   calendarDays: number
@@ -57,7 +59,7 @@ const dayOf = (ts: string): string => {
   return isNaN(d.getTime()) ? '' : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-function namesOf(events: IntakeEvent[]): IntakeName[] {
+function namesOf(events: { note: string | null }[]): IntakeName[] {
   // Trim and case-fold to group, but print the first spelling the patient used.
   const seen = new Map<string, { name: string | null; count: number }>()
   for (const e of events) {
@@ -80,33 +82,46 @@ function namesOf(events: IntakeEvent[]): IntakeName[] {
  * than printed as zero: the patient never ticking alcohol is not a measurement
  * that they drank none, and the section note says so.
  */
-export function buildIntake(events: IntakeEvent[], frame: PeriodFrame): IntakeLine[] {
-  const lines: IntakeLine[] = []
-  for (const type of REPORTED_TYPES) {
-    const own = events.filter(e => {
-      const day = dayOf(e.ts)
-      return e.type === type && day >= frame.effectiveStart && day <= frame.end
-    })
-    if (!own.length) continue
+/**
+ * One line for one type, or `null` when the period holds none of it. Shared
+ * with the nutrition section so a cup of coffee and a glass of water are
+ * counted by exactly the same rules as a dose of medication — the median is
+ * always over per-day totals, never over events.
+ */
+export function summarizeIntakeType(
+  events: { ts: string; type: string; amount: number | null; unit: string | null; note: string | null }[],
+  type: string,
+  frame: PeriodFrame,
+  withNames = false,
+): IntakeLine | null {
+  const own = events.filter(e => {
+    const day = dayOf(e.ts)
+    return e.type === type && day >= frame.effectiveStart && day <= frame.end
+  })
+  if (!own.length) return null
 
-    const perDay = new Map<string, number>()
-    for (const e of own) {
-      if (e.amount == null) continue
-      const day = dayOf(e.ts)
-      perDay.set(day, (perDay.get(day) ?? 0) + e.amount)
-    }
-    const totals = [...perDay.values()]
-
-    lines.push({
-      type,
-      days: new Set(own.map(e => dayOf(e.ts))).size,
-      calendarDays: frame.calendarDays,
-      events: own.length,
-      medianPerDay: totals.length ? +quantile(totals, 0.5).toFixed(1) : null,
-      unit: own.find(e => e.amount != null && e.unit)?.unit ?? null,
-      time: timeOfDayStats(own.map(e => e.ts), INTAKE_ORIGIN_MIN),
-      names: type === 'meds' ? namesOf(own) : [],
-    })
+  const perDay = new Map<string, number>()
+  for (const e of own) {
+    if (e.amount == null) continue
+    const day = dayOf(e.ts)
+    perDay.set(day, (perDay.get(day) ?? 0) + e.amount)
   }
-  return lines
+  const totals = [...perDay.values()]
+
+  return {
+    type,
+    days: new Set(own.map(e => dayOf(e.ts))).size,
+    calendarDays: frame.calendarDays,
+    events: own.length,
+    medianPerDay: totals.length ? +quantile(totals, 0.5).toFixed(1) : null,
+    unit: own.find(e => e.amount != null && e.unit)?.unit ?? null,
+    time: timeOfDayStats(own.map(e => e.ts), INTAKE_ORIGIN_MIN),
+    names: withNames ? namesOf(own) : [],
+  }
+}
+
+export function buildIntake(events: IntakeEvent[], frame: PeriodFrame): IntakeLine[] {
+  return REPORTED_TYPES
+    .map(type => summarizeIntakeType(events, type, frame, type === 'meds'))
+    .filter((l): l is IntakeLine => l != null)
 }

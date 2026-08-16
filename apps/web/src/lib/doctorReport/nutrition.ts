@@ -1,14 +1,17 @@
 import { quantile, timeOfDayStats, type TimeStat } from './math'
-import { INTAKE_ORIGIN_MIN } from './intake'
+import { INTAKE_ORIGIN_MIN, summarizeIntakeType, type IntakeLine } from './intake'
 import type { PeriodFrame } from './metrics'
 
 /**
- * Food and water share `intake_events` with coffee, alcohol and medication,
- * but carry the macro columns those never use, so they are loaded and printed
- * apart. Coffee and alcohol stay in the intake section: a doctor reads them as
- * exposures, not as diet.
+ * What the patient ate and drank. Coffee sits here rather than with alcohol
+ * and medication: a doctor reading diet wants the day's drinks together, and
+ * splitting water from coffee across two sections made the same question
+ * answerable only by flipping pages.
  */
-export const NUTRITION_TYPES = ['meal', 'water'] as const
+export const NUTRITION_TYPES = ['meal', 'water', 'coffee'] as const
+
+/** Print order: water is the baseline, coffee the exposure on top of it. */
+export const DRINK_TYPES = ['water', 'coffee'] as const
 
 /** An intake row widened with the columns only meals fill in. */
 export interface NutritionEvent {
@@ -51,8 +54,12 @@ export interface NutritionSection {
   medianCarbs: number | null
   medianFat: number | null
   mealTime: TimeStat | null
-  /** `null`, not zero, when water was never logged. */
-  water: { days: number; medianMl: number | null } | null
+  /**
+   * One line per drink present in the period, counted by the very same rules
+   * as the intake section. A drink the patient never logged is omitted, not
+   * printed as zero.
+   */
+  drinks: IntakeLine[]
   /** Every meal of the period, chronological. */
   list: NutritionMeal[]
 }
@@ -98,16 +105,10 @@ export function buildNutrition(events: NutritionEvent[], frame: PeriodFrame): Nu
     return day >= frame.effectiveStart && day <= frame.end
   })
   const meals = inPeriod.filter(e => e.type === 'meal')
-  const waters = inPeriod.filter(e => e.type === 'water')
-  if (!meals.length && !waters.length) return null
-
-  const waterPerDay = new Map<string, number>()
-  for (const w of waters) {
-    if (w.amount == null) continue
-    const day = dayOf(w.ts)
-    waterPerDay.set(day, (waterPerDay.get(day) ?? 0) + w.amount)
-  }
-  const waterTotals = [...waterPerDay.values()]
+  const drinks = DRINK_TYPES
+    .map(type => summarizeIntakeType(inPeriod, type, frame))
+    .filter((l): l is IntakeLine => l != null)
+  if (!meals.length && !drinks.length) return null
 
   return {
     days: new Set(meals.map(e => dayOf(e.ts))).size,
@@ -119,9 +120,7 @@ export function buildNutrition(events: NutritionEvent[], frame: PeriodFrame): Nu
     medianCarbs: medianPerDay(meals, 'carbs_g'),
     medianFat: medianPerDay(meals, 'fat_g'),
     mealTime: timeOfDayStats(meals.map(e => e.ts), INTAKE_ORIGIN_MIN),
-    water: waters.length
-      ? { days: new Set(waters.map(e => dayOf(e.ts))).size, medianMl: waterTotals.length ? +quantile(waterTotals, 0.5).toFixed(1) : null }
-      : null,
+    drinks,
     list: meals
       .slice()
       .sort((a, b) => a.ts.localeCompare(b.ts))
