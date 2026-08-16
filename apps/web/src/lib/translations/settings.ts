@@ -271,6 +271,8 @@ export const settings: Record<string, Translation> = {
   'Кофе': { uk: 'Кава', en: 'Coffee' },
   'Это отметки пациента в приложении, а не измерения. Отсутствие отметки не означает, что приёма не было, а доза — введённое пациентом значение, а не измеренный объём. Постоянный приём добавок — в предыдущей секции.': { uk: 'Це відмітки пацієнта в застосунку, а не вимірювання. Відсутність відмітки не означає, що прийому не було, а доза — введене пацієнтом значення, а не виміряний обсяг. Постійний прийом добавок — у попередній секції.', en: 'These are the patient\'s own marks in the app, not measurements. A missing mark does not mean the intake did not happen, and the dose is what the patient entered, not a measured volume. Ongoing supplement intake is in the previous section.' },
   'События (болезнь, стресс, поездки) пациент отмечает в приложении, но в этот отчёт они не включены; еда, напитки и лекарства — включены своими секциями': { uk: 'Події (хвороба, стрес, поїздки) пацієнт відмічає в застосунку, але в цей звіт вони не включені; їжа, напої та ліки — включено своїми секціями', en: 'Events (illness, stress, travel) are logged by the patient in the app but excluded from this report; food, drinks and medication are included, each in its own section' },
+  // The checkbox that gates all three nutrition sections, so it names both.
+  'Питание и напитки': { uk: 'Харчування та напої', en: 'Nutrition and drinks' },
   'Питание': { uk: 'Харчування', en: 'Nutrition' },
   'Питание и напитки по дням': { uk: 'Харчування та напої за днями', en: 'Nutrition and drinks, day by day' },
   'Лекарства (со слов пациента)': { uk: 'Ліки (зі слів пацієнта)', en: 'Medication (as reported by the patient)' },
