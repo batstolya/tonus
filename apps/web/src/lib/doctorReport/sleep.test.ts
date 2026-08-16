@@ -156,20 +156,18 @@ describe('buildSleep', () => {
     expect(s.phaseCoveragePct).toBeNull()
   })
 
-  it('derives time in bed and efficiency from awake hours', () => {
+  it('derives time in bed from awake hours', () => {
     const daily: DailyMetrics[] = [{ date: '2026-08-13', sleepHours: 8.35, sleepAwake: 0.15 }]
     const s = buildSleep(daily, periodFrame(daily, 30, '2026-08-13'))!
     expect(s.nights[0].awake).toBeCloseTo(0.15)
     expect(s.nights[0].timeInBed).toBeCloseTo(8.5)
-    expect(s.nights[0].efficiencyPct).toBe(98)
   })
 
-  it('leaves all three null when the night predates awake tracking', () => {
+  it('leaves both null when the night predates awake tracking', () => {
     const daily: DailyMetrics[] = [{ date: '2026-08-13', sleepHours: 8.35 }]
     const s = buildSleep(daily, periodFrame(daily, 30, '2026-08-13'))!
     expect(s.nights[0].awake).toBeNull()
     expect(s.nights[0].timeInBed).toBeNull()
-    expect(s.nights[0].efficiencyPct).toBeNull()
   })
 
   it('excludes a daytime episode from phaseCoveragePct even when it carries phase data', () => {
