@@ -193,7 +193,8 @@ export function DoctorReport({ user, daily, onClose }: Props) {
       </div>
       {aiError && <p className="dr-ai-error">{t('Не удалось получить ИИ-вопросы — отчёт сформирован без них')}</p>}
 
-      <div className="dr-doc">
+      {/* lang drives hyphenation of the tight sleep-table headers (see index.css). */}
+      <div className="dr-doc" lang={lang}>
         <h1>{rt('Сводка данных здоровья')}</h1>
         <p className="dr-meta">
           {rt('Период')}: {model.period.effectiveStart} — {model.period.end} · {rt('Сформировано')}: {model.period.end}
@@ -317,8 +318,8 @@ export function DoctorReport({ user, daily, onClose }: Props) {
               <thead><tr>
                 <th>{rt('Дата')}</th><th>{rt('День')}</th><th>{rt('Отбой')}</th><th>{rt('Подъём')}</th>
                 <th>{rt('Сон, ч')}</th><th>{rt('Глубокий, ч')}</th><th>{rt('REM, ч')}</th>
-                <th>{rt('Лёгкий, ч')}</th><th>{rt('Не классифицировано, ч')}</th>
-                <th>{rt('Бодрствование, мин')}</th><th>{rt('В постели, ч')}</th><th>{rt('Эффективность')}</th>
+                <th>{rt('Лёгкий, ч')}</th><th className="dr-col-tight">{rt('Не классифицировано, ч')}</th>
+                <th className="dr-col-tight">{rt('Бодрствование, мин')}</th><th>{rt('В постели, ч')}</th><th>{rt('Эффективность')}</th>
                 <th>{rt('Глубокий, %')}</th><th>{rt('REM, %')}</th><th>{rt('Тип')}</th>
               </tr></thead>
               <tbody>
