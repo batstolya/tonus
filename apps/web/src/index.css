@@ -2616,6 +2616,13 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
    headers split into "Средн ее" and "Надёжно сть". Measured at 653px. */
 .dr-sleep-table { font-size: 11px; }
 .dr-sleep-table th, .dr-sleep-table td { padding: 3px 5px; }
+/* Three more columns (awake, in bed, efficiency) pushed it past the page again.
+   Two headers hold the widest single words in the table and so set their own
+   columns' min-content, while their data is one short number wide. Only those
+   two are allowed to break, and by hyphenation rather than mid-word chopping
+   (.dr-doc carries lang= for the dictionary); a browser without a dictionary
+   leaves the header whole, which is exactly today's behaviour. */
+.dr-sleep-table th.dr-col-tight { hyphens: auto; max-width: 60px; }
 .dr-doc th { background: #f3f3f3; font-weight: 600; }
 .dr-flagged td { background: #fff3f0; font-weight: 600; }
 .dr-ai-block { border: 1.5px dashed #888; border-radius: 8px; padding: 10px 14px; margin-top: 16px; }
