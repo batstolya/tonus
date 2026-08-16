@@ -4,9 +4,10 @@ import type { DailyMetrics } from '../../types'
 import {
   METRIC_DEFS, buildReportModel, loadReportSources, periodStart, localDate, toMarkdown, baselineCell,
   scoreTrendText, BAND_TEXT, labStatusCell, LAB_UNIT_CAVEAT, LAB_DATE_CAVEAT, MISSING_LINES,
+  nutritionMacroRows, nutritionDayHeader, nutritionDayRow, NUTRITION_CAVEAT,
   LAB_ORDER_UNKNOWN, LAB_UNIDENTIFIED, labDateCell,
   INTAKE_LABELS,
-  type DoctorReportModel, type ReportSources,
+  type DoctorReportModel, type ReportSources, type ReportLang,
 } from '../../lib/doctorReport'
 import { isUnlocked } from '../../lib/privacy'
 import { callFunction } from '../../lib/edgeFunctions'
@@ -16,10 +17,10 @@ import { Icon } from '../../lib/icons'
 
 // «Отчёт для врача» (SPEC-DOCTOR-REPORT, ревизия v2): экран подготовки +
 // печатное представление. Тело отчёта — только измеренные значения; ИИ-блок
-// вопросов опционален и визуально отделён. Язык отчёта (ru/en) не зависит от
+// вопросов опционален и визуально отделён. Язык отчёта (ru/uk/en) не зависит от
 // языка интерфейса. Печать и markdown рендерятся из одной модели.
 
-type SectionKey = 'metrics' | 'sleep' | 'labs' | 'supplements' | 'concerns' | 'journal' | 'ai'
+type SectionKey = 'metrics' | 'sleep' | 'labs' | 'supplements' | 'nutrition' | 'concerns' | 'journal' | 'ai'
 
 interface Props {
   user?: User
@@ -29,7 +30,7 @@ interface Props {
 
 const EMPTY_SOURCES: ReportSources = {
   labs: [], supplements: [], supplementLogs: [], concerns: [], concernLogs: [], notes: [],
-  profile: null, intake: [],
+  profile: null, intake: [], nutrition: [],
 }
 
 const STATUS_TEXT: Record<string, string> = {
@@ -48,9 +49,9 @@ export function DoctorReport({ user, daily, onClose }: Props) {
   const { t } = useT()
   const [stage, setStage] = useState<'setup' | 'preview'>('setup')
   const [period, setPeriod] = useState<30 | 90 | 365>(90)
-  const [lang, setLang] = useState<'ru' | 'en'>('ru')
+  const [lang, setLang] = useState<ReportLang>('ru')
   const [sections, setSections] = useState<Record<SectionKey, boolean>>({
-    metrics: true, sleep: true, labs: true, supplements: true, concerns: true, journal: true, ai: false,
+    metrics: true, sleep: true, labs: true, supplements: true, nutrition: true, concerns: true, journal: true, ai: false,
   })
   const [sources, setSources] = useState<ReportSources>(EMPTY_SOURCES)
   const [pickedConcerns, setPickedConcerns] = useState<Set<string>>(new Set())
@@ -59,8 +60,8 @@ export function DoctorReport({ user, daily, onClose }: Props) {
   const [aiError, setAiError] = useState(false)
   const [copied, setCopied] = useState(false)
 
-  // Язык отчёта: ru — исходные ключи, en — словарь переводов.
-  const rt = (key: string) => (lang === 'ru' ? key : translations[key]?.en ?? key)
+  // Язык отчёта: ru — исходные ключи, uk и en — словарь переводов.
+  const rt = (key: string) => (lang === 'ru' ? key : translations[key]?.[lang] ?? key)
 
   // Источники грузятся один раз на самый широкий период, поэтому переключение
   // 30/90/365 пересобирает модель без повторного запроса.
@@ -128,7 +129,7 @@ export function DoctorReport({ user, daily, onClose }: Props) {
 
         <div className="dr-setup-row">
           <span>{t('Язык отчёта')}</span>
-          {(['ru', 'en'] as const).map(l => (
+          {(['ru', 'uk', 'en'] as const).map(l => (
             <button key={l} className={lang === l ? 'dr-chip dr-chip-on' : 'dr-chip'} onClick={() => setLang(l)}>{l.toUpperCase()}</button>
           ))}
         </div>
@@ -140,6 +141,7 @@ export function DoctorReport({ user, daily, onClose }: Props) {
             ['sleep', t('Сон по дням')],
             ['labs', t('Анализы')],
             ['supplements', t('Добавки и приём')],
+            ['nutrition', t('Питание и напитки')],
             ['concerns', t('Проблемы')],
             ['journal', t('Самочувствие и дневник')],
             ['ai', t('Вопросы для обсуждения (ИИ)')],
@@ -183,7 +185,7 @@ export function DoctorReport({ user, daily, onClose }: Props) {
   }
 
   // ── Печатное представление ──────────────────────────────────────────────────
-  const { scores, metrics, weekly, sleep, coverage, deviations, labs, supplements, intake, concerns, journal } = model
+  const { scores, metrics, weekly, sleep, coverage, deviations, labs, supplements, intake, nutrition, concerns, journal } = model
 
   return (
     <div className="dr-print-root">
@@ -511,9 +513,115 @@ export function DoctorReport({ user, daily, onClose }: Props) {
           </section>
         )}
 
+        {sections.nutrition && nutrition && (
+          <section>
+            <h2>{rt('Питание')}</h2>
+            <p>
+              {rt('Приёмы пищи отмечены в')} {nutrition.days} {rt('из')} {nutrition.calendarDays} {rt('дней периода')},
+              {' '}{rt('всего отметок')}: {nutrition.meals}.
+            </p>
+            {nutritionMacroRows(nutrition, rt).length > 0 ? (
+              <>
+                <p className="dr-note">
+                  {rt('Калории заполнены в')} {nutrition.macroDays} {rt('из')} {nutrition.days} {rt('дней с отметками о еде')}.
+                </p>
+                <table>
+                  <thead><tr>
+                    <th>{rt('Показатель')}</th><th>{rt('Медиана за день с отметкой')}</th>
+                  </tr></thead>
+                  <tbody>
+                    {nutritionMacroRows(nutrition, rt).map(([label, value]) => (
+                      <tr key={label}><td>{label}</td><td>{value}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              </>
+            ) : (
+              <p className="dr-note">{rt('Калории и макронутриенты не заполнены ни в одной записи — ниже только сами приёмы пищи.')}</p>
+            )}
+            {nutrition.mealTime && (
+              <p>
+                {rt('Типичное время приёма пищи')}: {nutrition.mealTime.median} · {rt('половина')} {nutrition.mealTime.q1}–{nutrition.mealTime.q3}.
+              </p>
+            )}
+          </section>
+        )}
+
+        {sections.nutrition && nutrition && nutrition.drinks.length > 0 && (
+          <section>
+            <h2>{rt('Напитки')}</h2>
+            {(
+              <>
+                <table>
+                  <thead><tr>
+                    <th>{rt('Напиток')}</th><th>{rt('Дней с отметками')}</th><th>{rt('Всего отметок')}</th>
+                    <th>{rt('Медиана за день с отметкой')}</th><th>{rt('Типичное время')}</th>
+                  </tr></thead>
+                  <tbody>
+                    {nutrition.drinks.map(d => (
+                      <tr key={d.type}>
+                        <td>{rt(INTAKE_LABELS[d.type] ?? d.type)}</td>
+                        <td>{d.days} {rt('из')} {d.calendarDays}</td>
+                        <td>{d.events}</td>
+                        <td>{d.medianPerDay != null ? `${d.medianPerDay}${d.unit ? ` ${d.unit}` : ''}` : dash}</td>
+                        <td>{d.time ? `${d.time.median} · ${rt('половина')} ${d.time.q1}–${d.time.q3}` : dash}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </>
+            )}
+          </section>
+        )}
+
+        {sections.nutrition && nutrition && nutrition.byDay.length > 0 && (
+          <section>
+            <h2>{rt('Питание и напитки по дням')}</h2>
+            <table>
+              <thead><tr>
+                {nutritionDayHeader(nutrition, rt).map(h => <th key={h}>{h}</th>)}
+              </tr></thead>
+              <tbody>
+                {nutrition.byDay.map(d => (
+                  <tr key={d.date}>
+                    {nutritionDayRow(d, nutrition, dash).map((cell, i) => <td key={i}>{cell}</td>)}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="dr-note">{rt('Пустая ячейка — в этот день отметки не было. Дни, в которые пациент не отметил ничего, в таблице отсутствуют.')}</p>
+          </section>
+        )}
+
+        {sections.nutrition && nutrition && (
+          <section>
+            {nutrition.list.length > 0 && (
+              <>
+                <h3>{rt('Записи о приёмах пищи')}</h3>
+                <table>
+                  <thead><tr>
+                    <th>{rt('Дата')}</th><th>{rt('Время')}</th><th>{rt('Что')}</th><th>{rt('Ккал')}</th>
+                    <th>{rt('Белки, г')}</th><th>{rt('Жиры, г')}</th><th>{rt('Углеводы, г')}</th>
+                  </tr></thead>
+                  <tbody>
+                    {nutrition.list.map((m, i) => (
+                      <tr key={`${m.date}-${m.time}-${i}`}>
+                        <td>{m.date}</td><td>{m.time}</td><td>{m.note ?? dash}</td>
+                        <td>{m.calories ?? dash}</td><td>{m.protein_g ?? dash}</td>
+                        <td>{m.fat_g ?? dash}</td><td>{m.carbs_g ?? dash}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </>
+            )}
+            <p className="dr-note">{rt(NUTRITION_CAVEAT)}</p>
+          </section>
+        )}
+
         {sections.supplements && intake.length > 0 && (
           <section>
-            <h2>{rt('Отмеченный приём (со слов пациента)')}</h2>
+            <h2>{rt('Лекарства (со слов пациента)')}</h2>
             <table>
               <thead><tr>
                 <th>{rt('Тип')}</th><th>{rt('Дней с отметками')}</th><th>{rt('Всего отметок')}</th>
@@ -522,7 +630,7 @@ export function DoctorReport({ user, daily, onClose }: Props) {
               <tbody>
                 {intake.map(l => (
                   <tr key={l.type}>
-                    <td>{rt(INTAKE_LABELS[l.type])}</td>
+                    <td>{rt(INTAKE_LABELS[l.type] ?? l.type)}</td>
                     <td>{l.days} {rt('из')} {l.calendarDays}</td>
                     <td>{l.events}</td>
                     <td>{l.medianPerDay != null ? `${l.medianPerDay}${l.unit ? ` ${l.unit}` : ''}` : dash}</td>
@@ -533,7 +641,7 @@ export function DoctorReport({ user, daily, onClose }: Props) {
             </table>
             {intake.filter(l => l.names.length).map(l => (
               <p key={l.type} className="dr-note">
-                {rt(INTAKE_LABELS[l.type])}: {l.names.map(n => `${n.name ?? rt('без названия')} — ${n.count}`).join(', ')}.
+                {rt(INTAKE_LABELS[l.type] ?? l.type)}: {l.names.map(n => `${n.name ?? rt('без названия')} — ${n.count}`).join(', ')}.
               </p>
             ))}
             <p className="dr-note">{rt('Это отметки пациента в приложении, а не измерения. Отсутствие отметки не означает, что приёма не было, а доза — введённое пациентом значение, а не измеренный объём. Постоянный приём добавок — в предыдущей секции.')}</p>

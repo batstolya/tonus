@@ -26,6 +26,7 @@ dist-ssr
 .env.local
 .env.*.local
 .claude/worktrees/
+.worktrees/
 .playwright-mcp/
 mobile-auth.png
 .superpowers/

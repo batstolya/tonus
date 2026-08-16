@@ -12,6 +12,7 @@ import type { Supplement } from '../supplements'
 import type { IntakeEvent } from '../api/intake'
 import type { JournalNote } from './journal'
 import { REPORTED_TYPES } from './intake'
+import { NUTRITION_TYPES, type NutritionEvent } from './nutrition'
 
 /**
  * Unlike loadSupplements, discontinued rows are kept: a treatment the patient
@@ -85,6 +86,32 @@ export async function loadIntakeEvents(userId: string, since: string): Promise<I
     .range(from, to))
 }
 
+/**
+ * Meals and drinks, loaded apart from `loadIntakeEvents` because only these
+ * rows carry the macro columns and that query has no business widening for
+ * types that always leave them null.
+ *
+ * Paged like every other source: this is the highest-volume table the report
+ * reads — a patient logging three meals and a few glasses a day outgrows one
+ * PostgREST page within a year, and a short read would silently drop days off
+ * the day-by-day table.
+ */
+export async function loadNutritionEvents(userId: string, since: string): Promise<NutritionEvent[]> {
+  if (isDemoActive()) {
+    return (demoList('intake_events') as NutritionEvent[])
+      .filter(e => e.ts.slice(0, 10) >= since && (NUTRITION_TYPES as readonly string[]).includes(e.type))
+      .map(e => ({ ...e, calories: e.calories ?? null, protein_g: e.protein_g ?? null, carbs_g: e.carbs_g ?? null, fat_g: e.fat_g ?? null }))
+  }
+  return await fetchAllPages<NutritionEvent>((from, to) => supabase
+    .from('intake_events')
+    .select('ts, type, amount, unit, note, calories, protein_g, carbs_g, fat_g')
+    .eq('user_id', userId)
+    .gte('ts', `${since}T00:00:00`)
+    .in('type', NUTRITION_TYPES as unknown as string[])
+    .order('ts')
+    .range(from, to))
+}
+
 export interface ReportSources {
   labs: LabResult[]
   supplements: Supplement[]
@@ -94,6 +121,7 @@ export interface ReportSources {
   notes: JournalNote[]
   profile: ProfileBasics | null
   intake: IntakeEvent[]
+  nutrition: NutritionEvent[]
 }
 
 /**
@@ -101,7 +129,7 @@ export interface ReportSources {
  * table leaves its section empty instead of killing the whole report.
  */
 export async function loadReportSources(userId: string, since: string): Promise<ReportSources> {
-  const [labs, supplements, supplementLogs, concerns, concernLogs, notes, profile, intake] = await Promise.all([
+  const [labs, supplements, supplementLogs, concerns, concernLogs, notes, profile, intake, nutrition] = await Promise.all([
     loadLabResults(userId).catch(() => [] as LabResult[]),
     loadAllSupplements(userId).catch(() => [] as Supplement[]),
     loadSupplementLogs(userId, since).catch(() => [] as SupplementAdherenceLog[]),
@@ -113,6 +141,7 @@ export async function loadReportSources(userId: string, since: string): Promise<
     loadNotesWithWellbeing(userId, since).catch(() => [] as JournalNote[]),
     loadProfileBasics(userId).catch(() => null),
     loadIntakeEvents(userId, since).catch(() => [] as IntakeEvent[]),
+    loadNutritionEvents(userId, since).catch(() => [] as NutritionEvent[]),
   ])
-  return { labs, supplements, supplementLogs, concerns, concernLogs, notes, profile, intake }
+  return { labs, supplements, supplementLogs, concerns, concernLogs, notes, profile, intake, nutrition }
 }

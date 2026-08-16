@@ -3,6 +3,7 @@ import { toMarkdown, MISSING_LINES } from './markdown'
 import { buildReportModel } from './model'
 import { addDays } from './dates'
 import type { DailyMetrics } from '../../types'
+import type { NutritionEvent } from './nutrition'
 
 const today = '2026-07-31'
 const daily: DailyMetrics[] = Array.from({ length: 30 }, (_, i) => ({
@@ -11,6 +12,7 @@ const daily: DailyMetrics[] = Array.from({ length: 30 }, (_, i) => ({
 }))
 const sources = {
   labs: [], supplements: [], supplementLogs: [], concerns: [], concernLogs: [], notes: [], intake: [],
+  nutrition: [],
   profile: null,
 }
 const model = buildReportModel({ daily, sources, periodDays: 30, today })
@@ -70,7 +72,7 @@ describe('toMarkdown', () => {
 
   it('names the data the app holds but the report leaves out', () => {
     const md = toMarkdown(model, 'ru')
-    expect(md).toContain('События (болезнь, стресс, поездки), еду и воду')
+    expect(md).toContain('События (болезнь, стресс, поездки) пациент отмечает')
     expect(md).toContain('Время и длительность')
   })
 
@@ -80,18 +82,17 @@ describe('toMarkdown', () => {
     expect(closing).not.toContain('Кофе, алкоголь, лекарства и события')
   })
 
-  it('holds exactly these nine lines — a bad merge that drops one should fail here first', () => {
+  it('holds exactly these eight lines — a bad merge that drops one should fail here first', () => {
     // Written out rather than derived from the export: this is the
     // independent check that catches drift in MISSING_LINES itself.
     expect(MISSING_LINES).toEqual([
       'Артериального давления, веса, роста, температуры тела',
       'Диагнозов, назначений врача и рецептурных препаратов (учитываются только добавки, отмеченные пациентом)',
-      'Питания',
       'ЭКГ, аритмий и любых клинических измерений',
       'Время и длительность эпизодов низкого или высокого пульса: в отчёте есть только суточные минимум, максимум и среднее',
       'Тип тренировки и пульс во время неё: есть только минуты упражнений и активные калории',
       'Количество ночных пробуждений и время каждого, а также время засыпания: в отчёте есть время в постели и суммарное время бодрствования за ночь — и только за те ночи, где источник их измерил',
-      'События (болезнь, стресс, поездки), еду и воду пациент отмечает в приложении, но в этот отчёт они не включены; кофе, алкоголь и лекарства — включены отдельной секцией',
+      'События (болезнь, стресс, поездки) пациент отмечает в приложении, но в этот отчёт они не включены; еда, напитки и лекарства — включены своими секциями',
       'Всё перечисленное отсутствует, а не равно нулю: не делай выводов о том, чего здесь нет.',
     ])
   })
@@ -119,6 +120,12 @@ describe('toMarkdown', () => {
   it('translates headings for the en report', () => {
     const md = toMarkdown(model, 'en')
     expect(md).toContain('# Health data summary')
+    expect(md).not.toContain('Сводка данных здоровья')
+  })
+
+  it('translates headings for the uk report', () => {
+    const md = toMarkdown(model, 'uk')
+    expect(md).toContain('# Зведення даних здоров’я')
     expect(md).not.toContain('Сводка данных здоровья')
   })
 
@@ -492,5 +499,116 @@ describe('toMarkdown — lab sample dates', () => {
         date: '2026-06-20', sample_date: '2024-09-01', sample_date_precision: 'month', analyte_key: 'ferritin' },
     ]), 'ru')
     expect(md).toContain('Показателей без распознанного названия: 1')
+  })
+})
+
+describe('toMarkdown nutrition', () => {
+  const withNutrition = (nutrition: NutritionEvent[]) =>
+    toMarkdown(buildReportModel({ daily, sources: { ...sources, nutrition }, periodDays: 30, today }), 'ru')
+
+  const ev = (over: Partial<NutritionEvent> & { ts: string; type: string }): NutritionEvent => ({
+    amount: null, unit: null, note: null,
+    calories: null, protein_g: null, carbs_g: null, fat_g: null,
+    ...over,
+  })
+
+  it('omits the section entirely when nothing was logged', () => {
+    expect(withNutrition([])).not.toContain('## Питание')
+  })
+
+  it('prints coverage, medians and every meal', () => {
+    const md = withNutrition([
+      ev({ ts: `${addDays(today, -2)}T09:00:00`, type: 'meal', note: 'овсянка', calories: 400, protein_g: 12 }),
+      ev({ ts: `${addDays(today, -1)}T13:00:00`, type: 'meal', note: 'борщ', calories: 600, protein_g: 20 }),
+      ev({ ts: `${addDays(today, -1)}T09:00:00`, type: 'water', amount: 1500, unit: 'мл' }),
+    ])
+    expect(md).toContain('## Питание')
+    expect(md).toContain('Приёмы пищи отмечены в 2 из 30 дней периода, всего отметок: 2.')
+    expect(md).toContain('| Калории, ккал | 500 |')
+    expect(md).toContain('## Напитки')
+    expect(md).toContain('| Вода | 1 из 30 | 1 | 1500 мл |')
+    // The meal list is complete and chronological, newest last.
+    expect(md).toContain(`| ${addDays(today, -2)} | 09:00 | овсянка | 400 | 12 | — | — |`)
+    expect(md).toContain(`| ${addDays(today, -1)} | 13:00 | борщ | 600 | 20 | — | — |`)
+  })
+
+  it('still lists meals when no macros were entered', () => {
+    const md = withNutrition([
+      ev({ ts: `${addDays(today, -1)}T13:00:00`, type: 'meal', note: 'борщ' }),
+    ])
+    expect(md).toContain('Калории и макронутриенты не заполнены ни в одной записи')
+    expect(md).not.toContain('| Калории, ккал |')
+    expect(md).toContain('| борщ | — | — | — | — |')
+  })
+
+  it('prints a water-only period without pretending meals were absent', () => {
+    const md = withNutrition([
+      ev({ ts: `${addDays(today, -1)}T09:00:00`, type: 'water', amount: 1000, unit: 'мл' }),
+    ])
+    expect(md).toContain('Приёмы пищи отмечены в 0 из 30 дней')
+    expect(md).not.toContain('### Записи о приёмах пищи')
+  })
+
+  it('translates the whole nutrition section for uk and en', () => {
+    const nutrition = [
+      ev({ ts: `${addDays(today, -1)}T13:00:00`, type: 'meal', note: 'борщ', calories: 600 }),
+      ev({ ts: `${addDays(today, -1)}T09:00:00`, type: 'water', amount: 1500, unit: 'мл' }),
+    ]
+    const model2 = buildReportModel({ daily, sources: { ...sources, nutrition }, periodDays: 30, today })
+    for (const [lang, heading, macro] of [
+      ['uk', '## Харчування', '| Калорії, ккал |'],
+      ['en', '## Nutrition', '| Calories, kcal |'],
+    ] as const) {
+      const md = toMarkdown(model2, lang)
+      expect(md).toContain(heading)
+      expect(md).toContain(macro)
+      // The section must not fall back to the Russian source keys.
+      expect(md).not.toContain('## Питание')
+      expect(md).not.toContain('## Напитки')
+      expect(md).not.toContain('Питание и напитки по дням')
+      expect(md).not.toContain('Записи о приёмах пищи')
+      expect(md).not.toContain('Приёмы пищи отмечены в')
+    }
+  })
+
+  it('prints one day-by-day row per logged day, with times and volumes', () => {
+    const d1 = addDays(today, -2)
+    const d2 = addDays(today, -1)
+    const md = withNutrition([
+      ev({ ts: `${d1}T08:40:00`, type: 'meal', note: 'овсянка', calories: 480, protein_g: 22, fat_g: 28, carbs_g: 30 }),
+      ev({ ts: `${d1}T13:50:00`, type: 'meal', note: 'борщ', calories: 710, protein_g: 32, fat_g: 24, carbs_g: 88 }),
+      ev({ ts: `${d1}T09:30:00`, type: 'water', amount: 250, unit: 'мл' }),
+      ev({ ts: `${d1}T16:00:00`, type: 'water', amount: 300, unit: 'мл' }),
+      ev({ ts: `${d2}T20:00:00`, type: 'alcohol', amount: 300, unit: 'мл' }),
+    ])
+    const byDay = md.slice(md.indexOf('## Питание и напитки по дням'))
+    expect(byDay).toContain('| Дата | Ккал | Б/Ж/У, г | Приёмы пищи | Вода, мл | Алкоголь, мл |')
+    expect(byDay).toContain(`| ${d1} | 1190 | 54/52/118 | 08:40, 13:50 | 550 | — |`)
+    // A drink-only day still gets its row, with no calories invented for it.
+    expect(byDay).toContain(`| ${d2} | — | — | — | — | 300 |`)
+  })
+
+  it('grows no column for a drink the period never carried', () => {
+    const md = withNutrition([
+      ev({ ts: `${addDays(today, -1)}T09:00:00`, type: 'water', amount: 500, unit: 'мл' }),
+    ])
+    expect(md).toContain('| Дата | Ккал | Б/Ж/У, г | Приёмы пищи | Вода, мл |')
+    expect(md).not.toContain('Кофе')
+  })
+
+  it('no longer claims the report omits food and water', () => {
+    expect(MISSING_LINES).not.toContain('Питания')
+    expect(MISSING_LINES.join(' ')).not.toContain('еду и воду пациент отмечает')
+  })
+
+  it('prints coffee among the drinks, not in the intake section', () => {
+    const md = withNutrition([
+      ev({ ts: `${addDays(today, -1)}T09:00:00`, type: 'coffee', amount: 200, unit: 'мл' }),
+      ev({ ts: `${addDays(today, -1)}T10:00:00`, type: 'water', amount: 500, unit: 'мл' }),
+    ])
+    const drinks = md.slice(md.indexOf('## Напитки'))
+    expect(drinks).toContain('| Вода | 1 из 30 | 1 | 500 мл |')
+    expect(drinks).toContain('| Кофе | 1 из 30 | 1 | 200 мл |')
+    expect(md).not.toContain('## Отмеченный приём (со слов пациента)')
   })
 })
