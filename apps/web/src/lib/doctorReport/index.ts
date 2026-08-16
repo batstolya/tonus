@@ -9,7 +9,7 @@ export type { MetricKey, MetricSummary } from './metrics'
 export { WEEKLY_KEYS } from './weekly'
 export {
   toMarkdown, baselineCell, scoreTrendText, labStatusCell, MISSING_LINES,
-  nutritionMacroRows, NUTRITION_CAVEAT,
+  nutritionMacroRows, nutritionDayHeader, nutritionDayRow, NUTRITION_CAVEAT,
 } from './markdown'
 export type { ReportLang } from './markdown'
 export {
@@ -23,4 +23,4 @@ export { buildIntake, INTAKE_LABELS, REPORTED_TYPES, INTAKE_ORIGIN_MIN } from '.
 export type { IntakeLine, IntakeName, ReportedIntakeType } from './intake'
 export { MAX_BED_WINDOW_HOURS } from './sleep'
 export { buildNutrition, NUTRITION_TYPES } from './nutrition'
-export type { NutritionEvent, NutritionMeal, NutritionSection } from './nutrition'
+export type { NutritionEvent, NutritionMeal, NutritionSection, NutritionDay } from './nutrition'

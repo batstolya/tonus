@@ -10,14 +10,14 @@ import type { PeriodFrame } from './metrics'
 export const INTAKE_ORIGIN_MIN = 4 * 60
 
 /**
- * The intake a doctor asks about as exposure rather than as diet. Coffee used
- * to sit here too; it moved to the nutrition section, where the patient's food
- * and every drink are read together. Workouts and life events stay unprinted:
- * they are recorded far more erratically and are listed as absent instead.
- *
- * Order is the print order: medication first, then alcohol.
+ * What is left here once every drink moved to its own section: medication.
+ * Coffee and alcohol used to sit here as exposures, but a doctor asking what
+ * the patient drinks wants water, coffee and alcohol in one comparable table,
+ * not split by how the app happens to classify them. Workouts and life events
+ * stay unprinted: they are recorded far more erratically and are listed as
+ * absent instead.
  */
-export const REPORTED_TYPES = ['meds', 'alcohol'] as const
+export const REPORTED_TYPES = ['meds'] as const
 export type ReportedIntakeType = (typeof REPORTED_TYPES)[number]
 
 /** One spelling for both renderers, the same way the labs module owns its status text. */

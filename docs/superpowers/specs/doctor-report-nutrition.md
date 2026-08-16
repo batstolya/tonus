@@ -17,11 +17,16 @@ Taken in brainstorming, 2026-08-16:
 
 1. **Depth** — summary *and* the full list of meals, not a truncated sample.
    A doctor reading a 90-day report wants to scan the actual entries.
-2. **Drinks** — water *and coffee* join the nutrition section: what the
-   patient ate and drank is one question, and answering it should not mean
-   flipping between two sections. Alcohol and medication stay in «Отмеченный
-   приём», which is now purely about exposures.
-3. **Default** — the «Питание» section is on by default, like the others.
+2. **Drinks** — every drink lives in one «Напитки» table: water, coffee *and*
+   alcohol. Splitting them by how the app classifies each type left "what does
+   the patient drink" answerable only by reading two sections. Medication is
+   left alone in its own section — it is neither food nor drink, and its rows
+   share no units with either.
+3. **Day by day** — the period is also printed one row per day: totals and
+   meal times and drink volumes for that date. Medians answer "how much
+   usually", but a doctor also reads the run of days.
+4. **Default** — the nutrition sections are on by default, like the others,
+   behind a single «Питание и напитки» checkbox.
 
 ## Shape
 
@@ -38,10 +43,14 @@ New module `lib/doctorReport/nutrition.ts`, mirroring how `intake.ts` and
     day of one: calories, protein, carbs, fat;
   - `mealTime` — `timeOfDayStats` over meal timestamps, reusing
     `INTAKE_ORIGIN_MIN` (04:00) so the evening meal isn't split by midnight;
-  - `drinks` — one line per drink present (water first, then coffee), reusing
-    `summarizeIntakeType` from `intake.ts` so a cup of coffee and a dose of
-    medication are counted by identical rules; a drink never logged is omitted
-    rather than printed as zero;
+  - `drinks` — one line per drink present (water, then coffee, then alcohol),
+    reusing `summarizeIntakeType` from `intake.ts` so a cup of coffee and a
+    dose of medication are counted by identical rules; a drink never logged is
+    omitted rather than printed as zero;
+  - `byDay` — one `NutritionDay` per calendar day carrying any mark: day
+    totals per macro, the clock times of that day's meals, and a total per
+    drink type. Days with nothing logged get **no row** — an empty row reads
+    as a day of eating nothing, which this data can never say;
   - `meals` list, chronological, complete.
 - `buildNutrition(events, frame)` returns `null` when the period holds neither
   meals nor drinks, so the section disappears rather than printing zeros.
@@ -69,11 +78,14 @@ instead.
   keep its narrow column list and its own type filter. Added to
   `ReportSources` as `nutrition`, failure-tolerant like every other source.
 - **Model** — `nutrition: NutritionSection | null` on `DoctorReportModel`.
-- **Markdown** — `## Питание и напитки` after the intake section: coverage and
-  median table, a drinks table (напиток | дней с отметками | всего отметок |
-  медиана за день | типичное время), then the full meal table
-  (дата | время | что | ккал | Б | Ж | У).
-- **Print** — new `SectionKey` `'nutrition'`, default on, rendering the same
-  two tables from the same model.
+- **Markdown** — three sections in order: `## Питание` (coverage and median
+  table), `## Напитки` (напиток | дней с отметками | всего отметок | медиана
+  за день | типичное время), `## Питание и напитки по дням`
+  (дата | ккал | Б/Ж/У | приёмы пищи | одна колонка на каждый логированный
+  напиток), then the full meal table, then `## Лекарства`. The day table grows
+  a drink column only for drinks the period actually carried.
+- **Print** — new `SectionKey` `'nutrition'`, default on, gating all three
+  sections and rendering the same tables from the same model via the shared
+  `nutritionDayHeader` / `nutritionDayRow` cells.
 - **Translations** — uk and en for every new string, since the report language
   is independent of the interface and now offers three.

@@ -8,10 +8,10 @@ import type { PeriodFrame } from './metrics'
  * splitting water from coffee across two sections made the same question
  * answerable only by flipping pages.
  */
-export const NUTRITION_TYPES = ['meal', 'water', 'coffee'] as const
+export const NUTRITION_TYPES = ['meal', 'water', 'coffee', 'alcohol'] as const
 
-/** Print order: water is the baseline, coffee the exposure on top of it. */
-export const DRINK_TYPES = ['water', 'coffee'] as const
+/** Print order: water is the baseline, coffee and alcohol the exposures on top. */
+export const DRINK_TYPES = ['water', 'coffee', 'alcohol'] as const
 
 /** An intake row widened with the columns only meals fill in. */
 export interface NutritionEvent {
@@ -37,6 +37,24 @@ export interface NutritionMeal {
   fat_g: number | null
 }
 
+/**
+ * One calendar day the patient logged something on. Days with no mark at all
+ * get no row: an empty row reads as a day of eating nothing, which is the one
+ * thing this data can never say.
+ */
+export interface NutritionDay {
+  date: string
+  /** Day totals; `null` where the patient filled nothing in for that macro. */
+  calories: number | null
+  protein_g: number | null
+  carbs_g: number | null
+  fat_g: number | null
+  /** Clock times of the day's meals, in order. */
+  mealTimes: string[]
+  /** Total per drink type for the day; a type absent that day is simply missing. */
+  drinkTotals: Record<string, number>
+}
+
 export interface NutritionSection {
   /** Calendar days of the period carrying at least one meal. */
   days: number
@@ -60,6 +78,8 @@ export interface NutritionSection {
    * printed as zero.
    */
   drinks: IntakeLine[]
+  /** The period day by day: when the patient ate and how much they ate and drank. */
+  byDay: NutritionDay[]
   /** Every meal of the period, chronological. */
   list: NutritionMeal[]
 }
@@ -110,6 +130,35 @@ export function buildNutrition(events: NutritionEvent[], frame: PeriodFrame): Nu
     .filter((l): l is IntakeLine => l != null)
   if (!meals.length && !drinks.length) return null
 
+  const dayKeys = [...new Set(
+    inPeriod
+      .filter(e => e.type === 'meal' || (DRINK_TYPES as readonly string[]).includes(e.type))
+      .map(e => dayOf(e.ts)),
+  )].sort()
+
+  const byDay: NutritionDay[] = dayKeys.map(date => {
+    const own = inPeriod.filter(e => dayOf(e.ts) === date)
+    const dayMeals = own.filter(e => e.type === 'meal')
+    const total = (key: MacroKey): number | null => {
+      const vals = dayMeals.map(m => m[key]).filter((v): v is number => v != null)
+      return vals.length ? +vals.reduce((a, b) => a + b, 0).toFixed(1) : null
+    }
+    const drinkTotals: Record<string, number> = {}
+    for (const type of DRINK_TYPES) {
+      const amounts = own.filter(e => e.type === type && e.amount != null).map(e => e.amount as number)
+      if (amounts.length) drinkTotals[type] = +amounts.reduce((a, b) => a + b, 0).toFixed(1)
+    }
+    return {
+      date,
+      calories: total('calories'),
+      protein_g: total('protein_g'),
+      carbs_g: total('carbs_g'),
+      fat_g: total('fat_g'),
+      mealTimes: dayMeals.map(m => timeOf(m.ts)).sort(),
+      drinkTotals,
+    }
+  })
+
   return {
     days: new Set(meals.map(e => dayOf(e.ts))).size,
     calendarDays: frame.calendarDays,
@@ -121,6 +170,7 @@ export function buildNutrition(events: NutritionEvent[], frame: PeriodFrame): Nu
     medianFat: medianPerDay(meals, 'fat_g'),
     mealTime: timeOfDayStats(meals.map(e => e.ts), INTAKE_ORIGIN_MIN),
     drinks,
+    byDay,
     list: meals
       .slice()
       .sort((a, b) => a.ts.localeCompare(b.ts))

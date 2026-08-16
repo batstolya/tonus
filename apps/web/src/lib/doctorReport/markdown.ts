@@ -6,7 +6,7 @@ import {
   LAB_ORDER_UNKNOWN, LAB_UNIDENTIFIED, labDateCell, type LabLine,
 } from './labs'
 import { INTAKE_LABELS } from './intake'
-import type { NutritionSection } from './nutrition'
+import type { NutritionSection, NutritionDay } from './nutrition'
 import type { DoctorReportModel, ScoreSummary } from './model'
 
 /** Report language, independent of the interface language. */
@@ -76,6 +76,35 @@ export const nutritionMacroRows = (
 export const NUTRITION_CAVEAT = 'Это отметки пациента в приложении, а не измерения. Отсутствие отметки не означает, что приёма пищи или напитка не было, а калории, макронутриенты и объёмы — введённые пациентом значения, а не измеренный состав. Вес порций и микронутриенты не учитываются.'
 
 /**
+ * Same header in both renderers: the day-by-day table carries a column per
+ * drink the patient actually logged, so a period without coffee never grows
+ * an empty coffee column.
+ */
+export const nutritionDayHeader = (
+  s: NutritionSection,
+  t: (key: string) => string,
+): string[] => [
+  t('Дата'), t('Ккал'), t('Б/Ж/У, г'), t('Приёмы пищи'),
+  ...s.drinks.map(d => `${t(INTAKE_LABELS[d.type] ?? d.type)}${d.unit ? `, ${d.unit}` : ''}`),
+]
+
+/** Same row in both renderers; see `nutritionDayHeader` for the column order. */
+export const nutritionDayRow = (
+  day: NutritionDay,
+  s: NutritionSection,
+  dash: string,
+): string[] => {
+  const macros = [day.protein_g, day.fat_g, day.carbs_g]
+  return [
+    day.date,
+    day.calories != null ? String(day.calories) : dash,
+    macros.some(v => v != null) ? macros.map(v => v != null ? String(v) : dash).join('/') : dash,
+    day.mealTimes.length ? day.mealTimes.join(', ') : dash,
+    ...s.drinks.map(d => day.drinkTotals[d.type] != null ? String(day.drinkTotals[d.type]) : dash),
+  ]
+}
+
+/**
  * Same list in both renderers: the closing "what this data does not
  * contain" block. It exists so an external model reading this report never
  * mistakes silence for a normal reading — each line names data the app
@@ -88,7 +117,7 @@ export const MISSING_LINES = [
   'Время и длительность эпизодов низкого или высокого пульса: в отчёте есть только суточные минимум, максимум и среднее',
   'Тип тренировки и пульс во время неё: есть только минуты упражнений и активные калории',
   'Время в постели, засыпание, ночные пробуждения и эффективность сна',
-  'События (болезнь, стресс, поездки) пациент отмечает в приложении, но в этот отчёт они не включены; еда, вода и кофе — в секции питания, алкоголь и лекарства — своей секцией',
+  'События (болезнь, стресс, поездки) пациент отмечает в приложении, но в этот отчёт они не включены; еда, напитки и лекарства — включены своими секциями',
   'Всё перечисленное отсутствует, а не равно нулю: не делай выводов о том, чего здесь нет.',
 ]
 
@@ -327,32 +356,9 @@ export function toMarkdown(model: DoctorReportModel, lang: ReportLang): string {
     p()
   }
 
-  if (model.intake.length) {
-    p(`## ${t('Отмеченный приём (со слов пациента)')}`)
-    p()
-    table(
-      [t('Тип'), t('Дней с отметками'), t('Всего отметок'), t('Медиана за день с отметкой'), t('Типичное время')],
-      model.intake.map(l => [
-        t(INTAKE_LABELS[l.type]),
-        `${l.days} ${t('из')} ${l.calendarDays}`,
-        String(l.events),
-        l.medianPerDay != null ? `${l.medianPerDay}${l.unit ? ` ${l.unit}` : ''}` : dash,
-        l.time ? `${l.time.median} · ${t('половина')} ${l.time.q1}–${l.time.q3}` : dash,
-      ]),
-    )
-    p()
-    for (const l of model.intake) {
-      if (!l.names.length) continue
-      const named = l.names.map(n => `${n.name ?? t('без названия')} — ${n.count}`).join(', ')
-      p(`${t(INTAKE_LABELS[l.type])}: ${named}.`)
-    }
-    p(t('Это отметки пациента в приложении, а не измерения. Отсутствие отметки не означает, что приёма не было, а доза — введённое пациентом значение, а не измеренный объём. Постоянный приём добавок — в предыдущей секции.'))
-    p()
-  }
-
   if (model.nutrition) {
     const n = model.nutrition
-    p(`## ${t('Питание и напитки')}`)
+    p(`## ${t('Питание')}`)
     p()
     p(`${t('Приёмы пищи отмечены в')} ${n.days} ${t('из')} ${n.calendarDays} ${t('дней периода')}, ${t('всего отметок')}: ${n.meals}.`)
     const macros = nutritionMacroRows(n, t)
@@ -370,8 +376,9 @@ export function toMarkdown(model: DoctorReportModel, lang: ReportLang): string {
       p(`${t('Типичное время приёма пищи')}: ${n.mealTime.median} · ${t('половина')} ${n.mealTime.q1}–${n.mealTime.q3}.`)
       p()
     }
+
     if (n.drinks.length) {
-      p(`### ${t('Напитки')}`)
+      p(`## ${t('Напитки')}`)
       p()
       table(
         [t('Напиток'), t('Дней с отметками'), t('Всего отметок'), t('Медиана за день с отметкой'), t('Типичное время')],
@@ -384,6 +391,18 @@ export function toMarkdown(model: DoctorReportModel, lang: ReportLang): string {
         ]),
       )
     }
+
+    if (n.byDay.length) {
+      p(`## ${t('Питание и напитки по дням')}`)
+      p()
+      table(
+        nutritionDayHeader(n, t),
+        n.byDay.map(d => nutritionDayRow(d, n, dash)),
+      )
+      p(t('Пустая ячейка — в этот день отметки не было. Дни, в которые пациент не отметил ничего, в таблице отсутствуют.'))
+      p()
+    }
+
     if (n.list.length) {
       p(`### ${t('Записи о приёмах пищи')}`)
       p()
@@ -399,6 +418,29 @@ export function toMarkdown(model: DoctorReportModel, lang: ReportLang): string {
       )
     }
     p(t(NUTRITION_CAVEAT))
+    p()
+  }
+
+  if (model.intake.length) {
+    p(`## ${t('Лекарства (со слов пациента)')}`)
+    p()
+    table(
+      [t('Тип'), t('Дней с отметками'), t('Всего отметок'), t('Медиана за день с отметкой'), t('Типичное время')],
+      model.intake.map(l => [
+        t(INTAKE_LABELS[l.type] ?? l.type),
+        `${l.days} ${t('из')} ${l.calendarDays}`,
+        String(l.events),
+        l.medianPerDay != null ? `${l.medianPerDay}${l.unit ? ` ${l.unit}` : ''}` : dash,
+        l.time ? `${l.time.median} · ${t('половина')} ${l.time.q1}–${l.time.q3}` : dash,
+      ]),
+    )
+    p()
+    for (const l of model.intake) {
+      if (!l.names.length) continue
+      const named = l.names.map(n => `${n.name ?? t('без названия')} — ${n.count}`).join(', ')
+      p(`${t(INTAKE_LABELS[l.type] ?? l.type)}: ${named}.`)
+    }
+    p(t('Это отметки пациента в приложении, а не измерения. Отсутствие отметки не означает, что приёма не было, а доза — введённое пациентом значение, а не измеренный объём. Постоянный приём добавок — в предыдущей секции.'))
     p()
   }
 

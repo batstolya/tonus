@@ -4,7 +4,7 @@ import type { DailyMetrics } from '../../types'
 import {
   METRIC_DEFS, buildReportModel, loadReportSources, periodStart, localDate, toMarkdown, baselineCell,
   scoreTrendText, BAND_TEXT, labStatusCell, LAB_UNIT_CAVEAT, LAB_DATE_CAVEAT, MISSING_LINES,
-  nutritionMacroRows, NUTRITION_CAVEAT,
+  nutritionMacroRows, nutritionDayHeader, nutritionDayRow, NUTRITION_CAVEAT,
   LAB_ORDER_UNKNOWN, LAB_UNIDENTIFIED, labDateCell,
   INTAKE_LABELS,
   type DoctorReportModel, type ReportSources, type ReportLang,
@@ -506,38 +506,9 @@ export function DoctorReport({ user, daily, onClose }: Props) {
           </section>
         )}
 
-        {sections.supplements && intake.length > 0 && (
-          <section>
-            <h2>{rt('Отмеченный приём (со слов пациента)')}</h2>
-            <table>
-              <thead><tr>
-                <th>{rt('Тип')}</th><th>{rt('Дней с отметками')}</th><th>{rt('Всего отметок')}</th>
-                <th>{rt('Медиана за день с отметкой')}</th><th>{rt('Типичное время')}</th>
-              </tr></thead>
-              <tbody>
-                {intake.map(l => (
-                  <tr key={l.type}>
-                    <td>{rt(INTAKE_LABELS[l.type])}</td>
-                    <td>{l.days} {rt('из')} {l.calendarDays}</td>
-                    <td>{l.events}</td>
-                    <td>{l.medianPerDay != null ? `${l.medianPerDay}${l.unit ? ` ${l.unit}` : ''}` : dash}</td>
-                    <td>{l.time ? `${l.time.median} · ${rt('половина')} ${l.time.q1}–${l.time.q3}` : dash}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {intake.filter(l => l.names.length).map(l => (
-              <p key={l.type} className="dr-note">
-                {rt(INTAKE_LABELS[l.type])}: {l.names.map(n => `${n.name ?? rt('без названия')} — ${n.count}`).join(', ')}.
-              </p>
-            ))}
-            <p className="dr-note">{rt('Это отметки пациента в приложении, а не измерения. Отсутствие отметки не означает, что приёма не было, а доза — введённое пациентом значение, а не измеренный объём. Постоянный приём добавок — в предыдущей секции.')}</p>
-          </section>
-        )}
-
         {sections.nutrition && nutrition && (
           <section>
-            <h2>{rt('Питание и напитки')}</h2>
+            <h2>{rt('Питание')}</h2>
             <p>
               {rt('Приёмы пищи отмечены в')} {nutrition.days} {rt('из')} {nutrition.calendarDays} {rt('дней периода')},
               {' '}{rt('всего отметок')}: {nutrition.meals}.
@@ -566,9 +537,14 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                 {rt('Типичное время приёма пищи')}: {nutrition.mealTime.median} · {rt('половина')} {nutrition.mealTime.q1}–{nutrition.mealTime.q3}.
               </p>
             )}
-            {nutrition.drinks.length > 0 && (
+          </section>
+        )}
+
+        {sections.nutrition && nutrition && nutrition.drinks.length > 0 && (
+          <section>
+            <h2>{rt('Напитки')}</h2>
+            {(
               <>
-                <h3>{rt('Напитки')}</h3>
                 <table>
                   <thead><tr>
                     <th>{rt('Напиток')}</th><th>{rt('Дней с отметками')}</th><th>{rt('Всего отметок')}</th>
@@ -588,6 +564,30 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                 </table>
               </>
             )}
+          </section>
+        )}
+
+        {sections.nutrition && nutrition && nutrition.byDay.length > 0 && (
+          <section>
+            <h2>{rt('Питание и напитки по дням')}</h2>
+            <table>
+              <thead><tr>
+                {nutritionDayHeader(nutrition, rt).map(h => <th key={h}>{h}</th>)}
+              </tr></thead>
+              <tbody>
+                {nutrition.byDay.map(d => (
+                  <tr key={d.date}>
+                    {nutritionDayRow(d, nutrition, dash).map((cell, i) => <td key={i}>{cell}</td>)}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="dr-note">{rt('Пустая ячейка — в этот день отметки не было. Дни, в которые пациент не отметил ничего, в таблице отсутствуют.')}</p>
+          </section>
+        )}
+
+        {sections.nutrition && nutrition && (
+          <section>
             {nutrition.list.length > 0 && (
               <>
                 <h3>{rt('Записи о приёмах пищи')}</h3>
@@ -609,6 +609,35 @@ export function DoctorReport({ user, daily, onClose }: Props) {
               </>
             )}
             <p className="dr-note">{rt(NUTRITION_CAVEAT)}</p>
+          </section>
+        )}
+
+        {sections.supplements && intake.length > 0 && (
+          <section>
+            <h2>{rt('Лекарства (со слов пациента)')}</h2>
+            <table>
+              <thead><tr>
+                <th>{rt('Тип')}</th><th>{rt('Дней с отметками')}</th><th>{rt('Всего отметок')}</th>
+                <th>{rt('Медиана за день с отметкой')}</th><th>{rt('Типичное время')}</th>
+              </tr></thead>
+              <tbody>
+                {intake.map(l => (
+                  <tr key={l.type}>
+                    <td>{rt(INTAKE_LABELS[l.type] ?? l.type)}</td>
+                    <td>{l.days} {rt('из')} {l.calendarDays}</td>
+                    <td>{l.events}</td>
+                    <td>{l.medianPerDay != null ? `${l.medianPerDay}${l.unit ? ` ${l.unit}` : ''}` : dash}</td>
+                    <td>{l.time ? `${l.time.median} · ${rt('половина')} ${l.time.q1}–${l.time.q3}` : dash}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {intake.filter(l => l.names.length).map(l => (
+              <p key={l.type} className="dr-note">
+                {rt(INTAKE_LABELS[l.type] ?? l.type)}: {l.names.map(n => `${n.name ?? rt('без названия')} — ${n.count}`).join(', ')}.
+              </p>
+            ))}
+            <p className="dr-note">{rt('Это отметки пациента в приложении, а не измерения. Отсутствие отметки не означает, что приёма не было, а доза — введённое пациентом значение, а не измеренный объём. Постоянный приём добавок — в предыдущей секции.')}</p>
           </section>
         )}
 

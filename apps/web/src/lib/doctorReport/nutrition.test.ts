@@ -116,14 +116,16 @@ describe('buildNutrition', () => {
     expect(s.list).toEqual([])
   })
 
-  it('carries coffee in the same section as food and water', () => {
+  it('carries every drink in one place, alcohol included', () => {
     const s = buildNutrition([
+      ev({ ts: '2026-07-29T20:00:00', type: 'alcohol', amount: 300, unit: 'мл' }),
       ev({ ts: '2026-07-29T09:00:00', type: 'coffee', amount: 200, unit: 'мл' }),
       ev({ ts: '2026-07-30T09:00:00', type: 'water', amount: 500, unit: 'мл' }),
     ], frame)!
-    // Water leads: it is the baseline drink, coffee the exposure on top of it.
-    expect(s.drinks.map(d => d.type)).toEqual(['water', 'coffee'])
+    // Water leads as the baseline, then the two exposures on top of it.
+    expect(s.drinks.map(d => d.type)).toEqual(['water', 'coffee', 'alcohol'])
     expect(s.drinks[1]).toMatchObject({ type: 'coffee', days: 1, events: 1, medianPerDay: 200 })
+    expect(s.drinks[2]).toMatchObject({ type: 'alcohol', days: 1, medianPerDay: 300 })
   })
 
   it('reports the typical time of a drink, like the intake section does', () => {
@@ -142,8 +144,63 @@ describe('buildNutrition', () => {
 
   it('ignores intake types the section does not own', () => {
     expect(buildNutrition([
-      ev({ ts: '2026-07-30T21:00:00', type: 'alcohol', amount: 1, unit: 'доза' }),
       ev({ ts: '2026-07-30T09:00:00', type: 'meds', amount: 1, unit: null }),
+      ev({ ts: '2026-07-30T07:00:00', type: 'workout', amount: 30, unit: 'мин' }),
     ], frame)).toBeNull()
+  })
+})
+
+describe('buildNutrition — day by day', () => {
+  it('gives one row per day, with the day total and every meal time on it', () => {
+    const s = buildNutrition([
+      meal('2026-07-29T08:40:00', { calories: 480, protein_g: 22, fat_g: 28, carbs_g: 30 }),
+      meal('2026-07-29T13:50:00', { calories: 710, protein_g: 32, fat_g: 24, carbs_g: 88 }),
+      ev({ ts: '2026-07-29T09:30:00', type: 'water', amount: 250, unit: 'мл' }),
+      ev({ ts: '2026-07-29T16:00:00', type: 'water', amount: 300, unit: 'мл' }),
+      ev({ ts: '2026-07-29T13:30:00', type: 'coffee', amount: 200, unit: 'мл' }),
+    ], frame)!
+    expect(s.byDay).toHaveLength(1)
+    expect(s.byDay[0]).toMatchObject({
+      date: '2026-07-29',
+      calories: 1190, protein_g: 54, fat_g: 52, carbs_g: 118,
+      mealTimes: ['08:40', '13:50'],
+    })
+    expect(s.byDay[0].drinkTotals).toEqual({ water: 550, coffee: 200 })
+  })
+
+  it('orders the days chronologically and skips days with nothing logged', () => {
+    const s = buildNutrition([
+      meal('2026-07-30T13:00:00', { calories: 500 }),
+      meal('2026-07-28T13:00:00', { calories: 400 }),
+    ], frame)!
+    // 2026-07-29 carries no mark at all, so it gets no row: an empty row would
+    // read as a day the patient ate nothing.
+    expect(s.byDay.map(d => d.date)).toEqual(['2026-07-28', '2026-07-30'])
+  })
+
+  it('gives a drink-only day its own row, with no calories invented for it', () => {
+    const s = buildNutrition([
+      ev({ ts: '2026-07-30T09:00:00', type: 'water', amount: 500, unit: 'мл' }),
+    ], frame)!
+    expect(s.byDay).toHaveLength(1)
+    expect(s.byDay[0]).toMatchObject({ date: '2026-07-30', calories: null, mealTimes: [] })
+    expect(s.byDay[0].drinkTotals).toEqual({ water: 500 })
+  })
+
+  it('leaves a macro null on a day the patient did not fill it in', () => {
+    const s = buildNutrition([
+      meal('2026-07-30T13:00:00', { calories: 500 }),
+    ], frame)!
+    expect(s.byDay[0].calories).toBe(500)
+    expect(s.byDay[0].protein_g).toBeNull()
+  })
+
+  it('keeps meal times in clock order however the events arrive', () => {
+    const s = buildNutrition([
+      meal('2026-07-30T19:40:00'),
+      meal('2026-07-30T08:40:00'),
+      meal('2026-07-30T13:50:00'),
+    ], frame)!
+    expect(s.byDay[0].mealTimes).toEqual(['08:40', '13:50', '19:40'])
   })
 })
