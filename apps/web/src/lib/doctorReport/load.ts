@@ -1,7 +1,8 @@
 import { supabase } from '../supabase'
+import { fetchAllPages } from '../supabasePaging'
 import { isDemoActive } from '../demo'
 import { demoList } from '../demoDb'
-import { loadConcerns, type ConcernLog, type HealthConcern } from '../concerns'
+import { loadAllConcerns, type ConcernLog, type HealthConcern } from '../concerns'
 import { loadLabResults, type LabResult } from '../labs'
 import {
   getSupplementLogsSince, loadProfileBasics,
@@ -33,14 +34,13 @@ export async function loadAllConcernLogs(userId: string, since: string): Promise
   if (isDemoActive()) {
     return (demoList('concern_logs') as ConcernLog[]).filter(l => l.date >= since)
   }
-  const { data, error } = await supabase
+  return await fetchAllPages<ConcernLog>((from, to) => supabase
     .from('concern_logs')
     .select('*')
     .eq('user_id', userId)
     .gte('date', since)
     .order('date')
-  if (error) throw error
-  return (data ?? []) as ConcernLog[]
+    .range(from, to))
 }
 
 export async function loadNotesWithWellbeing(userId: string, since: string): Promise<JournalNote[]> {
@@ -49,14 +49,15 @@ export async function loadNotesWithWellbeing(userId: string, since: string): Pro
       .filter(n => n.date >= since)
       .map(n => ({ date: n.date, note: n.note, wellbeing: n.wellbeing ?? null }))
   }
-  const { data, error } = await supabase
-    .from('context_notes')
-    .select('date, note, wellbeing')
-    .eq('user_id', userId)
-    .gte('date', since)
-    .order('date')
-  if (error) throw error
-  return (data ?? []).map((n: { date: string; note: string | null; wellbeing: number | null }) => ({
+  const data = await fetchAllPages<{ date: string; note: string | null; wellbeing: number | null }>(
+    (from, to) => supabase
+      .from('context_notes')
+      .select('date, note, wellbeing')
+      .eq('user_id', userId)
+      .gte('date', since)
+      .order('date')
+      .range(from, to))
+  return data.map(n => ({
     date: n.date, note: n.note ?? '', wellbeing: n.wellbeing,
   }))
 }
@@ -74,15 +75,14 @@ export async function loadIntakeEvents(userId: string, since: string): Promise<I
     return (demoList('intake_events') as IntakeEvent[])
       .filter(e => e.ts.slice(0, 10) >= since && (REPORTED_TYPES as readonly string[]).includes(e.type))
   }
-  const { data, error } = await supabase
+  return await fetchAllPages<IntakeEvent>((from, to) => supabase
     .from('intake_events')
     .select('id, ts, type, amount, unit, note')
     .eq('user_id', userId)
     .gte('ts', `${since}T00:00:00`)
     .in('type', REPORTED_TYPES as unknown as string[])
     .order('ts')
-  if (error) throw error
-  return (data ?? []) as IntakeEvent[]
+    .range(from, to))
 }
 
 export interface ReportSources {
@@ -105,7 +105,10 @@ export async function loadReportSources(userId: string, since: string): Promise<
     loadLabResults(userId).catch(() => [] as LabResult[]),
     loadAllSupplements(userId).catch(() => [] as Supplement[]),
     loadSupplementLogs(userId, since).catch(() => [] as SupplementAdherenceLog[]),
-    loadConcerns(userId).catch(() => [] as HealthConcern[]),
+    // Resolved complaints included on purpose: "this cleared up in March" is
+    // part of the history the doctor is reading, and the report has a status
+    // line ready for it. The patient unticks what is not worth printing.
+    loadAllConcerns(userId).catch(() => [] as HealthConcern[]),
     loadAllConcernLogs(userId, since).catch(() => [] as ConcernLog[]),
     loadNotesWithWellbeing(userId, since).catch(() => [] as JournalNote[]),
     loadProfileBasics(userId).catch(() => null),

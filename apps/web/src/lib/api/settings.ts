@@ -1,4 +1,5 @@
 import { supabase } from '../supabase'
+import { fetchAllPages } from '../supabasePaging'
 import { isDemoActive } from '../demo'
 import type { Json } from '../database.types'
 import type { DayTimes } from '../workoutPlan'
@@ -148,9 +149,12 @@ export async function saveProfileBasics(userId: string, patch: Partial<ProfileBa
 export interface SupplementAdherenceLog { supplement_id: string; date: string; taken: boolean }
 
 export async function getSupplementLogsSince(userId: string, sinceDate: string): Promise<SupplementAdherenceLog[]> {
-  const { data } = await supabase.from('supplement_logs')
+  // One row per supplement per day: a year of five supplements already passes
+  // a single PostgREST page, so this reads every page.
+  return await fetchAllPages<SupplementAdherenceLog>((from, to) => supabase.from('supplement_logs')
     .select('supplement_id, date, taken')
     .eq('user_id', userId)
     .gte('date', sinceDate)
-  return (data ?? []) as SupplementAdherenceLog[]
+    .order('date')
+    .range(from, to))
 }

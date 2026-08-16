@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { fetchAllPages } from './supabasePaging'
 import { callFunction } from './edgeFunctions'
 import { isDemoActive } from './demo'
 import { demoList, demoRemove } from './demoDb'
@@ -49,13 +50,14 @@ export async function loadLabResults(userId: string): Promise<LabResult[]> {
   if (isDemoActive()) {
     return (demoList('lab_results') as LabResult[]).sort((a, b) => a.date.localeCompare(b.date))
   }
-  const { data, error } = await supabase
+  // One row per analyte per panel: a few years of blood work outgrows a single
+  // PostgREST page, and a lab table missing its oldest rows is a lie about a trend.
+  return await fetchAllPages<LabResult>((from, to) => supabase
     .from('lab_results')
     .select('*')
     .eq('user_id', userId)
     .order('date', { ascending: true })
-  if (error) throw error
-  return (data ?? []) as LabResult[]
+    .range(from, to))
 }
 
 export async function deleteLabFile(id: string): Promise<void> {
