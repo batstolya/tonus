@@ -59,7 +59,7 @@ describe('buildConcerns', () => {
 })
 
 describe('buildJournal', () => {
-  it('averages wellbeing per week and keeps the last 12 notes', () => {
+  it('averages wellbeing per week and keeps every note of the period', () => {
     const notes = Array.from({ length: 14 }, (_, i) => ({
       date: `2026-07-${String(i + 10).padStart(2, '0')}`,
       note: `запись ${i}`,
@@ -68,10 +68,20 @@ describe('buildJournal', () => {
     const j = buildJournal(notes, '2026-05-03')
     expect(j.wellbeingCount).toBe(14)
     expect(j.wellbeingAvg).toBe(4)
-    expect(j.notes).toHaveLength(12)
-    expect(j.notes[11].note).toBe('запись 13')
+    expect(j.notes).toHaveLength(14)
+    expect(j.notes[0].note).toBe('запись 0')
+    expect(j.notes[13].note).toBe('запись 13')
     expect(j.weeks.every(w => w.avg === 4)).toBe(true)
   })
+
+  it('keeps both notes written on the same day', () => {
+    const notes = [
+      { date: '2026-07-10', note: 'утро', wellbeing: 4 },
+      { date: '2026-07-10', note: 'вечер', wellbeing: 2 },
+    ]
+    expect(buildJournal(notes, '2026-05-03').notes.map(n => n.note)).toEqual(['утро', 'вечер'])
+  })
+
 
   it('drops notes from before the period', () => {
     const j = buildJournal([{ date: '2026-01-01', note: 'старое', wellbeing: 3 }], '2026-05-03')

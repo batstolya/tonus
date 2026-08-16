@@ -367,7 +367,7 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
       )
     }
     if (model.journal.notes.length) {
-      p(`${t('Записи пациента (последние 12)')}:`)
+      p(`${t('Записи пациента за период')}:`)
       p()
       for (const n of model.journal.notes) {
         const wb = n.wellbeing != null ? ` [${t('самочувствие')} ${n.wellbeing}/5]` : ''

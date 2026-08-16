@@ -246,7 +246,7 @@ export const settings: Record<string, Translation> = {
   'Самочувствие и дневник': { uk: 'Самопочуття і щоденник', en: 'Wellbeing and journal' },
   'Самооценка самочувствия (1–5)': { uk: 'Самооцінка самопочуття (1–5)', en: 'Self-reported wellbeing (1–5)' },
   'Записей': { uk: 'Записів', en: 'Entries' },
-  'Записи пациента (последние 12)': { uk: 'Записи пацієнта (останні 12)', en: 'Patient notes (last 12)' },
+  'Записи пациента за период': { uk: 'Записи пацієнта за період', en: 'Patient notes in the period' },
   'самочувствие': { uk: 'самопочуття', en: 'wellbeing' },
   'Чего в этих данных нет': { uk: 'Чого в цих даних немає', en: 'What this data does not contain' },
   'Артериального давления, веса, роста, температуры тела': { uk: 'Артеріального тиску, ваги, зросту, температури тіла', en: 'Blood pressure, weight, height, body temperature' },

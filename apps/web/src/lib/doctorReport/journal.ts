@@ -62,9 +62,6 @@ export interface JournalSection {
   wellbeingAvg: number | null
 }
 
-/** Last N notes kept in the report — a printed page is not elastic. */
-const NOTE_LIMIT = 12
-
 export function buildJournal(notes: JournalNote[], periodStartDate: string): JournalSection {
   const inPeriod = [...notes]
     .filter(n => n.date >= periodStartDate)
@@ -82,7 +79,9 @@ export function buildJournal(notes: JournalNote[], periodStartDate: string): Jou
     weeks: [...weeks.entries()]
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([weekStart, v]) => ({ weekStart, avg: round1(avg(v)), count: v.length })),
-    notes: inPeriod.filter(n => n.note).slice(-NOTE_LIMIT),
+    // Every note of the period. A tail of them printed under a count of all
+    // of them reads as the whole diary, which is the one thing it is not.
+    notes: inPeriod.filter(n => n.note),
     wellbeingCount: wb.length,
     wellbeingAvg: wb.length ? round1(avg(wb)) : null,
   }

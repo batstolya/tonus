@@ -595,10 +595,11 @@ export function DoctorReport({ user, daily, onClose }: Props) {
             )}
             {journal.notes.length > 0 && (
               <>
-                <p>{rt('Записи пациента (последние 12)')}:</p>
+                <p>{rt('Записи пациента за период')}:</p>
                 <ul>
-                  {journal.notes.map(n => (
-                    <li key={n.date}>
+                  {journal.notes.map((n, i) => (
+                    // A day can hold more than one note, so the index joins the key.
+                    <li key={`${n.date}-${i}`}>
                       {n.date}{n.wellbeing != null ? ` [${rt('самочувствие')} ${n.wellbeing}/5]` : ''}: {n.note}
                     </li>
                   ))}
