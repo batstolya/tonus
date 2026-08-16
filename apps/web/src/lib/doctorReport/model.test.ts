@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { buildReportModel } from './model'
+import type { ReportSources } from './load'
 import { addDays } from './dates'
 import { periodFrame } from './metrics'
 import { detectDeviations } from './deviations'
@@ -158,21 +159,38 @@ describe('buildReportModel', () => {
     expect(unrestricted.some(w => w.items.some(it => it.key === 'rhr'))).toBe(true)
   })
 
-  it('excludes private concerns even when they are passed in', () => {
+  const twoConcerns: ReportSources = {
+    ...emptySources,
+    concerns: [
+      { id: 'p', user_id: 'u', name: 'Приватная', category: 'other', status: 'active',
+        started_at: null, notes: null, is_private: true, created_at: today },
+      { id: 'o', user_id: 'u', name: 'Открытая', category: 'other', status: 'active',
+        started_at: null, notes: null, is_private: false, created_at: today },
+    ],
+  }
+
+  it('excludes private concerns while the PIN is locked, even when they are picked', () => {
     const m = buildReportModel({
-      daily,
-      sources: {
-        ...emptySources,
-        concerns: [
-          { id: 'p', user_id: 'u', name: 'Приватная', category: 'other', status: 'active',
-            started_at: null, notes: null, is_private: true, created_at: today },
-          { id: 'o', user_id: 'u', name: 'Открытая', category: 'other', status: 'active',
-            started_at: null, notes: null, is_private: false, created_at: today },
-        ],
-      },
-      periodDays: 30,
-      today,
+      daily, sources: twoConcerns, periodDays: 30, today,
       pickedConcernIds: new Set(['p', 'o']),
+    })
+    expect(m.concerns.map(c => c.name)).toEqual(['Открытая'])
+  })
+
+  it('includes a private concern once it is unlocked and picked', () => {
+    const m = buildReportModel({
+      daily, sources: twoConcerns, periodDays: 30, today,
+      pickedConcernIds: new Set(['p', 'o']), includePrivateConcerns: true,
+    })
+    expect(m.concerns.map(c => c.name)).toEqual(['Приватная', 'Открытая'])
+  })
+
+  // Unlocking reveals the tick box; it does not tick it. A private concern
+  // reaches the doctor only by an explicit, per-report decision.
+  it('leaves an unlocked private concern out while it is unpicked', () => {
+    const m = buildReportModel({
+      daily, sources: twoConcerns, periodDays: 30, today,
+      pickedConcernIds: new Set(['o']), includePrivateConcerns: true,
     })
     expect(m.concerns.map(c => c.name)).toEqual(['Открытая'])
   })
