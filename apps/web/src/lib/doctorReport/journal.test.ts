@@ -21,13 +21,36 @@ describe('buildConcerns', () => {
     expect(out[0].severity).toEqual({ count: 4, avg: 3, firstHalf: 4, secondHalf: 2 })
   })
 
-  it('keeps the last three logged notes in chronological order', () => {
+  // The doctor asked for the complaint's history, so the report prints every
+  // entry of the period rather than a tail of it.
+  it('keeps every logged note of the period in chronological order', () => {
     const logs = [
       clog('c', '2026-06-01', 3, 'первая'), clog('c', '2026-06-08', 3, 'вторая'),
       clog('c', '2026-06-15', 3, 'третья'), clog('c', '2026-06-22', 3, 'четвёртая'),
     ]
     const out = buildConcerns([concern('c')], logs, '2026-05-03')
-    expect(out[0].recentLogs.map(l => l.note)).toEqual(['вторая', 'третья', 'четвёртая'])
+    expect(out[0].logs.map(l => l.note)).toEqual(['первая', 'вторая', 'третья', 'четвёртая'])
+  })
+
+  it('drops entries logged before the period', () => {
+    const logs = [clog('c', '2026-04-30', 3, 'старая'), clog('c', '2026-06-01', 3, 'своя')]
+    const out = buildConcerns([concern('c')], logs, '2026-05-03')
+    expect(out[0].logs.map(l => l.note)).toEqual(['своя'])
+  })
+
+  // Two entries on one day is ordinary for a symptom logged morning and
+  // evening; both must survive.
+  it('keeps several entries made on the same day', () => {
+    const logs = [clog('c', '2026-06-01', 3, 'утро'), clog('c', '2026-06-01', 4, 'вечер')]
+    const out = buildConcerns([concern('c')], logs, '2026-05-03')
+    expect(out[0].logs.map(l => l.note)).toEqual(['утро', 'вечер'])
+  })
+
+  // A severity-only tick carries no text; the severity block already counts it.
+  it('lists only entries that carry a note', () => {
+    const logs = [clog('c', '2026-06-01', 3, ''), clog('c', '2026-06-02', 3, 'текст')]
+    const out = buildConcerns([concern('c')], logs, '2026-05-03')
+    expect(out[0].logs.map(l => l.note)).toEqual(['текст'])
   })
 
   it('has no severity block when nothing was logged', () => {

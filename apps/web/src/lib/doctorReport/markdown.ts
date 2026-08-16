@@ -342,9 +342,9 @@ export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string 
       if (c.severity) {
         p(`- ${t('Тяжесть (шкала 1–5, самооценка)')}: ${c.severity.count} ${t('записей')}, ${t('среднее')} ${c.severity.avg}; ${t('первая половина периода')} ${c.severity.firstHalf} → ${t('вторая')} ${c.severity.secondHalf}`)
       }
-      if (c.recentLogs.length) {
-        p(`- ${t('Последние записи')}:`)
-        for (const l of c.recentLogs) {
+      if (c.logs.length) {
+        p(`- ${t('Записи за период')}:`)
+        for (const l of c.logs) {
           const sev = l.severity != null ? ` (${t('тяжесть')} ${l.severity}/5)` : ''
           p(`  - ${l.date}${sev}: ${l.note}`)
         }
