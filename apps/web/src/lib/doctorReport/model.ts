@@ -13,6 +13,7 @@ import { buildSleep, withoutDaytimeSleep, type SleepSection } from './sleep'
 import { buildLabs, type LabsSection } from './labs'
 import { buildSupplements, type SupplementLine } from './supplements'
 import { buildIntake, type IntakeLine } from './intake'
+import { buildNutrition, type NutritionSection } from './nutrition'
 import { buildConcerns, buildJournal, type ConcernLine, type JournalSection } from './journal'
 import type { ReportSources } from './load'
 import type { Sex } from '../api/settings'
@@ -42,6 +43,8 @@ export interface DoctorReportModel {
   supplements: SupplementLine[]
   /** Medication, alcohol and coffee the patient ticked; other types stay unlisted. */
   intake: IntakeLine[]
+  /** Meals and water over the period; `null` when the patient logged neither. */
+  nutrition: NutritionSection | null
   concerns: ConcernLine[]
   journal: JournalSection
 }
@@ -127,6 +130,7 @@ export function buildReportModel({
     labs: buildLabs(sources.labs, frame.effectiveStart),
     supplements: buildSupplements(sources.supplements, sources.supplementLogs, frame.effectiveStart, today),
     intake: buildIntake(sources.intake, frame),
+    nutrition: buildNutrition(sources.nutrition, frame),
     concerns: buildConcerns(visibleConcerns, sources.concernLogs, frame.effectiveStart),
     journal: buildJournal(sources.notes, frame.effectiveStart),
   }

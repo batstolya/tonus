@@ -6,6 +6,7 @@ import {
   LAB_ORDER_UNKNOWN, LAB_UNIDENTIFIED, labDateCell, type LabLine,
 } from './labs'
 import { INTAKE_LABELS } from './intake'
+import type { NutritionSection } from './nutrition'
 import type { DoctorReportModel, ScoreSummary } from './model'
 
 /** Report language, independent of the interface language. */
@@ -52,6 +53,29 @@ export const labStatusCell = (l: Pick<LabLine, 'status' | 'statusSource'>, t: (k
   `${t(LAB_STATUS_TEXT[l.status])}${l.statusSource === 'lab-flag' ? ` (${t(LAB_FLAG_SUFFIX)})` : ''}`
 
 /**
+ * Same rows in both renderers: the nutrition medians. A macro the patient
+ * never entered is dropped rather than printed as a dash, so the table stays
+ * a list of what is actually known.
+ */
+export const nutritionMacroRows = (
+  s: NutritionSection,
+  t: (key: string) => string,
+): [string, string][] => ([
+  ['Калории, ккал', s.medianCalories],
+  ['Белки, г', s.medianProtein],
+  ['Жиры, г', s.medianFat],
+  ['Углеводы, г', s.medianCarbs],
+] as [string, number | null][])
+  .filter((row): row is [string, number] => row[1] != null)
+  .map(([label, value]) => [t(label), String(value)])
+
+/**
+ * The nutrition caveat, worded like the intake one: these are ticks in an
+ * app, and the macros are whatever the patient or their food tracker typed.
+ */
+export const NUTRITION_CAVEAT = 'Это отметки пациента в приложении, а не измерения. Отсутствие отметки не означает, что приёма пищи не было, а калории и макронутриенты — введённые пациентом значения, а не измеренный состав еды. Вес порций и микронутриенты не учитываются.'
+
+/**
  * Same list in both renderers: the closing "what this data does not
  * contain" block. It exists so an external model reading this report never
  * mistakes silence for a normal reading — each line names data the app
@@ -60,12 +84,11 @@ export const labStatusCell = (l: Pick<LabLine, 'status' | 'statusSource'>, t: (k
 export const MISSING_LINES = [
   'Артериального давления, веса, роста, температуры тела',
   'Диагнозов, назначений врача и рецептурных препаратов (учитываются только добавки, отмеченные пациентом)',
-  'Питания',
   'ЭКГ, аритмий и любых клинических измерений',
   'Время и длительность эпизодов низкого или высокого пульса: в отчёте есть только суточные минимум, максимум и среднее',
   'Тип тренировки и пульс во время неё: есть только минуты упражнений и активные калории',
   'Время в постели, засыпание, ночные пробуждения и эффективность сна',
-  'События (болезнь, стресс, поездки), еду и воду пациент отмечает в приложении, но в этот отчёт они не включены; кофе, алкоголь и лекарства — включены отдельной секцией',
+  'События (болезнь, стресс, поездки) пациент отмечает в приложении, но в этот отчёт они не включены; кофе, алкоголь и лекарства — включены отдельной секцией, еда и вода — своей',
   'Всё перечисленное отсутствует, а не равно нулю: не делай выводов о том, чего здесь нет.',
 ]
 
@@ -324,6 +347,48 @@ export function toMarkdown(model: DoctorReportModel, lang: ReportLang): string {
       p(`${t(INTAKE_LABELS[l.type])}: ${named}.`)
     }
     p(t('Это отметки пациента в приложении, а не измерения. Отсутствие отметки не означает, что приёма не было, а доза — введённое пациентом значение, а не измеренный объём. Постоянный приём добавок — в предыдущей секции.'))
+    p()
+  }
+
+  if (model.nutrition) {
+    const n = model.nutrition
+    p(`## ${t('Питание и вода')}`)
+    p()
+    p(`${t('Приёмы пищи отмечены в')} ${n.days} ${t('из')} ${n.calendarDays} ${t('дней периода')}, ${t('всего отметок')}: ${n.meals}.`)
+    const macros = nutritionMacroRows(n, t)
+    if (macros.length) {
+      p()
+      p(`${t('Калории заполнены в')} ${n.macroDays} ${t('из')} ${n.days} ${t('дней с отметками о еде')}.`)
+      p()
+      table([t('Показатель'), t('Медиана за день с отметкой')], macros)
+    } else {
+      p()
+      p(t('Калории и макронутриенты не заполнены ни в одной записи — ниже только сами приёмы пищи.'))
+      p()
+    }
+    if (n.mealTime) {
+      p(`${t('Типичное время приёма пищи')}: ${n.mealTime.median} · ${t('половина')} ${n.mealTime.q1}–${n.mealTime.q3}.`)
+      p()
+    }
+    if (n.water) {
+      p(`${t('Вода')}: ${t('отмечена в')} ${n.water.days} ${t('из')} ${n.calendarDays} ${t('дней')}${n.water.medianMl != null ? `, ${t('медиана за день с отметкой')} ${n.water.medianMl} ${t('мл')}` : ''}.`)
+      p()
+    }
+    if (n.list.length) {
+      p(`### ${t('Записи о приёмах пищи')}`)
+      p()
+      table(
+        [t('Дата'), t('Время'), t('Что'), t('Ккал'), t('Белки, г'), t('Жиры, г'), t('Углеводы, г')],
+        n.list.map(m => [
+          m.date, m.time, m.note ?? dash,
+          m.calories != null ? String(m.calories) : dash,
+          m.protein_g != null ? String(m.protein_g) : dash,
+          m.fat_g != null ? String(m.fat_g) : dash,
+          m.carbs_g != null ? String(m.carbs_g) : dash,
+        ]),
+      )
+    }
+    p(t(NUTRITION_CAVEAT))
     p()
   }
 

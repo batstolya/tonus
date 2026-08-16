@@ -7,7 +7,10 @@ export { quantile } from './math'
 export { METRIC_DEFS, periodStart } from './metrics'
 export type { MetricKey, MetricSummary } from './metrics'
 export { WEEKLY_KEYS } from './weekly'
-export { toMarkdown, baselineCell, scoreTrendText, labStatusCell, MISSING_LINES } from './markdown'
+export {
+  toMarkdown, baselineCell, scoreTrendText, labStatusCell, MISSING_LINES,
+  nutritionMacroRows, NUTRITION_CAVEAT,
+} from './markdown'
 export type { ReportLang } from './markdown'
 export {
   parseRefRange, LAB_STATUS_TEXT, LAB_FLAG_SUFFIX, LAB_UNIT_CAVEAT, LAB_DATE_CAVEAT,
@@ -19,3 +22,5 @@ export type { Band, Baseline, Reliability } from './reliability'
 export { buildIntake, INTAKE_LABELS, REPORTED_TYPES, INTAKE_ORIGIN_MIN } from './intake'
 export type { IntakeLine, IntakeName, ReportedIntakeType } from './intake'
 export { MAX_BED_WINDOW_HOURS } from './sleep'
+export { buildNutrition, NUTRITION_TYPES } from './nutrition'
+export type { NutritionEvent, NutritionMeal, NutritionSection } from './nutrition'
