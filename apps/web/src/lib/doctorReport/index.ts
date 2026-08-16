@@ -8,6 +8,7 @@ export { METRIC_DEFS, periodStart } from './metrics'
 export type { MetricKey, MetricSummary } from './metrics'
 export { WEEKLY_KEYS } from './weekly'
 export { toMarkdown, baselineCell, scoreTrendText, labStatusCell, MISSING_LINES } from './markdown'
+export type { ReportLang } from './markdown'
 export {
   parseRefRange, LAB_STATUS_TEXT, LAB_FLAG_SUFFIX, LAB_UNIT_CAVEAT, LAB_DATE_CAVEAT,
   LAB_DATE_UNKNOWN, LAB_ORDER_UNKNOWN, LAB_UNIDENTIFIED, labDateCell,

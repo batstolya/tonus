@@ -6,7 +6,7 @@ import {
   scoreTrendText, BAND_TEXT, labStatusCell, LAB_UNIT_CAVEAT, LAB_DATE_CAVEAT, MISSING_LINES,
   LAB_ORDER_UNKNOWN, LAB_UNIDENTIFIED, labDateCell,
   INTAKE_LABELS,
-  type DoctorReportModel, type ReportSources,
+  type DoctorReportModel, type ReportSources, type ReportLang,
 } from '../../lib/doctorReport'
 import { isUnlocked } from '../../lib/privacy'
 import { callFunction } from '../../lib/edgeFunctions'
@@ -16,7 +16,7 @@ import { Icon } from '../../lib/icons'
 
 // «Отчёт для врача» (SPEC-DOCTOR-REPORT, ревизия v2): экран подготовки +
 // печатное представление. Тело отчёта — только измеренные значения; ИИ-блок
-// вопросов опционален и визуально отделён. Язык отчёта (ru/en) не зависит от
+// вопросов опционален и визуально отделён. Язык отчёта (ru/uk/en) не зависит от
 // языка интерфейса. Печать и markdown рендерятся из одной модели.
 
 type SectionKey = 'metrics' | 'sleep' | 'labs' | 'supplements' | 'concerns' | 'journal' | 'ai'
@@ -48,7 +48,7 @@ export function DoctorReport({ user, daily, onClose }: Props) {
   const { t } = useT()
   const [stage, setStage] = useState<'setup' | 'preview'>('setup')
   const [period, setPeriod] = useState<30 | 90 | 365>(90)
-  const [lang, setLang] = useState<'ru' | 'en'>('ru')
+  const [lang, setLang] = useState<ReportLang>('ru')
   const [sections, setSections] = useState<Record<SectionKey, boolean>>({
     metrics: true, sleep: true, labs: true, supplements: true, concerns: true, journal: true, ai: false,
   })
@@ -59,8 +59,8 @@ export function DoctorReport({ user, daily, onClose }: Props) {
   const [aiError, setAiError] = useState(false)
   const [copied, setCopied] = useState(false)
 
-  // Язык отчёта: ru — исходные ключи, en — словарь переводов.
-  const rt = (key: string) => (lang === 'ru' ? key : translations[key]?.en ?? key)
+  // Язык отчёта: ru — исходные ключи, uk и en — словарь переводов.
+  const rt = (key: string) => (lang === 'ru' ? key : translations[key]?.[lang] ?? key)
 
   // Источники грузятся один раз на самый широкий период, поэтому переключение
   // 30/90/365 пересобирает модель без повторного запроса.
@@ -125,7 +125,7 @@ export function DoctorReport({ user, daily, onClose }: Props) {
 
         <div className="dr-setup-row">
           <span>{t('Язык отчёта')}</span>
-          {(['ru', 'en'] as const).map(l => (
+          {(['ru', 'uk', 'en'] as const).map(l => (
             <button key={l} className={lang === l ? 'dr-chip dr-chip-on' : 'dr-chip'} onClick={() => setLang(l)}>{l.toUpperCase()}</button>
           ))}
         </div>

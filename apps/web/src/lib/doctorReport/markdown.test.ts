@@ -116,6 +116,12 @@ describe('toMarkdown', () => {
     expect(md).not.toContain('Сводка данных здоровья')
   })
 
+  it('translates headings for the uk report', () => {
+    const md = toMarkdown(model, 'uk')
+    expect(md).toContain('# Зведення даних здоров’я')
+    expect(md).not.toContain('Сводка данных здоровья')
+  })
+
   it('renders one markdown table row per night', () => {
     const rows = toMarkdown(model, 'ru').split('\n').filter(l => /^\| 2026-/.test(l))
     expect(rows.length).toBeGreaterThanOrEqual(30)

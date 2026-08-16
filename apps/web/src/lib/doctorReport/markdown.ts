@@ -8,6 +8,9 @@ import {
 import { INTAKE_LABELS } from './intake'
 import type { DoctorReportModel, ScoreSummary } from './model'
 
+/** Report language, independent of the interface language. */
+export type ReportLang = 'ru' | 'uk' | 'en'
+
 const STATUS_TEXT: Record<string, string> = {
   active: 'активна', improving: 'улучшается', resolved: 'разрешилась',
 }
@@ -68,10 +71,10 @@ export const MISSING_LINES = [
 
 /**
  * The markdown twin of the printed page: same model, same sections, same
- * order. Russian keys pass through the dictionary for the en report.
+ * order. Russian keys pass through the dictionary for the uk and en reports.
  */
-export function toMarkdown(model: DoctorReportModel, lang: 'ru' | 'en'): string {
-  const t = (key: string) => (lang === 'ru' ? key : translations[key]?.en ?? key)
+export function toMarkdown(model: DoctorReportModel, lang: ReportLang): string {
+  const t = (key: string) => (lang === 'ru' ? key : translations[key]?.[lang] ?? key)
   const L: string[] = []
   const p = (s = '') => L.push(s)
   const table = (header: string[], rows: string[][]) => {
