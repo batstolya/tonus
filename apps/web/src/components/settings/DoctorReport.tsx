@@ -79,6 +79,9 @@ export function DoctorReport({ user, daily, onClose }: Props) {
 
   const model: DoctorReportModel = buildReportModel({
     daily, sources, periodDays: period, today: localDate(), pickedConcernIds: pickedConcerns,
+    // The unlock only lets a private concern be ticked; the tick is what puts
+    // it in front of the doctor, and it starts off.
+    includePrivateConcerns: isUnlocked(),
   })
 
   async function copyForAi() {
@@ -195,7 +198,8 @@ export function DoctorReport({ user, daily, onClose }: Props) {
       </div>
       {aiError && <p className="dr-ai-error">{t('Не удалось получить ИИ-вопросы — отчёт сформирован без них')}</p>}
 
-      <div className="dr-doc">
+      {/* lang drives hyphenation of the tight sleep-table headers (see index.css). */}
+      <div className="dr-doc" lang={lang}>
         <h1>{rt('Сводка данных здоровья')}</h1>
         <p className="dr-meta">
           {rt('Период')}: {model.period.effectiveStart} — {model.period.end} · {rt('Сформировано')}: {model.period.end}
@@ -314,12 +318,13 @@ export function DoctorReport({ user, daily, onClose }: Props) {
         {sections.sleep && sleep && (
           <section>
             <h2>{rt('Сон по дням')}</h2>
-            <p className="dr-note">{rt('Все ночи периода без агрегации. В таблице только измеренные значения: доли фаз считаются от общего сна за ночь; время, не отнесённое ни к одной фазе, показано отдельной колонкой.')}</p>
+            <p className="dr-note">{rt('Все ночи периода без агрегации. В таблице только измеренные значения: доли фаз считаются от общего сна за ночь; время, не отнесённое ни к одной фазе, показано отдельной колонкой. Время в постели — не измерение источника, а сумма двух измеренных чисел.')}</p>
             <table className="dr-sleep-table">
               <thead><tr>
                 <th>{rt('Дата')}</th><th>{rt('День')}</th><th>{rt('Отбой')}</th><th>{rt('Подъём')}</th>
                 <th>{rt('Сон, ч')}</th><th>{rt('Глубокий, ч')}</th><th>{rt('REM, ч')}</th>
-                <th>{rt('Лёгкий, ч')}</th><th>{rt('Не классифицировано, ч')}</th>
+                <th>{rt('Лёгкий, ч')}</th><th className="dr-col-tight">{rt('Не классифицировано, ч')}</th>
+                <th className="dr-col-tight">{rt('Бодрствование, мин')}</th><th>{rt('В постели, ч')}</th>
                 <th>{rt('Глубокий, %')}</th><th>{rt('REM, %')}</th><th>{rt('Тип')}</th>
               </tr></thead>
               <tbody>
@@ -333,6 +338,8 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                     <td>{n.rem?.toFixed(1) ?? dash}</td>
                     <td>{n.core?.toFixed(1) ?? dash}</td>
                     <td>{n.unclassified != null ? n.unclassified.toFixed(1) : dash}</td>
+                    <td>{n.awake != null ? Math.round(n.awake * 60) : dash}</td>
+                    <td>{n.timeInBed != null ? n.timeInBed.toFixed(1) : dash}</td>
                     <td>{n.deepPct != null ? `${n.deepPct}%` : dash}</td>
                     <td>{n.remPct != null ? `${n.remPct}%` : dash}</td>
                     <td>{n.daytime ? rt('дневной эпизод') : ''}</td>
@@ -658,12 +665,13 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                     {rt('Тяжесть (шкала 1–5, самооценка)')}: {c.severity.count} {rt('записей')}, {rt('среднее')} {c.severity.avg}; {rt('первая половина периода')} {c.severity.firstHalf} → {rt('вторая')} {c.severity.secondHalf}
                   </p>
                 )}
-                {c.recentLogs.length > 0 && (
+                {c.logs.length > 0 && (
                   <>
-                    <p>{rt('Последние записи')}:</p>
+                    <p>{rt('Записи за период')}:</p>
                     <ul>
-                      {c.recentLogs.map(l => (
-                        <li key={l.date}>
+                      {c.logs.map((l, i) => (
+                        // Several entries can share a date, so the index joins the key.
+                        <li key={`${l.date}-${i}`}>
                           {l.date}{l.severity != null ? ` (${rt('тяжесть')} ${l.severity}/5)` : ''}: {l.note}
                         </li>
                       ))}
@@ -695,10 +703,11 @@ export function DoctorReport({ user, daily, onClose }: Props) {
             )}
             {journal.notes.length > 0 && (
               <>
-                <p>{rt('Записи пациента (последние 12)')}:</p>
+                <p>{rt('Записи пациента за период')}:</p>
                 <ul>
-                  {journal.notes.map(n => (
-                    <li key={n.date}>
+                  {journal.notes.map((n, i) => (
+                    // A day can hold more than one note, so the index joins the key.
+                    <li key={`${n.date}-${i}`}>
                       {n.date}{n.wellbeing != null ? ` [${rt('самочувствие')} ${n.wellbeing}/5]` : ''}: {n.note}
                     </li>
                   ))}

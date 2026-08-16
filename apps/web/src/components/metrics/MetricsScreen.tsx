@@ -69,6 +69,7 @@ const METRIC_LABELS: Record<MetricKey, string> = {
   sleepDeep: 'Глубокий сон (ч)',
   sleepREM: 'REM сон (ч)',
   sleepCore: 'Основной сон (ч)',
+  sleepAwake: 'Бодрствование ночью (ч)',
   steps: 'Шаги',
   distance: 'Дистанция (км)',
   activeEnergy: 'Активная энергия (ккал)',

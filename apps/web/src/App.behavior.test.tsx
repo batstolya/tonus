@@ -77,3 +77,23 @@ describe('App mobile drawer language segments', () => {
     expect(active).toEqual(['EN'])
   })
 })
+
+describe('App desktop account controls', () => {
+  it('keeps account actions behind the single profile button', async () => {
+    const { container } = renderWithProviders(<App />)
+
+    const profile = await screen.findByRole('button', { name: 'Profile' })
+    expect(screen.getAllByRole('button', { name: 'Profile' })).toHaveLength(1)
+    expect(container.querySelector('.topbar > .topbar-right > .signout-btn')).toBeNull()
+    expect(container.querySelector('.topbar button[title="Language"]')).toBeNull()
+    expect(container.querySelector('.topbar button[title="Theme"]')).toBeNull()
+    expect(container.querySelector('.topbar button[title="Settings"]')).toBeNull()
+
+    fireEvent.click(profile)
+
+    expect(screen.getByRole('button', { name: /Language/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Theme/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument()
+  })
+})

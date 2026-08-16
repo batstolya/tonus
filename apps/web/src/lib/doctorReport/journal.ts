@@ -10,7 +10,8 @@ export interface ConcernLine {
   startedAt: string | null
   note: string | null
   severity: { count: number; avg: number; firstHalf: number; secondHalf: number } | null
-  recentLogs: { date: string; severity: number | null; note: string }[]
+  /** Every noted entry of the period, oldest first. */
+  logs: { date: string; severity: number | null; note: string }[]
 }
 
 const round1 = (n: number) => +n.toFixed(1)
@@ -41,9 +42,12 @@ export function buildConcerns(
             secondHalf: round1(avg(sev.slice(half))),
           }
         : null,
-      recentLogs: own
+      // Whole history of the period, not a tail of it: the doctor reads this
+      // section for the course of the complaint, and a truncated list reads as
+      // "that is all there was". Entries without a note carry nothing to read
+      // — they are already counted in the severity block above.
+      logs: own
         .filter((l): l is ConcernLog & { note: string } => !!l.note)
-        .slice(-3)
         .map(l => ({ date: l.date, severity: l.severity, note: l.note })),
     }
   })
@@ -57,9 +61,6 @@ export interface JournalSection {
   wellbeingCount: number
   wellbeingAvg: number | null
 }
-
-/** Last N notes kept in the report — a printed page is not elastic. */
-const NOTE_LIMIT = 12
 
 export function buildJournal(notes: JournalNote[], periodStartDate: string): JournalSection {
   const inPeriod = [...notes]
@@ -78,7 +79,9 @@ export function buildJournal(notes: JournalNote[], periodStartDate: string): Jou
     weeks: [...weeks.entries()]
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([weekStart, v]) => ({ weekStart, avg: round1(avg(v)), count: v.length })),
-    notes: inPeriod.filter(n => n.note).slice(-NOTE_LIMIT),
+    // Every note of the period. A tail of them printed under a count of all
+    // of them reads as the whole diary, which is the one thing it is not.
+    notes: inPeriod.filter(n => n.note),
     wellbeingCount: wb.length,
     wellbeingAvg: wb.length ? round1(avg(wb)) : null,
   }

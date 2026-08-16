@@ -116,7 +116,7 @@ export const MISSING_LINES = [
   'ЭКГ, аритмий и любых клинических измерений',
   'Время и длительность эпизодов низкого или высокого пульса: в отчёте есть только суточные минимум, максимум и среднее',
   'Тип тренировки и пульс во время неё: есть только минуты упражнений и активные калории',
-  'Время в постели, засыпание, ночные пробуждения и эффективность сна',
+  'Количество ночных пробуждений и время каждого, а также время засыпания: в отчёте есть время в постели и суммарное время бодрствования за ночь — и только за те ночи, где источник их измерил',
   'События (болезнь, стресс, поездки) пациент отмечает в приложении, но в этот отчёт они не включены; еда, напитки и лекарства — включены своими секциями',
   'Всё перечисленное отсутствует, а не равно нулю: не делай выводов о том, чего здесь нет.',
 ]
@@ -221,11 +221,13 @@ export function toMarkdown(model: DoctorReportModel, lang: ReportLang): string {
     const s = model.sleep
     p(`## ${t('Сон по дням')}`)
     p()
-    p(t('Все ночи периода без агрегации. В таблице только измеренные значения: доли фаз считаются от общего сна за ночь; время, не отнесённое ни к одной фазе, показано отдельной колонкой.'))
+    p(t('Все ночи периода без агрегации. В таблице только измеренные значения: доли фаз считаются от общего сна за ночь; время, не отнесённое ни к одной фазе, показано отдельной колонкой. Время в постели — не измерение источника, а сумма двух измеренных чисел.'))
     p()
     table(
       [t('Дата'), t('День'), t('Отбой'), t('Подъём'), t('Сон, ч'), t('Глубокий, ч'),
-        t('REM, ч'), t('Лёгкий, ч'), t('Не классифицировано, ч'), t('Глубокий, %'), t('REM, %'), t('Тип')],
+        t('REM, ч'), t('Лёгкий, ч'), t('Не классифицировано, ч'),
+        t('Бодрствование, мин'), t('В постели, ч'),
+        t('Глубокий, %'), t('REM, %'), t('Тип')],
       s.nights.map(n => [
         n.date, t(n.weekday),
         n.bedtime ? n.bedtime + (n.bedtimeDate ? ` (${n.bedtimeDate})` : '') + (n.suspicious ? ' ⚠' : '') : dash,
@@ -233,6 +235,8 @@ export function toMarkdown(model: DoctorReportModel, lang: ReportLang): string {
         n.hours.toFixed(1),
         n.deep?.toFixed(1) ?? dash, n.rem?.toFixed(1) ?? dash, n.core?.toFixed(1) ?? dash,
         n.unclassified != null ? n.unclassified.toFixed(1) : dash,
+        n.awake != null ? String(Math.round(n.awake * 60)) : dash,
+        n.timeInBed != null ? n.timeInBed.toFixed(1) : dash,
         n.deepPct != null ? `${n.deepPct}%` : dash,
         n.remPct != null ? `${n.remPct}%` : dash,
         n.daytime ? t('дневной эпизод') : '',
@@ -458,9 +462,9 @@ export function toMarkdown(model: DoctorReportModel, lang: ReportLang): string {
       if (c.severity) {
         p(`- ${t('Тяжесть (шкала 1–5, самооценка)')}: ${c.severity.count} ${t('записей')}, ${t('среднее')} ${c.severity.avg}; ${t('первая половина периода')} ${c.severity.firstHalf} → ${t('вторая')} ${c.severity.secondHalf}`)
       }
-      if (c.recentLogs.length) {
-        p(`- ${t('Последние записи')}:`)
-        for (const l of c.recentLogs) {
+      if (c.logs.length) {
+        p(`- ${t('Записи за период')}:`)
+        for (const l of c.logs) {
           const sev = l.severity != null ? ` (${t('тяжесть')} ${l.severity}/5)` : ''
           p(`  - ${l.date}${sev}: ${l.note}`)
         }
@@ -483,7 +487,7 @@ export function toMarkdown(model: DoctorReportModel, lang: ReportLang): string {
       )
     }
     if (model.journal.notes.length) {
-      p(`${t('Записи пациента (последние 12)')}:`)
+      p(`${t('Записи пациента за период')}:`)
       p()
       for (const n of model.journal.notes) {
         const wb = n.wellbeing != null ? ` [${t('самочувствие')} ${n.wellbeing}/5]` : ''

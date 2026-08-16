@@ -15,6 +15,7 @@ export const metrics: Record<string, Translation> = {
   'средняя длительность': { uk: 'середня тривалість', en: 'avg duration' },
   'среднее засыпание': { uk: 'середнє засинання', en: 'avg bedtime' },
   'среднее пробуждение': { uk: 'середнє пробудження', en: 'avg wake-up' },
+  'эффективность сна': { uk: 'ефективність сну', en: 'sleep efficiency' },
   'до/после полуночи': { uk: 'до/після опівночі', en: 'before/after midnight' },
   'Длительность сна': { uk: 'Тривалість сну', en: 'Sleep duration' },
   'Глубокий': { uk: 'Глибокий', en: 'Deep' },
@@ -22,6 +23,7 @@ export const metrics: Record<string, Translation> = {
   'Время засыпания и пробуждения': { uk: 'Час засинання та пробудження', en: 'Bedtime & wake-up' },
   'Засыпание': { uk: 'Засинання', en: 'Bedtime' },
   'Пробуждение': { uk: 'Пробудження', en: 'Wake-up' },
+  'Бодрствование': { uk: 'Неспання', en: 'Awake' },
   'Ось Y — время суток': { uk: 'Вісь Y — час доби', en: 'Y axis — time of day' },
   'Итого': { uk: 'Разом', en: 'Total' },
 
@@ -58,6 +60,7 @@ export const metrics: Record<string, Translation> = {
   'Глубокий сон (ч)': { uk: 'Глибокий сон (год)', en: 'Deep sleep (h)' },
   'REM сон (ч)': { uk: 'REM сон (год)', en: 'REM sleep (h)' },
   'Основной сон (ч)': { uk: 'Основний сон (год)', en: 'Core sleep (h)' },
+  'Бодрствование ночью (ч)': { uk: 'Неспання вночі (год)', en: 'Awake at night (h)' },
   'Дистанция (м)': { uk: 'Дистанція (м)', en: 'Distance (m)' },
   'Активная энергия (ккал)': { uk: 'Активна енергія (ккал)', en: 'Active energy (kcal)' },
   'Минуты тренировки': { uk: 'Хвилини тренування', en: 'Exercise minutes' },

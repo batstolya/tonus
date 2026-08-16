@@ -13,7 +13,7 @@ vi.mock('../supabase', () => {
     state.calls.push(call)
     const p: Record<string, unknown> = {}
     const record = (m: string) => (...args: unknown[]) => { call.steps.push([m, args]); return p }
-    for (const m of ['select', 'eq', 'gte', 'order', 'insert', 'update', 'upsert', 'delete', 'maybeSingle']) p[m] = record(m)
+    for (const m of ['select', 'eq', 'gte', 'order', 'range', 'insert', 'update', 'upsert', 'delete', 'maybeSingle']) p[m] = record(m)
     ;(p as { then: unknown }).then = (res: (v: unknown) => unknown) => Promise.resolve(state.response).then(res)
     return p
   }
@@ -175,6 +175,7 @@ describe('supplement logs', () => {
     expect(state.calls[0].table).toBe('supplement_logs')
     expect(state.calls[0].steps).toContainEqual(['eq', ['user_id', 'u1']])
     expect(state.calls[0].steps).toContainEqual(['gte', ['date', '2026-01-01']])
+    expect(state.calls[0].steps).toContainEqual(['range', [0, 999]])
     state.response = { data: null, error: null }
     expect(await getSupplementLogsSince('u1', '2026-01-01')).toEqual([])
   })
