@@ -1,7 +1,7 @@
 import type { DailyMetrics } from '../../types'
 import { timeOfDayStats, type TimeStat } from './math'
 import { frameSlice, type PeriodFrame } from './metrics'
-import { timeInBedHours, sleepEfficiencyPct } from '../sleepQuality'
+import { timeInBedHours } from '../sleepQuality'
 
 export type { TimeStat }
 
@@ -43,8 +43,6 @@ export interface SleepNight {
   awake: number | null
   /** Asleep plus awake. `null` whenever `awake` is. */
   timeInBed: number | null
-  /** Asleep over time in bed, whole percent. `null` whenever `awake` is. */
-  efficiencyPct: number | null
   deepPct: number | null
   remPct: number | null
   /** A short episode starting during the daytime window — not counted as a night. */
@@ -208,12 +206,11 @@ const phaseCoverage = (nights: DailyMetrics[]): number | null => {
 }
 
 /**
- * Measured values only. Time in bed and sleep efficiency are derived from the
- * night's own awake hours, so they exist only where the source measured them:
- * HAE auto-sync supplies `awake`, the XML importer discards awake intervals
- * and leaves all three columns empty. They are never derived from
- * bedtime/wake_time, which mean different things per ingest path and would
- * lie differently on every night.
+ * Measured values only. Time in bed is derived from the night's own awake
+ * hours, so it exists only where the source measured them: HAE auto-sync
+ * supplies `awake`, the XML importer discards awake intervals and leaves both
+ * columns empty. It is never derived from bedtime/wake_time, which mean
+ * different things per ingest path and would lie differently on every night.
  */
 export function buildSleep(
   daily: DailyMetrics[],
@@ -241,7 +238,6 @@ export function buildSleep(
       core: d.sleepCore != null ? +d.sleepCore.toFixed(1) : null,
       awake: d.sleepAwake != null ? +d.sleepAwake.toFixed(2) : null,
       timeInBed: (v => v == null ? null : +v.toFixed(1))(timeInBedHours(d.sleepHours, d.sleepAwake)),
-      efficiencyPct: sleepEfficiencyPct(d.sleepHours, d.sleepAwake),
       unclassified: unclassifiedHours(d, hours),
       deepPct: share(d.sleepDeep, hours),
       remPct: share(d.sleepREM, hours),
