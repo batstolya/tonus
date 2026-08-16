@@ -51,8 +51,15 @@ export interface ReportInput {
   sources: ReportSources
   periodDays: number
   today?: string
-  /** Concern ids the patient ticked; private concerns are dropped regardless. */
+  /** Concern ids the patient ticked. */
   pickedConcernIds?: Set<string>
+  /**
+   * Whether private concerns may be printed at all. Comes from the PIN being
+   * unlocked in this session; ticking one is still required on top, so a
+   * private concern reaches the doctor only by a deliberate act, never by an
+   * unlock alone.
+   */
+  includePrivateConcerns?: boolean
 }
 
 // Readiness is absent on purpose: on this data it carries little signal.
@@ -65,6 +72,7 @@ const SCORE_DEFS: { key: ScoreSummary['key']; label: string }[] = [
 
 export function buildReportModel({
   daily, sources, periodDays, today = localDate(), pickedConcernIds,
+  includePrivateConcerns = false,
 }: ReportInput): DoctorReportModel {
   // Daytime episodes are shown in the sleep table and excluded everywhere else:
   // one filtered copy feeds metrics, weeks, coverage, deviations and scores.
@@ -104,7 +112,7 @@ export function buildReportModel({
   }
 
   const visibleConcerns = sources.concerns.filter(c =>
-    !c.is_private && (!pickedConcernIds || pickedConcernIds.has(c.id)))
+    (!c.is_private || includePrivateConcerns) && (!pickedConcernIds || pickedConcernIds.has(c.id)))
 
   const birthYear = sources.profile?.birth_year ?? null
 

@@ -78,6 +78,9 @@ export function DoctorReport({ user, daily, onClose }: Props) {
 
   const model: DoctorReportModel = buildReportModel({
     daily, sources, periodDays: period, today: localDate(), pickedConcernIds: pickedConcerns,
+    // The unlock only lets a private concern be ticked; the tick is what puts
+    // it in front of the doctor, and it starts off.
+    includePrivateConcerns: isUnlocked(),
   })
 
   async function copyForAi() {
