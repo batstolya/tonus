@@ -26,41 +26,23 @@ that actually affect how you feel.**
 The landing page includes a live dashboard and opens a complete 90-day demo —
 no account or backend required.
 
-<div align="center">
-<img src="docs/media/landing-hero.png" alt="Tonus landing page with an interactive daily-readiness dashboard" width="880"/>
-</div>
+_Screenshots are being reshot after the current interface refresh._
 
 ### Daily signal
 
 See readiness, recovery context, streaks and warnings at a glance.
 
-<div align="center">
-<img src="docs/media/daily-signal.gif" alt="Tonus dashboard showing readiness, a geomagnetic warning and the activity-streak panel" width="880"/>
-</div>
-
 ### Ask your data
 
 Ask in plain language; the answer is grounded in your own history.
-
-<div align="center">
-<img src="docs/media/ask-your-data.gif" alt="Tonus AI answering health questions from the user's own sleep and lab history" width="880"/>
-</div>
 
 ### From pattern to experiment
 
 Turn an observed relationship into a measured n=1 change.
 
-<div align="center">
-<img src="docs/media/pattern-to-experiment.gif" alt="Tonus moving from personal correlations to measured before-and-after experiments" width="880"/>
-</div>
-
 ### One health timeline
 
 Log coffee, meals, medication and workouts without opening the app.
-
-<div align="center">
-<img src="docs/media/health-timeline.gif" alt="Tonus Telegram assistant logging medication and coffee into one health timeline" width="880"/>
-</div>
 
 ## What Tonus connects
 
