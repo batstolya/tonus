@@ -1,6 +1,6 @@
 import {
   Alarm, ArrowDownRight, ArrowsClockwise, ArrowsLeftRight, ArrowUpRight, Barbell, Bed, Broadcast,
-  Calendar, CalendarBlank, CalendarDots, Camera, CaretRight, CaretUp, ChartBar, ChatCircle,
+  Calendar, CalendarBlank, CalendarDots, Camera, CaretLeft, CaretRight, CaretUp, ChartBar, ChatCircle,
   CheckCircle,
   Circle, Clock, CloudSun, Coffee, Compass, DownloadSimple, Drop, Envelope, Export, Eye, Fire,
   ForkKnife, Gear, Hamburger,
@@ -57,6 +57,7 @@ export const ICONS = {
   sportGym:        { icon: Barbell,    emoji: '🏋️' },
   settings:        { icon: Gear,       emoji: '⚙️' },
   chevronRight:    { icon: CaretRight, emoji: '›' },
+  chevronLeft:     { icon: CaretLeft,  emoji: '‹' },
   // The first entry with no emoji ancestor: nothing in the app ever drew a
   // collapse control, so VITE_ICONS=0 has nothing to restore to. It falls back
   // to the typographic caret, which is what such a control would have been
