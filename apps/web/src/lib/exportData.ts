@@ -23,7 +23,7 @@ export async function exportAllJSON(userId: string): Promise<void> {
     supabase.from('supplement_logs').select('supplement_id, date, taken, dose').eq('user_id', userId),
     supabase.from('lab_results').select('marker, value, unit, ref_range, flag, date').eq('user_id', userId).order('date'),
     supabase.from('health_concerns').select('name, category, status, started_at').eq('user_id', userId),
-    supabase.from('concern_logs').select('concern_id, date, severity, note').eq('user_id', userId),
+    supabase.from('concern_logs').select('concern_id, date, at_time, severity, note').eq('user_id', userId),
     supabase.from('context_notes').select('date, note').eq('user_id', userId).order('date'),
     supabase.from('hair_entries').select('date, shedding_level, density_rating, hairline_rating, notes').eq('user_id', userId).order('date'),
   ])

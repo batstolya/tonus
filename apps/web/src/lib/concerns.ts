@@ -21,6 +21,8 @@ export interface ConcernLog {
   id: string
   concern_id: string
   date: string
+  /** Local wall-clock time of the event, `HH:MM[:SS]`; null when unknown. */
+  at_time: string | null
   severity: number | null
   note: string | null
   photo_path: string | null

@@ -82,7 +82,7 @@ function ConcernDetail({ concern, userId, onBack, onUpdate }: {
     let photo_path: string | null = null
     if (photoFile) photo_path = await uploadConcernPhoto(userId, photoFile)
     await addLog(userId, {
-      concern_id: concern.id, date: new Date().toISOString().slice(0, 10),
+      concern_id: concern.id, date: new Date().toISOString().slice(0, 10), at_time: null,
       severity, note: note.trim() || null, photo_path,
     })
     setNote(''); setPhotoFile(null); setSeverity(3)
