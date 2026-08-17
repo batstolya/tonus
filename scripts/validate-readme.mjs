@@ -39,13 +39,17 @@ const documents = [
   },
 ]
 
-const requiredMedia = [
+// Only the two evergreen graphics are required. The interface captures were
+// pulled from both READMEs while they are reshot after the interface pass —
+// they stay in docs/media, and the GIF quality gates below still run on any
+// that are present, so a reshoot is checked the moment it lands.
+const requiredMedia = ['architecture.svg']
+const interfaceMedia = [
   'landing-hero.png',
   'daily-signal.gif',
   'ask-your-data.gif',
   'pattern-to-experiment.gif',
   'health-timeline.gif',
-  'architecture.svg',
 ]
 const retiredMedia = ['landing-tour.gif', 'app-demo.gif', 'dashboard.png']
 const errors = []
@@ -103,7 +107,7 @@ function checkDocument(document) {
 
 const summaries = documents.map(document => ({ document, result: checkDocument(document) }))
 
-for (const gif of requiredMedia.filter(name => name.endsWith('.gif'))) {
+for (const gif of [...requiredMedia, ...interfaceMedia].filter(name => name.endsWith('.gif'))) {
   const absolute = path.join(ROOT, 'docs/media', gif)
   if (!fs.existsSync(absolute)) continue
   const bytes = fs.statSync(absolute).size
@@ -124,7 +128,7 @@ if (errors.length) {
 for (const { document, result } of summaries) {
   console.log(`✓ ${document.name}: ${result.headingCount} sections · ${result.localTargetCount} local targets`)
 }
-for (const gif of requiredMedia.filter(name => name.endsWith('.gif'))) {
+for (const gif of [...requiredMedia, ...interfaceMedia].filter(name => name.endsWith('.gif'))) {
   const meta = gifMeta.get(gif)
   console.log(`✓ ${gif}: ${meta.width}x${meta.height} · ${(meta.durationMs / 1000).toFixed(2)}s · ${meta.fps.toFixed(2)} fps · ${(meta.bytes / 1_000_000).toFixed(2)} MB`)
 }
