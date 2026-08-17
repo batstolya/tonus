@@ -45,15 +45,39 @@ describe('TopbarAvatar account menu', () => {
     expect(screen.getByRole('button', { name: /Theme/ })).toHaveTextContent('System')
   })
 
-  it('selects a language and returns to the main view', () => {
+  it('opens the language flyout without hiding the account list', () => {
     renderAvatar()
     openMenu()
 
     fireEvent.click(screen.getByRole('button', { name: /Language/ }))
-    fireEvent.click(screen.getByRole('button', { name: 'UA' }))
+
+    expect(screen.getByRole('dialog', { name: 'Language' })).toBeInTheDocument()
+    expect(screen.getByText('test@example.com')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'УкраїнськаUA' })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('button', { name: 'EnglishEN' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('selects a language and closes the whole menu', () => {
+    renderAvatar()
+    openMenu()
+
+    fireEvent.click(screen.getByRole('button', { name: /Language/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'УкраїнськаUA' }))
 
     expect(props.onSelectLang).toHaveBeenCalledWith('uk')
-    expect(screen.getByRole('button', { name: /Language/ })).toBeInTheDocument()
+    expect(screen.queryByText('test@example.com')).not.toBeInTheDocument()
+  })
+
+  // Two panels on the same edge would overlap, so opening one closes the other.
+  it('replaces the language flyout when the theme row is opened', () => {
+    renderAvatar()
+    openMenu()
+
+    fireEvent.click(screen.getByRole('button', { name: /Language/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Theme/ }))
+
+    expect(screen.queryByRole('dialog', { name: 'Language' })).not.toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Theme' })).toBeInTheDocument()
   })
 
   // The theme picker is a side flyout, not a drill-down: the account list has
