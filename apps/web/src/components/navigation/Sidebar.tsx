@@ -41,10 +41,12 @@ export function Sidebar({
         </button>
       </div>
 
-      <nav className="sidebar-nav">
+      <nav className="sidebar-nav" aria-label={t('Меню')}>
         <button
           className={`sidebar-btn${view === 'dashboard' ? ' active' : ''}`}
           onClick={() => onNavigate('dashboard')}
+          aria-label={t('Дашборд')}
+          title={t('Дашборд')}
         >
           <span className="sidebar-btn-icon">{dashboardIcon}</span>
           <span className="sidebar-btn-label">{t('Дашборд')}</span>

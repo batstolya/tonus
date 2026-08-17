@@ -52,6 +52,11 @@ test('the collapsed strip keeps every sub-view reachable through its flyout', as
   await expect(strip).toBeVisible()
   expect(await strip.evaluate(el => Math.round(el.getBoundingClientRect().width))).toBe(60)
 
+  // With the sidebar collapsed, the flyout is not reliably reachable on a
+  // touch device (no hover, and a tap does not move focus on iOS Safari), so
+  // the top sub-nav row re-shows as a fallback path to the group's sub-views.
+  await expect(page.locator('.subnav')).toBeVisible()
+
   // The flyout must escape the strip rather than being clipped by its
   // scroll container: hidden until hover, then extending well past 60px.
   const group = page.locator('.sidebar-group').first()

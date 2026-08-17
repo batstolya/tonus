@@ -53,10 +53,15 @@ function notify() {
 }
 
 // Reconciles the cached module state against localStorage before returning
-// it. This keeps the store correct even when storage changes outside our own
-// setters — most notably, a fresh page load runs this module once and the
-// cache starts from whatever was persisted last session. Cheap to call on
-// every render: a single synchronous localStorage read, no allocation.
+// it. This is for a freshly mounted tree that needs to see a value seeded
+// into storage before mount (e.g. a test or bootstrapping code writing
+// navLayout before the first render) — the module-level `layoutState` above
+// is only initialized once, at import time, so without this reconciliation
+// it would not pick that up. This is not cross-tab sync: there is no
+// `storage` event listener, so a change made in another tab is only
+// observed here if some unrelated render happens to call getSnapshot again.
+// Cheap to call on every render: a single synchronous localStorage read, no
+// allocation.
 function getLayoutSnapshot(): NavLayout {
   const fromStorage = resolveNavLayout(read(LAYOUT_KEY))
   if (fromStorage !== layoutState) layoutState = fromStorage

@@ -16,7 +16,7 @@ vi.mock('./hooks/useAuth', () => ({
   }),
 }))
 vi.mock('./hooks/useAppBootstrap', () => ({
-  useAppBootstrap: () => ({ dbLoading: true, intakeEvents: [], setIntakeEvents: () => {} }),
+  useAppBootstrap: vi.fn(() => ({ dbLoading: true, intakeEvents: [], setIntakeEvents: () => {} })),
 }))
 vi.mock('./hooks/useImportHandlers', () => ({
   useImportHandlers: () => ({
@@ -32,6 +32,7 @@ vi.mock('./hooks/useImportHandlers', () => ({
 }))
 
 import App from './App'
+import { useAppBootstrap } from './hooks/useAppBootstrap'
 
 // Pin the UI language: detectLang falls back to navigator.language otherwise.
 beforeEach(() => localStorage.setItem('lang', 'en'))
@@ -126,5 +127,26 @@ describe('navigation layout', () => {
     const { container } = renderWithProviders(<App />)
     expect(container.querySelector('.logo-btn')).toBeTruthy()
     expect(container.querySelector('.topbar-nav')).toBeNull()
+  })
+
+  it('does not offset the root for a side layout with no data and no load in flight, since no sidebar renders then', () => {
+    // Every other test in this file relies on the module-level mock's
+    // dbLoading: true, which renders the sidebar via the (hasData ||
+    // dbLoading) gate. This is the one case that gate excludes: a fresh
+    // sign-in or account switch where data hasn't loaded and isn't loading
+    // (e.g. between loads, or an account confirmed empty). The sidebar must
+    // not render then, and the root must not carry the padding-left offset
+    // that assumes it did.
+    // App mounts with an "adjust state during render" pattern (guideOwner)
+    // that discards and re-runs the first render pass, so the hook is
+    // called more than once per mount — mockReturnValue (not Once) so every
+    // call sees the override, restored after so later tests keep the
+    // module-level default.
+    vi.mocked(useAppBootstrap).mockReturnValue({ dbLoading: false, intakeEvents: [], setIntakeEvents: () => {} })
+    localStorage.setItem('navLayout', 'side')
+    const { container } = renderWithProviders(<App />)
+    expect(container.querySelector('.sidebar')).toBeNull()
+    expect(container.querySelector('.app')!.className).not.toContain('app--side')
+    vi.mocked(useAppBootstrap).mockReturnValue({ dbLoading: true, intakeEvents: [], setIntakeEvents: () => {} })
   })
 })

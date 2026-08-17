@@ -367,6 +367,13 @@ body {
   /* The sidebar owns the sub-views in this layout. */
   .app--side .subnav { display: none; }
 
+  /* Collapsed sidebar: the flyout is the only path to a group's sub-views,
+     and it opens on hover/focus-within. A touch device (e.g. iPad landscape,
+     which matches this same breakpoint) has no hover and a tap does not move
+     focus to the button on iOS Safari, so without this the sub-views become
+     unreachable. Re-show the row itself as a fallback while collapsed. */
+  .app--side:has(.sidebar--collapsed) .subnav { display: flex; }
+
   /* The sidebar renders its own logo above this breakpoint; narrow screens
      keep using the header logo (the sidebar itself is hidden there). */
   .app--side .logo-btn { display: none; }
@@ -421,7 +428,13 @@ body {
     padding: 6px; border: 1px solid var(--border); border-radius: 12px;
     background: var(--surface); box-shadow: var(--shadow); z-index: 30;
   }
-  .sidebar--collapsed .sidebar-group:hover .sidebar-flyout,
+  /* Only real hover devices get the hover-to-open flyout: on a touch device a
+     tap dispatches :hover with no matching "leave" event, so the flyout would
+     stay stuck open. :focus-within stays unconditional as the touch fallback,
+     backed by the .subnav row re-shown above. */
+  @media (hover: hover) {
+    .sidebar--collapsed .sidebar-group:hover .sidebar-flyout { display: block; }
+  }
   .sidebar--collapsed .sidebar-group:focus-within .sidebar-flyout { display: block; }
   .sidebar-flyout-title {
     padding: 4px 10px 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em;

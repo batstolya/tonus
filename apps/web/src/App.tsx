@@ -111,11 +111,17 @@ export default function App() {
   const visibleNavGroups = filterNavGroups(availableMetrics)
   const activeGroupData = visibleNavGroups.find(g => g.id === activeGroup) ?? null
 
+  // The sidebar only renders inside the (hasData || dbLoading) fragment below,
+  // so the root's offset class must track that same condition — otherwise a
+  // side-layout device with no data yet (fresh sign-in, no import) renders
+  // onboarding inside an empty 240px gutter with no sidebar to fill it.
+  const sideNav = navLayout === 'side' && (hasData || dbLoading)
+
   return (
-    <div className={`app${navLayout === 'side' ? ' app--side' : ''}`}>
+    <div className={`app${sideNav ? ' app--side' : ''}`}>
       {(hasData || dbLoading) && (
         <>
-          {navLayout === 'side' && (
+          {sideNav && (
             <Sidebar
               groups={visibleNavGroups}
               view={state.view}

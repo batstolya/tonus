@@ -81,6 +81,9 @@ describe('Sidebar', () => {
     const { container, onNavigate } = renderSidebar({ collapsed: true })
     expect(container.querySelector('.sidebar')!.className).toContain('sidebar--collapsed')
     expect(screen.getByRole('button', { name: 'Expand menu' })).toBeTruthy()
+    // The label span is display:none while collapsed, so the accessible
+    // name must come from aria-label, not text content.
+    expect(screen.getByRole('button', { name: 'Dashboard' })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Body' }))
     expect(onNavigate).toHaveBeenCalledWith('metrics')
   })
