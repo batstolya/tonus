@@ -13,7 +13,8 @@
 ## Global Constraints
 
 - Node 24 for every command: `export PATH="$HOME/.nvm/versions/node/v24.16.0/bin:$PATH"` (default Node 18 fails on modern syntax).
-- All commands run from the repo root `/Users/anatolii/tonus`. Web sources live under `apps/web/`.
+- The repo root for this branch is the worktree `/Users/anatolii/tonus/.claude/worktrees/sidebar-nav` — run every command from there unless the step says otherwise. Web sources live under `apps/web/`.
+- The `node` and `jsdom` vitest projects are defined in `apps/web/vitest.config.ts`: `--project node|jsdom` only resolves when vitest runs from `apps/web`. `npm test`, `npm run lint` and `npm run build` run from the repo root.
 - `npm run lint` runs with `--max-warnings 0`: zero errors **and** zero warnings.
 - Everything committed is in English — commit messages, code comments, identifiers, docs. The only exceptions: product UI strings and chat.
 - User-facing strings go through `t()` from `src/lib/i18n`, with the Russian source text as the key and `uk` + `en` values added to `src/lib/translations/*.ts`.
@@ -76,7 +77,7 @@ describe('resolveNavCollapsed', () => {
 - [ ] **Step 2: Run the test to verify it fails**
 
 ```bash
-export PATH="$HOME/.nvm/versions/node/v24.16.0/bin:$PATH" && npx vitest run --project node apps/web/src/hooks/useNavLayout.test.ts
+export PATH="$HOME/.nvm/versions/node/v24.16.0/bin:$PATH" && cd apps/web && npx vitest run --project node src/hooks/useNavLayout.test.ts
 ```
 
 Expected: FAIL — cannot resolve `./useNavLayout`.
@@ -147,7 +148,7 @@ export function useNavLayout() {
 - [ ] **Step 4: Run the test to verify it passes**
 
 ```bash
-export PATH="$HOME/.nvm/versions/node/v24.16.0/bin:$PATH" && npx vitest run --project node apps/web/src/hooks/useNavLayout.test.ts
+export PATH="$HOME/.nvm/versions/node/v24.16.0/bin:$PATH" && cd apps/web && npx vitest run --project node src/hooks/useNavLayout.test.ts
 ```
 
 Expected: PASS, 2 suites.
@@ -205,7 +206,7 @@ import { NAV_GROUPS, getActiveGroup, getActiveSubView, filterNavGroups, type Nav
 - [ ] **Step 2: Run the test to verify it fails**
 
 ```bash
-export PATH="$HOME/.nvm/versions/node/v24.16.0/bin:$PATH" && npx vitest run --project jsdom apps/web/src/app/navigation.test.tsx
+export PATH="$HOME/.nvm/versions/node/v24.16.0/bin:$PATH" && cd apps/web && npx vitest run --project jsdom src/app/navigation.test.tsx
 ```
 
 Expected: FAIL — `navigation.tsx` has no exported member `NavGroup`.
@@ -235,7 +236,7 @@ Leave the array contents, `getActiveGroup`, `getActiveSubView` and `filterNavGro
 - [ ] **Step 4: Run the tests to verify they pass**
 
 ```bash
-export PATH="$HOME/.nvm/versions/node/v24.16.0/bin:$PATH" && npx vitest run --project jsdom apps/web/src/app/navigation.test.tsx && npx tsc -b apps/web
+export PATH="$HOME/.nvm/versions/node/v24.16.0/bin:$PATH" && cd apps/web && npx vitest run --project jsdom src/app/navigation.test.tsx && npx tsc -b
 ```
 
 Expected: PASS, and `tsc` silent.
@@ -377,7 +378,7 @@ describe('Sidebar', () => {
 - [ ] **Step 2: Run the test to verify it fails**
 
 ```bash
-export PATH="$HOME/.nvm/versions/node/v24.16.0/bin:$PATH" && npx vitest run --project jsdom apps/web/src/components/navigation/Sidebar.test.tsx
+export PATH="$HOME/.nvm/versions/node/v24.16.0/bin:$PATH" && cd apps/web && npx vitest run --project jsdom src/components/navigation/Sidebar.test.tsx
 ```
 
 Expected: FAIL — cannot resolve `./Sidebar`.
@@ -507,7 +508,7 @@ Expected: all three names present. If `chevronLeft` is missing, add it to the re
 - [ ] **Step 6: Run the tests to verify they pass**
 
 ```bash
-export PATH="$HOME/.nvm/versions/node/v24.16.0/bin:$PATH" && npx vitest run --project jsdom apps/web/src/components/navigation/Sidebar.test.tsx
+export PATH="$HOME/.nvm/versions/node/v24.16.0/bin:$PATH" && cd apps/web && npx vitest run --project jsdom src/components/navigation/Sidebar.test.tsx
 ```
 
 Expected: PASS, 9 tests.
@@ -567,7 +568,7 @@ The file's existing `beforeEach` sets `lang` and its `afterEach` clears `localSt
 - [ ] **Step 2: Run the test to verify it fails**
 
 ```bash
-export PATH="$HOME/.nvm/versions/node/v24.16.0/bin:$PATH" && npx vitest run --project jsdom apps/web/src/App.behavior.test.tsx
+export PATH="$HOME/.nvm/versions/node/v24.16.0/bin:$PATH" && cd apps/web && npx vitest run --project jsdom src/App.behavior.test.tsx
 ```
 
 Expected: FAIL — the sidebar test finds no `.sidebar`.
@@ -630,7 +631,7 @@ Leave the `topbar-right` block, the mobile drawer and the `subnav` block exactly
 - [ ] **Step 4: Run the tests to verify they pass**
 
 ```bash
-export PATH="$HOME/.nvm/versions/node/v24.16.0/bin:$PATH" && npx vitest run --project jsdom apps/web/src/App.behavior.test.tsx
+export PATH="$HOME/.nvm/versions/node/v24.16.0/bin:$PATH" && cd apps/web && npx vitest run --project jsdom src/App.behavior.test.tsx
 ```
 
 Expected: PASS — the three new tests plus every pre-existing test in the file, unchanged.
@@ -826,7 +827,7 @@ describe('NavLayoutSection', () => {
 - [ ] **Step 2: Run the test to verify it fails**
 
 ```bash
-export PATH="$HOME/.nvm/versions/node/v24.16.0/bin:$PATH" && npx vitest run --project jsdom apps/web/src/components/settings/sections/NavLayoutSection.test.tsx
+export PATH="$HOME/.nvm/versions/node/v24.16.0/bin:$PATH" && cd apps/web && npx vitest run --project jsdom src/components/settings/sections/NavLayoutSection.test.tsx
 ```
 
 Expected: FAIL — cannot resolve `./NavLayoutSection`.
@@ -914,7 +915,7 @@ Render it right after `LanguageSection` (line ~79):
 - [ ] **Step 7: Run the tests to verify they pass**
 
 ```bash
-export PATH="$HOME/.nvm/versions/node/v24.16.0/bin:$PATH" && npx vitest run --project jsdom apps/web/src/components/settings
+export PATH="$HOME/.nvm/versions/node/v24.16.0/bin:$PATH" && cd apps/web && npx vitest run --project jsdom src/components/settings
 ```
 
 Expected: PASS — the three new tests plus the existing settings suites (including `SettingsScreen.characterization.test.tsx`) unchanged.
