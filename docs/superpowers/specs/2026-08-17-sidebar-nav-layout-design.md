@@ -36,7 +36,9 @@ Out of scope:
 ### Layout switch
 
 - Setting `navLayout`: `top` (default) or `side`.
-- The sidebar renders only at `min-width: 1024px`. Under that width the app
+- The sidebar is visible only at `min-width: 1025px` — the exact complement of
+  the existing `max-width: 1024px` mobile rules, so the two layouts can never
+  both show. Under that width the app
   renders the current layout regardless of the setting.
 - Switching takes effect immediately, without reload.
 
@@ -86,8 +88,9 @@ Tonus                    [«]
 - Clicking an icon navigates to that group's `defaultView` — same behaviour as
   clicking a group in today's top bar.
 - Hovering an icon opens a flyout next to it listing that group's sub-views;
-  clicking one navigates. The flyout closes on mouse leave, on selection and on
-  `Escape`, and is reachable by keyboard focus.
+  clicking one navigates. The flyout is CSS-driven (`:hover`, `:focus-within`),
+  so it needs no state and closes by itself on mouse leave or blur; keyboard
+  focus opens it the same way.
 - The collapse toggle sits at the top of the sidebar and flips between states.
 
 ### Top bar in sidebar mode
@@ -97,8 +100,10 @@ The header stays, minus the parts that moved:
 - Left side: empty (no logo, no nav buttons, no breadcrumbs).
 - Right side: unchanged — geo-storm badge, focus badge, streak, notifications,
   avatar menu.
-- The `subnav` row is not rendered in sidebar mode; its content lives in the
-  sidebar.
+- The `subnav` row is hidden on wide screens in sidebar mode; its content lives
+  in the sidebar. It stays in the DOM because narrow screens still use it, and
+  the wide-screen layout is selected by CSS breakpoint rather than by a
+  JavaScript media query — no `matchMedia` state, no flash on load.
 
 ### Persistence
 
@@ -123,8 +128,7 @@ change.
 | `app/navigation.tsx` (existing) | Single source of nav items. Both layouts read `NAV_GROUPS` / `filterNavGroups`, so a new screen appears in both. Unchanged apart from any icon needed by the collapsed strip. |
 | `hooks/useNavLayout.ts` (new) | Reads and writes both keys; exposes `layout`, `setLayout`, `collapsed`, `toggleCollapsed`. Pure parsers `resolveNavLayout` / `resolveNavCollapsed` are exported for tests. |
 | `components/navigation/Sidebar.tsx` (new) | Renders the sidebar in both states, including the collapsed flyout. Receives the visible groups, the current view and a `setView` callback — it holds no app state of its own. |
-| `components/navigation/TopBar.tsx` (new) | The header extracted from `App.tsx`, rendering its nav row only in `top` mode. |
-| `App.tsx` (edited) | Chooses the layout and wires callbacks. Extracting the header keeps the file from growing while a branch is added; it is already 356 lines. |
+| `App.tsx` (edited) | Chooses the layout, renders the sidebar, marks the root `app--side`, and renders the top nav row only in `top` mode. The change is ~15 lines; extracting the header into its own component was considered and dropped — it would be a large diff of moved markup with its own regression risk and no benefit to this feature. Worth revisiting if the file grows past ~400 lines. |
 | `components/settings/sections/NavLayoutSection.tsx` (new) | The switch, next to `LanguageSection`. On narrow screens it renders with a note that the choice applies to large screens. |
 | `App.css` | Sidebar, collapsed strip, flyout, and the content offset in sidebar mode. Existing top-bar rules stay untouched. |
 
@@ -141,7 +145,9 @@ Node project (`*.test.ts`):
 
 jsdom project (`*.test.tsx`), via `renderWithProviders`:
 
-- Sidebar mode renders every available item and no `subnav` row.
+- Sidebar mode renders every available item and marks the app root with
+  `app--side` (hiding `subnav` above the breakpoint is a CSS rule, checked in
+  the browser rather than in jsdom, which applies no stylesheets).
 - Sub-views gated by missing metrics are absent from the sidebar.
 - The item matching the current view carries the active class; `hair` marks
   Concerns; `settings` marks the Settings row.
@@ -162,5 +168,6 @@ screenshots before asking for review.
   presentation differs.
 - **Collapsed flyout is the fiddliest part** (hover intent, keyboard, focus).
   Kept simple: no animation on open, no nested submenus.
-- **CSS regressions in the header** from extracting `TopBar`. The extraction is
-  a move without markup changes, and the existing behaviour tests cover it.
+- **The header's left side becomes empty** in sidebar mode, which can look
+  unbalanced. Accepted for the trial; the streak, notifications and avatar keep
+  the right side occupied.
