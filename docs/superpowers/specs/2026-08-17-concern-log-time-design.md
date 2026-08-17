@@ -77,8 +77,11 @@ Rows without `at_time` print the date alone, exactly as today — no dash, no
 placeholder, so the list does not look ragged.
 
 Sort order: date descending as today, and within one date by `at_time`
-descending (latest first). Rows without a time sort after the timed rows of
-the same date.
+descending (latest first). A row without a time stays at the **bottom** of its
+day in both directions — the journal's descending order is therefore not the
+negation of the report's ascending one. Floating an untimed row above the timed
+ones would read as "the latest thing that happened that day", which is exactly
+what the data does not say.
 
 **Severity chart** is unchanged — it plots by day, and time does not enter it.
 
