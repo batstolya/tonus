@@ -97,3 +97,27 @@ describe('App desktop account controls', () => {
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument()
   })
 })
+
+describe('navigation layout', () => {
+  it('defaults to the top layout: no sidebar, no marker class', () => {
+    const { container } = renderWithProviders(<App />)
+    expect(container.querySelector('.sidebar')).toBeNull()
+    expect(container.querySelector('.app')!.className).not.toContain('app--side')
+    expect(container.querySelector('.topbar-nav')).toBeTruthy()
+  })
+
+  it('renders the sidebar and marks the root when the side layout is stored', () => {
+    localStorage.setItem('navLayout', 'side')
+    const { container } = renderWithProviders(<App />)
+    expect(container.querySelector('.sidebar')).toBeTruthy()
+    expect(container.querySelector('.app')!.className).toContain('app--side')
+    expect(container.querySelector('.topbar-nav')).toBeNull()
+  })
+
+  it('keeps the sidebar collapsed when that is stored', () => {
+    localStorage.setItem('navLayout', 'side')
+    localStorage.setItem('navCollapsed', '1')
+    const { container } = renderWithProviders(<App />)
+    expect(container.querySelector('.sidebar')!.className).toContain('sidebar--collapsed')
+  })
+})
