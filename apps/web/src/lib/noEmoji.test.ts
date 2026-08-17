@@ -85,22 +85,21 @@ function derivePilotFiles(): string[] {
 // buttons render literal '‹'/'›' pagination arrows that predate the icon
 // registry and have nothing to do with any entry in it (they never went
 // through an emoji->icon conversion). They only collide here because the
-// registry's chevronRight/chevronLeft entries — chevronRight for the
-// mobile drawer, chevronLeft added alongside it for the sidebar's collapse
-// toggle — happen to reuse the same glyphs. This is a narrow, understood
+// registry's chevronRight entry — used by the mobile drawer — happens to
+// reuse the same glyph. This is a narrow, understood
 // exemption, not a loosening of the check for genuine leftover emoji.
 const KNOWN_NON_REGISTRY_COLLISIONS: Partial<Record<string, string[]>> = {
-  'components/dashboard/ActivityCalendar.tsx': ['›', '‹'],
+  'components/dashboard/ActivityCalendar.tsx': ['›'],
   // Same story: ConcernsScreen's card disclosure '›' predates the icon
   // registry and isn't an emoji->icon conversion site — it just happens to
   // share chevronRight's glyph.
-  'components/supplements/SupplementsScreen.tsx': ['›', '‹'],
+  'components/supplements/SupplementsScreen.tsx': ['›'],
   'components/concerns/ConcernsScreen.tsx': ['›'],
   // QuickLog's day-nav arrows, same story as the files above: they arrived
   // with the day-paging feature and match ActivityCalendar's and
   // SupplementsScreen's month-nav. The event-type emoji that used to be
   // exempt here are gone — the labels no longer carry them.
-  'components/intake/QuickLog.tsx': ['›', '‹'],
+  'components/intake/QuickLog.tsx': ['›'],
   // Not a conversion site: these three sit inside mock Telegram messages that
   // depict what the bot actually sends. Telegram is a place where emoji are
   // native, so drawing our icon set there would make the mock-up look less

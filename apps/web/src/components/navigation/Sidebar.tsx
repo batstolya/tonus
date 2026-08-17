@@ -38,7 +38,7 @@ export function Sidebar({
           aria-label={t(collapsed ? 'Развернуть меню' : 'Свернуть меню')}
           title={t(collapsed ? 'Развернуть меню' : 'Свернуть меню')}
         >
-          <Icon name={collapsed ? 'chevronRight' : 'chevronLeft'} size={16} />
+          <Icon name="sidebarToggle" size={18} />
         </button>
       </div>
 
