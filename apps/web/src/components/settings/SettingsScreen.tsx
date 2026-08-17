@@ -11,6 +11,7 @@ import { ConnectGuide } from '../onboarding/ConnectGuide'
 import { isDemoActive } from '../../lib/demo'
 import { ArchiveBtn } from './sections/ArchiveBtn'
 import { LanguageSection } from './sections/LanguageSection'
+import { NavLayoutSection } from './sections/NavLayoutSection'
 import { ProfileSection } from './sections/ProfileSection'
 import { TelegramSection } from './sections/TelegramSection'
 import { GoogleCalendarSection } from './sections/GoogleCalendarSection'
@@ -40,6 +41,7 @@ interface Props {
 // Заголовки секций для списка «Архив» (стабильный id → ключ перевода)
 const SECTION_TITLES: Record<string, string> = {
   language: 'Язык интерфейса',
+  navLayout: 'Расположение меню',
   telegram: 'Telegram',
   reports: 'Отчёты в Telegram',
   google: 'Google Calendar',
@@ -77,6 +79,7 @@ export function SettingsScreen({ user, onGoogleSync, googleLoading, googleConnec
 
       <ProfileSection archived={isArchived('profile')} onArchive={archiveSection} user={user} />
       <LanguageSection archived={isArchived('language')} onArchive={archiveSection} />
+      <NavLayoutSection archived={isArchived('navLayout')} onArchive={archiveSection} />
 
       <TelegramSection
         user={user}

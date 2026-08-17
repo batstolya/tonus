@@ -333,6 +333,115 @@ body {
 .subnav-btn:hover { background: var(--surface2); color: var(--text); }
 .subnav-btn.active { background: var(--accent); color: var(--on-accent); font-weight: 500; }
 
+/* ── Sidebar layout (opt-in, wide screens only) ──────────────
+   min-width:769px is the complement of the max-width:768px mobile block
+   further down in this file, which owns the burger drawer and the bottom
+   nav: the sidebar and that mobile nav can never both show.
+   Chosen by CSS rather than matchMedia so there is no flash on first paint. */
+.sidebar { display: none; }
+
+@media (min-width: 769px) {
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 240px;
+    padding: 12px 10px;
+    box-sizing: border-box;
+    background: var(--topbar-bg);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    z-index: 20;
+  }
+  .sidebar--collapsed { width: 60px; overflow: visible; }
+
+  /* The app column starts to the right of the sidebar; the sticky topbar
+     inherits the offset because it lives inside .app. */
+  .app--side { padding-left: 240px; }
+  .app--side:has(.sidebar--collapsed) { padding-left: 60px; }
+
+  /* The sidebar owns the sub-views in this layout. */
+  .app--side .subnav { display: none; }
+
+  /* Collapsed sidebar: the flyout is the only path to a group's sub-views,
+     and it opens on hover/focus-within. A touch device (e.g. iPad landscape,
+     which matches this same breakpoint) has no hover and a tap does not move
+     focus to the button on iOS Safari, so without this the sub-views become
+     unreachable. Re-show the row itself as a fallback while collapsed. */
+  .app--side:has(.sidebar--collapsed) .subnav { display: flex; }
+
+  /* The sidebar renders its own logo above this breakpoint; narrow screens
+     keep using the header logo (the sidebar itself is hidden there). */
+  .app--side .logo-btn { display: none; }
+
+  .sidebar-head { display: flex; align-items: center; justify-content: space-between; padding: 4px 6px 10px; }
+  .sidebar--collapsed .sidebar-head { justify-content: center; }
+  .sidebar-logo {
+    background: none; border: none; padding: 0; cursor: pointer;
+    font-size: 18px; font-weight: 700; color: var(--accent);
+  }
+  .sidebar-collapse-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 8px;
+    background: none; border: 1px solid var(--border); color: var(--text-muted); cursor: pointer;
+  }
+  .sidebar-collapse-btn:hover { background: var(--surface2); color: var(--text); }
+
+  .sidebar-nav { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+  .sidebar-group { position: relative; display: flex; flex-direction: column; gap: 2px; margin-top: 10px; }
+  .sidebar-caption {
+    padding: 4px 10px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--text-muted);
+  }
+
+  .sidebar-btn {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    padding: 7px 10px; border: none; border-radius: 8px;
+    background: none; color: var(--text-muted); font-size: 14px; text-align: left; cursor: pointer;
+  }
+  .sidebar-btn:hover { background: var(--surface2); color: var(--text); }
+  .sidebar-btn.active { background: var(--accent); color: var(--on-accent); font-weight: 500; }
+  .sidebar-btn-icon { display: flex; align-items: center; }
+
+  .sidebar-icon-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px; margin: 0 auto; border: none; border-radius: 10px;
+    background: none; color: var(--text-muted); cursor: pointer;
+  }
+  .sidebar-icon-btn:hover { background: var(--surface2); color: var(--text); }
+  .sidebar-icon-btn.active { background: var(--accent); color: var(--on-accent); }
+
+  .sidebar-foot { border-top: 1px solid var(--border); padding-top: 8px; margin-top: 8px; }
+
+  /* Collapsed: the label column disappears and sub-views move into a flyout
+     that opens on hover or keyboard focus — no JS state to get out of sync. */
+  .sidebar--collapsed .sidebar-btn { justify-content: center; padding: 8px; }
+  .sidebar--collapsed .sidebar-nav > .sidebar-btn .sidebar-btn-label,
+  .sidebar--collapsed .sidebar-foot .sidebar-btn-label { display: none; }
+  .sidebar--collapsed .sidebar-flyout {
+    display: none;
+    position: absolute; left: calc(100% + 6px); top: 0; min-width: 180px;
+    padding: 6px; border: 1px solid var(--border); border-radius: 12px;
+    background: var(--surface); box-shadow: var(--shadow); z-index: 30;
+  }
+  /* Only real hover devices get the hover-to-open flyout: on a touch device a
+     tap dispatches :hover with no matching "leave" event, so the flyout would
+     stay stuck open. :focus-within stays unconditional as the touch fallback,
+     backed by the .subnav row re-shown above. */
+  @media (hover: hover) {
+    .sidebar--collapsed .sidebar-group:hover .sidebar-flyout { display: block; }
+  }
+  .sidebar--collapsed .sidebar-group:focus-within .sidebar-flyout { display: block; }
+  .sidebar-flyout-title {
+    padding: 4px 10px 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--text-muted);
+  }
+}
+
 /* Concerns/Hair sub-tabs (nested within concerns screen) */
 .concerns-subtabs {
   display: flex;

@@ -2,17 +2,19 @@ import React from 'react'
 import type { AppView } from '../store/appStore'
 import type { AvailableMetrics } from '../lib/availableMetrics'
 
-type GroupId = 'body' | 'journal' | 'coach'
+export type GroupId = 'body' | 'journal' | 'coach'
 
-type NavView = { view: AppView; label: string; requiresMetric?: keyof AvailableMetrics }
+export type NavView = { view: AppView; label: string; requiresMetric?: keyof AvailableMetrics }
 
-export const NAV_GROUPS: {
+export type NavGroup = {
   id: GroupId
   label: string
   defaultView: AppView
   icon: React.ReactElement
   views: NavView[]
-}[] = [
+}
+
+export const NAV_GROUPS: NavGroup[] = [
   {
     id: 'body',
     label: 'Тело',

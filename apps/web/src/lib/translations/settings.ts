@@ -17,6 +17,10 @@ export const settings: Record<string, Translation> = {
   'Слишком много попыток. Попробуй через час.': { uk: 'Забагато спроб. Спробуй за годину.', en: 'Too many attempts. Try again in an hour.' },
   'Не удалось удалить аккаунт. Попробуй ещё раз.': { uk: 'Не вдалося видалити акаунт. Спробуй ще раз.', en: 'Could not delete the account. Please try again.' },
   // ── Настройки ──────────────────────────────────────────────
+  'Расположение меню': { uk: 'Розташування меню', en: 'Menu layout' },
+  'Сверху': { uk: 'Зверху', en: 'Top' },
+  'Сбоку': { uk: 'Збоку', en: 'Side' },
+  'Действует на широких экранах': { uk: 'Діє на широких екранах', en: 'Applies to large screens' },
   'Подключён': { uk: 'Підключено', en: 'Connected' },
   'Получать двухнедельные отчёты в Telegram': { uk: 'Отримувати двотижневі звіти в Telegram', en: 'Get biweekly reports in Telegram' },
   'Команды: /report /last /status /pause': { uk: 'Команди: /report /last /status /pause', en: 'Commands: /report /last /status /pause' },
