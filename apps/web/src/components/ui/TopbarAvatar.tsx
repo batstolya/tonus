@@ -6,6 +6,7 @@ import { type Lang, useT } from '../../lib/i18n'
 import type { ThemeMode } from '../../hooks/useTheme'
 import { Icon } from '../../lib/icons'
 import { Avatar } from './Avatar'
+import { ThemeFlyout } from './ThemeFlyout'
 
 interface TopbarAvatarProps {
   user: User
@@ -17,7 +18,7 @@ interface TopbarAvatarProps {
   onSignOut: () => void
 }
 
-type AccountMenuView = 'main' | 'language' | 'theme'
+type AccountMenuView = 'main' | 'language'
 
 const languageLabels: Record<Lang, string> = { ru: 'RU', uk: 'UA', en: 'EN' }
 
@@ -38,11 +39,13 @@ export function TopbarAvatar({
   const [url, setUrl] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
   const [view, setView] = useState<AccountMenuView>('main')
+  const [themeOpen, setThemeOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   const closeMenu = () => {
     setOpen(false)
     setView('main')
+    setThemeOpen(false)
   }
 
   useEffect(() => {
@@ -59,11 +62,13 @@ export function TopbarAvatar({
       if (event.target instanceof Node && menuRef.current?.contains(event.target)) return
       setOpen(false)
       setView('main')
+      setThemeOpen(false)
     }
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setOpen(false)
         setView('main')
+        setThemeOpen(false)
       }
     }
     document.addEventListener('pointerdown', onPointerDown, true)
@@ -87,7 +92,7 @@ export function TopbarAvatar({
 
   const selectTheme = (mode: ThemeMode) => {
     onSelectTheme(mode)
-    setView('main')
+    closeMenu()
   }
 
   return (
@@ -107,10 +112,15 @@ export function TopbarAvatar({
         <div id="account-menu-panel" className="account-menu-panel" role="dialog" aria-label={t('Профиль')}>
           {view === 'main' && <>
             <div className="account-menu-email">{user.email}</div>
-            <button type="button" onClick={() => setView('language')}>
+            <button type="button" onClick={() => { setThemeOpen(false); setView('language') }}>
               <Icon name="world" /> {t('Язык')} <span>{languageLabels[lang]}</span><Icon name="chevronRight" />
             </button>
-            <button type="button" onClick={() => setView('theme')}>
+            <button
+              type="button"
+              className={themeOpen ? 'active' : undefined}
+              aria-expanded={themeOpen}
+              onClick={() => setThemeOpen(value => !value)}
+            >
               <Icon name="moon" /> {t('Тема')} <span>{themeLabel(themeMode)}</span><Icon name="chevronRight" />
             </button>
             <button type="button" onClick={() => { closeMenu(); onOpenSettings() }}>
@@ -126,12 +136,7 @@ export function TopbarAvatar({
               <button type="button" key={option} onClick={() => selectLanguage(option)}>{languageLabels[option]}</button>
             ))}
           </>}
-          {view === 'theme' && <>
-            <button type="button" onClick={() => setView('main')}>{t('Назад')}</button>
-            {(['light', 'dark', 'system'] as ThemeMode[]).map(option => (
-              <button type="button" key={option} onClick={() => selectTheme(option)}>{themeLabel(option)}</button>
-            ))}
-          </>}
+          {view === 'main' && themeOpen && <ThemeFlyout mode={themeMode} onSelect={selectTheme} />}
         </div>
       )}
     </div>
