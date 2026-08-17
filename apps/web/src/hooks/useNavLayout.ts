@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useSyncExternalStore } from 'react'
 
 // Which navigation layout the app shows on wide screens: the historical top bar
 // or the opt-in left sidebar. Per-device on purpose — this is a trial layout,
@@ -35,22 +35,56 @@ function write(key: string, value: string) {
   }
 }
 
+// Module-level store shared by every call site, so a change made by one
+// component (e.g. the Settings switch) is immediately visible to every other
+// component (e.g. the sidebar itself) without a page reload. useState alone
+// cannot do this: each call site would hold its own disconnected copy.
+let layoutState: NavLayout = resolveNavLayout(read(LAYOUT_KEY))
+let collapsedState: boolean = resolveNavCollapsed(read(COLLAPSED_KEY))
+const listeners = new Set<() => void>()
+
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener)
+  return () => listeners.delete(listener)
+}
+
+function notify() {
+  for (const listener of listeners) listener()
+}
+
+// Reconciles the cached module state against localStorage before returning
+// it. This keeps the store correct even when storage changes outside our own
+// setters — most notably, a fresh page load runs this module once and the
+// cache starts from whatever was persisted last session. Cheap to call on
+// every render: a single synchronous localStorage read, no allocation.
+function getLayoutSnapshot(): NavLayout {
+  const fromStorage = resolveNavLayout(read(LAYOUT_KEY))
+  if (fromStorage !== layoutState) layoutState = fromStorage
+  return layoutState
+}
+
+function getCollapsedSnapshot(): boolean {
+  const fromStorage = resolveNavCollapsed(read(COLLAPSED_KEY))
+  if (fromStorage !== collapsedState) collapsedState = fromStorage
+  return collapsedState
+}
+
+function setLayout(next: NavLayout) {
+  write(LAYOUT_KEY, next)
+  layoutState = next
+  notify()
+}
+
+function toggleCollapsed() {
+  const next = !collapsedState
+  write(COLLAPSED_KEY, next ? '1' : '0')
+  collapsedState = next
+  notify()
+}
+
 export function useNavLayout() {
-  const [layout, setLayoutState] = useState<NavLayout>(() => resolveNavLayout(read(LAYOUT_KEY)))
-  const [collapsed, setCollapsedState] = useState<boolean>(() => resolveNavCollapsed(read(COLLAPSED_KEY)))
-
-  function setLayout(next: NavLayout) {
-    write(LAYOUT_KEY, next)
-    setLayoutState(next)
-  }
-
-  function toggleCollapsed() {
-    setCollapsedState(prev => {
-      const next = !prev
-      write(COLLAPSED_KEY, next ? '1' : '0')
-      return next
-    })
-  }
+  const layout = useSyncExternalStore(subscribe, getLayoutSnapshot)
+  const collapsed = useSyncExternalStore(subscribe, getCollapsedSnapshot)
 
   return { layout, setLayout, collapsed, toggleCollapsed }
 }
