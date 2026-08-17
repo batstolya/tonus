@@ -61,8 +61,21 @@ test('the collapsed strip hands the sub-views to the top row', async ({ page }) 
   await group.locator('.sidebar-icon-btn').hover()
   await expect(group.locator('.sidebar-btn')).toHaveCount(0)
 
+  // The tabs ride inside the 56px header band, to the right of the strip —
+  // the header's left half is empty in this layout, so they cost no height.
   const subnav = page.locator('.subnav')
   await expect(subnav).toBeVisible()
+  const band = await subnav.evaluate(el => {
+    const r = el.getBoundingClientRect()
+    return { top: r.top, bottom: r.bottom, left: r.left, right: r.right }
+  })
+  expect(band.top).toBe(0)
+  expect(band.bottom).toBeLessThanOrEqual(56)
+  expect(band.left).toBeGreaterThanOrEqual(60)
+  // Clear of the streak/bell/avatar cluster on the right.
+  const controls = await page.locator('.topbar-right').evaluate(el => el.getBoundingClientRect().left)
+  expect(band.right).toBeLessThanOrEqual(controls)
+
   await subnav.locator('.subnav-btn', { hasText: 'Пульс' }).click()
   await expect(subnav.locator('.subnav-btn.active', { hasText: 'Пульс' })).toBeVisible()
   await expect(page.locator('.sidebar-icon-btn.active')).toHaveCount(1)

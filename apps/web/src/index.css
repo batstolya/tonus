@@ -371,8 +371,29 @@ body {
 
   /* Collapsed, the strip carries group icons only, so the sub-nav row comes
      back as the single path to a group's sub-views — the same one on a mouse
-     and on a touch screen (this breakpoint also matches iPad landscape). */
-  .app--side:has(.sidebar--collapsed) .subnav { display: flex; }
+     and on a touch screen (this breakpoint also matches iPad landscape).
+
+     It rides inside the header band rather than below it: in this layout the
+     header's left half is empty (logo and nav row both moved into the sidebar),
+     so the tabs fill it and cost no vertical space at all. Done with position
+     rather than by moving the markup — this rule is breakpoint-scoped, so a
+     narrow screen keeps the row exactly where it has always been, while a DOM
+     move would drop the tabs inside the mobile header. max-width keeps them
+     clear of the streak, bell and avatar on the right. */
+  .app--side:has(.sidebar--collapsed) .subnav {
+    display: flex;
+    position: fixed;
+    top: 0;
+    left: 60px;
+    height: 56px;
+    align-items: center;
+    padding: 0 16px;
+    max-width: min(60%, calc(100% - 60px - 320px));
+    background: none;
+    border-bottom: none;
+    box-shadow: none;
+    z-index: 11;
+  }
 
   /* The sidebar renders its own logo above this breakpoint; narrow screens
      keep using the header logo (the sidebar itself is hidden there). */
