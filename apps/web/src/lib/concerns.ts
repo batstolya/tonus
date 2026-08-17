@@ -44,6 +44,37 @@ export interface HairEntry {
   created_at: string
 }
 
+/** The structural minimum needed to order observations. */
+export interface TimedLog {
+  date: string
+  at_time?: string | null
+}
+
+/**
+ * A Postgres `time` arrives as `HH:MM:SS`; the interface and the doctor report
+ * both show `HH:MM`. An unknown time renders as nothing at all rather than a
+ * placeholder, so a legacy row looks exactly as it did before the column
+ * existed.
+ */
+export function formatLogTime(at: string | null | undefined): string {
+  return at ? at.slice(0, 5) : ''
+}
+
+/**
+ * Orders observations oldest first: by date, then by time. An entry without a
+ * time sorts after the timed entries of the same date — its position within
+ * the day is unknown, and claiming it came first would be an invention.
+ */
+export function compareLogsAsc(a: TimedLog, b: TimedLog): number {
+  if (a.date !== b.date) return a.date.localeCompare(b.date)
+  const at = formatLogTime(a.at_time)
+  const bt = formatLogTime(b.at_time)
+  if (!at && !bt) return 0
+  if (!at) return 1
+  if (!bt) return -1
+  return at.localeCompare(bt)
+}
+
 export const CATEGORIES: Record<string, string> = {
   skin: '🧴 Кожа',
   hair: '💇 Волосы',
@@ -95,10 +126,12 @@ export async function loadLogs(concernId: string): Promise<ConcernLog[]> {
   if (isDemoActive()) {
     return (demoList('concern_logs') as ConcernLog[])
       .filter(l => l.concern_id === concernId)
-      .sort((a, b) => a.date.localeCompare(b.date))
+      .sort(compareLogsAsc)
   }
   const { data } = await supabase.from('concern_logs').select('*')
-    .eq('concern_id', concernId).order('date', { ascending: true })
+    .eq('concern_id', concernId)
+    .order('date', { ascending: true })
+    .order('at_time', { ascending: true, nullsFirst: false })
   return (data ?? []) as ConcernLog[]
 }
 
