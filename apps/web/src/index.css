@@ -426,14 +426,20 @@ body {
     border-bottom: 1px solid var(--border);
   }
   .sidebar-group:first-of-type { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+  /* The section name is the heading of its block: full text colour and the
+     heaviest weight in the strip, so the eye lands on it before the views
+     under it. Caption and buttons share the same 12px side padding, which is
+     what lines every label in the strip up on one vertical edge. */
   .sidebar-caption {
-    padding: 4px 10px 2px; font-size: 12px; font-weight: 600; color: var(--text-muted);
+    padding: 6px 12px; font-size: 13px; font-weight: 650;
+    line-height: 1.3; color: var(--text);
   }
 
   .sidebar-btn {
     display: flex; align-items: center; gap: 10px; width: 100%;
-    padding: 9px 12px; border: none; border-radius: 10px;
-    background: none; color: var(--text-muted); font-size: 14px; text-align: left; cursor: pointer;
+    padding: 8px 12px; border: none; border-radius: 10px;
+    background: none; color: var(--text-muted); font-size: 14px; font-weight: 450;
+    line-height: 1.3; text-align: left; cursor: pointer;
   }
   .sidebar-btn:hover { background: var(--surface2); color: var(--text); }
   .sidebar-btn.active { background: var(--accent); color: var(--on-accent); font-weight: 500; }
