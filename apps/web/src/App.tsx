@@ -37,6 +37,8 @@ const ConcernsScreen = lazy(() => import('./components/concerns/ConcernsScreen')
 const HairScreen = lazy(() => import('./components/hair/HairScreen').then(m => ({ default: m.HairScreen })))
 import { useAuth } from './hooks/useAuth'
 import { useTheme } from './hooks/useTheme'
+import { useNavLayout } from './hooks/useNavLayout'
+import { Sidebar } from './components/navigation/Sidebar'
 import { isDemoActive, enableDemo, disableDemo } from './lib/demo'
 import { supabase } from './lib/supabase'
 import { isGoogleCalendarAvailable } from './lib/googleCalendar'
@@ -53,6 +55,7 @@ export default function App() {
   const { state, setView, setDaily, setEvents, setProgress, setError, setDeviceType } = useAppStore()
   const { user, loading, passwordRecovery, setPasswordRecovery } = useAuth()
   const { theme, mode: themeMode, setMode: setThemeMode, toggle: toggleTheme } = useTheme('light')
+  const { layout: navLayout, collapsed: navCollapsed, toggleCollapsed: toggleNavCollapsed } = useNavLayout()
   const { dbLoading, intakeEvents, setIntakeEvents } = useAppBootstrap({ user, setDaily, setEvents })
   const {
     syncMsg, googleLoading, showGoogleEvents, setShowGoogleEvents,
@@ -108,29 +111,48 @@ export default function App() {
   const visibleNavGroups = filterNavGroups(availableMetrics)
   const activeGroupData = visibleNavGroups.find(g => g.id === activeGroup) ?? null
 
+  // The sidebar only renders inside the (hasData || dbLoading) fragment below,
+  // so the root's offset class must track that same condition — otherwise a
+  // side-layout device with no data yet (fresh sign-in, no import) renders
+  // onboarding inside an empty 240px gutter with no sidebar to fill it.
+  const sideNav = navLayout === 'side' && (hasData || dbLoading)
+
   return (
-    <div className="app">
+    <div className={`app${sideNav ? ' app--side' : ''}`}>
       {(hasData || dbLoading) && (
         <>
+          {sideNav && (
+            <Sidebar
+              groups={visibleNavGroups}
+              view={state.view}
+              activeGroup={activeGroup}
+              activeSubView={activeSubView}
+              collapsed={navCollapsed}
+              onToggleCollapsed={toggleNavCollapsed}
+              onNavigate={setView}
+            />
+          )}
           <header className="topbar">
             <button className="logo-btn" onClick={() => setView('dashboard')}>Tonus</button>
-            <nav className="topbar-nav">
-              <button
-                className={`nav-btn${state.view === 'dashboard' ? ' active' : ''}`}
-                onClick={() => setView('dashboard')}
-              >
-                {t('Дашборд')}
-              </button>
-              {visibleNavGroups.map(g => (
+            {navLayout === 'top' && (
+              <nav className="topbar-nav">
                 <button
-                  key={g.id}
-                  className={`nav-btn${activeGroup === g.id ? ' active' : ''}`}
-                  onClick={() => setView(g.defaultView)}
+                  className={`nav-btn${state.view === 'dashboard' ? ' active' : ''}`}
+                  onClick={() => setView('dashboard')}
                 >
-                  {t(g.label)}
+                  {t('Дашборд')}
                 </button>
-              ))}
-            </nav>
+                {visibleNavGroups.map(g => (
+                  <button
+                    key={g.id}
+                    className={`nav-btn${activeGroup === g.id ? ' active' : ''}`}
+                    onClick={() => setView(g.defaultView)}
+                  >
+                    {t(g.label)}
+                  </button>
+                ))}
+              </nav>
+            )}
 
             <div className="topbar-right">
               {hasData && (

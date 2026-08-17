@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { NAV_GROUPS, getActiveGroup, getActiveSubView, filterNavGroups } from './navigation'
+import { NAV_GROUPS, getActiveGroup, getActiveSubView, filterNavGroups, type NavGroup, type GroupId } from './navigation'
 import type { AvailableMetrics } from '../lib/availableMetrics'
 
 describe('getActiveGroup', () => {
@@ -54,5 +54,19 @@ describe('filterNavGroups', () => {
     }
     const body = filterNavGroups(all).find(g => g.id === 'body')!
     expect(body.views).toHaveLength(5)
+  })
+})
+
+describe('exported nav types', () => {
+  it('exposes groups as NavGroup[] so both layouts share one shape', () => {
+    const groups: NavGroup[] = filterNavGroups({
+      hasHeartRate: true, hasSleep: true, hasActivity: true, hasStress: true,
+    } as AvailableMetrics)
+    const ids: GroupId[] = groups.map(g => g.id)
+    expect(ids).toEqual(['body', 'journal', 'coach'])
+    for (const g of groups) {
+      expect(typeof g.label).toBe('string')
+      expect(g.views.length).toBeGreaterThan(0)
+    }
   })
 })

@@ -8,6 +8,7 @@ import {
   MagnifyingGlass, MapPin, Microscope, Moon, MoonStars, NotePencil, Package, PaperPlaneTilt,
   Pause, Pencil,
   PencilSimple, PersonSimpleRun, PersonSimpleWalk, Pill, Printer, Pulse, SignOut, Sneaker,
+  SidebarSimple,
   Snowflake, SoccerBall, Sparkle, SmileyMeh, SmileyNervous, Stethoscope, Suitcase, Sun, Target,
   TestTube,
   Thermometer, ThumbsUp, TrendDown, TrendUp, Trophy, User, Virus, Volleyball, Warning, Watch,
@@ -62,6 +63,10 @@ export const ICONS = {
   // to the typographic caret, which is what such a control would have been
   // written as by hand.
   collapse:        { icon: CaretUp,    emoji: '⌃' },
+  // Same story, and deliberately direction-free: a caret in the sidebar's
+  // square toggle read as a play button, so both states now show the panel
+  // glyph and let the label carry the direction.
+  sidebarToggle:   { icon: SidebarSimple, emoji: '▤' },
   signOut:         { icon: SignOut,    emoji: '🚪' },
   magic:      { icon: Sparkle,        emoji: '✨' },
   heart:      { icon: Heart,          emoji: '❤️' },

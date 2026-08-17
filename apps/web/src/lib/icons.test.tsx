@@ -38,6 +38,7 @@ const expectedComponentName: Record<IconName, string> = {
   settings: 'GearIcon',
   chevronRight: 'CaretRightIcon',
   collapse: 'CaretUpIcon',
+  sidebarToggle: 'SidebarSimpleIcon',
   signOut: 'SignOutIcon',
   magic: 'SparkleIcon',
   heart: 'HeartIcon',
