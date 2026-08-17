@@ -36,7 +36,7 @@ test('the settings switch turns the sidebar on without a reload', async ({ page 
   await expect(page.locator('.sidebar-btn.active', { hasText: 'Сон' })).toBeVisible()
 })
 
-test('the collapsed strip keeps every sub-view reachable through its flyout', async ({ page }) => {
+test('the collapsed strip hands the sub-views to the top row', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 })
   await page.goto('/')
   await page.evaluate(() => {
@@ -52,27 +52,42 @@ test('the collapsed strip keeps every sub-view reachable through its flyout', as
   await expect(strip).toBeVisible()
   expect(await strip.evaluate(el => Math.round(el.getBoundingClientRect().width))).toBe(60)
 
-  // With the sidebar collapsed, the flyout is not reliably reachable on a
-  // touch device (no hover, and a tap does not move focus on iOS Safari), so
-  // the top sub-nav row re-shows as a fallback path to the group's sub-views.
-  await expect(page.locator('.subnav')).toBeVisible()
-
-  // The flyout must escape the strip rather than being clipped by its
-  // scroll container: hidden until hover, then extending well past 60px.
+  // The strip carries icons only — no flyout anywhere, and hovering a group
+  // icon reveals nothing. Sub-views live in the top row, the same on a mouse
+  // and on a touch screen.
+  await expect(page.locator('.sidebar-flyout')).toHaveCount(0)
   const group = page.locator('.sidebar-group').first()
-  const flyout = group.locator('.sidebar-flyout')
-  await expect(flyout).toBeHidden()
+  await expect(group.locator('.sidebar-btn')).toHaveCount(0)
   await group.locator('.sidebar-icon-btn').hover()
-  await expect(flyout).toBeVisible()
-  const box = await flyout.evaluate(el => {
-    const r = el.getBoundingClientRect()
-    return { left: r.left, right: r.right }
-  })
-  expect(box.left).toBeGreaterThanOrEqual(50)
-  expect(box.right).toBeGreaterThan(180)
+  await expect(group.locator('.sidebar-btn')).toHaveCount(0)
 
-  await flyout.locator('.sidebar-btn', { hasText: 'Пульс' }).click()
+  const subnav = page.locator('.subnav')
+  await expect(subnav).toBeVisible()
+  await subnav.locator('.subnav-btn', { hasText: 'Пульс' }).click()
+  await expect(subnav.locator('.subnav-btn.active', { hasText: 'Пульс' })).toBeVisible()
   await expect(page.locator('.sidebar-icon-btn.active')).toHaveCount(1)
+})
+
+test('the expanded sidebar separates each section with a rule', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await page.goto('/')
+  await page.evaluate(() => {
+    localStorage.setItem('tonus_demo', '1')
+    localStorage.setItem('lang', 'uk')
+    localStorage.setItem('navLayout', 'side')
+  })
+  await page.goto('/#sleep')
+  await page.reload()
+
+  const groups = page.locator('.sidebar-group')
+  await expect(groups).toHaveCount(3)
+  for (let i = 0; i < 3; i++) {
+    const width = await groups.nth(i).evaluate(el => getComputedStyle(el).borderBottomWidth)
+    expect(width).toBe('1px')
+  }
+  // The first section's top rule is what separates it from Dashboard.
+  const topRule = await groups.first().evaluate(el => getComputedStyle(el).borderTopWidth)
+  expect(topRule).toBe('1px')
 })
 
 test('narrow screens keep the mobile navigation even with the side layout stored', async ({ page }) => {

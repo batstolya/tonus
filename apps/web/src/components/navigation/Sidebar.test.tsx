@@ -88,10 +88,23 @@ describe('Sidebar', () => {
     expect(onNavigate).toHaveBeenCalledWith('metrics')
   })
 
-  it('collapsed: keeps sub-views reachable through the flyout markup', () => {
-    const { container, onNavigate } = renderSidebar({ collapsed: true })
-    expect(container.querySelectorAll('.sidebar-flyout').length).toBe(3)
-    fireEvent.click(screen.getByRole('button', { name: 'Goals' }))
-    expect(onNavigate).toHaveBeenCalledWith('goals')
+  // Sub-views are picked in the top sub-nav row while collapsed, so the strip
+  // itself carries none of them — no flyout, no hidden markup to hover.
+  it('collapsed: renders no sub-views and no flyout', () => {
+    const { container } = renderSidebar({ collapsed: true })
+    expect(container.querySelector('.sidebar-flyout')).toBeNull()
+    for (const label of ['Overview', 'Sleep', 'Supplements', 'Goals']) {
+      expect(screen.queryByRole('button', { name: label })).toBeNull()
+    }
+  })
+
+  it('expanded: groups their sub-views into one section each', () => {
+    const { container } = renderSidebar()
+    const sections = container.querySelectorAll('.sidebar-group')
+    expect(sections.length).toBe(3)
+    // Body's section holds its five sub-views and its caption, nothing else.
+    const body = sections[0]
+    expect(body.querySelector('.sidebar-caption')!.textContent).toBe('Body')
+    expect(body.querySelectorAll('.sidebar-btn').length).toBe(5)
   })
 })
