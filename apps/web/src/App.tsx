@@ -127,9 +127,7 @@ export default function App() {
             />
           )}
           <header className="topbar">
-            {navLayout === 'top' && (
-              <button className="logo-btn" onClick={() => setView('dashboard')}>Tonus</button>
-            )}
+            <button className="logo-btn" onClick={() => setView('dashboard')}>Tonus</button>
             {navLayout === 'top' && (
               <nav className="topbar-nav">
                 <button

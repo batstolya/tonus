@@ -120,4 +120,11 @@ describe('navigation layout', () => {
     const { container } = renderWithProviders(<App />)
     expect(container.querySelector('.sidebar')!.className).toContain('sidebar--collapsed')
   })
+
+  it('keeps the header logo in the DOM in side mode, for narrow screens where the sidebar is hidden by CSS', () => {
+    localStorage.setItem('navLayout', 'side')
+    const { container } = renderWithProviders(<App />)
+    expect(container.querySelector('.logo-btn')).toBeTruthy()
+    expect(container.querySelector('.topbar-nav')).toBeNull()
+  })
 })

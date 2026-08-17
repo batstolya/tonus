@@ -367,6 +367,10 @@ body {
   /* The sidebar owns the sub-views in this layout. */
   .app--side .subnav { display: none; }
 
+  /* The sidebar renders its own logo above this breakpoint; narrow screens
+     keep using the header logo (the sidebar itself is hidden there). */
+  .app--side .logo-btn { display: none; }
+
   .sidebar-head { display: flex; align-items: center; justify-content: space-between; padding: 4px 6px 10px; }
   .sidebar--collapsed .sidebar-head { justify-content: center; }
   .sidebar-logo {
