@@ -16,6 +16,16 @@ const api = vi.hoisted(() => ({
   },
   formatLogTime: (at: string | null | undefined) => (at ? at.slice(0, 5) : ''),
   compareLogsAsc: () => 0,
+  // The journal's own ordering is under test here, so the real comparator runs.
+  compareLogsDesc: (a: { date: string; at_time?: string | null }, b: { date: string; at_time?: string | null }) => {
+    if (a.date !== b.date) return b.date.localeCompare(a.date)
+    const at = a.at_time?.slice(0, 5) ?? ''
+    const bt = b.at_time?.slice(0, 5) ?? ''
+    if (!at && !bt) return 0
+    if (!at) return 1
+    if (!bt) return -1
+    return bt.localeCompare(at)
+  },
 }))
 vi.mock('../../lib/concerns', () => api)
 
@@ -73,6 +83,21 @@ describe('ConcernDetail', () => {
 
     expect(await screen.findByText('12:00')).toBeTruthy()
     expect(screen.queryByText('12:00:00')).toBeNull()
+  })
+
+  // Newest first, and an entry whose time is unknown does not get to pose as
+  // the last thing that happened that day.
+  it('lists a day newest first and keeps an untimed entry at the bottom of it', async () => {
+    api.loadLogs.mockResolvedValue([
+      log({ id: 'morning', at_time: '09:00', note: 'утром' }),
+      log({ id: 'untimed', at_time: null, note: 'без времени' }),
+      log({ id: 'noon', at_time: '13:00', note: 'в обед' }),
+    ])
+    renderWithProviders(detail())
+
+    await screen.findByText('в обед')
+    const notes = screen.getAllByText(/утром|в обед|без времени/).map(n => n.textContent)
+    expect(notes).toEqual(['в обед', 'утром', 'без времени'])
   })
 
   it('shows the date alone for an observation without a time', async () => {

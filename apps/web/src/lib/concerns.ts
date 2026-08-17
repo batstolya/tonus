@@ -75,6 +75,22 @@ export function compareLogsAsc(a: TimedLog, b: TimedLog): number {
   return at.localeCompare(bt)
 }
 
+/**
+ * Orders observations newest first for the journal. Not the negation of
+ * `compareLogsAsc`: an entry without a time stays at the bottom of its day in
+ * both directions, because floating it to the top would read as "this was the
+ * latest thing that happened that day" — which is exactly what is unknown.
+ */
+export function compareLogsDesc(a: TimedLog, b: TimedLog): number {
+  if (a.date !== b.date) return b.date.localeCompare(a.date)
+  const at = formatLogTime(a.at_time)
+  const bt = formatLogTime(b.at_time)
+  if (!at && !bt) return 0
+  if (!at) return 1
+  if (!bt) return -1
+  return bt.localeCompare(at)
+}
+
 export const CATEGORIES: Record<string, string> = {
   skin: '🧴 Кожа',
   hair: '💇 Волосы',

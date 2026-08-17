@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatLogTime, compareLogsAsc } from './concerns'
+import { formatLogTime, compareLogsAsc, compareLogsDesc } from './concerns'
 
 describe('formatLogTime', () => {
   it('trims the seconds Postgres sends back', () => {
@@ -56,5 +56,37 @@ describe('compareLogsAsc', () => {
     ]
     expect([...logs].sort(compareLogsAsc).map(l => formatLogTime(l.at_time)))
       .toEqual(['09:30', '13:00'])
+  })
+})
+
+describe('compareLogsDesc', () => {
+  it('puts the newest date first', () => {
+    const logs = [
+      { date: '2026-08-13', at_time: '23:00' },
+      { date: '2026-08-16', at_time: '08:00' },
+    ]
+    expect([...logs].sort(compareLogsDesc).map(l => l.date))
+      .toEqual(['2026-08-16', '2026-08-13'])
+  })
+
+  it('puts the latest time of a day first', () => {
+    const logs = [
+      { date: '2026-08-16', at_time: '09:05' },
+      { date: '2026-08-16', at_time: '13:00' },
+      { date: '2026-08-16', at_time: '12:00' },
+    ]
+    expect([...logs].sort(compareLogsDesc).map(l => l.at_time))
+      .toEqual(['13:00', '12:00', '09:05'])
+  })
+
+  // Floating an untimed entry to the top of its day would read as "the latest
+  // thing that happened", which is the one thing the data does not say.
+  it('keeps an entry without a time at the bottom of its day', () => {
+    const logs = [
+      { date: '2026-08-16', at_time: null },
+      { date: '2026-08-16', at_time: '12:00' },
+    ]
+    expect([...logs].sort(compareLogsDesc).map(l => l.at_time))
+      .toEqual(['12:00', null])
   })
 })

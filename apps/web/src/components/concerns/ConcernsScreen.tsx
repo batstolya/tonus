@@ -3,7 +3,7 @@ import type { User } from '@supabase/supabase-js'
 import {
   loadAllConcerns, addConcern, updateConcern,
   loadLogs, addLog, deleteLog, uploadConcernPhoto, getPhotoUrl,
-  CATEGORIES, STATUS_LABELS, formatLogTime,
+  CATEGORIES, STATUS_LABELS, formatLogTime, compareLogsDesc,
   type HealthConcern, type ConcernLog,
 } from '../../lib/concerns'
 import { LoadError } from '../ui/LoadError'
@@ -180,7 +180,7 @@ export function ConcernDetail({ concern, userId, onBack, onUpdate }: {
             </button>
           )}
         </div>
-        {(showResolved ? logs : logs.slice(-5)).reverse().map(l => (
+        {[...logs].sort(compareLogsDesc).slice(0, showResolved ? logs.length : 5).map(l => (
           <div key={l.id} className="concern-log-item">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {l.severity && <SeverityDot v={l.severity} />}
