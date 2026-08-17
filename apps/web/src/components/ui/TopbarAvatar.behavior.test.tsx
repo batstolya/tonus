@@ -56,7 +56,21 @@ describe('TopbarAvatar account menu', () => {
     expect(screen.getByRole('button', { name: /Language/ })).toBeInTheDocument()
   })
 
-  it('selects a theme and returns to the main view', () => {
+  // The theme picker is a side flyout, not a drill-down: the account list has
+  // to stay on screen behind it, the way it does on the site this borrows from.
+  it('opens the theme flyout without hiding the account list', () => {
+    renderAvatar()
+    openMenu()
+
+    fireEvent.click(screen.getByRole('button', { name: /Theme/ }))
+
+    expect(screen.getByRole('button', { name: /Theme/ })).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByText('test@example.com')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Theme' })).toBeInTheDocument()
+  })
+
+  it('selects a theme and closes the whole menu', () => {
     renderAvatar()
     openMenu()
 
@@ -64,7 +78,28 @@ describe('TopbarAvatar account menu', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Dark' }))
 
     expect(props.onSelectTheme).toHaveBeenCalledWith('dark')
-    expect(screen.getByRole('button', { name: /Theme/ })).toBeInTheDocument()
+    expect(screen.queryByText('test@example.com')).not.toBeInTheDocument()
+  })
+
+  it('marks the current theme as the pressed option', () => {
+    renderAvatar()
+    openMenu()
+
+    fireEvent.click(screen.getByRole('button', { name: /Theme/ }))
+
+    expect(screen.getByRole('button', { name: 'System' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Light' })).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('closes the theme flyout when the theme row is clicked again', () => {
+    renderAvatar()
+    openMenu()
+
+    fireEvent.click(screen.getByRole('button', { name: /Theme/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Theme/ }))
+
+    expect(screen.queryByRole('dialog', { name: 'Theme' })).not.toBeInTheDocument()
+    expect(screen.getByText('test@example.com')).toBeInTheDocument()
   })
 
   it('opens settings and closes the menu', () => {

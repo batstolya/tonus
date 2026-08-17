@@ -2294,10 +2294,25 @@ input[type="date"].settings-input::-webkit-calendar-picker-indicator { cursor: p
   color: var(--text-muted);
 }
 
-/* Переключатель темы (mate-style): попап с карточками-превью */
-.theme-menu { padding: 14px; min-width: 300px; }
-.theme-menu-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; }
-.theme-menu-options { display: flex; gap: 10px; }
+/* Переключатель темы (mate-style): панель с карточками-превью, которая
+   раскрывается сбоку от меню аккаунта — сам список при этом остаётся виден.
+   Ниже 640px сбоку места нет: там панель встаёт под строкой «Тема». */
+.theme-flyout {
+  position: absolute; top: 44px; right: calc(100% + 10px); z-index: 151;
+  width: 300px; padding: 14px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-surface); box-shadow: var(--shadow);
+  animation: fadeIn 0.18s ease-out;
+}
+@media (max-width: 640px) {
+  .theme-flyout {
+    position: static; width: auto; margin: 4px 0;
+    box-shadow: none; animation: none;
+  }
+}
+.theme-flyout-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; }
+.theme-flyout-options { display: flex; gap: 10px; }
+.account-menu-panel > button.active { background: var(--surface2); }
 .theme-option { flex: 1; background: none; border: none; padding: 0; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--text); }
 .theme-option-label { font-size: 13px; }
 .theme-option.active .theme-option-label { font-weight: 600; }
