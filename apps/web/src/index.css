@@ -357,7 +357,9 @@ body {
     overflow-y: auto;
     z-index: 20;
   }
-  .sidebar--collapsed { width: 60px; overflow: visible; }
+  /* No flyout to escape the column any more, so the strip keeps the
+     scrollability it inherits from .sidebar instead of overriding it. */
+  .sidebar--collapsed { width: 60px; }
 
   /* The app column starts to the right of the sidebar; the sticky topbar
      inherits the offset because it lives inside .app. */
@@ -367,11 +369,9 @@ body {
   /* The sidebar owns the sub-views in this layout. */
   .app--side .subnav { display: none; }
 
-  /* Collapsed sidebar: the flyout is the only path to a group's sub-views,
-     and it opens on hover/focus-within. A touch device (e.g. iPad landscape,
-     which matches this same breakpoint) has no hover and a tap does not move
-     focus to the button on iOS Safari, so without this the sub-views become
-     unreachable. Re-show the row itself as a fallback while collapsed. */
+  /* Collapsed, the strip carries group icons only, so the sub-nav row comes
+     back as the single path to a group's sub-views — the same one on a mouse
+     and on a touch screen (this breakpoint also matches iPad landscape). */
   .app--side:has(.sidebar--collapsed) .subnav { display: flex; }
 
   /* The sidebar renders its own logo above this breakpoint; narrow screens
@@ -392,15 +392,26 @@ body {
   .sidebar-collapse-btn:hover { background: var(--surface2); color: var(--text); }
 
   .sidebar-nav { display: flex; flex-direction: column; gap: 2px; flex: 1; }
-  .sidebar-group { position: relative; display: flex; flex-direction: column; gap: 2px; margin-top: 10px; }
+
+  /* Every section closes with a hairline rule, so Dashboard, the three groups
+     and Settings each read as their own block instead of one long list. The
+     rule lives on the section, never on a button — a button carries the
+     rounded hover and active fill, and a border would stretch that pill. The
+     first section also takes a rule on top, which is what separates it from
+     the Dashboard button above it. Collapsed inherits the same rhythm. */
+  .sidebar-group {
+    display: flex; flex-direction: column; gap: 2px;
+    padding-bottom: 12px; margin-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-group:first-of-type { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
   .sidebar-caption {
-    padding: 4px 10px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em;
-    text-transform: uppercase; color: var(--text-muted);
+    padding: 4px 10px 2px; font-size: 12px; font-weight: 600; color: var(--text-muted);
   }
 
   .sidebar-btn {
     display: flex; align-items: center; gap: 10px; width: 100%;
-    padding: 7px 10px; border: none; border-radius: 8px;
+    padding: 9px 12px; border: none; border-radius: 10px;
     background: none; color: var(--text-muted); font-size: 14px; text-align: left; cursor: pointer;
   }
   .sidebar-btn:hover { background: var(--surface2); color: var(--text); }
@@ -415,31 +426,12 @@ body {
   .sidebar-icon-btn:hover { background: var(--surface2); color: var(--text); }
   .sidebar-icon-btn.active { background: var(--accent); color: var(--on-accent); }
 
-  .sidebar-foot { border-top: 1px solid var(--border); padding-top: 8px; margin-top: 8px; }
+  /* The groups already close with a rule, so the footer only needs the space. */
+  .sidebar-foot { padding-top: 4px; }
 
-  /* Collapsed: the label column disappears and sub-views move into a flyout
-     that opens on hover or keyboard focus — no JS state to get out of sync. */
-  .sidebar--collapsed .sidebar-btn { justify-content: center; padding: 8px; }
-  .sidebar--collapsed .sidebar-nav > .sidebar-btn .sidebar-btn-label,
-  .sidebar--collapsed .sidebar-foot .sidebar-btn-label { display: none; }
-  .sidebar--collapsed .sidebar-flyout {
-    display: none;
-    position: absolute; left: calc(100% + 6px); top: 0; min-width: 180px;
-    padding: 6px; border: 1px solid var(--border); border-radius: 12px;
-    background: var(--surface); box-shadow: var(--shadow); z-index: 30;
-  }
-  /* Only real hover devices get the hover-to-open flyout: on a touch device a
-     tap dispatches :hover with no matching "leave" event, so the flyout would
-     stay stuck open. :focus-within stays unconditional as the touch fallback,
-     backed by the .subnav row re-shown above. */
-  @media (hover: hover) {
-    .sidebar--collapsed .sidebar-group:hover .sidebar-flyout { display: block; }
-  }
-  .sidebar--collapsed .sidebar-group:focus-within .sidebar-flyout { display: block; }
-  .sidebar-flyout-title {
-    padding: 4px 10px 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em;
-    text-transform: uppercase; color: var(--text-muted);
-  }
+  /* Collapsed: the label column disappears; the strip holds icons only. */
+  .sidebar--collapsed .sidebar-btn { justify-content: center; padding: 9px; }
+  .sidebar--collapsed .sidebar-btn-label { display: none; }
 }
 
 /* Concerns/Hair sub-tabs (nested within concerns screen) */

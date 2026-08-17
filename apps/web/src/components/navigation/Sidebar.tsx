@@ -18,9 +18,10 @@ const dashboardIcon = (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
 )
 
-// The opt-in wide-screen layout: one vertical list with every section visible,
-// collapsing to a strip of group icons. Sub-views stay reachable while
-// collapsed through a flyout that opens on hover/focus — pure CSS, no state.
+// The opt-in wide-screen layout: one vertical list where every section is a
+// separate block, collapsing to a strip of group icons. Collapsed, the strip
+// carries only the icons — sub-views are picked in the top sub-nav row, which
+// the stylesheet re-shows in that state, so pointer and touch behave alike.
 export function Sidebar({
   groups, view, activeGroup, activeSubView, collapsed, onToggleCollapsed, onNavigate,
 }: SidebarProps) {
@@ -64,20 +65,19 @@ export function Sidebar({
                 {g.icon}
               </button>
             ) : (
-              <div className="sidebar-caption">{t(g.label)}</div>
+              <>
+                <div className="sidebar-caption">{t(g.label)}</div>
+                {g.views.map(v => (
+                  <button
+                    key={v.view}
+                    className={`sidebar-btn${activeSubView === v.view ? ' active' : ''}`}
+                    onClick={() => onNavigate(v.view)}
+                  >
+                    <span className="sidebar-btn-label">{t(v.label)}</span>
+                  </button>
+                ))}
+              </>
             )}
-            <div className="sidebar-flyout">
-              {collapsed && <div className="sidebar-flyout-title">{t(g.label)}</div>}
-              {g.views.map(v => (
-                <button
-                  key={v.view}
-                  className={`sidebar-btn${activeSubView === v.view ? ' active' : ''}`}
-                  onClick={() => onNavigate(v.view)}
-                >
-                  <span className="sidebar-btn-label">{t(v.label)}</span>
-                </button>
-              ))}
-            </div>
           </div>
         ))}
       </nav>
