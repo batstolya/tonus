@@ -2,7 +2,7 @@ import { supabase } from '../supabase'
 import { fetchAllPages } from '../supabasePaging'
 import { isDemoActive } from '../demo'
 import { demoList } from '../demoDb'
-import { loadAllConcerns, type ConcernLog, type HealthConcern } from '../concerns'
+import { loadAllConcerns, compareLogsAsc, type ConcernLog, type HealthConcern } from '../concerns'
 import { loadLabResults, type LabResult } from '../labs'
 import {
   getSupplementLogsSince, loadProfileBasics,
@@ -33,7 +33,9 @@ export async function loadAllSupplements(userId: string): Promise<Supplement[]> 
 
 export async function loadAllConcernLogs(userId: string, since: string): Promise<ConcernLog[]> {
   if (isDemoActive()) {
-    return (demoList('concern_logs') as ConcernLog[]).filter(l => l.date >= since)
+    return (demoList('concern_logs') as ConcernLog[])
+      .filter(l => l.date >= since)
+      .sort(compareLogsAsc)
   }
   return await fetchAllPages<ConcernLog>((from, to) => supabase
     .from('concern_logs')
@@ -41,6 +43,7 @@ export async function loadAllConcernLogs(userId: string, since: string): Promise
     .eq('user_id', userId)
     .gte('date', since)
     .order('date')
+    .order('at_time', { ascending: true, nullsFirst: false })
     .range(from, to))
 }
 

@@ -3,7 +3,7 @@ import type { User } from '@supabase/supabase-js'
 import {
   loadAllConcerns, addConcern, updateConcern,
   loadLogs, addLog, deleteLog, uploadConcernPhoto, getPhotoUrl,
-  CATEGORIES, STATUS_LABELS,
+  CATEGORIES, STATUS_LABELS, formatLogTime, compareLogsDesc,
   type HealthConcern, type ConcernLog,
 } from '../../lib/concerns'
 import { LoadError } from '../ui/LoadError'
@@ -53,7 +53,12 @@ function TrendChart({ logs }: { logs: ConcernLog[] }) {
   )
 }
 
-function ConcernDetail({ concern, userId, onBack, onUpdate }: {
+const localDate = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+const localTime = (d: Date) =>
+  `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+
+export function ConcernDetail({ concern, userId, onBack, onUpdate }: {
   concern: HealthConcern; userId: string; onBack: () => void; onUpdate: (c: HealthConcern) => void
 }) {
   const { t } = useT()
@@ -61,6 +66,8 @@ function ConcernDetail({ concern, userId, onBack, onUpdate }: {
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({})
   const [severity, setSeverity] = useState(3)
   const [note, setNote] = useState('')
+  const [logDate, setLogDate] = useState(() => localDate(new Date()))
+  const [logTime, setLogTime] = useState(() => localTime(new Date()))
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
   const [showResolved, setShowResolved] = useState(false)
@@ -82,10 +89,12 @@ function ConcernDetail({ concern, userId, onBack, onUpdate }: {
     let photo_path: string | null = null
     if (photoFile) photo_path = await uploadConcernPhoto(userId, photoFile)
     await addLog(userId, {
-      concern_id: concern.id, date: new Date().toISOString().slice(0, 10),
+      concern_id: concern.id, date: logDate, at_time: logTime || null,
       severity, note: note.trim() || null, photo_path,
     })
+    const now = new Date()
     setNote(''); setPhotoFile(null); setSeverity(3)
+    setLogDate(localDate(now)); setLogTime(localTime(now))
     await reload()
     setSaving(false)
   }
@@ -139,6 +148,12 @@ function ConcernDetail({ concern, userId, onBack, onUpdate }: {
             </button>
           ))}
           <span style={{ fontSize: 12, color: SEVERITY_COLOR[severity] }}>{t(SEVERITY_LABELS[severity])}</span>
+          <input className="log-input" type="date" data-testid="log-date"
+            value={logDate} onChange={e => setLogDate(e.target.value)}
+            style={{ marginLeft: 'auto', width: 140, fontSize: 13 }} />
+          <input className="log-input" type="time" data-testid="log-time"
+            value={logTime} onChange={e => setLogTime(e.target.value)}
+            style={{ width: 96, fontSize: 13 }} />
         </div>
         <textarea className="log-input" rows={2} placeholder={t('Заметка (необязательно)…')}
           value={note} onChange={e => setNote(e.target.value)}
@@ -165,11 +180,16 @@ function ConcernDetail({ concern, userId, onBack, onUpdate }: {
             </button>
           )}
         </div>
-        {(showResolved ? logs : logs.slice(-5)).reverse().map(l => (
+        {[...logs].sort(compareLogsDesc).slice(0, showResolved ? logs.length : 5).map(l => (
           <div key={l.id} className="concern-log-item">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {l.severity && <SeverityDot v={l.severity} />}
               <span style={{ fontSize: 13, fontWeight: 600 }}>{l.date}</span>
+              {formatLogTime(l.at_time) && (
+                <span data-testid="log-item-time" style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                  {formatLogTime(l.at_time)}
+                </span>
+              )}
               {l.severity && <span style={{ fontSize: 12, color: SEVERITY_COLOR[l.severity] }}>{l.severity}/5</span>}
               <button className="supp-delete" style={{ marginLeft: 'auto' }}
                 onClick={() => { deleteLog(l.id); setLogs(ls => ls.filter(x => x.id !== l.id)) }}>

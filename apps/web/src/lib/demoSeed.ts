@@ -104,6 +104,7 @@ export interface SeedConcernLog {
   user_id: string
   concern_id: string
   date: string
+  at_time: string | null
   severity: number | null
   note: string | null
   photo_path: string | null
@@ -427,14 +428,16 @@ function makeConcernLogs(): SeedConcernLog[] {
   for (let i = 56; i >= 0; i -= 7) {
     out.push({
       id: `demo-clog-${n++}`, user_id: DEMO_USER, concern_id: 'demo-concern-hair',
-      date: dateStr(i), severity: Math.max(1, Math.round(4 - (56 - i) / 20)),
+      date: dateStr(i), at_time: '09:15', severity: Math.max(1, Math.round(4 - (56 - i) / 20)),
       note: null, photo_path: null, created_at: at(i, 20),
     })
   }
+  // The head-ache entries stay without a time: the demo has to show how an
+  // observation stored before the time column existed still reads.
   for (let i = 28; i >= 0; i -= 4) {
     out.push({
       id: `demo-clog-${n++}`, user_id: DEMO_USER, concern_id: 'demo-concern-head',
-      date: dateStr(i), severity: 1 + Math.round(rnd(i * 3) * 3),
+      date: dateStr(i), at_time: null, severity: 1 + Math.round(rnd(i * 3) * 3),
       note: rnd(i * 5) > 0.7 ? 'После короткого сна' : null,
       photo_path: null, created_at: at(i, 21),
     })

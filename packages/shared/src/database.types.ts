@@ -393,6 +393,7 @@ export type Database = {
       }
       concern_logs: {
         Row: {
+          at_time: string | null
           concern_id: string
           created_at: string | null
           date: string
@@ -403,6 +404,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          at_time?: string | null
           concern_id: string
           created_at?: string | null
           date?: string
@@ -413,6 +415,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          at_time?: string | null
           concern_id?: string
           created_at?: string | null
           date?: string

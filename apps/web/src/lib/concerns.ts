@@ -21,6 +21,8 @@ export interface ConcernLog {
   id: string
   concern_id: string
   date: string
+  /** Local wall-clock time of the event, `HH:MM[:SS]`; null when unknown. */
+  at_time: string | null
   severity: number | null
   note: string | null
   photo_path: string | null
@@ -40,6 +42,53 @@ export interface HairEntry {
   photo_temples: string | null
   notes: string | null
   created_at: string
+}
+
+/** The structural minimum needed to order observations. */
+export interface TimedLog {
+  date: string
+  at_time?: string | null
+}
+
+/**
+ * A Postgres `time` arrives as `HH:MM:SS`; the interface and the doctor report
+ * both show `HH:MM`. An unknown time renders as nothing at all rather than a
+ * placeholder, so a legacy row looks exactly as it did before the column
+ * existed.
+ */
+export function formatLogTime(at: string | null | undefined): string {
+  return at ? at.slice(0, 5) : ''
+}
+
+/**
+ * Orders observations oldest first: by date, then by time. An entry without a
+ * time sorts after the timed entries of the same date — its position within
+ * the day is unknown, and claiming it came first would be an invention.
+ */
+export function compareLogsAsc(a: TimedLog, b: TimedLog): number {
+  if (a.date !== b.date) return a.date.localeCompare(b.date)
+  const at = formatLogTime(a.at_time)
+  const bt = formatLogTime(b.at_time)
+  if (!at && !bt) return 0
+  if (!at) return 1
+  if (!bt) return -1
+  return at.localeCompare(bt)
+}
+
+/**
+ * Orders observations newest first for the journal. Not the negation of
+ * `compareLogsAsc`: an entry without a time stays at the bottom of its day in
+ * both directions, because floating it to the top would read as "this was the
+ * latest thing that happened that day" — which is exactly what is unknown.
+ */
+export function compareLogsDesc(a: TimedLog, b: TimedLog): number {
+  if (a.date !== b.date) return b.date.localeCompare(a.date)
+  const at = formatLogTime(a.at_time)
+  const bt = formatLogTime(b.at_time)
+  if (!at && !bt) return 0
+  if (!at) return 1
+  if (!bt) return -1
+  return bt.localeCompare(at)
 }
 
 export const CATEGORIES: Record<string, string> = {
@@ -93,10 +142,12 @@ export async function loadLogs(concernId: string): Promise<ConcernLog[]> {
   if (isDemoActive()) {
     return (demoList('concern_logs') as ConcernLog[])
       .filter(l => l.concern_id === concernId)
-      .sort((a, b) => a.date.localeCompare(b.date))
+      .sort(compareLogsAsc)
   }
   const { data } = await supabase.from('concern_logs').select('*')
-    .eq('concern_id', concernId).order('date', { ascending: true })
+    .eq('concern_id', concernId)
+    .order('date', { ascending: true })
+    .order('at_time', { ascending: true, nullsFirst: false })
   return (data ?? []) as ConcernLog[]
 }
 

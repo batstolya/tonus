@@ -8,8 +8,14 @@ const concern = (id: string, over: Partial<HealthConcern> = {}): HealthConcern =
   created_at: '2026-05-31T00:00:00Z', ...over,
 })
 
-const clog = (concern_id: string, date: string, severity: number | null, note: string | null = null): ConcernLog =>
-  ({ id: `${concern_id}-${date}`, concern_id, date, severity, note, photo_path: null, created_at: date } as ConcernLog)
+const clog = (
+  concern_id: string,
+  date: string,
+  severity: number | null,
+  note: string | null = null,
+  at_time: string | null = null,
+): ConcernLog =>
+  ({ id: `${concern_id}-${date}-${at_time ?? ''}`, concern_id, date, at_time, severity, note, photo_path: null, created_at: date } as ConcernLog)
 
 describe('buildConcerns', () => {
   it('compares severity in the first half of the period against the second', () => {
@@ -51,6 +57,34 @@ describe('buildConcerns', () => {
     const logs = [clog('c', '2026-06-01', 3, ''), clog('c', '2026-06-02', 3, 'текст')]
     const out = buildConcerns([concern('c')], logs, '2026-05-03')
     expect(out[0].logs.map(l => l.note)).toEqual(['текст'])
+  })
+
+  it('orders entries of one day by time, oldest first', () => {
+    const logs = [
+      clog('c', '2026-06-01', 3, 'вечером', '19:30'),
+      clog('c', '2026-06-01', 3, 'утром', '08:05'),
+      clog('c', '2026-06-01', 3, 'в обед', '13:00'),
+    ]
+    const out = buildConcerns([concern('c')], logs, '2026-05-03')
+    expect(out[0].logs.map(l => l.note)).toEqual(['утром', 'в обед', 'вечером'])
+  })
+
+  it('carries the time of each entry through to the report model', () => {
+    const logs = [clog('c', '2026-06-01', 3, 'запись', '12:00:00')]
+    const out = buildConcerns([concern('c')], logs, '2026-05-03')
+    expect(out[0].logs[0].at_time).toBe('12:00:00')
+  })
+
+  // Rows stored before the time column existed keep working, and they are not
+  // reordered ahead of entries whose time is known.
+  it('places an entry without a time after the timed entries of its day', () => {
+    const logs = [
+      clog('c', '2026-06-01', 3, 'без времени', null),
+      clog('c', '2026-06-01', 3, 'в 12', '12:00'),
+    ]
+    const out = buildConcerns([concern('c')], logs, '2026-05-03')
+    expect(out[0].logs.map(l => l.note)).toEqual(['в 12', 'без времени'])
+    expect(out[0].logs[1].at_time).toBeNull()
   })
 
   it('has no severity block when nothing was logged', () => {

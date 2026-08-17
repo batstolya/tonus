@@ -1,3 +1,4 @@
+import { compareLogsAsc } from '../concerns'
 import type { HealthConcern, ConcernLog } from '../concerns'
 import { avg } from './math'
 import { mondayOf } from './weekly'
@@ -11,7 +12,7 @@ export interface ConcernLine {
   note: string | null
   severity: { count: number; avg: number; firstHalf: number; secondHalf: number } | null
   /** Every noted entry of the period, oldest first. */
-  logs: { date: string; severity: number | null; note: string }[]
+  logs: { date: string; at_time: string | null; severity: number | null; note: string }[]
 }
 
 const round1 = (n: number) => +n.toFixed(1)
@@ -24,7 +25,7 @@ export function buildConcerns(
   return concerns.map(c => {
     const own = logs
       .filter(l => l.concern_id === c.id && l.date >= periodStartDate)
-      .sort((a, b) => a.date.localeCompare(b.date))
+      .sort(compareLogsAsc)
     const sev = own.map(l => l.severity).filter((v): v is number => typeof v === 'number')
     const half = Math.floor(sev.length / 2)
     return {
@@ -48,7 +49,7 @@ export function buildConcerns(
       // — they are already counted in the severity block above.
       logs: own
         .filter((l): l is ConcernLog & { note: string } => !!l.note)
-        .map(l => ({ date: l.date, severity: l.severity, note: l.note })),
+        .map(l => ({ date: l.date, at_time: l.at_time ?? null, severity: l.severity, note: l.note })),
     }
   })
 }
