@@ -1,4 +1,5 @@
 import { translations } from '../translations'
+import { formatLogTime } from '../concerns'
 import { METRIC_DEFS, type MetricSummary } from './metrics'
 import { BAND_TEXT, POSITION_TEXT } from './reliability'
 import {
@@ -466,7 +467,11 @@ export function toMarkdown(model: DoctorReportModel, lang: ReportLang): string {
         p(`- ${t('Записи за период')}:`)
         for (const l of c.logs) {
           const sev = l.severity != null ? ` (${t('тяжесть')} ${l.severity}/5)` : ''
-          p(`  - ${l.date}${sev}: ${l.note}`)
+          // The time is part of the clinical picture for complaints like stool
+          // or flare-ups. Entries stored before the time column existed print
+          // the date alone.
+          const at = formatLogTime(l.at_time)
+          p(`  - ${l.date}${at ? ` ${at}` : ''}${sev}: ${l.note}`)
         }
       }
       p()

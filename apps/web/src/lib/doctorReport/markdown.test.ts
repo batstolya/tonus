@@ -40,6 +40,35 @@ describe('toMarkdown', () => {
     )
   })
 
+  it('prints the time of day next to the date of an observation', () => {
+    const concern = {
+      id: 'c', user_id: 'u', name: 'Стул', category: 'gut', status: 'active' as const,
+      started_at: null, notes: null, is_private: false, created_at: '2026-07-01T00:00:00Z',
+    }
+    const log = (date: string, at_time: string | null, note: string) => ({
+      id: `${date}-${at_time ?? ''}`, concern_id: 'c', date, at_time,
+      severity: 3, note, photo_path: null, created_at: `${date}T00:00:00Z`,
+    })
+    const timedModel = buildReportModel({
+      daily,
+      sources: {
+        ...sources,
+        concerns: [concern],
+        concernLogs: [
+          log('2026-07-20', '12:00:00', 'кашеобразный'),
+          log('2026-07-21', null, 'без времени'),
+        ],
+      },
+      periodDays: 30,
+      today,
+    })
+
+    const md = toMarkdown(timedModel, 'ru')
+    expect(md).toContain('2026-07-20 12:00 (тяжесть 3/5): кашеобразный')
+    expect(md).toContain('2026-07-21 (тяжесть 3/5): без времени')
+    expect(md).not.toContain('12:00:00')
+  })
+
   it('names the clamp when the requested period outruns the history', () => {
     // Only 10 days of history, but a 365-day period is requested.
     const shortDaily: DailyMetrics[] = Array.from({ length: 10 }, (_, i) => ({
