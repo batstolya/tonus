@@ -6,6 +6,7 @@ import { type Lang, useT } from '../../lib/i18n'
 import type { ThemeMode } from '../../hooks/useTheme'
 import { Icon } from '../../lib/icons'
 import { Avatar } from './Avatar'
+import { LangFlyout } from './LangFlyout'
 import { ThemeFlyout } from './ThemeFlyout'
 
 interface TopbarAvatarProps {
@@ -17,8 +18,6 @@ interface TopbarAvatarProps {
   onOpenSettings: () => void
   onSignOut: () => void
 }
-
-type AccountMenuView = 'main' | 'language'
 
 const languageLabels: Record<Lang, string> = { ru: 'RU', uk: 'UA', en: 'EN' }
 
@@ -38,14 +37,14 @@ export function TopbarAvatar({
   const { t } = useT()
   const [url, setUrl] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
-  const [view, setView] = useState<AccountMenuView>('main')
-  const [themeOpen, setThemeOpen] = useState(false)
+  // Only one flyout is ever open: picking a language while the theme panel is
+  // out would leave two panels stacked on the same edge.
+  const [flyout, setFlyout] = useState<'lang' | 'theme' | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
   const closeMenu = () => {
     setOpen(false)
-    setView('main')
-    setThemeOpen(false)
+    setFlyout(null)
   }
 
   useEffect(() => {
@@ -61,14 +60,12 @@ export function TopbarAvatar({
     const onPointerDown = (event: PointerEvent) => {
       if (event.target instanceof Node && menuRef.current?.contains(event.target)) return
       setOpen(false)
-      setView('main')
-      setThemeOpen(false)
+      setFlyout(null)
     }
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setOpen(false)
-        setView('main')
-        setThemeOpen(false)
+        setFlyout(null)
       }
     }
     document.addEventListener('pointerdown', onPointerDown, true)
@@ -87,7 +84,7 @@ export function TopbarAvatar({
 
   const selectLanguage = (nextLang: Lang) => {
     onSelectLang(nextLang)
-    setView('main')
+    closeMenu()
   }
 
   const selectTheme = (mode: ThemeMode) => {
@@ -110,33 +107,31 @@ export function TopbarAvatar({
       </button>
       {open && (
         <div id="account-menu-panel" className="account-menu-panel" role="dialog" aria-label={t('Профиль')}>
-          {view === 'main' && <>
-            <div className="account-menu-email">{user.email}</div>
-            <button type="button" onClick={() => { setThemeOpen(false); setView('language') }}>
-              <Icon name="world" /> {t('Язык')} <span>{languageLabels[lang]}</span><Icon name="chevronRight" />
-            </button>
-            <button
-              type="button"
-              className={themeOpen ? 'active' : undefined}
-              aria-expanded={themeOpen}
-              onClick={() => setThemeOpen(value => !value)}
-            >
-              <Icon name="moon" /> {t('Тема')} <span>{themeLabel(themeMode)}</span><Icon name="chevronRight" />
-            </button>
-            <button type="button" onClick={() => { closeMenu(); onOpenSettings() }}>
-              <Icon name="settings" /> {t('Настройки')}
-            </button>
-            <button type="button" onClick={() => { closeMenu(); onSignOut() }}>
-              <Icon name="signOut" /> {t('Выйти')}
-            </button>
-          </>}
-          {view === 'language' && <>
-            <button type="button" onClick={() => setView('main')}>{t('Назад')}</button>
-            {(['ru', 'uk', 'en'] as Lang[]).map(option => (
-              <button type="button" key={option} onClick={() => selectLanguage(option)}>{languageLabels[option]}</button>
-            ))}
-          </>}
-          {view === 'main' && themeOpen && <ThemeFlyout mode={themeMode} onSelect={selectTheme} />}
+          <div className="account-menu-email">{user.email}</div>
+          <button
+            type="button"
+            className={flyout === 'lang' ? 'active' : undefined}
+            aria-expanded={flyout === 'lang'}
+            onClick={() => setFlyout(value => (value === 'lang' ? null : 'lang'))}
+          >
+            <Icon name="world" /> {t('Язык')} <span>{languageLabels[lang]}</span><Icon name="chevronRight" />
+          </button>
+          <button
+            type="button"
+            className={flyout === 'theme' ? 'active' : undefined}
+            aria-expanded={flyout === 'theme'}
+            onClick={() => setFlyout(value => (value === 'theme' ? null : 'theme'))}
+          >
+            <Icon name="moon" /> {t('Тема')} <span>{themeLabel(themeMode)}</span><Icon name="chevronRight" />
+          </button>
+          <button type="button" onClick={() => { closeMenu(); onOpenSettings() }}>
+            <Icon name="settings" /> {t('Настройки')}
+          </button>
+          <button type="button" onClick={() => { closeMenu(); onSignOut() }}>
+            <Icon name="signOut" /> {t('Выйти')}
+          </button>
+          {flyout === 'lang' && <LangFlyout lang={lang} onSelect={selectLanguage} />}
+          {flyout === 'theme' && <ThemeFlyout mode={themeMode} onSelect={selectTheme} />}
         </div>
       )}
     </div>
