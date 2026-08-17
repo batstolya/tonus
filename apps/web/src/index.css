@@ -2341,6 +2341,13 @@ input[type="date"].settings-input::-webkit-calendar-picker-indicator { cursor: p
 .lang-option.active { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); }
 .lang-option.active .lang-code { color: var(--accent); opacity: 0.75; }
 
+.ai-feed-more {
+  width: 100%; padding: 10px 12px; margin-top: 2px;
+  background: none; border: 1px dashed var(--border); border-radius: 12px;
+  color: var(--text-muted); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
+}
+.ai-feed-more:hover { background: var(--surface2); color: var(--text); }
+
 /* ── MealLogger ──────────────────────────────────────────────────────────── */
 .meal-logger { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 20px; }
 .meal-logger-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
