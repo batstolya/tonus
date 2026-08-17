@@ -6,6 +6,12 @@ import { isAiConsentRequiredError, loadAiConsent } from '../../lib/aiConsent'
 import { Icon } from '../../lib/icons'
 import { computeGaps } from '../../lib/dataCompleteness'
 
+// The feed used to grow without limit, pushing the rest of the dashboard down
+// with every run. Five is roughly what fits beside the cards above it; older
+// ones arrive a page at a time rather than behind a nested scrollbar, which
+// would fight the page scroll on touch and cut off an expanded card.
+const PAGE = 5
+
 interface Props {
   daily: DailyMetrics[]
   userId: string
@@ -73,6 +79,7 @@ export function AiAnalysisBlock({ daily, userId }: Props) {
   const gaps = useMemo(() => computeGaps(daily).filter(g => g.missingDays >= 3), [daily])
   const { t } = useT()
   const [analyses, setAnalyses] = useState<AiAnalysis[]>([])
+  const [shown, setShown] = useState(PAGE)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [period, setPeriod] = useState<AnalysisPeriod>('14d')
@@ -98,6 +105,7 @@ export function AiAnalysisBlock({ daily, userId }: Props) {
     try {
       const result = await runAnalysis(userId, daily, period)
       setAnalyses(prev => [result, ...prev])
+      setShown(n => n + 1)
     } catch (e) {
       if (isAiConsentRequiredError(e)) {
         setConsented(false)
@@ -159,9 +167,14 @@ export function AiAnalysisBlock({ daily, userId }: Props) {
 
       {analyses.length > 0 && (
         <div className="ai-feed">
-          {analyses.map(a => (
+          {analyses.slice(0, shown).map(a => (
             <AnalysisCard key={a.id} item={a} onDelete={handleDelete} />
           ))}
+          {analyses.length > shown && (
+            <button className="ai-feed-more" onClick={() => setShown(n => n + PAGE)}>
+              {t('Показать ещё')} ({analyses.length - shown})
+            </button>
+          )}
         </div>
       )}
     </div>
