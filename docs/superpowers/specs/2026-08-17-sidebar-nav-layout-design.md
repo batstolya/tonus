@@ -36,9 +36,12 @@ Out of scope:
 ### Layout switch
 
 - Setting `navLayout`: `top` (default) or `side`.
-- The sidebar is visible only at `min-width: 1025px` — the exact complement of
-  the existing `max-width: 1024px` mobile rules, so the two layouts can never
-  both show. Under that width the app
+- The sidebar is visible only at `min-width: 769px` — the exact complement of
+  the `max-width: 768px` mobile block in `index.css`, which owns the burger
+  drawer and the bottom nav, so the two layouts can never both show. (An
+  earlier draft of this spec said 1025px, matching leftover template rules in
+  `App.css` rather than the app's real mobile breakpoint; at 769-1024px that
+  would have left side mode with no navigation at all.) Under that width the app
   renders the current layout regardless of the setting.
 - Switching takes effect immediately, without reload.
 

@@ -19,7 +19,7 @@
 - Everything committed is in English — commit messages, code comments, identifiers, docs. The only exceptions: product UI strings and chat.
 - User-facing strings go through `t()` from `src/lib/i18n`, with the Russian source text as the key and `uk` + `en` values added to `src/lib/translations/*.ts`.
 - Default layout is `top`: with no stored preference, the UI must be byte-identical to today's.
-- Breakpoint: sidebar visible only at `min-width: 1025px`, the exact complement of the existing `max-width: 1024px` mobile rules.
+- Breakpoint: sidebar visible only at `min-width: 769px`, the exact complement of the `max-width: 768px` mobile block in `apps/web/src/index.css` (the 1024px rules live in `App.css` and are unrelated template leftovers).
 - Sidebar width 240px expanded, 60px collapsed.
 - Never touch `apps/mobile/`.
 - Frequent commits: one commit per task, `feat(nav):` / `refactor(nav):` prefixes.
@@ -661,12 +661,12 @@ Append after the `.subnav-btn.active` rule in `apps/web/src/index.css`:
 
 ```css
 /* ── Sidebar layout (opt-in, wide screens only) ──────────────
-   The complement of the max-width:1024px mobile rules below: the sidebar is
+   The complement of the max-width:768px mobile block below: the sidebar is
    never visible where the bottom nav is, so the two layouts cannot overlap.
    Chosen by CSS rather than matchMedia so there is no flash on first paint. */
 .sidebar { display: none; }
 
-@media (min-width: 1025px) {
+@media (min-width: 769px) {
   .sidebar {
     display: flex;
     flex-direction: column;
@@ -1008,7 +1008,7 @@ Expected: clean tree if nothing needed fixing. Report the screenshots and the co
 | Spec requirement | Task |
 | ---------------- | ---- |
 | Layout setting `top`/`side`, default `top` | 1, 6 |
-| Visible only ≥1025px, narrow screens untouched | 5 (CSS), 7 step 6 (verified) |
+| Visible only ≥769px, narrow screens untouched | 5 (CSS), 7 step 6 (verified) |
 | Expanded sidebar: dashboard, captions, all sub-views, settings | 3 |
 | Metric-gated sub-views hidden | 3 (uses `filterNavGroups`) |
 | Active highlight, `hair`→Concerns, `settings` row | 3 |
