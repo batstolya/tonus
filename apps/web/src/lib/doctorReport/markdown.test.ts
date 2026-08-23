@@ -11,7 +11,7 @@ const daily: DailyMetrics[] = Array.from({ length: 30 }, (_, i) => ({
   restingHeartRate: 58, sleepHours: 7, steps: 9000,
 }))
 const sources = {
-  labs: [], supplements: [], supplementLogs: [], concerns: [], concernLogs: [], notes: [], intake: [],
+  labs: [], supplements: [], supplementLogs: [], concerns: [], concernLogs: [], observations: [], notes: [], intake: [],
   nutrition: [],
   profile: null,
 }
@@ -639,5 +639,40 @@ describe('toMarkdown nutrition', () => {
     expect(drinks).toContain('| Вода | 1 из 30 | 1 | 500 мл |')
     expect(drinks).toContain('| Кофе | 1 из 30 | 1 | 200 мл |')
     expect(md).not.toContain('## Отмеченный приём (со слов пациента)')
+  })
+})
+
+describe('toMarkdown — observations', () => {
+  const withObservations = (notes: { date: string; at_time: string | null; tag: string; note: string }[]) =>
+    buildReportModel({
+      daily,
+      sources: {
+        ...sources,
+        observations: notes.map((n, i) => ({
+          id: `o${i}`, user_id: 'u1', created_at: n.date, ...n,
+        })) as typeof sources.observations,
+      },
+      periodDays: 30,
+      today,
+    })
+
+  it('prints the section with a per-tag summary and every entry', () => {
+    const md = toMarkdown(withObservations([
+      { date: '2026-07-20', at_time: '09:30:00', tag: 'skin', note: 'Сухая кожа' },
+      { date: '2026-07-22', at_time: null, tag: 'skin', note: 'Высыпание' },
+      { date: '2026-07-25', at_time: '21:00:00', tag: 'sleep', note: 'Долго не мог уснуть' },
+    ]), 'ru')
+
+    expect(md).toContain('## Наблюдения')
+    expect(md).toContain('Свободные записи пациента, без шкалы: 3.')
+    expect(md).toContain('По темам: Кожа — 2, Сон — 1.')
+    expect(md).toContain('- 2026-07-20 09:30 [Кожа]: Сухая кожа')
+    // An entry with no time prints the date alone, as concern logs do.
+    expect(md).toContain('- 2026-07-22 [Кожа]: Высыпание')
+    expect(md).toContain('- 2026-07-25 21:00 [Сон]: Долго не мог уснуть')
+  })
+
+  it('leaves the section out when nothing was written', () => {
+    expect(toMarkdown(model, 'ru')).not.toContain('## Наблюдения')
   })
 })

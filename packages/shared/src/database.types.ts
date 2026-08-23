@@ -1414,6 +1414,36 @@ export type Database = {
         }
         Relationships: []
       }
+      observations: {
+        Row: {
+          at_time: string | null
+          created_at: string | null
+          date: string
+          id: string
+          note: string
+          tag: string
+          user_id: string
+        }
+        Insert: {
+          at_time?: string | null
+          created_at?: string | null
+          date?: string
+          id?: string
+          note: string
+          tag?: string
+          user_id: string
+        }
+        Update: {
+          at_time?: string | null
+          created_at?: string | null
+          date?: string
+          id?: string
+          note?: string
+          tag?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           ai_budget_usd: number | null

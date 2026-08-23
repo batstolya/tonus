@@ -488,6 +488,60 @@ body {
   box-shadow: 0 1px 4px rgba(0,0,0,0.12);
 }
 
+/* ── Observations: свободные записи с тегом и временем ────── */
+.obs-form {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.obs-note { width: 100%; resize: vertical; }
+.obs-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.obs-tag {
+  background: var(--surface2);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.obs-tag.active { background: var(--surface); border-color: var(--accent); color: var(--text); }
+.obs-form-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.obs-when { width: auto; flex: 0 0 auto; }
+.obs-list { display: flex; flex-direction: column; gap: 16px; }
+.obs-day-date {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+.obs-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+}
+.obs-item-head { display: flex; align-items: center; gap: 10px; }
+.obs-item-time { font-size: 13px; font-weight: 600; }
+.obs-item-tag {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--surface2);
+  border-radius: 999px;
+  padding: 2px 10px;
+}
+.obs-item-del { margin-left: auto; }
+.obs-item-note { font-size: 14px; margin-top: 6px; white-space: pre-wrap; }
+
 .main-content {
   flex: 1;
   max-width: 1000px;

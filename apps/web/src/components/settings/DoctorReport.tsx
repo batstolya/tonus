@@ -29,7 +29,7 @@ interface Props {
 }
 
 const EMPTY_SOURCES: ReportSources = {
-  labs: [], supplements: [], supplementLogs: [], concerns: [], concernLogs: [], notes: [],
+  labs: [], supplements: [], supplementLogs: [], concerns: [], concernLogs: [], observations: [], notes: [],
   profile: null, intake: [], nutrition: [],
 }
 

@@ -113,6 +113,16 @@ export interface SeedConcernLog {
   created_at: string
 }
 
+export interface SeedObservation {
+  id: string
+  user_id: string
+  date: string
+  at_time: string | null
+  tag: 'sleep' | 'skin' | 'gut' | 'wellbeing' | 'other'
+  note: string
+  created_at: string
+}
+
 export interface SeedHairEntry {
   id: string
   user_id: string
@@ -194,6 +204,7 @@ export interface DemoSeed {
   lab_results: SeedLabResult[]
   health_concerns: SeedConcern[]
   concern_logs: SeedConcernLog[]
+  observations: SeedObservation[]
   hair_entries: SeedHairEntry[]
   goals: SeedGoal[]
   recommendations: SeedRecommendation[]
@@ -430,6 +441,30 @@ function makeConcerns(): SeedConcern[] {
   ]
 }
 
+// Свободные наблюдения: пара записей в неделю, разные темы, часть без времени —
+// в отчёте и в ленте видно оба случая.
+const OBSERVATION_SEEDS: { daysAgo: number; at: string | null; tag: SeedObservation['tag']; note: string }[] = [
+  { daysAgo: 2,  at: '21:40', tag: 'sleep',     note: 'Долго не мог уснуть, в голове крутились задачи' },
+  { daysAgo: 4,  at: '08:10', tag: 'skin',      note: 'Кожа на лбу суше обычного' },
+  { daysAgo: 6,  at: null,    tag: 'wellbeing', note: 'День прошёл ровно, без спадов' },
+  { daysAgo: 9,  at: '13:20', tag: 'gut',       note: 'Тяжесть после обеда' },
+  { daysAgo: 13, at: '07:50', tag: 'sleep',     note: 'Проснулся до будильника, выспался' },
+  { daysAgo: 17, at: '19:05', tag: 'other',     note: 'Заметил, что стал больше пить воды' },
+  { daysAgo: 22, at: null,    tag: 'skin',      note: 'Высыпание на подбородке, второй раз за месяц' },
+]
+
+function makeObservations(): SeedObservation[] {
+  return OBSERVATION_SEEDS.map((o, i) => ({
+    id: `demo-obs-${i}`,
+    user_id: DEMO_USER,
+    date: dateStr(o.daysAgo),
+    at_time: o.at,
+    tag: o.tag,
+    note: o.note,
+    created_at: at(o.daysAgo, 20),
+  }))
+}
+
 function makeConcernLogs(): SeedConcernLog[] {
   const out: SeedConcernLog[] = []
   let n = 0
@@ -562,6 +597,7 @@ export function makeDemoSeed(): DemoSeed {
     lab_results: makeLabResults(),
     health_concerns: makeConcerns(),
     concern_logs: makeConcernLogs(),
+    observations: makeObservations(),
     hair_entries: makeHairEntries(),
     goals: makeGoals(),
     recommendations: makeRecommendations(),
@@ -590,5 +626,6 @@ export function demoSeedStrings(): string[] {
   // проверяем только строки, обязанные быть ключами словаря.
   for (const a of seed.health_alerts) for (const l of alertTranslatableLines(a.message)) strings.add(l)
   for (const n of seed.context_notes) strings.add(n.note)
+  for (const o of seed.observations) strings.add(o.note)
   return [...strings]
 }

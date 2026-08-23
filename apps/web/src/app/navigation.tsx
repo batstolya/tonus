@@ -55,7 +55,7 @@ export const NAV_GROUPS: NavGroup[] = [
 ]
 
 export function getActiveGroup(view: AppView): GroupId | null {
-  if (view === 'hair') return 'journal'
+  if (view === 'hair' || view === 'observations') return 'journal'
   for (const g of NAV_GROUPS) {
     if (g.views.some(v => v.view === view)) return g.id
   }
@@ -63,7 +63,7 @@ export function getActiveGroup(view: AppView): GroupId | null {
 }
 
 export function getActiveSubView(view: AppView): AppView {
-  if (view === 'hair') return 'concerns'
+  if (view === 'hair' || view === 'observations') return 'concerns'
   return view
 }
 

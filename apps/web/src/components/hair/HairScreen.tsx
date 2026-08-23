@@ -3,8 +3,9 @@ import type { User } from '@supabase/supabase-js'
 import { loadHairEntries, saveHairEntry, uploadHairPhoto, getPhotoUrl, type HairEntry } from '../../lib/concerns'
 import { useT } from '../../lib/i18n'
 import { startEffect } from '../../lib/startEffect'
+import { ConcernsSubtabs, type ConcernsTab } from '../concerns/ConcernsSubtabs'
 
-interface Props { user: User; onBack?: () => void }
+interface Props { user: User; onNavigateTab?: (tab: ConcernsTab) => void }
 
 const METRIC_LABELS: { key: keyof HairEntry; label: string; desc: string }[] = [
   { key: 'shedding_level', label: 'Выпадение', desc: '1 — минимальное, 5 — сильное' },
@@ -73,7 +74,7 @@ function PhotoSlot({ label, icon, onFile, url }: {
   )
 }
 
-export function HairScreen({ user, onBack }: Props) {
+export function HairScreen({ user, onNavigateTab }: Props) {
   const { t } = useT()
   const [entries, setEntries] = useState<HairEntry[]>([])
   const [mode, setMode] = useState<'list' | 'add' | 'compare'>('list')
@@ -153,12 +154,7 @@ export function HairScreen({ user, onBack }: Props) {
 
   return (
     <div className="screen">
-      {onBack && (
-        <div className="concerns-subtabs">
-          <button className="concerns-subtab" onClick={onBack}>{t('Проблемы')}</button>
-          <button className="concerns-subtab active">{t('Волосы')}</button>
-        </div>
-      )}
+      {onNavigateTab && <ConcernsSubtabs active="hair" onNavigate={onNavigateTab} />}
       <div className="goals-header">
         <h2>{t('Волосы')}</h2>
         <div style={{ display: 'flex', gap: 8 }}>

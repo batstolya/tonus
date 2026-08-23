@@ -8,6 +8,22 @@ export const health: Record<string, Translation> = {
   'Препараты и добавки': { uk: 'Препарати та добавки', en: 'Supplements & meds' },
   'Препарат': { uk: 'Препарат', en: 'Supplement' },
   'Название (напр. Витамин D)': { uk: 'Назва (напр. Вітамін D)', en: 'Name (e.g. Vitamin D)' },
+  // Наблюдения — свободные записи (spec 2026-08-23-observations-design.md)
+  'Наблюдения': { uk: 'Спостереження', en: 'Observations' },
+  'Записи «сегодня заметил, что…» — попадают в отчёт врачу': {
+    uk: 'Записи «сьогодні помітив, що…» — потрапляють у звіт лікарю',
+    en: 'Notes like "today I noticed…" — they go into the doctor report',
+  },
+  'Что заметил?': { uk: 'Що помітив?', en: 'What did you notice?' },
+  'Свободные записи пациента, без шкалы': {
+    uk: 'Вільні записи пацієнта, без шкали',
+    en: "Patient's free-form notes, no scale",
+  },
+  'По темам': { uk: 'За темами', en: 'By topic' },
+  'Кожа': { uk: 'Шкіра', en: 'Skin' },
+  'ЖКТ': { uk: 'ШКТ', en: 'Digestion' },
+  'Самочувствие': { uk: 'Самопочуття', en: 'Wellbeing' },
+  'Другое': { uk: 'Інше', en: 'Other' },
   'Доза (напр. 5000)': { uk: 'Доза (напр. 5000)', en: 'Dose (e.g. 5000)' },
   'раз в день': { uk: 'разів на день', en: 'times a day' },
   '× в день': { uk: '× на день', en: '× a day' },

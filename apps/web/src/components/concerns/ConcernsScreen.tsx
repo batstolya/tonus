@@ -6,13 +6,14 @@ import {
   CATEGORIES, STATUS_LABELS, formatLogTime, compareLogsDesc,
   type HealthConcern, type ConcernLog,
 } from '../../lib/concerns'
+import { ConcernsSubtabs, type ConcernsTab } from './ConcernsSubtabs'
 import { LoadError } from '../ui/LoadError'
 import { useT } from '../../lib/i18n'
 import { Icon } from '../../lib/icons'
 import { startEffect } from '../../lib/startEffect'
 import { isMasked, loadPinHash, unlock } from '../../lib/privacy'
 
-interface Props { user: User; onNavigateHair?: () => void }
+interface Props { user: User; onNavigateTab?: (tab: ConcernsTab) => void }
 
 const SEVERITY_LABELS = ['', '1 — Почти нет', '2 — Слабо', '3 — Умеренно', '4 — Сильно', '5 — Очень сильно']
 // Severity 1..5 is an ordered judgement, so it ramps across the status family
@@ -208,7 +209,7 @@ export function ConcernDetail({ concern, userId, onBack, onUpdate }: {
   )
 }
 
-export function ConcernsScreen({ user, onNavigateHair }: Props) {
+export function ConcernsScreen({ user, onNavigateTab }: Props) {
   const { t } = useT()
   const [concerns, setConcerns] = useState<HealthConcern[]>([])
   const [selected, setSelected] = useState<HealthConcern | null>(null)
@@ -278,12 +279,7 @@ export function ConcernsScreen({ user, onNavigateHair }: Props) {
 
   return (
     <div className="screen">
-      {onNavigateHair && (
-        <div className="concerns-subtabs">
-          <button className="concerns-subtab active">{t('Проблемы')}</button>
-          <button className="concerns-subtab" onClick={onNavigateHair}>{t('Волосы')}</button>
-        </div>
-      )}
+      {onNavigateTab && <ConcernsSubtabs active="concerns" onNavigate={onNavigateTab} />}
       <div className="goals-header">
         <h2>{t('Проблемы и симптомы')}</h2>
         <button className="btn-primary" onClick={() => setShowForm(s => !s)}>
