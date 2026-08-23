@@ -27,7 +27,7 @@ function stubSupabase(dataByTable: Record<string, unknown[]>) {
 const emptyCtx: HealthContext = {
   periodDays: 14, timezone: 'Europe/Berlin', coachProfile: null, scores: null, metrics: [], sleep: [],
   labs: [], supplements: [], intake: [], supplementLogs: [], notes: [],
-  calendar: [], goals: [], experiments: [], environment: [], concerns: [], hairEntries: [],
+  calendar: [], goals: [], experiments: [], environment: [], concerns: [], observations: [], hairEntries: [],
   alerts: [], recommendations: [],
 }
 
@@ -294,6 +294,48 @@ describe('healthContextToText: concerns & hair entries', () => {
   })
 })
 
+describe('buildHealthContext: observations', () => {
+  it('loads free-form observations of the period', async () => {
+    const sb = stubSupabase({
+      observations: [
+        { date: '2026-07-04', at_time: '21:40:00', tag: 'sleep', note: 'долго не мог уснуть' },
+        { date: '2026-07-02', at_time: null, tag: 'skin', note: 'сухая кожа' },
+      ],
+    })
+    const ctx = await buildHealthContext(sb, 'user-1')
+    expect(ctx.observations).toHaveLength(2)
+    expect(ctx.observations[0]).toEqual({
+      date: '2026-07-04', at_time: '21:40:00', tag: 'sleep', note: 'долго не мог уснуть',
+    })
+  })
+})
+
+describe('healthContextToText: observations', () => {
+  it('renders observations with their time and tag', () => {
+    const text = healthContextToText({
+      ...emptyCtx,
+      observations: [
+        { date: '2026-07-04', at_time: '21:40:00', tag: 'sleep', note: 'долго не мог уснуть' },
+      ],
+    })
+    expect(text).toContain('Наблюдения пациента')
+    expect(text).toContain('2026-07-04 21:40 [сон]: долго не мог уснуть')
+  })
+
+  it('prints an entry without a time as the date alone', () => {
+    const text = healthContextToText({
+      ...emptyCtx,
+      observations: [{ date: '2026-07-02', at_time: null, tag: 'skin', note: 'сухая кожа' }],
+    })
+    expect(text).toContain('2026-07-02 [кожа]: сухая кожа')
+    expect(text).not.toContain('2026-07-02  [')
+  })
+
+  it('says nothing at all when there are no observations', () => {
+    expect(healthContextToText(emptyCtx)).not.toContain('Наблюдения пациента')
+  })
+})
+
 describe('buildHealthContext: health alerts', () => {
   it('loads anomaly alerts and drops legacy reminder-dedup rows without a level', async () => {
     const sb = stubSupabase({
@@ -395,6 +437,7 @@ describe('healthContextToText: full coverage', () => {
         { date: '2026-07-04', temp_c: 22.1, pressure_hpa: 1015, daylight_minutes: 952, precipitation_mm: 2, kp_index: 2 },
       ],
       concerns: [{ name: 'Высыпания', category: 'skin', status: 'active', lastLog: { date: '2026-07-04', severity: 3, note: null } }],
+      observations: [{ date: '2026-07-04', at_time: '21:40:00', tag: 'sleep', note: 'долго не мог уснуть' }],
       hairEntries: [{ date: '2026-06-15', shedding_level: 2, density_rating: 3, hairline_rating: 4, scalp_note: null }],
       alerts: [{ date: '2026-07-03', level: 'red', message: 'Рост пульса покоя' }],
       recommendations: [{ metric: 'sleepHours', text: 'Ложиться на 30 мин раньше', status: 'dismissed', created_at: '2026-06-01T00:00:00Z' }],
@@ -405,7 +448,7 @@ describe('healthContextToText: full coverage', () => {
       'Приём препаратов', 'Заметки дня', 'Календарь',
       'Цели пользователя', 'Эксперименты пользователя',
       'Погода (2026-07-05)', 'давление 1008 гПа (-7 за сутки)', 'магнитная буря (Kp 6)',
-      'Отслеживаемые симптомы', 'Замеры волос (2026-06-15)',
+      'Отслеживаемые симптомы', 'Наблюдения пациента', 'Замеры волос (2026-06-15)',
       'Алерты стража здоровья', 'Прошлые рекомендации ИИ',
     ]) {
       expect(text, `секция «${marker}» выпала из контекста`).toContain(marker)
