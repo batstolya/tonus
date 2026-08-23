@@ -71,12 +71,20 @@ export interface HealthContext {
   // последние дни environment_daily (свежий первым)
   environment: { date: string; temp_c: number | null; pressure_hpa: number | null; daylight_minutes: number | null; precipitation_mm: number | null; kp_index: number | null }[]
   concerns: { name: string; category: string; status: string; lastLog: { date: string; severity: number | null; note: string | null } | null }[]
+  /** Свободные записи пациента: тег + текст, без шкалы (spec 2026-08-23-observations). */
+  observations: { date: string; at_time: string | null; tag: string; note: string }[]
   hairEntries: { date: string; shedding_level: number | null; density_rating: number | null; hairline_rating: number | null; scalp_note: string | null }[]
   alerts: { date: string | null; level: 'yellow' | 'red'; message: string }[]
   recommendations: { metric: string; text: string; status: string; created_at: string }[]
   // расписание тренировок + дни-факты за 7 дней (exerciseMinutes ≥ 30 ∪ workout intake)
   workoutSchedule: { day_times: DayTimes; enabled: boolean } | null
   workoutDoneDays: string[]
+}
+
+// Теги наблюдений хранятся кодом; в контекст уходят словами — модель отвечает
+// на языке интерфейса, но рассуждает по русскому промпту.
+const OBSERVATION_TAG_RU: Record<string, string> = {
+  sleep: 'сон', skin: 'кожа', gut: 'ЖКТ', wellbeing: 'самочувствие', other: 'другое',
 }
 
 const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
@@ -133,7 +141,7 @@ export async function buildHealthContext(
 
   const since7 = new Date(); since7.setDate(since7.getDate() - 7)
   const since7Str = since7.toISOString().slice(0, 10)
-  const [profRes, scoreRes, mRes, sRes, labRes, supRes, intakeRes, logRes, notesRes, calRes, goalRes, expRes, envRes, concernRes, concernLogRes, hairRes, alertRes, recRes, wsRes, exminRes] = await Promise.all([
+  const [profRes, scoreRes, mRes, sRes, labRes, supRes, intakeRes, logRes, notesRes, calRes, goalRes, expRes, envRes, concernRes, concernLogRes, obsRes, hairRes, alertRes, recRes, wsRes, exminRes] = await Promise.all([
     opts.includeCoachProfile
       ? supabase.from('coach_profile').select('summary, facts').eq('user_id', userId).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -177,6 +185,12 @@ export async function buildHealthContext(
     supabase.from('concern_logs')
       .select('concern_id, date, severity, note')
       .eq('user_id', userId).gte('date', sinceStr).order('date', { ascending: false }).limit(100),
+    supabase.from('observations')
+      .select('date, at_time, tag, note')
+      .eq('user_id', userId).gte('date', sinceStr)
+      .order('date', { ascending: false })
+      .order('at_time', { ascending: false, nullsFirst: false })
+      .limit(30),
     supabase.from('hair_entries')
       .select('date, shedding_level, density_rating, hairline_rating, scalp_note')
       .eq('user_id', userId).gte('date', sinceStr).order('date', { ascending: false }).limit(6),
@@ -258,6 +272,7 @@ export async function buildHealthContext(
     experiments: expRes.data ?? [],
     environment: envRes.data ?? [],
     concerns,
+    observations: obsRes.data ?? [],
     hairEntries: hairRes.data ?? [],
     alerts,
     recommendations: recRes.data ?? [],
@@ -489,6 +504,16 @@ export function healthContextToText(ctx: HealthContext): string {
         ? ` — последняя severity ${c.lastLog.severity ?? '—'}/5 (${c.lastLog.date}${c.lastLog.note ? `, "${c.lastLog.note}"` : ''})`
         : ` — нет логов за последние ${ctx.periodDays} дн.`
       parts.push(`— ${c.name} (${c.category}, ${c.status})${log}`)
+    }
+  }
+
+  if (ctx.observations.length) {
+    // Свободные записи без шкалы: модель должна видеть их как слова пациента,
+    // а не как измерение. Порядок — как в базе, свежие сверху.
+    parts.push(`\nНаблюдения пациента (свободные записи, ${ctx.periodDays} дн.):`)
+    for (const o of ctx.observations) {
+      const at = o.at_time ? ` ${o.at_time.slice(0, 5)}` : ''
+      parts.push(`— ${o.date}${at} [${OBSERVATION_TAG_RU[o.tag] ?? o.tag}]: ${o.note}`)
     }
   }
 
