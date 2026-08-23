@@ -23,7 +23,7 @@ export interface MetricRow { date: string; metric: string; avg_val: number }
 /** Adherence logs for the rolling window; RLS scopes rows to the current user. */
 export async function getAdherenceLogs(sinceDate: string): Promise<AdherenceLog[]> {
   const { data } = await supabase.from('supplement_logs')
-    .select('supplement_id, date, taken')
+    .select('supplement_id, date, taken, taken_count')
     .gte('date', sinceDate)
   return (data ?? []) as AdherenceLog[]
 }

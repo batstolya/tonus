@@ -1563,6 +1563,9 @@ body {
 .supp-input { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--r-field); padding: 8px 12px; font-size: 14px; color: var(--text); font-family: inherit; }
 .supp-input:focus { outline: none; border-color: var(--accent); }
 .supp-input-sm { width: 100px; }
+.supp-input-xs { width: 56px; }
+.supp-doses-field { display: inline-flex; align-items: center; gap: 6px; }
+.supp-doses-label { font-size: 12px; color: var(--text-muted); }
 .supp-month-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
 .supp-month-label { font-size: 15px; font-weight: 600; text-transform: capitalize; }
 .supp-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
@@ -1815,11 +1818,20 @@ body {
 .supp-cell.future { opacity: 0.35; cursor: default; }
 .supp-cell.today { border: 2px solid var(--accent); }
 .supp-cell.taken { background: rgba(91,200,150,0.18); }
+/* Частичный день (не все дозы) — та же зелень, но бледнее. */
+.supp-cell.taken.partial { background: rgba(91,200,150,0.08); }
+.supp-cell.taken.partial:hover { background: rgba(91,200,150,0.16); }
 .supp-cell:not(.empty):not(.future):hover { background: var(--border); }
 .supp-cell.taken:hover { background: rgba(91,200,150,0.28); }
 .supp-day-num { font-size: 11px; color: var(--text-muted); line-height: 1; }
 .supp-cell.taken .supp-day-num { color: var(--green); }
 .supp-check { color: var(--green); }
+.supp-dose-count { font-size: 9px; font-weight: 600; line-height: 1; color: var(--green); opacity: 0.85; }
+.supp-doses-edit { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-muted); }
+.supp-doses-edit input {
+  width: 42px; font-size: 12px; padding: 2px 4px; text-align: center;
+  border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text);
+}
 
 /* ── Supplement stock panel ───────────────────────────────── */
 .supp-stock-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 20px; }

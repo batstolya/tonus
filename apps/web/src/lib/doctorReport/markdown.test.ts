@@ -258,7 +258,7 @@ describe('toMarkdown', () => {
       ...sources,
       supplements: [{
         id: 's1', user_id: 'u1', name: 'Магний', default_dose: '400', unit: 'мг',
-        active: true, sort_order: 0, created_at: '2026-07-01', stock_count: null,
+        active: true, sort_order: 0, created_at: '2026-07-01', stock_count: null, doses_per_day: 1,
       }],
       supplementLogs: [{ supplement_id: 's1', date: today, taken: true }],
     }

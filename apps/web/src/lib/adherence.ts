@@ -5,18 +5,22 @@
 export interface SupplementInfo {
   id: string
   name: string
+  /** Doses expected per day; absent means the old one-a-day behaviour. */
+  doses_per_day?: number | null
 }
 
 export interface AdherenceLog {
   supplement_id: string
   date: string // YYYY-MM-DD
   taken: boolean
+  /** Doses taken that day; absent means one, as before dose counts existed. */
+  taken_count?: number | null
 }
 
 export interface SupplementAdherence {
   id: string
   name: string
-  taken: number   // дней с приёмом в окне
+  taken: number   // дней с приёмом в окне (частичный день — дробью)
   days: number    // размер окна
   pct: number     // 0..100
   streak: number  // дней подряд (сегодня или до вчера включительно)
@@ -26,6 +30,8 @@ export interface AdherenceResult {
   items: SupplementAdherence[]
   overallPct: number | null // суммарно по всем препаратам; null если препаратов нет
 }
+
+import { clampDosesPerDay, doseFraction } from './supplementDose'
 
 const dayBefore = (date: string): string => {
   const d = new Date(date + 'T00:00:00Z')
@@ -47,27 +53,34 @@ export function computeAdherence(
     return d.toISOString().slice(0, 10)
   })()
 
-  // supplement_id → set дат приёма (только taken, только внутри окна)
-  const takenDates = new Map<string, Set<string>>()
+  // supplement_id → дата → доля дня (частичный приём считается дробью).
+  // День с любой дозой держит серию: пропущенный вечерний приём не обнуляет её.
+  const takenDates = new Map<string, Map<string, number>>()
+  const dosesById = new Map(
+    supplements.map(s => [s.id, clampDosesPerDay(s.doses_per_day ?? 1)]),
+  )
   for (const l of logs) {
     if (!l.taken || l.date < windowStart || l.date > today) continue
-    let set = takenDates.get(l.supplement_id)
-    if (!set) takenDates.set(l.supplement_id, set = new Set())
-    set.add(l.date)
+    const perDay = dosesById.get(l.supplement_id) ?? 1
+    const count = l.taken_count ?? 1
+    let byDate = takenDates.get(l.supplement_id)
+    if (!byDate) takenDates.set(l.supplement_id, byDate = new Map())
+    byDate.set(l.date, doseFraction(count, perDay))
   }
 
   const items: SupplementAdherence[] = supplements.map(s => {
-    const dates = takenDates.get(s.id) ?? new Set<string>()
+    const dates = takenDates.get(s.id) ?? new Map<string, number>()
     // серия: с сегодня; если сегодня ещё не отмечен — с вчера
     let cursor = dates.has(today) ? today : dayBefore(today)
     let streak = 0
     while (dates.has(cursor)) { streak++; cursor = dayBefore(cursor) }
+    const taken = [...dates.values()].reduce((a, b) => a + b, 0)
     return {
       id: s.id,
       name: s.name,
-      taken: dates.size,
+      taken,
       days: periodDays,
-      pct: Math.round((dates.size / periodDays) * 100),
+      pct: Math.round((taken / periodDays) * 100),
       streak,
     }
   })

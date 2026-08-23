@@ -61,6 +61,12 @@
       "credentialType": "service-role",
       "dataSensitivity": "internal"
     },
+    "delete_user_data": {
+      "signature": "delete_user_data(uuid)",
+      "authOwner": "service-role",
+      "credentialType": "service-role",
+      "dataSensitivity": "health"
+    },
     "fail_reminder_delivery": {
       "signature": "fail_reminder_delivery(uuid, uuid, text, boolean, integer)",
       "authOwner": "service-role",
@@ -71,6 +77,12 @@
       "signature": "generate_football_reminders()",
       "authOwner": "service-role",
       "credentialType": "service-role",
+      "dataSensitivity": "health"
+    },
+    "log_supplement_dose": {
+      "signature": "log_supplement_dose(uuid, uuid, date, integer)",
+      "authOwner": "rls:user_id",
+      "credentialType": "user-jwt-or-service-role",
       "dataSensitivity": "health"
     },
     "mark_football_reminder_failed": {
@@ -85,23 +97,17 @@
       "credentialType": "service-role",
       "dataSensitivity": "health"
     },
-    "schedule_env_sync": {
-      "signature": "schedule_env_sync(text)",
-      "authOwner": "service-role",
-      "credentialType": "service-role",
-      "dataSensitivity": "credential"
-    },
     "schedule_backup_reminder": {
       "signature": "schedule_backup_reminder(text)",
       "authOwner": "service-role",
       "credentialType": "service-role",
       "dataSensitivity": "credential"
     },
-    "delete_user_data": {
-      "signature": "delete_user_data(uuid)",
+    "schedule_env_sync": {
+      "signature": "schedule_env_sync(text)",
       "authOwner": "service-role",
       "credentialType": "service-role",
-      "dataSensitivity": "health"
+      "dataSensitivity": "credential"
     }
   },
   "rpcRemediations": {},

@@ -1808,6 +1808,7 @@ export type Database = {
           note: string | null
           supplement_id: string
           taken: boolean | null
+          taken_count: number
           user_id: string
         }
         Insert: {
@@ -1818,6 +1819,7 @@ export type Database = {
           note?: string | null
           supplement_id: string
           taken?: boolean | null
+          taken_count?: number
           user_id: string
         }
         Update: {
@@ -1828,6 +1830,7 @@ export type Database = {
           note?: string | null
           supplement_id?: string
           taken?: boolean | null
+          taken_count?: number
           user_id?: string
         }
         Relationships: [
@@ -1845,6 +1848,7 @@ export type Database = {
           active: boolean | null
           created_at: string | null
           default_dose: string | null
+          doses_per_day: number
           id: string
           name: string
           sort_order: number | null
@@ -1856,6 +1860,7 @@ export type Database = {
           active?: boolean | null
           created_at?: string | null
           default_dose?: string | null
+          doses_per_day?: number
           id?: string
           name: string
           sort_order?: number | null
@@ -1867,6 +1872,7 @@ export type Database = {
           active?: boolean | null
           created_at?: string | null
           default_dose?: string | null
+          doses_per_day?: number
           id?: string
           name?: string
           sort_order?: number | null
@@ -2120,6 +2126,15 @@ export type Database = {
         Returns: boolean
       }
       generate_football_reminders: { Args: never; Returns: number }
+      log_supplement_dose: {
+        Args: {
+          p_date: string
+          p_delta: number
+          p_supplement_id: string
+          p_user_id: string
+        }
+        Returns: number
+      }
       mark_football_reminder_failed: {
         Args: { p_error_message: string; p_reminder_id: string }
         Returns: undefined
