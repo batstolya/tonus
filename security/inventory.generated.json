@@ -7,7 +7,7 @@
     "security/inventory-classification.json"
   ],
   "counts": {
-    "tables": 55,
+    "tables": 56,
     "views": 2,
     "rpcs": 12,
     "buckets": 1,
@@ -280,6 +280,13 @@
         "authOwner": "service-role",
         "dataSensitivity": "internal",
         "exposure": "service-only"
+      },
+      {
+        "name": "observations",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
       },
       {
         "name": "profiles",

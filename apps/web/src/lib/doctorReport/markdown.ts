@@ -1,5 +1,6 @@
 import { translations } from '../translations'
 import { formatLogTime } from '../concerns'
+import { OBSERVATION_TAG_LABEL } from '../observations'
 import { METRIC_DEFS, type MetricSummary } from './metrics'
 import { BAND_TEXT, POSITION_TEXT } from './reliability'
 import {
@@ -476,6 +477,20 @@ export function toMarkdown(model: DoctorReportModel, lang: ReportLang): string {
       }
       p()
     }
+  }
+
+  if (model.observations.total) {
+    p(`## ${t('Наблюдения')}`)
+    p()
+    p(`${t('Свободные записи пациента, без шкалы')}: ${model.observations.total}.`)
+    p(`${t('По темам')}: ${model.observations.byTag
+      .map(g => `${t(OBSERVATION_TAG_LABEL[g.tag])} — ${g.count}`)
+      .join(', ')}.`)
+    p()
+    for (const e of model.observations.entries) {
+      p(`- ${e.date}${e.time ? ` ${e.time}` : ''} [${t(OBSERVATION_TAG_LABEL[e.tag])}]: ${e.note}`)
+    }
+    p()
   }
 
   if (model.journal.wellbeingCount || model.journal.notes.length) {

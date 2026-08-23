@@ -16,7 +16,7 @@ const today = () => new Date().toISOString().slice(0, 10)
 
 // ── Полный бэкап в JSON ─────────────────────────────────────────────────────
 export async function exportAllJSON(userId: string): Promise<void> {
-  const [daily, intake, sups, supLogs, labs, concerns, concernLogs, notes, hair] = await Promise.all([
+  const [daily, intake, sups, supLogs, labs, concerns, concernLogs, observations, notes, hair] = await Promise.all([
     loadMetricsFromSupabase(userId),
     supabase.from('intake_events').select('ts, type, amount, unit, note').eq('user_id', userId).order('ts'),
     supabase.from('supplements').select('name, default_dose, unit, active').eq('user_id', userId),
@@ -24,6 +24,7 @@ export async function exportAllJSON(userId: string): Promise<void> {
     supabase.from('lab_results').select('marker, value, unit, ref_range, flag, date').eq('user_id', userId).order('date'),
     supabase.from('health_concerns').select('name, category, status, started_at').eq('user_id', userId),
     supabase.from('concern_logs').select('concern_id, date, at_time, severity, note').eq('user_id', userId),
+    supabase.from('observations').select('date, at_time, tag, note').eq('user_id', userId).order('date'),
     supabase.from('context_notes').select('date, note').eq('user_id', userId).order('date'),
     supabase.from('hair_entries').select('date, shedding_level, density_rating, hairline_rating, notes').eq('user_id', userId).order('date'),
   ])
@@ -38,6 +39,7 @@ export async function exportAllJSON(userId: string): Promise<void> {
     labResults: labs.data ?? [],
     concerns: concerns.data ?? [],
     concernLogs: concernLogs.data ?? [],
+    observations: observations.data ?? [],
     dayNotes: notes.data ?? [],
     hairEntries: hair.data ?? [],
   }

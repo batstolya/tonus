@@ -18,7 +18,7 @@ vi.mock('../../lib/doctorReport/load', async () => {
   return {
     ...actual,
     loadReportSources: async () => ({
-      labs: [], supplements: [], supplementLogs: [], notes: [], intake: [], nutrition: [], concernLogs: [],
+      labs: [], supplements: [], supplementLogs: [], notes: [], intake: [], nutrition: [], concernLogs: [], observations: [],
       profile: null,
       concerns: [
         { id: 'p', user_id: 'u1', name: 'Приватная жалоба', category: 'other', status: 'active',

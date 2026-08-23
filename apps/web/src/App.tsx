@@ -35,6 +35,7 @@ const SettingsScreen = lazy(() => import('./components/settings/SettingsScreen')
 const GoalsScreen = lazy(() => import('./components/goals/GoalsScreen').then(m => ({ default: m.GoalsScreen })))
 const ConcernsScreen = lazy(() => import('./components/concerns/ConcernsScreen').then(m => ({ default: m.ConcernsScreen })))
 const HairScreen = lazy(() => import('./components/hair/HairScreen').then(m => ({ default: m.HairScreen })))
+const ObservationsScreen = lazy(() => import('./components/concerns/ObservationsScreen').then(m => ({ default: m.ObservationsScreen })))
 import { useAuth } from './hooks/useAuth'
 import { useTheme } from './hooks/useTheme'
 import { useNavLayout } from './hooks/useNavLayout'
@@ -324,9 +325,11 @@ export default function App() {
         ) : state.view === 'goals' ? (
           <GoalsScreen user={user} daily={state.daily} />
         ) : state.view === 'concerns' ? (
-          <ConcernsScreen user={user} onNavigateHair={() => setView('hair')} />
+          <ConcernsScreen user={user} onNavigateTab={setView} />
+        ) : state.view === 'observations' ? (
+          <ObservationsScreen user={user} onNavigate={setView} />
         ) : state.view === 'hair' ? (
-          <HairScreen user={user} onBack={() => setView('concerns')} />
+          <HairScreen user={user} onNavigateTab={setView} />
         ) : state.view === 'settings' ? (
           <SettingsScreen
             user={user}

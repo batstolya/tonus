@@ -4,6 +4,7 @@ import { isDemoActive } from '../demo'
 import { demoList } from '../demoDb'
 import { loadAllConcerns, compareLogsAsc, type ConcernLog, type HealthConcern } from '../concerns'
 import { loadLabResults, type LabResult } from '../labs'
+import { type Observation } from '../observations'
 import {
   getSupplementLogsSince, loadProfileBasics,
   type SupplementAdherenceLog, type ProfileBasics,
@@ -115,12 +116,27 @@ export async function loadNutritionEvents(userId: string, since: string): Promis
     .range(from, to))
 }
 
+export async function loadAllObservations(userId: string, since: string): Promise<Observation[]> {
+  if (isDemoActive()) {
+    return (demoList('observations') as Observation[]).filter(o => o.date >= since)
+  }
+  return await fetchAllPages<Observation>((from, to) => supabase
+    .from('observations')
+    .select('*')
+    .eq('user_id', userId)
+    .gte('date', since)
+    .order('date')
+    .order('at_time', { ascending: true, nullsFirst: false })
+    .range(from, to))
+}
+
 export interface ReportSources {
   labs: LabResult[]
   supplements: Supplement[]
   supplementLogs: SupplementAdherenceLog[]
   concerns: HealthConcern[]
   concernLogs: ConcernLog[]
+  observations: Observation[]
   notes: JournalNote[]
   profile: ProfileBasics | null
   intake: IntakeEvent[]
@@ -132,7 +148,10 @@ export interface ReportSources {
  * table leaves its section empty instead of killing the whole report.
  */
 export async function loadReportSources(userId: string, since: string): Promise<ReportSources> {
-  const [labs, supplements, supplementLogs, concerns, concernLogs, notes, profile, intake, nutrition] = await Promise.all([
+  const [
+    labs, supplements, supplementLogs, concerns, concernLogs, observations,
+    notes, profile, intake, nutrition,
+  ] = await Promise.all([
     loadLabResults(userId).catch(() => [] as LabResult[]),
     loadAllSupplements(userId).catch(() => [] as Supplement[]),
     loadSupplementLogs(userId, since).catch(() => [] as SupplementAdherenceLog[]),
@@ -141,10 +160,14 @@ export async function loadReportSources(userId: string, since: string): Promise<
     // line ready for it. The patient unticks what is not worth printing.
     loadAllConcerns(userId).catch(() => [] as HealthConcern[]),
     loadAllConcernLogs(userId, since).catch(() => [] as ConcernLog[]),
+    loadAllObservations(userId, since).catch(() => [] as Observation[]),
     loadNotesWithWellbeing(userId, since).catch(() => [] as JournalNote[]),
     loadProfileBasics(userId).catch(() => null),
     loadIntakeEvents(userId, since).catch(() => [] as IntakeEvent[]),
     loadNutritionEvents(userId, since).catch(() => [] as NutritionEvent[]),
   ])
-  return { labs, supplements, supplementLogs, concerns, concernLogs, notes, profile, intake, nutrition }
+  return {
+    labs, supplements, supplementLogs, concerns, concernLogs, observations,
+    notes, profile, intake, nutrition,
+  }
 }

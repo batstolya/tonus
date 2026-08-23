@@ -5,6 +5,35 @@
 import type { Translation } from './index'
 
 export const demo: Record<string, Translation> = {
+  // Демо-наблюдения (spec 2026-08-23-observations-design.md)
+  'Долго не мог уснуть, в голове крутились задачи': {
+    uk: 'Довго не міг заснути, у голові крутилися задачі',
+    en: 'Took a long time to fall asleep, tasks kept spinning in my head',
+  },
+  'Кожа на лбу суше обычного': {
+    uk: 'Шкіра на лобі сухіша, ніж зазвичай',
+    en: 'Forehead skin drier than usual',
+  },
+  'День прошёл ровно, без спадов': {
+    uk: 'День минув рівно, без спадів',
+    en: 'Steady day, no dips',
+  },
+  'Тяжесть после обеда': {
+    uk: 'Важкість після обіду',
+    en: 'Heaviness after lunch',
+  },
+  'Проснулся до будильника, выспался': {
+    uk: 'Прокинувся до будильника, виспався',
+    en: 'Woke before the alarm, well rested',
+  },
+  'Заметил, что стал больше пить воды': {
+    uk: 'Помітив, що став більше пити води',
+    en: 'Noticed I am drinking more water',
+  },
+  'Высыпание на подбородке, второй раз за месяц': {
+    uk: 'Висип на підборідді, вдруге за місяць',
+    en: 'Breakout on the chin, second time this month',
+  },
   // ── Эксперименты: гипотезы ─────────────────────────────────
   'Прогулка 30 минут после ужина улучшит глубокий сон': {
     uk: 'Прогулянка 30 хвилин після вечері покращить глибокий сон',
