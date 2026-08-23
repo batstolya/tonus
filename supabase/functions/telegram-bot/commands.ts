@@ -81,7 +81,7 @@ export async function handleSupplements(chatId: number | string, userId: string,
   const today = new Date().toISOString().slice(0, 10)
   const { data: sups } = await supabase
     .from('supplements')
-    .select('id, name, default_dose, unit')
+    .select('id, name, default_dose, unit, doses_per_day')
     .eq('user_id', userId)
     .eq('active', true)
 
@@ -92,22 +92,32 @@ export async function handleSupplements(chatId: number | string, userId: string,
 
   const { data: logs } = await supabase
     .from('supplement_logs')
-    .select('supplement_id, taken')
+    .select('supplement_id, taken, taken_count')
     .eq('user_id', userId)
     .eq('date', today)
 
-  const logRows: { supplement_id: string; taken: boolean }[] = logs ?? []
-  const takenSet = new Set(logRows.filter(l => l.taken).map(l => l.supplement_id))
-
-  const supRows: { id: string; name: string; default_dose: string | number | null; unit: string | null }[] = sups
-  const lines = [`💊 Препараты на сегодня (${today})`, '']
-  for (const s of supRows) {
-    const taken = takenSet.has(s.id)
-    const dose = s.default_dose ? ` ${s.default_dose}${s.unit ? ' ' + s.unit : ''}` : ''
-    lines.push(`${taken ? '✅' : '⬜'} ${s.name}${dose}`)
+  const logRows: { supplement_id: string; taken: boolean; taken_count: number | null }[] = logs ?? []
+  // Сколько доз уже отмечено сегодня; препарат «закрыт», только когда набраны все.
+  const takenCounts = new Map<string, number>()
+  for (const l of logRows) {
+    if (l.taken) takenCounts.set(l.supplement_id, l.taken_count ?? 1)
   }
 
-  const notTaken = supRows.filter(s => !takenSet.has(s.id))
+  const supRows: {
+    id: string; name: string; default_dose: string | number | null
+    unit: string | null; doses_per_day: number | null
+  }[] = sups
+  const lines = [`💊 Препараты на сегодня (${today})`, '']
+  for (const s of supRows) {
+    const perDay = s.doses_per_day ?? 1
+    const count = takenCounts.get(s.id) ?? 0
+    const dose = s.default_dose ? ` ${s.default_dose}${s.unit ? ' ' + s.unit : ''}` : ''
+    const progress = perDay > 1 ? ` — ${count}/${perDay}` : ''
+    lines.push(`${count >= perDay ? '✅' : count > 0 ? '🔸' : '⬜'} ${s.name}${dose}${progress}`)
+  }
+
+  // Кнопка остаётся и у частично принятых — иначе вторую дозу из меню не отметить.
+  const notTaken = supRows.filter(s => (takenCounts.get(s.id) ?? 0) < (s.doses_per_day ?? 1))
   const keyboard = {
     inline_keyboard: [
       ...notTaken.map(s => [{

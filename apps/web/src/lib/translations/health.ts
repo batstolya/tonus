@@ -9,6 +9,12 @@ export const health: Record<string, Translation> = {
   'Препарат': { uk: 'Препарат', en: 'Supplement' },
   'Название (напр. Витамин D)': { uk: 'Назва (напр. Вітамін D)', en: 'Name (e.g. Vitamin D)' },
   'Доза (напр. 5000)': { uk: 'Доза (напр. 5000)', en: 'Dose (e.g. 5000)' },
+  'раз в день': { uk: 'разів на день', en: 'times a day' },
+  '× в день': { uk: '× на день', en: '× a day' },
+  'Сколько раз в день принимаешь': {
+    uk: 'Скільки разів на день приймаєш',
+    en: 'How many times a day you take it',
+  },
   'Ед. (напр. IU)': { uk: 'Од. (напр. IU)', en: 'Unit (e.g. IU)' },
   'Нет препаратов. Нажми «+ Добавить» чтобы начать.': { uk: 'Немає препаратів. Натисни «+ Додати» щоб почати.', en: 'No supplements yet. Tap "+ Add" to start.' },
   'Колонка не найдена в БД. Запусти в Supabase SQL Editor:': { uk: 'Колонку не знайдено в БД. Запусти в Supabase SQL Editor:', en: 'Column not found in DB. Run in Supabase SQL Editor:' },

@@ -37,6 +37,7 @@ export interface SeedSupplement {
   sort_order: number
   created_at: string
   stock_count: number | null
+  doses_per_day: number
 }
 
 export interface SeedSupplementLog {
@@ -45,6 +46,7 @@ export interface SeedSupplementLog {
   supplement_id: string
   date: string
   taken: boolean
+  taken_count: number
   dose: string | null
   note: string | null
 }
@@ -285,12 +287,14 @@ function makeIntakeEvents(days = 30): SeedIntakeEvent[] {
 }
 
 // ── БАДы: пять добавок, логи приёма с пропусками (соблюдение ~80%) ─────────
-const SUPPLEMENT_SEEDS: { name: string; dose: string; unit: string; stock: number }[] = [
-  { name: 'Витамин D3', dose: '2000', unit: 'МЕ', stock: 48 },
-  { name: 'Магний глицинат', dose: '400', unit: 'мг', stock: 22 },
-  { name: 'Омега-3', dose: '1000', unit: 'мг', stock: 60 },
-  { name: 'Креатин', dose: '5', unit: 'г', stock: 7 },
-  { name: 'Железо', dose: '25', unit: 'мг', stock: 30 },
+// doses: сколько раз в день. Магний трёхразовый — на нём в демо видно
+// частичные дни в календаре, ради которых счётчик доз и появился.
+const SUPPLEMENT_SEEDS: { name: string; dose: string; unit: string; stock: number; doses: number }[] = [
+  { name: 'Витамин D3', dose: '2000', unit: 'МЕ', stock: 48, doses: 1 },
+  { name: 'Магний глицинат', dose: '400', unit: 'мг', stock: 22, doses: 3 },
+  { name: 'Омега-3', dose: '1000', unit: 'мг', stock: 60, doses: 2 },
+  { name: 'Креатин', dose: '5', unit: 'г', stock: 7, doses: 1 },
+  { name: 'Железо', dose: '25', unit: 'мг', stock: 30, doses: 1 },
 ]
 
 function makeSupplements(): SeedSupplement[] {
@@ -304,6 +308,7 @@ function makeSupplements(): SeedSupplement[] {
     sort_order: i,
     created_at: at(90, 10),
     stock_count: s.stock,
+    doses_per_day: s.doses,
   }))
 }
 
@@ -315,12 +320,16 @@ function makeSupplementLogs(days = 30): SeedSupplementLog[] {
       // Пропуски: у каждого БАДа своя дисциплина, чтобы блок соблюдения не был скучным.
       const skipRate = 0.1 + si * 0.05
       if (rnd(i * 7 + si * 31) < skipRate) continue
+      // Часть дней у многоразовых БАДов неполная — календарь показывает «2/3».
+      const perDay = SUPPLEMENT_SEEDS[si].doses
+      const partial = perDay > 1 && rnd(i * 13 + si * 17) < 0.3
       out.push({
         id: `demo-suplog-${n++}`,
         user_id: DEMO_USER,
         supplement_id: `demo-sup-${si}`,
         date: dateStr(i),
         taken: true,
+        taken_count: partial ? Math.max(1, perDay - 1) : perDay,
         dose: SUPPLEMENT_SEEDS[si].dose,
         note: null,
       })

@@ -1,6 +1,7 @@
 import { supabase } from './supabase'
 import { isDemoActive } from './demo'
 import { demoList, demoInsert, demoUpdate, demoRemove, demoId } from './demoDb'
+import { clampDosesPerDay } from './supplementDose'
 
 export interface Supplement {
   id: string
@@ -12,6 +13,7 @@ export interface Supplement {
   sort_order: number
   created_at: string
   stock_count: number | null
+  doses_per_day: number
 }
 
 export interface SupplementLog {
@@ -19,6 +21,7 @@ export interface SupplementLog {
   supplement_id: string
   date: string
   taken: boolean
+  taken_count: number
   dose: string | null
   note: string | null
 }
@@ -39,20 +42,33 @@ export async function loadSupplements(userId: string): Promise<Supplement[]> {
   return (data ?? []) as Supplement[]
 }
 
-export async function addSupplement(userId: string, name: string, defaultDose?: string, unit?: string): Promise<Supplement | null> {
+export async function addSupplement(
+  userId: string, name: string, defaultDose?: string, unit?: string, dosesPerDay?: number,
+): Promise<Supplement | null> {
   if (isDemoActive()) {
     return demoInsert('supplements', {
       id: demoId('demo-sup'), user_id: userId, name,
       default_dose: defaultDose ?? null, unit: unit ?? null,
       active: true, sort_order: 99, created_at: new Date().toISOString(), stock_count: null,
+      doses_per_day: dosesPerDay ?? 1,
     }) as Supplement
   }
   const { data } = await supabase
     .from('supplements')
-    .insert({ user_id: userId, name, default_dose: defaultDose ?? null, unit: unit ?? null })
+    .insert({
+      user_id: userId, name, default_dose: defaultDose ?? null, unit: unit ?? null,
+      doses_per_day: clampDosesPerDay(dosesPerDay ?? 1),
+    })
     .select()
     .single()
   return data as Supplement | null
+}
+
+export async function updateDosesPerDay(id: string, dosesPerDay: number): Promise<boolean> {
+  const next = clampDosesPerDay(dosesPerDay)
+  if (isDemoActive()) { demoUpdate('supplements', id, { doses_per_day: next }); return true }
+  const { error } = await supabase.from('supplements').update({ doses_per_day: next }).eq('id', id)
+  return !error
 }
 
 export async function updateStock(id: string, next: number): Promise<boolean> {
@@ -123,23 +139,33 @@ export async function saveReminder(
   return !error
 }
 
-export async function toggleLog(userId: string, supplementId: string, date: string, taken: boolean): Promise<void> {
+/**
+ * Write the exact number of doses taken on a day. The web knows the target
+ * value (the cell cycles through it), so it sets rather than increments;
+ * Telegram increments through the log_supplement_dose RPC instead.
+ */
+export async function setDoseCount(
+  userId: string, supplementId: string, date: string, count: number,
+): Promise<void> {
+  const taken = count > 0
   if (isDemoActive()) {
     const existing = (demoList('supplement_logs') as SupplementLog[])
       .find(l => l.supplement_id === supplementId && l.date === date)
-    if (taken && !existing) {
+    if (taken && existing) {
+      demoUpdate('supplement_logs', existing.id, { taken: true, taken_count: count })
+    } else if (taken) {
       demoInsert('supplement_logs', {
         id: demoId('demo-suplog'), user_id: userId, supplement_id: supplementId,
-        date, taken: true, dose: null, note: null,
+        date, taken: true, taken_count: count, dose: null, note: null,
       })
-    } else if (!taken && existing) {
+    } else if (existing) {
       demoRemove('supplement_logs', existing.id)
     }
     return
   }
   if (taken) {
     await supabase.from('supplement_logs').upsert(
-      { user_id: userId, supplement_id: supplementId, date, taken: true },
+      { user_id: userId, supplement_id: supplementId, date, taken: true, taken_count: count },
       { onConflict: 'user_id,supplement_id,date' }
     )
   } else {

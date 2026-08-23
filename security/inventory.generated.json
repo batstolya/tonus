@@ -9,7 +9,7 @@
   "counts": {
     "tables": 55,
     "views": 2,
-    "rpcs": 11,
+    "rpcs": 12,
     "buckets": 1,
     "edgeFunctions": 25
   },
@@ -465,6 +465,13 @@
         "signature": "generate_football_reminders()",
         "authOwner": "service-role",
         "credentialType": "service-role",
+        "dataSensitivity": "health"
+      },
+      {
+        "name": "log_supplement_dose",
+        "signature": "log_supplement_dose(uuid, uuid, date, integer)",
+        "authOwner": "rls:user_id",
+        "credentialType": "user-jwt-or-service-role",
         "dataSensitivity": "health"
       },
       {

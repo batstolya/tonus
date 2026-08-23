@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import type { User } from '@supabase/supabase-js'
 import {
   loadSupplements, addSupplement, deleteSupplement, updateStock,
-  loadLogsForMonth, toggleLog,
+  loadLogsForMonth, setDoseCount, updateDosesPerDay,
   loadReminders, saveReminder,
   type Supplement, type SupplementLog, type ReminderSetting,
 } from '../../lib/supplements'
@@ -14,6 +14,7 @@ import { SupplementSchedule } from './SupplementSchedule'
 import { AdherenceBlock } from './AdherenceBlock'
 import { LoadError } from '../ui/LoadError'
 import { startEffect } from '../../lib/startEffect'
+import { nextDoseCount, doseFraction, clampDosesPerDay, MAX_DOSES_PER_DAY } from '../../lib/supplementDose'
 
 interface Props {
   user: User
@@ -35,12 +36,22 @@ function toDateStr(d: Date): string {
   return d.toISOString().slice(0, 10)
 }
 
-function compliance(logs: SupplementLog[], supplementId: string, days: Date[]): number {
-  const taken = days.filter(d => {
+// Частичный день считается дробью: 2 дозы из 3 — две трети дня. Иначе одна
+// забытая вечерняя таблетка обнуляла бы весь день.
+function compliance(
+  logs: SupplementLog[], supplementId: string, days: Date[], dosesPerDay: number,
+): number {
+  const taken = days.reduce((sum, d) => {
     const ds = toDateStr(d)
-    return logs.some(l => l.supplement_id === supplementId && l.date === ds && l.taken)
-  }).length
+    const log = logs.find(l => l.supplement_id === supplementId && l.date === ds && l.taken)
+    return sum + (log ? doseFraction(log.taken_count ?? 1, dosesPerDay) : 0)
+  }, 0)
   return days.length ? Math.round((taken / days.length) * 100) : 0
+}
+
+function countFor(logs: SupplementLog[], supplementId: string, date: string): number {
+  const log = logs.find(l => l.supplement_id === supplementId && l.date === date && l.taken)
+  return log ? (log.taken_count ?? 1) : 0
 }
 
 export function SupplementsScreen({ user }: Props) {
@@ -54,6 +65,7 @@ export function SupplementsScreen({ user }: Props) {
   const [newName, setNewName] = useState('')
   const [newDose, setNewDose] = useState('')
   const [newUnit, setNewUnit] = useState('')
+  const [newDoses, setNewDoses] = useState(1)
   const [adding, setAdding] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [editingStock, setEditingStock] = useState<string | null>(null)
@@ -105,9 +117,11 @@ export function SupplementsScreen({ user }: Props) {
   async function handleAdd() {
     if (!newName.trim()) return
     setAdding(true)
-    const sup = await addSupplement(user.id, newName.trim(), newDose.trim() || undefined, newUnit.trim() || undefined)
+    const sup = await addSupplement(
+      user.id, newName.trim(), newDose.trim() || undefined, newUnit.trim() || undefined, newDoses,
+    )
     if (sup) setSupplements(prev => [...prev, sup])
-    setNewName(''); setNewDose(''); setNewUnit(''); setShowForm(false)
+    setNewName(''); setNewDose(''); setNewUnit(''); setNewDoses(1); setShowForm(false)
     setAdding(false)
   }
 
@@ -136,26 +150,42 @@ export function SupplementsScreen({ user }: Props) {
   }
 
   async function handleToggle(supplementId: string, date: string) {
-    const existing = logs.find(l => l.supplement_id === supplementId && l.date === date && l.taken)
-    const nextTaken = !existing
+    const sup = supplements.find(s => s.id === supplementId)
+    if (!sup) return
+    const perDay = clampDosesPerDay(sup.doses_per_day ?? 1)
+    const current = countFor(logs, supplementId, date)
+    const next = nextDoseCount(current, perDay)
     setLogs(prev => {
       const filtered = prev.filter(l => !(l.supplement_id === supplementId && l.date === date))
-      if (nextTaken) return [...filtered, { id: crypto.randomUUID(), supplement_id: supplementId, date, taken: true, dose: null, note: null }]
+      if (next > 0) {
+        return [...filtered, {
+          id: crypto.randomUUID(), supplement_id: supplementId, date,
+          taken: true, taken_count: next, dose: null, note: null,
+        }]
+      }
       return filtered
     })
-    await toggleLog(user.id, supplementId, date, nextTaken)
+    await setDoseCount(user.id, supplementId, date, next)
     // После записи в базу даём AdherenceBlock перечитать своё окно логов.
     setLogsVersion(v => v + 1)
 
-    // Auto-decrement stock when marking as taken (only for today)
-    if (nextTaken && date === todayStr) {
-      const sup = supplements.find(s => s.id === supplementId)
-      if (sup && sup.stock_count !== null && sup.stock_count > 0) {
-        const next = sup.stock_count - 1
-        setSupplements(prev => prev.map(s => s.id === supplementId ? { ...s, stock_count: next } : s))
-        await updateStock(supplementId, next)
+    // Остаток тратится по дозам: сколько приёмов прибавили — столько списали,
+    // откат к нулю возвращает их назад. Только за сегодня.
+    if (date === todayStr && sup.stock_count !== null) {
+      const spent = next - current
+      const stockNext = Math.max(0, sup.stock_count - spent)
+      if (stockNext !== sup.stock_count) {
+        setSupplements(prev => prev.map(s => s.id === supplementId ? { ...s, stock_count: stockNext } : s))
+        await updateStock(supplementId, stockNext)
       }
     }
+  }
+
+  async function handleDosesPerDay(id: string, value: number) {
+    const next = clampDosesPerDay(value)
+    setSupplements(prev => prev.map(s => s.id === id ? { ...s, doses_per_day: next } : s))
+    await updateDosesPerDay(id, next)
+    setLogsVersion(v => v + 1)
   }
 
   const monthName = new Date(year, month - 1).toLocaleDateString(locale, { month: 'long', year: 'numeric' })
@@ -193,6 +223,17 @@ export function SupplementsScreen({ user }: Props) {
             value={newUnit}
             onChange={e => setNewUnit(e.target.value)}
           />
+          <label className="supp-doses-field">
+            <span className="supp-doses-label">{t('раз в день')}</span>
+            <input
+              className="supp-input supp-input-xs"
+              type="number"
+              min={1}
+              max={MAX_DOSES_PER_DAY}
+              value={newDoses}
+              onChange={e => setNewDoses(clampDosesPerDay(Number(e.target.value)))}
+            />
+          </label>
           <button className="btn-primary" onClick={handleAdd} disabled={adding || !newName.trim()}>
             {adding ? '…' : t('Сохранить')}
           </button>
@@ -289,7 +330,8 @@ export function SupplementsScreen({ user }: Props) {
       </div>
 
       {supplements.map(sup => {
-        const pct = compliance(logs, sup.id, days)
+        const perDay = clampDosesPerDay(sup.doses_per_day ?? 1)
+        const pct = compliance(logs, sup.id, days, perDay)
         return (
           <div key={sup.id} className="supp-card">
             <div className="supp-card-header">
@@ -300,6 +342,16 @@ export function SupplementsScreen({ user }: Props) {
                 )}
               </div>
               <div className="supp-card-actions">
+                <label className="supp-doses-edit" title={t('Сколько раз в день принимаешь')}>
+                  <input
+                    type="number"
+                    min={1}
+                    max={MAX_DOSES_PER_DAY}
+                    value={perDay}
+                    onChange={e => handleDosesPerDay(sup.id, Number(e.target.value))}
+                  />
+                  <span>{t('× в день')}</span>
+                </label>
                 <span className={`supp-pct ${pct >= 80 ? 'good' : pct >= 50 ? 'ok' : 'bad'}`}>{pct}%</span>
                 <button
                   className={`supp-bell${reminders[sup.id]?.enabled && reminders[sup.id]?.times.length ? ' active' : ''}`}
@@ -333,19 +385,24 @@ export function SupplementsScreen({ user }: Props) {
               {/* Day cells */}
               {days.map(day => {
                 const ds = toDateStr(day)
-                const taken = logs.some(l => l.supplement_id === sup.id && l.date === ds && l.taken)
+                const count = countFor(logs, sup.id, ds)
+                const taken = count > 0
+                const full = taken && count >= perDay
                 const isToday = ds === todayStr
                 const isFuture = ds > todayStr
                 return (
                   <button
                     key={ds}
-                    className={`supp-cell${taken ? ' taken' : ''}${isToday ? ' today' : ''}${isFuture ? ' future' : ''}`}
+                    className={`supp-cell${taken ? ' taken' : ''}${taken && !full ? ' partial' : ''}${isToday ? ' today' : ''}${isFuture ? ' future' : ''}`}
                     onClick={() => !isFuture && handleToggle(sup.id, ds)}
-                    title={ds}
+                    title={perDay > 1 ? `${ds} — ${count}/${perDay}` : ds}
                     disabled={isFuture}
                   >
                     <span className="supp-day-num">{day.getDate()}</span>
-                    {taken && (
+                    {taken && !full && (
+                      <span className="supp-dose-count">{count}/{perDay}</span>
+                    )}
+                    {full && (
                       <svg className="supp-check" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="20 6 9 17 4 12"/>
                       </svg>

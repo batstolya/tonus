@@ -66,4 +66,41 @@ describe('computeAdherence', () => {
     expect(res.items).toEqual([])
     expect(res.overallPct).toBeNull()
   })
+
+  it('counts partial days by dose', () => {
+    // 3 doses a day, two days logged: 3/3 and 1/3 → 1.33 of 14 days
+    const logs = [
+      { supplement_id: 'mg', date: d(0), taken: true, taken_count: 3 },
+      { supplement_id: 'mg', date: d(1), taken: true, taken_count: 1 },
+    ]
+    const { items } = computeAdherence(
+      [{ id: 'mg', name: 'Магний', doses_per_day: 3 }], logs, 14, TODAY)
+    expect(items[0].taken).toBeCloseTo(1 + 1 / 3)
+    expect(items[0].pct).toBe(10) // round(1.333 / 14 * 100)
+  })
+
+  it('counts a partial day toward the streak', () => {
+    const logs = [0, 1].map(i => ({
+      supplement_id: 'mg', date: d(i), taken: true, taken_count: 1,
+    }))
+    const { items } = computeAdherence(
+      [{ id: 'mg', name: 'Магний', doses_per_day: 3 }], logs, 14, TODAY)
+    expect(items[0].streak).toBe(2)
+  })
+
+  it('never lets extra doses push a day above 100%', () => {
+    const logs = Array.from({ length: 14 }, (_, i) => ({
+      supplement_id: 'mg', date: d(i), taken: true, taken_count: 9,
+    }))
+    const { items } = computeAdherence(
+      [{ id: 'mg', name: 'Магний', doses_per_day: 3 }], logs, 14, TODAY)
+    expect(items[0].pct).toBe(100)
+  })
+
+  it('falls back to one dose when the log predates dose counts', () => {
+    const logs = [0, 1, 2, 3, 4, 5, 6].map(i => log('mg', i))
+    const { items } = computeAdherence([sup('mg', 'Магний')], logs, 14, TODAY)
+    expect(items[0].pct).toBe(50)
+  })
 })
+

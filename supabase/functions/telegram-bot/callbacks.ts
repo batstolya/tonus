@@ -6,6 +6,7 @@ import { type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { localDate } from '../_shared/time.ts'
 import { parseFootballCallback, buildFootballResponseText } from '../_shared/football.ts'
 import { addDays as expAddDays, computeBaselineStart } from '../_shared/experiments.ts'
+import { takeDose, doseProgressText } from '../_shared/supplementDose.ts'
 import { tgCall, tgSend, tgEdit, tgAnswerCallback } from './tg.ts'
 import { MAIN_MENU, BACK_MENU } from './menus.ts'
 import { routeCallback } from './router.ts'
@@ -106,12 +107,13 @@ export async function handleCallback(cq: CallbackQuery, supabase: SupabaseClient
   } else if (route.kind === 'take') {
     const supId = route.supplementId
     const today = new Date().toISOString().slice(0, 10)
-    await supabase.from('supplement_logs').upsert(
-      { user_id: userId, supplement_id: supId, date: today, taken: true },
-      { onConflict: 'user_id,supplement_id,date' }
-    )
+    const progress = await takeDose(supabase, userId, supId, today)
     const { data: sup } = await supabase.from('supplements').select('name').eq('id', supId).single()
-    await tgSend(chatId, `✅ ${sup?.name ?? 'Препарат'} отмечен как принятый сегодня.`, { reply_markup: BACK_MENU })
+    const name = sup?.name ?? 'Препарат'
+    const suffix = progress && progress.perDay > 1 && progress.count < progress.perDay
+      ? ` (${progress.count}/${progress.perDay})`
+      : ''
+    await tgSend(chatId, `✅ ${name} отмечен как принятый сегодня${suffix}.`, { reply_markup: BACK_MENU })
   } else if (route.kind === 'reminder') {
     // ── Напоминание о приёме: принял / отложить / пропустить ──
     // Во всех ветках РЕДАКТИРУЕМ исходное сообщение (без reply_markup → кнопки
@@ -142,12 +144,9 @@ export async function handleCallback(cq: CallbackQuery, supabase: SupabaseClient
         .from('reminder_settings').select('timezone')
         .eq('user_id', userId).eq('supplement_id', ev.supplement_id).maybeSingle()
       const today = localDate(rs?.timezone || 'Europe/Kyiv', ev.due_at ? new Date(ev.due_at) : new Date())
-      await supabase.from('supplement_logs').upsert(
-        { user_id: userId, supplement_id: ev.supplement_id, date: today, taken: true },
-        { onConflict: 'user_id,supplement_id,date' }
-      )
+      const progress = await takeDose(supabase, userId, ev.supplement_id, today)
       await supabase.from('reminder_events').update({ status: 'taken', responded_at: now }).eq('id', evId)
-      await resolve(`✅ <b>${name}</b> — принято. Молодец!`)
+      await resolve(doseProgressText(name, progress))
     } else if (action === 'snz') {
       // R4: предел переносов — не дальше 4ч от исходной дозы
       const until = new Date(Date.now() + mins * 60000)
