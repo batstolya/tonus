@@ -46,6 +46,27 @@ const cellForToday = () => screen.getByTitle(new RegExp(`^${todayStr}`))
 beforeEach(() => localStorage.setItem('lang', 'en'))
 afterEach(() => { cleanup(); vi.clearAllMocks(); localStorage.clear() })
 
+describe('SupplementsScreen reminder bell', () => {
+  it('marks the bell active when a reminder is on and has times', async () => {
+    lib.loadSupplements.mockResolvedValue([supplement(1)])
+    lib.loadReminders.mockResolvedValue({
+      s1: { supplement_id: 's1', times: ['09:00'], weekdays: [1,2,3,4,5,6,7], timezone: 'Europe/Kyiv', quiet_until: null, enabled: true },
+    })
+    renderWithProviders(<SupplementsScreen user={user} />)
+    await waitFor(() => expect(screen.getByTitle('Reminders').className).toContain('active'))
+  })
+
+  it('leaves the bell inactive when the reminder is off or has no times', async () => {
+    lib.loadSupplements.mockResolvedValue([supplement(1)])
+    lib.loadReminders.mockResolvedValue({
+      s1: { supplement_id: 's1', times: [], weekdays: [1,2,3,4,5,6,7], timezone: 'Europe/Kyiv', quiet_until: null, enabled: true },
+    })
+    renderWithProviders(<SupplementsScreen user={user} />)
+    await waitFor(() => expect(screen.getByTitle('Reminders')).toBeTruthy())
+    expect(screen.getByTitle('Reminders').className).not.toContain('active')
+  })
+})
+
 describe('SupplementsScreen dose cells', () => {
   it('walks every dose on click and then resets', async () => {
     lib.loadSupplements.mockResolvedValue([supplement(3)])

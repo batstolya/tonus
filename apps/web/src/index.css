@@ -1635,7 +1635,16 @@ body {
 .supp-delete:hover { color: var(--red); background: rgba(255,107,107,0.1); }
 .supp-bell { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 6px; border-radius: 6px; display: flex; align-items: center; transition: color 0.15s, background 0.15s; }
 .supp-bell:hover { color: var(--text); background: var(--border); }
-.supp-bell.active { color: var(--green); }
+/* Иконка — не текст: --green (=--ok) с 2026-08 это тёмная сосновая зелень под
+   контраст 4.5:1 для ТЕКСТА, и штрих 15px в ней читается почти как чёрный,
+   то есть «включено» не отличить от «выключено». Берём --ok-fill (для заливок
+   без текста контрастный потолок не действует) плюс мягкую подложку — как у
+   соседней плашки процента в той же строке. */
+.supp-bell.active {
+  color: var(--ok-fill);
+  background: color-mix(in srgb, var(--ok-fill) 14%, transparent);
+}
+.supp-bell.active:hover { color: var(--ok-fill); background: color-mix(in srgb, var(--ok-fill) 24%, transparent); }
 
 /* Reminder editor */
 .rem-editor { margin: 12px 0 4px; padding: 12px; background: var(--surface-2, rgba(127,127,127,0.06)); border-radius: 10px; display: flex; flex-direction: column; gap: 12px; }
