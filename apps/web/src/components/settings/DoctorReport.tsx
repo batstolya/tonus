@@ -30,7 +30,7 @@ interface Props {
 
 const EMPTY_SOURCES: ReportSources = {
   labs: [], supplements: [], supplementLogs: [], concerns: [], concernLogs: [], observations: [], notes: [],
-  profile: null, intake: [], nutrition: [],
+  profile: null, intake: [], nutrition: [], habits: [], habitBreaks: [],
 }
 
 const STATUS_TEXT: Record<string, string> = {

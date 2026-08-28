@@ -16,6 +16,7 @@ import { buildIntake, type IntakeLine } from './intake'
 import { buildNutrition, type NutritionSection } from './nutrition'
 import { buildConcerns, buildJournal, type ConcernLine, type JournalSection } from './journal'
 import { buildObservations, type ObservationsSection } from './observations'
+import { buildHabitsSection, type HabitLine } from './habits'
 import type { ReportSources } from './load'
 import type { Sex } from '../api/settings'
 
@@ -48,6 +49,7 @@ export interface DoctorReportModel {
   nutrition: NutritionSection | null
   concerns: ConcernLine[]
   observations: ObservationsSection
+  habits: HabitLine[]
   journal: JournalSection
 }
 
@@ -143,6 +145,7 @@ export function buildReportModel({
     nutrition: buildNutrition(sources.nutrition, frame),
     concerns: buildConcerns(visibleConcerns, sources.concernLogs, frame.effectiveStart),
     observations: buildObservations(sources.observations, frame.effectiveStart),
+    habits: buildHabitsSection(sources.habits, sources.habitBreaks, today),
     journal: buildJournal(sources.notes, frame.effectiveStart),
   }
 }

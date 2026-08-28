@@ -25,6 +25,7 @@ const { loadReportSources } = await import('../../lib/doctorReport')
 
 const EMPTY_SOURCES: ReportSources = {
   labs: [], supplements: [], supplementLogs: [], concerns: [], concernLogs: [], observations: [], notes: [], intake: [], nutrition: [],
+  habits: [], habitBreaks: [],
   profile: null,
 }
 
