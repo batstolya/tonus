@@ -1,11 +1,11 @@
 import { useState, useCallback, useEffect } from 'react'
 import type { DailyMetrics, HeartRateSample, CalendarEvent, ParseProgress } from '../types'
 
-export type AppView = 'upload' | 'dashboard' | 'heart-rate' | 'metrics' | 'stress-map' | 'sleep' | 'activity' | 'insights' | 'supplements' | 'labs' | 'settings' | 'goals' | 'concerns' | 'observations' | 'hair' | 'research' | 'experiments' | 'nutrition'
+export type AppView = 'upload' | 'dashboard' | 'heart-rate' | 'metrics' | 'stress-map' | 'sleep' | 'activity' | 'insights' | 'supplements' | 'labs' | 'settings' | 'goals' | 'concerns' | 'observations' | 'hair' | 'research' | 'experiments' | 'nutrition' | 'habits'
 
 export type DeviceType = 'apple_watch' | 'xiaomi'
 
-const VIEWS: AppView[] = ['dashboard', 'heart-rate', 'metrics', 'stress-map', 'sleep', 'activity', 'insights', 'research', 'experiments', 'supplements', 'labs', 'settings', 'goals', 'concerns', 'observations', 'hair', 'nutrition', 'upload']
+const VIEWS: AppView[] = ['dashboard', 'heart-rate', 'metrics', 'stress-map', 'sleep', 'activity', 'insights', 'research', 'experiments', 'supplements', 'labs', 'settings', 'goals', 'concerns', 'observations', 'hair', 'nutrition', 'habits', 'upload']
 
 function hashToView(): AppView {
   const hash = window.location.hash.slice(1) as AppView

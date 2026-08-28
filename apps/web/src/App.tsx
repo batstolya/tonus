@@ -29,6 +29,7 @@ const ExperimentsScreen = lazy(() => import('./components/research/ExperimentsSc
 const SleepScreen = lazy(() => import('./components/sleep/SleepScreen').then(m => ({ default: m.SleepScreen })))
 const ActivityScreen = lazy(() => import('./components/activity/ActivityScreen').then(m => ({ default: m.ActivityScreen })))
 const SupplementsScreen = lazy(() => import('./components/supplements/SupplementsScreen').then(m => ({ default: m.SupplementsScreen })))
+const HabitsScreen = lazy(() => import('./components/habits/HabitsScreen').then(m => ({ default: m.HabitsScreen })))
 const LabsScreen = lazy(() => import('./components/labs/LabsScreen').then(m => ({ default: m.LabsScreen })))
 const NutritionScreen = lazy(() => import('./components/nutrition/NutritionScreen').then(m => ({ default: m.NutritionScreen })))
 const SettingsScreen = lazy(() => import('./components/settings/SettingsScreen').then(m => ({ default: m.SettingsScreen })))
@@ -318,6 +319,8 @@ export default function App() {
           <ExperimentsScreen user={user} daily={state.daily} />
         ) : state.view === 'supplements' ? (
           <SupplementsScreen user={user} />
+        ) : state.view === 'habits' ? (
+          <HabitsScreen user={user} />
         ) : state.view === 'nutrition' ? (
           <NutritionScreen user={user} />
         ) : state.view === 'labs' ? (
