@@ -2796,6 +2796,46 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
 .activity-cal-cell.status-future { color: var(--text-muted); opacity: 0.45; }
 .activity-cal-cell.is-today { outline: 2px solid var(--accent); outline-offset: 1px; }
 
+/* ── Habits: abstinence tracking card ───────────────────────── */
+.habit-card {
+  border: 1px solid var(--border);
+  border-radius: var(--r-surface); padding: 16px 18px; margin: 12px 0;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.habit-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.habit-card-name { font-weight: 600; font-size: 15px; }
+.habit-card-note { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.habit-card-archive {
+  width: 28px; height: 28px; display: grid; place-items: center;
+  color: var(--text-muted); background: transparent; border: none; border-radius: var(--r-control);
+  cursor: pointer;
+}
+.habit-card-archive:hover { background: var(--surface2); color: var(--text); }
+.habit-card-streaks { display: flex; align-items: baseline; gap: 10px; margin: 10px 0; }
+.habit-card-streak-main { display: flex; align-items: center; gap: 6px; font-size: 28px; font-weight: 700; }
+.habit-card-streak-best { font-size: 12px; color: var(--text-muted); }
+/* Same 30px cell + Mon-first grid as .activity-cal-grid, wider (12-week
+   window) so the two calendars in the app read as one system. */
+.habit-card-grid {
+  display: grid; grid-template-columns: repeat(7, 30px);
+  gap: 4px 8px; justify-content: center; margin: 10px 0;
+}
+.habit-day-cell {
+  width: 30px; height: 30px; border-radius: 999px;
+  border: none; padding: 0; cursor: default;
+}
+.habit-day-cell.blank { background: transparent; }
+.habit-day-cell.status-clean { background: var(--ok-fill); }
+.habit-day-cell.status-broken { background: var(--bad-fill); }
+.habit-day-cell.status-pending { background: transparent; border: 1px solid var(--border); }
+.habit-day-cell:enabled { cursor: pointer; }
+.habit-day-cell:disabled { cursor: default; }
+.habit-card-controls { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+.habit-card-footer {
+  display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--text-muted);
+}
+
 /* ── Gamified home: empty state ─────────────────────────────── */
 .empty-state {
   border: 1px dashed var(--border); border-radius: var(--r-surface);
