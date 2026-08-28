@@ -21,6 +21,11 @@ describe('routeText', () => {
     }
   })
 
+  it('routes /срыв and its English alias to the habit list, no daily ping involved', () => {
+    expect(routeText('/срыв')).toEqual({ kind: 'habits' })
+    expect(routeText('/break')).toEqual({ kind: 'habits' })
+  })
+
   it('routes /idea with and without text', () => {
     expect(routeText('/idea')).toEqual({ kind: 'idea', idea: '' })
     expect(routeText('/idea выпить воды')).toEqual({ kind: 'idea', idea: 'выпить воды' })
@@ -61,5 +66,34 @@ describe('routeCallback', () => {
 
   it('ignores anything unrecognized', () => {
     expect(routeCallback('mystery')).toEqual({ kind: 'ignore' })
+  })
+})
+
+describe('routeCallback (habits)', () => {
+  it('routes the habits list button', () => {
+    expect(routeCallback('habits')).toEqual({ kind: 'habits' })
+  })
+
+  it('opens the day picker for a habit', () => {
+    expect(routeCallback('hb:11111111-1111-1111-1111-111111111111')).toEqual({
+      kind: 'habit_menu', habitId: '11111111-1111-1111-1111-111111111111',
+    })
+  })
+
+  it('routes a habit break callback to the habit handler', () => {
+    expect(routeCallback('hb:11111111-1111-1111-1111-111111111111:1')).toEqual({
+      kind: 'habit_break', habitId: '11111111-1111-1111-1111-111111111111', dayOffset: 1, broken: true,
+    })
+  })
+
+  it('routes a clear callback', () => {
+    expect(routeCallback('hbx:11111111-1111-1111-1111-111111111111:0')).toEqual({
+      kind: 'habit_break', habitId: '11111111-1111-1111-1111-111111111111', dayOffset: 0, broken: false,
+    })
+  })
+
+  it('rejects an offset beyond yesterday', () => {
+    expect(routeCallback('hb:11111111-1111-1111-1111-111111111111:5')).toBeNull()
+    expect(routeCallback('hbx:11111111-1111-1111-1111-111111111111:5')).toBeNull()
   })
 })

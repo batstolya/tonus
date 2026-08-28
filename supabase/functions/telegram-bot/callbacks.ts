@@ -13,6 +13,7 @@ import { routeCallback } from './router.ts'
 import {
   handleReport, handleStatus, handleSupplements, handleGoals, handleSettings,
   handleFootballMatches, setFootballReminders, handleExperimentSuggest,
+  handleHabits, handleHabitMenu, handleHabitBreak,
 } from './commands.ts'
 
 interface CallbackQuery {
@@ -26,6 +27,9 @@ export async function handleCallback(cq: CallbackQuery, supabase: SupabaseClient
   const route = routeCallback(cq.data)
 
   await tgAnswerCallback(cq.id)
+
+  // Malformed hb:/hbx: payload (e.g. an offset beyond yesterday) — nothing to do.
+  if (!route) return
 
   const { data: link } = await supabase
     .from('telegram_links')
@@ -53,6 +57,12 @@ export async function handleCallback(cq: CallbackQuery, supabase: SupabaseClient
     await handleGoals(chatId, userId, supabase)
   } else if (route.kind === 'settings') {
     await handleSettings(chatId, userId, supabase)
+  } else if (route.kind === 'habits') {
+    await handleHabits(chatId, userId, supabase)
+  } else if (route.kind === 'habit_menu') {
+    await handleHabitMenu(chatId, userId, route.habitId, supabase)
+  } else if (route.kind === 'habit_break') {
+    await handleHabitBreak(chatId, userId, route.habitId, route.dayOffset, route.broken, supabase)
   } else if (route.kind === 'exp_suggest') {
     await handleExperimentSuggest(chatId, userId, supabase)
   } else if (route.kind === 'expsug') {
