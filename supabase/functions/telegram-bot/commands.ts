@@ -7,7 +7,7 @@ import { localizeRoundName } from '../_shared/football.ts'
 import { metricLabel as expMetricLabel } from '../_shared/experiments.ts'
 import { localDate } from '../_shared/time.ts'
 import { loadUserTimezone } from '../_shared/userTimezone.ts'
-import { habitDays, habitStats, addDays, HABIT_WINDOW_DAYS, type Habit, type HabitBreak } from '../../../apps/web/src/lib/habits.ts'
+import { habitDays, habitStats, addDays, HABIT_WINDOW_DAYS, type Habit, type HabitBreak } from '../_shared/habits.ts'
 import { tgSend, tgTyping } from './tg.ts'
 import { REPORT_ACTIONS, STATUS_ACTIONS, BACK_MENU, FOOTBALL_MENU, HABITS_MENU, HABIT_DAY_MENU } from './menus.ts'
 import { AI_CONSENT_TELEGRAM_MESSAGE } from './ai.ts'
@@ -309,8 +309,8 @@ export async function handleExperimentSuggest(chatId: number | string, userId: s
 // ── Habits: passive Telegram control (SPEC habits, task 6) ─────────────────
 // Deliberately no daily ping — the user opens this menu themselves via the
 // "Привычки" button or /срыв, /break when a slip actually happens. Streaks
-// come from the same pure logic the web app uses (apps/web/src/lib/habits.ts),
-// never reimplemented here. "Today"/"yesterday" are resolved from the user's
+// come from the same pure logic the web app uses (_shared/habits.ts, also
+// re-exported from apps/web/src/lib/habits.ts), never reimplemented here. "Today"/"yesterday" are resolved from the user's
 // profile timezone (loadUserTimezone) — never current_date, never a bare
 // new Date(), since the callback itself carries no timezone.
 
