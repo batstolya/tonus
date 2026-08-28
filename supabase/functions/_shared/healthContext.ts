@@ -554,7 +554,7 @@ export function healthContextToText(ctx: HealthContext): string {
     }
   }
 
-  if (ctx.habits.length) {
+  if (ctx.habits?.length) {
     // Active habits only: an archived habit never reaches this text.
     parts.push('\nПривычки отказа (clean-streak, только активные):')
     for (const h of ctx.habits) {
