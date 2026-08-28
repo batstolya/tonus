@@ -20,6 +20,11 @@ export const health: Record<string, Translation> = {
     en: "Patient's free-form notes, no scale",
   },
   'По темам': { uk: 'За темами', en: 'By topic' },
+  // Привычки отказа — секция отчёта врачу (spec 2026-08-28-habits-design.md)
+  'Привычки отказа': { uk: 'Звички відмови', en: 'Abstinence habits' },
+  'чисто': { uk: 'чисто', en: 'clean' },
+  'без срывов': { uk: 'без зривів', en: 'no slips' },
+  'срывы': { uk: 'зриви', en: 'slips' },
   'Кожа': { uk: 'Шкіра', en: 'Skin' },
   'ЖКТ': { uk: 'ШКТ', en: 'Digestion' },
   'Самочувствие': { uk: 'Самопочуття', en: 'Wellbeing' },

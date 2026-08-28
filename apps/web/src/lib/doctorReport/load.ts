@@ -172,7 +172,7 @@ export async function loadReportSources(userId: string, since: string): Promise<
     // All habits are loaded; buildHabitsSection filters to active ones —
     // archived habits are deliberately invisible to both the model and the report.
     loadHabits(userId).catch(() => [] as Habit[]),
-    loadHabitBreaks(userId).catch(() => [] as HabitBreak[]),
+    loadHabitBreaks(userId, since).catch(() => [] as HabitBreak[]),
   ])
   return {
     labs, supplements, supplementLogs, concerns, concernLogs, observations,

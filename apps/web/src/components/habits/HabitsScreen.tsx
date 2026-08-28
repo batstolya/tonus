@@ -78,8 +78,14 @@ export function HabitsScreen({ user }: { user: User }) {
   }
 
   async function handleArchive(habitId: string) {
+    // Toggle relative to the habit's current state: an archived habit's
+    // button un-archives it, an active habit's button archives it. Calling
+    // archiveHabit(id, false) unconditionally left the button a dead no-op
+    // once a habit was already archived.
+    const habit = habits.find(h => h.id === habitId)
+    if (!habit) return
     try {
-      await archiveHabit(habitId, false)
+      await archiveHabit(habitId, !habit.active)
       await reload()
     } catch {
       setLoadError(true)

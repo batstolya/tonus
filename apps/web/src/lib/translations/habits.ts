@@ -22,6 +22,7 @@ export const habits: Record<string, Translation> = {
   'Сорвался вчера': { uk: 'Зірвався вчора', en: 'Slipped yesterday' },
   'Убрать отметку': { uk: 'Прибрати позначку', en: 'Remove mark' },
   'Архивировать привычку': { uk: 'Архівувати звичку', en: 'Archive habit' },
+  'Восстановить привычку': { uk: 'Відновити звичку', en: 'Restore habit' },
   'Лучший': { uk: 'Найкращий', en: 'Best' },
   'Срывов за 30 дней': { uk: 'Зривів за 30 днів', en: 'Slips in 30 days' },
   'Чистых дней': { uk: 'Чистих днів', en: 'Clean days' },

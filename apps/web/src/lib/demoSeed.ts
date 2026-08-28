@@ -667,5 +667,6 @@ export function demoSeedStrings(): string[] {
   for (const a of seed.health_alerts) for (const l of alertTranslatableLines(a.message)) strings.add(l)
   for (const n of seed.context_notes) strings.add(n.note)
   for (const o of seed.observations) strings.add(o.note)
+  for (const h of seed.habits) { strings.add(h.name); if (h.note) strings.add(h.note) }
   return [...strings]
 }

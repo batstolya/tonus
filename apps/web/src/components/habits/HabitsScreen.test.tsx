@@ -4,11 +4,13 @@ import { renderWithProviders, screen, waitFor, fireEvent } from '../../test/util
 const loadHabits = vi.fn()
 const loadHabitBreaks = vi.fn()
 const setHabitBreak = vi.fn()
+const archiveHabit = vi.fn()
 vi.mock('../../lib/api/habits', () => ({
   loadHabits: (...a: unknown[]) => loadHabits(...a),
   loadHabitBreaks: (...a: unknown[]) => loadHabitBreaks(...a),
   setHabitBreak: (...a: unknown[]) => setHabitBreak(...a),
-  createHabit: vi.fn(), archiveHabit: vi.fn(), deleteHabit: vi.fn(),
+  archiveHabit: (...a: unknown[]) => archiveHabit(...a),
+  createHabit: vi.fn(), deleteHabit: vi.fn(),
 }))
 
 import { HabitsScreen } from './HabitsScreen'
@@ -20,8 +22,9 @@ const habit = {
 }
 
 beforeEach(() => {
-  loadHabits.mockReset(); loadHabitBreaks.mockReset(); setHabitBreak.mockReset()
+  loadHabits.mockReset(); loadHabitBreaks.mockReset(); setHabitBreak.mockReset(); archiveHabit.mockReset()
   setHabitBreak.mockResolvedValue(undefined)
+  archiveHabit.mockResolvedValue(undefined)
 })
 
 describe('HabitsScreen', () => {
@@ -51,5 +54,23 @@ describe('HabitsScreen', () => {
     renderWithProviders(<HabitsScreen user={user} />)
     await waitFor(() => expect(screen.getByTestId('habits-empty')).toBeTruthy())
     expect(screen.getByTestId('habits-archived')).toBeTruthy()
+  })
+
+  it('un-archives an archived habit instead of re-archiving it', async () => {
+    loadHabits.mockResolvedValue([{ ...habit, id: 'h2', name: 'Архивная', active: false }])
+    loadHabitBreaks.mockResolvedValue([])
+    renderWithProviders(<HabitsScreen user={user} />)
+    await screen.findByTestId('habits-archived')
+    fireEvent.click(screen.getByText(/Archive/))
+    fireEvent.click(screen.getByRole('button', { name: 'Restore habit' }))
+    await waitFor(() => expect(archiveHabit).toHaveBeenCalledWith('h2', true))
+  })
+
+  it('archives an active habit', async () => {
+    loadHabits.mockResolvedValue([habit])
+    loadHabitBreaks.mockResolvedValue([])
+    renderWithProviders(<HabitsScreen user={user} />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Archive habit' }))
+    await waitFor(() => expect(archiveHabit).toHaveBeenCalledWith('h1', false))
   })
 })

@@ -145,7 +145,7 @@ export function buildReportModel({
     nutrition: buildNutrition(sources.nutrition, frame),
     concerns: buildConcerns(visibleConcerns, sources.concernLogs, frame.effectiveStart),
     observations: buildObservations(sources.observations, frame.effectiveStart),
-    habits: buildHabitsSection(sources.habits, sources.habitBreaks, today),
+    habits: buildHabitsSection(sources.habits, sources.habitBreaks, today, frame.effectiveStart),
     journal: buildJournal(sources.notes, frame.effectiveStart),
   }
 }

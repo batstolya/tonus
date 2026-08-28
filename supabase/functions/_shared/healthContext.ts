@@ -5,7 +5,7 @@
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { plannedDaysInRange, attendance, scheduleWeekdays, type DayTimes } from './workoutPlan.ts'
 import { DEFAULT_TIMEZONE } from './userTimezone.ts'
-import { habitDays, habitStats, type Habit, type HabitBreak } from './habits.ts'
+import { habitDays, habitStats, HABIT_WINDOW_DAYS, type Habit, type HabitBreak } from './habits.ts'
 
 export interface HealthContextOptions {
   periodDays?: number          // окно агрегации (по умолчанию 14)
@@ -139,6 +139,7 @@ export async function buildHealthContext(
   opts: HealthContextOptions = {},
 ): Promise<HealthContext> {
   const periodDays = opts.periodDays ?? 14
+  const timezone = opts.timezone && isValidTimezone(opts.timezone) ? opts.timezone : DEFAULT_TIMEZONE
   const since = new Date(); since.setDate(since.getDate() - periodDays)
   const sinceStr = since.toISOString().slice(0, 10)
 
@@ -146,7 +147,15 @@ export async function buildHealthContext(
   const since7Str = since7.toISOString().slice(0, 10)
   const since30 = new Date(); since30.setDate(since30.getDate() - 29)
   const since30Str = since30.toISOString().slice(0, 10)
-  const todayStr = new Date().toISOString().slice(0, 10)
+  // Streak must match the page/bot window (HABIT_WINDOW_DAYS), so the breaks
+  // query has to reach back that far too — the 30-day `breaks` list handed to
+  // the model is filtered out of this wider result below.
+  const sinceHabitWindow = new Date(); sinceHabitWindow.setDate(sinceHabitWindow.getDate() - (HABIT_WINDOW_DAYS - 1))
+  const sinceHabitWindowStr = sinceHabitWindow.toISOString().slice(0, 10)
+  // The user's own "today", same as the page (browser local) and the bot
+  // (localDate(tz)) resolve it — not UTC, or a Kyiv user past midnight loses
+  // a day of streak.
+  const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
   const [profRes, scoreRes, mRes, sRes, labRes, supRes, intakeRes, logRes, notesRes, calRes, goalRes, expRes, envRes, concernRes, concernLogRes, obsRes, hairRes, alertRes, recRes, wsRes, exminRes, habitsRes, habitBreaksRes] = await Promise.all([
     opts.includeCoachProfile
       ? supabase.from('coach_profile').select('summary, facts').eq('user_id', userId).maybeSingle()
@@ -222,7 +231,7 @@ export async function buildHealthContext(
       .eq('user_id', userId).eq('active', true).order('sort_order', { ascending: true }),
     supabase.from('habit_breaks')
       .select('id, habit_id, date, note')
-      .eq('user_id', userId).gte('date', since30Str),
+      .eq('user_id', userId).gte('date', sinceHabitWindowStr),
   ])
 
   // Последовательный follow-up: тренд goal_progress зависит от только что
@@ -270,19 +279,21 @@ export async function buildHealthContext(
   const habitsRaw: Habit[] = habitsRes.data ?? []
   const habitBreaksRaw: HabitBreak[] = habitBreaksRes.data ?? []
   const habits = habitsRaw.map((h) => {
-    const days = habitDays(h, habitBreaksRaw, todayStr, 30)
+    const days = habitDays(h, habitBreaksRaw, todayStr, HABIT_WINDOW_DAYS)
     return {
       name: h.name,
       startDate: h.start_date,
       streakDays: habitStats(days).currentStreak,
-      breaks: habitBreaksRaw.filter((b) => b.habit_id === h.id).map((b) => b.date).sort(),
+      breaks: habitBreaksRaw
+        .filter((b) => b.habit_id === h.id && b.date >= since30Str)
+        .map((b) => b.date).sort(),
     }
   })
 
   const prof: { summary: string | null; facts: unknown } | null = profRes.data
   return {
     periodDays,
-    timezone: opts.timezone && isValidTimezone(opts.timezone) ? opts.timezone : DEFAULT_TIMEZONE,
+    timezone,
     coachProfile: prof?.summary ? { summary: prof.summary, facts: Array.isArray(prof.facts) ? prof.facts : [] } : null,
     scores: scoreRes.data ?? null,
     metrics: mRes.data ?? [],

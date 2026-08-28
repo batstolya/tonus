@@ -59,4 +59,35 @@ describe('HabitCard', () => {
     )
     expect(screen.queryByTestId('habit-pct')).toBeNull()
   })
+
+  it('disables the yesterday button when yesterday precedes start_date', () => {
+    // start_date is today: yesterday never existed for this habit, so the
+    // RPC would reject the break and the user would just see a failure banner.
+    const freshHabit: Habit = { ...habit, start_date: '2026-08-28' }
+    renderWithProviders(
+      <HabitCard habit={freshHabit} breaks={[]} today="2026-08-28" onToggleBreak={noop} onArchive={noop} />,
+    )
+    expect(screen.getByTestId('habit-break-yesterday')).toBeDisabled()
+  })
+
+  it('keeps the yesterday button enabled once yesterday is on or after start_date', () => {
+    renderWithProviders(
+      <HabitCard habit={habit} breaks={[]} today="2026-08-28" onToggleBreak={noop} onArchive={noop} />,
+    )
+    expect(screen.getByTestId('habit-break-yesterday')).toBeEnabled()
+  })
+
+  it('labels the archive control as archiving for an active habit', () => {
+    renderWithProviders(
+      <HabitCard habit={habit} breaks={[]} today="2026-08-28" onToggleBreak={noop} onArchive={noop} />,
+    )
+    expect(screen.getByRole('button', { name: 'Archive habit' })).toBeInTheDocument()
+  })
+
+  it('labels the archive control as restoring for an archived habit', () => {
+    renderWithProviders(
+      <HabitCard habit={{ ...habit, active: false }} breaks={[]} today="2026-08-28" onToggleBreak={noop} onArchive={noop} />,
+    )
+    expect(screen.getByRole('button', { name: 'Restore habit' })).toBeInTheDocument()
+  })
 })

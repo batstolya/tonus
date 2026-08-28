@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { buildHealthContext, healthContextToText, type HealthContext } from './healthContext'
 
 // Стаб supabase: любая цепочка .from(...).select()... резолвится в { data }
@@ -46,6 +46,53 @@ describe('buildHealthContext: goals & experiments', () => {
     const sb = stubSupabase({})
     const ctx = await buildHealthContext(sb, 'user-1', { timezone: 'not-a-real-timezone' })
     expect(ctx.timezone).toBe('Europe/Kyiv')
+  })
+})
+
+describe('buildHealthContext: habits streak window & timezone', () => {
+  afterEach(() => { vi.useRealTimers() })
+
+  it('computes the streak over the 84-day HABIT_WINDOW_DAYS grid, not a 30-day slice', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-08-28T12:00:00Z'))
+    const sb = stubSupabase({
+      habits: [{ id: 'h1', user_id: 'u1', name: 'Без сладкого', note: null, start_date: '2026-06-01', active: true, sort_order: 0, created_at: '2026-06-01T00:00:00Z' }],
+      habit_breaks: [],
+    })
+    const ctx = await buildHealthContext(sb, 'user-1')
+    // Habit runs 2026-06-01 → 2026-08-28 with no breaks: 89 elapsed days, but
+    // the grid caps at HABIT_WINDOW_DAYS (84); today is pending. A 30-day
+    // slice would have capped this at 29 — the page/bot show 83.
+    expect(ctx.habits[0].streakDays).toBe(83)
+  })
+
+  it('resolves "today" in the user timezone, not UTC', async () => {
+    vi.useFakeTimers()
+    // 22:00 UTC on the 28th is already 01:00 on the 29th in Kyiv (UTC+3
+    // summer time) — the streak must credit that already-finished day.
+    vi.setSystemTime(new Date('2026-08-28T22:00:00Z'))
+    const sb = stubSupabase({
+      habits: [{ id: 'h1', user_id: 'u1', name: 'Без сладкого', note: null, start_date: '2026-08-01', active: true, sort_order: 0, created_at: '2026-08-01T00:00:00Z' }],
+      habit_breaks: [],
+    })
+    const ctx = await buildHealthContext(sb, 'user-1', { timezone: 'Europe/Kyiv' })
+    // 2026-08-01 .. 2026-08-29 (Kyiv "today") = 29 days, today pending → 28.
+    // Using the UTC date (2026-08-28) instead would give 27.
+    expect(ctx.habits[0].streakDays).toBe(28)
+  })
+
+  it('limits the breaks list handed to the model to 30 days even though the streak window is wider', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-08-28T12:00:00Z'))
+    const sb = stubSupabase({
+      habits: [{ id: 'h1', user_id: 'u1', name: 'Без сладкого', note: null, start_date: '2026-06-01', active: true, sort_order: 0, created_at: '2026-06-01T00:00:00Z' }],
+      habit_breaks: [
+        { id: 'b1', habit_id: 'h1', date: '2026-06-05', note: null }, // outside 30d
+        { id: 'b2', habit_id: 'h1', date: '2026-08-20', note: null }, // inside 30d
+      ],
+    })
+    const ctx = await buildHealthContext(sb, 'user-1')
+    expect(ctx.habits[0].breaks).toEqual(['2026-08-20'])
   })
 })
 

@@ -19,6 +19,9 @@ export function HabitCard({ habit, breaks, today, onToggleBreak, onArchive }: Ha
   const days = habitDays(habit, breaks, today)
   const stats = habitStats(days)
   const yesterday = addDays(today, -1)
+  // The RPC rejects a break before start_date; disable rather than let the
+  // user hit a generic failure banner for a day the habit didn't exist yet.
+  const yesterdayExists = yesterday >= habit.start_date
   const brokenDates = new Set(breaks.filter(b => b.habit_id === habit.id).map(b => b.date))
 
   // Same Mon-first week grid as ActivityCalendar, so the two calendars read
@@ -43,9 +46,9 @@ export function HabitCard({ habit, breaks, today, onToggleBreak, onArchive }: Ha
           type="button"
           className="habit-card-archive"
           onClick={() => onArchive(habit.id)}
-          aria-label={t('Архивировать привычку')}
+          aria-label={habit.active ? t('Архивировать привычку') : t('Восстановить привычку')}
         >
-          <Icon name="archive" size={16} title={t('Архивировать привычку')} />
+          <Icon name="archive" size={16} title={habit.active ? t('Архивировать привычку') : t('Восстановить привычку')} />
         </button>
       </div>
 
@@ -78,7 +81,12 @@ export function HabitCard({ habit, breaks, today, onToggleBreak, onArchive }: Ha
         <button type="button" data-testid="habit-break-today" onClick={() => toggle(today)}>
           {breakLabel(today)}
         </button>
-        <button type="button" data-testid="habit-break-yesterday" onClick={() => toggle(yesterday)}>
+        <button
+          type="button"
+          data-testid="habit-break-yesterday"
+          disabled={!yesterdayExists}
+          onClick={() => toggle(yesterday)}
+        >
           {breakLabel(yesterday)}
         </button>
       </div>
