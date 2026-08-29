@@ -2,16 +2,16 @@
 // as clean. Spec: 2026-08-28-habits-design.md
 //
 // Inverted from adherence.ts: there a log row proves success, here a row in
-// habit_breaks proves failure and the absence of rows is the good case. Today is
-// deliberately `pending` rather than `clean` -- a win at 10am would be a lie the
-// user could still break by evening.
+// habit_breaks proves failure and the absence of rows is the good case. Today
+// counts as clean like any other day: the user asked for the day to mark itself
+// done and to be unchecked by hand, so a day is only ever clean or broken.
 //
 // Pure module: no supabase import, so the node test project and the edge
 // functions can both use it. Dates are YYYY-MM-DD and step through UTC, which
 // keeps DST out of the arithmetic; the caller resolves `today` in the user's
 // timezone before calling in.
 
-export type DayStatus = 'clean' | 'broken' | 'pending'
+export type DayStatus = 'clean' | 'broken'
 
 export interface Habit {
   id: string
@@ -37,7 +37,7 @@ export interface HabitDay {
 }
 
 export interface HabitStats {
-  /** Consecutive clean closed days ending yesterday; pending today never counts. */
+  /** Consecutive clean days ending today. */
   currentStreak: number
   bestStreak: number
   breaks30: number
@@ -70,12 +70,7 @@ export function habitDays(
 
   const days: HabitDay[] = []
   for (let date = from; date <= today; date = addDays(date, 1)) {
-    const status: DayStatus = broken.has(date)
-      ? 'broken'
-      : date === today
-        ? 'pending'
-        : 'clean'
-    days.push({ date, status })
+    days.push({ date, status: broken.has(date) ? 'broken' : 'clean' })
   }
   return days
 }
@@ -90,10 +85,9 @@ export function habitStats(days: HabitDay[]): HabitStats {
       run += 1
       cleanDays += 1
       if (run > bestStreak) bestStreak = run
-    } else if (day.status === 'broken') {
+    } else {
       run = 0
     }
-    // `pending` neither extends nor breaks the run: the day is not decided yet.
   }
   const currentStreak = run
 

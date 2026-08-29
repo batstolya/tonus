@@ -40,12 +40,14 @@ describe('HabitsScreen', () => {
     await waitFor(() => expect(screen.getByText('Без сладкого')).toBeTruthy())
   })
 
-  it('persists a break and keeps the card in sync', async () => {
+  it('unchecks a day and persists the slip', async () => {
     loadHabits.mockResolvedValue([habit]); loadHabitBreaks.mockResolvedValue([])
     renderWithProviders(<HabitsScreen user={user} />)
-    await waitFor(() => expect(screen.getByTestId('habit-break-today')).toBeTruthy())
-    fireEvent.click(screen.getByTestId('habit-break-today'))
-    await waitFor(() => expect(setHabitBreak).toHaveBeenCalledWith('u1', 'h1', expect.any(String), true))
+    const todayStr = new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+      .toISOString().slice(0, 10)
+    await waitFor(() => expect(screen.getByTestId(`habit-day-${todayStr}`)).toBeTruthy())
+    fireEvent.click(screen.getByTestId(`habit-day-${todayStr}`))
+    await waitFor(() => expect(setHabitBreak).toHaveBeenCalledWith('u1', 'h1', todayStr, true))
   })
 
   it('keeps archived habits out of the main list', async () => {

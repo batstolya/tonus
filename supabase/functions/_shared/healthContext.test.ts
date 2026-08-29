@@ -61,9 +61,9 @@ describe('buildHealthContext: habits streak window & timezone', () => {
     })
     const ctx = await buildHealthContext(sb, 'user-1')
     // Habit runs 2026-06-01 → 2026-08-28 with no breaks: 89 elapsed days, but
-    // the grid caps at HABIT_WINDOW_DAYS (84); today is pending. A 30-day
-    // slice would have capped this at 29 — the page/bot show 83.
-    expect(ctx.habits[0].streakDays).toBe(83)
+    // the grid caps at HABIT_WINDOW_DAYS (84). A 30-day slice would have
+    // capped this at 30 — the page/bot show 84.
+    expect(ctx.habits[0].streakDays).toBe(84)
   })
 
   it('resolves "today" in the user timezone, not UTC', async () => {
@@ -76,9 +76,9 @@ describe('buildHealthContext: habits streak window & timezone', () => {
       habit_breaks: [],
     })
     const ctx = await buildHealthContext(sb, 'user-1', { timezone: 'Europe/Kyiv' })
-    // 2026-08-01 .. 2026-08-29 (Kyiv "today") = 29 days, today pending → 28.
-    // Using the UTC date (2026-08-28) instead would give 27.
-    expect(ctx.habits[0].streakDays).toBe(28)
+    // 2026-08-01 .. 2026-08-29 (Kyiv "today") = 29 clean days.
+    // Using the UTC date (2026-08-28) instead would give 28.
+    expect(ctx.habits[0].streakDays).toBe(29)
   })
 
   it('limits the breaks list handed to the model to 30 days even though the streak window is wider', async () => {

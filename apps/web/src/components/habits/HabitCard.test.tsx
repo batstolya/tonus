@@ -5,89 +5,73 @@ import type { Habit, HabitBreak } from '../../lib/habits'
 
 const habit: Habit = {
   id: 'h1', user_id: 'u1', name: 'Без сладкого', note: null,
-  start_date: '2026-08-20', active: true, sort_order: 0, created_at: '2026-08-20T00:00:00Z',
+  start_date: '2026-08-10', active: true, sort_order: 0, created_at: '2026-08-10T00:00:00Z',
 }
 const noop = () => {}
 
+// The card mirrors the supplement calendar, inverted: a day is checked unless a
+// break says otherwise, and clicking a checked day unchecks it.
+const render = (props: Partial<Parameters<typeof HabitCard>[0]> = {}) =>
+  renderWithProviders(
+    <HabitCard
+      habit={habit}
+      breaks={[]}
+      today="2026-08-20"
+      year={2026}
+      month={7}
+      onToggleBreak={noop}
+      onArchive={noop}
+      {...props}
+    />,
+  )
+
 describe('HabitCard', () => {
-  it('shows the current streak of closed clean days', () => {
-    renderWithProviders(
-      <HabitCard habit={habit} breaks={[]} today="2026-08-28" onToggleBreak={noop} onArchive={noop} />,
-    )
-    expect(screen.getByTestId('habit-streak')).toHaveTextContent('8')
+  it('checks every day from start_date through today by default', () => {
+    render()
+    expect(screen.getByTestId('habit-day-2026-08-10')).toHaveAttribute('data-status', 'clean')
+    expect(screen.getByTestId('habit-day-2026-08-20')).toHaveAttribute('data-status', 'clean')
   })
 
-  it('renders one cell per day since start_date, today pending', () => {
-    renderWithProviders(
-      <HabitCard habit={habit} breaks={[]} today="2026-08-28" onToggleBreak={noop} onArchive={noop} />,
-    )
-    expect(screen.getAllByTestId('habit-day')).toHaveLength(9)
-    expect(screen.getByTestId('habit-day-2026-08-28')).toHaveAttribute('data-status', 'pending')
+  it('leaves a recorded slip unchecked', () => {
+    const breaks: HabitBreak[] = [{ id: 'b1', habit_id: 'h1', date: '2026-08-15', note: null }]
+    render({ breaks })
+    expect(screen.getByTestId('habit-day-2026-08-15')).toHaveAttribute('data-status', 'broken')
   })
 
-  it('marks today broken when the break button is used', () => {
+  it('unchecks a clean day when it is clicked', () => {
     const onToggleBreak = vi.fn()
-    renderWithProviders(
-      <HabitCard habit={habit} breaks={[]} today="2026-08-28" onToggleBreak={onToggleBreak} onArchive={noop} />,
-    )
-    fireEvent.click(screen.getByTestId('habit-break-today'))
-    expect(onToggleBreak).toHaveBeenCalledWith('h1', '2026-08-28', true)
+    render({ onToggleBreak })
+    fireEvent.click(screen.getByTestId('habit-day-2026-08-14'))
+    expect(onToggleBreak).toHaveBeenCalledWith('h1', '2026-08-14', true)
   })
 
-  it('marks yesterday broken through its own control', () => {
+  it('re-checks a day that was marked as a slip', () => {
     const onToggleBreak = vi.fn()
-    renderWithProviders(
-      <HabitCard habit={habit} breaks={[]} today="2026-08-28" onToggleBreak={onToggleBreak} onArchive={noop} />,
-    )
-    fireEvent.click(screen.getByTestId('habit-break-yesterday'))
-    expect(onToggleBreak).toHaveBeenCalledWith('h1', '2026-08-27', true)
+    const breaks: HabitBreak[] = [{ id: 'b1', habit_id: 'h1', date: '2026-08-15', note: null }]
+    render({ onToggleBreak, breaks })
+    fireEvent.click(screen.getByTestId('habit-day-2026-08-15'))
+    expect(onToggleBreak).toHaveBeenCalledWith('h1', '2026-08-15', false)
   })
 
-  it('offers to clear a day that is already marked', () => {
-    const onToggleBreak = vi.fn()
-    const breaks: HabitBreak[] = [{ id: 'b1', habit_id: 'h1', date: '2026-08-28', note: null }]
-    renderWithProviders(
-      <HabitCard habit={habit} breaks={breaks} today="2026-08-28" onToggleBreak={onToggleBreak} onArchive={noop} />,
-    )
-    fireEvent.click(screen.getByTestId('habit-break-today'))
-    expect(onToggleBreak).toHaveBeenCalledWith('h1', '2026-08-28', false)
+  it('renders days before start_date as outside the habit, not as clean', () => {
+    render()
+    const before = screen.getByTestId('habit-day-2026-08-09')
+    expect(before).toHaveAttribute('data-status', 'outside')
+    expect(before).toBeDisabled()
   })
 
-  it('hides the percentage until the window covers 30 days', () => {
-    renderWithProviders(
-      <HabitCard habit={habit} breaks={[]} today="2026-08-28" onToggleBreak={noop} onArchive={noop} />,
-    )
-    expect(screen.queryByTestId('habit-pct')).toBeNull()
+  it('disables future days', () => {
+    render()
+    expect(screen.getByTestId('habit-day-2026-08-21')).toBeDisabled()
   })
 
-  it('disables the yesterday button when yesterday precedes start_date', () => {
-    // start_date is today: yesterday never existed for this habit, so the
-    // RPC would reject the break and the user would just see a failure banner.
-    const freshHabit: Habit = { ...habit, start_date: '2026-08-28' }
-    renderWithProviders(
-      <HabitCard habit={freshHabit} breaks={[]} today="2026-08-28" onToggleBreak={noop} onArchive={noop} />,
-    )
-    expect(screen.getByTestId('habit-break-yesterday')).toBeDisabled()
+  it('shows the whole month, including days outside the habit', () => {
+    render()
+    expect(screen.getAllByTestId('habit-day')).toHaveLength(31)
   })
 
-  it('keeps the yesterday button enabled once yesterday is on or after start_date', () => {
-    renderWithProviders(
-      <HabitCard habit={habit} breaks={[]} today="2026-08-28" onToggleBreak={noop} onArchive={noop} />,
-    )
-    expect(screen.getByTestId('habit-break-yesterday')).toBeEnabled()
-  })
-
-  it('labels the archive control as archiving for an active habit', () => {
-    renderWithProviders(
-      <HabitCard habit={habit} breaks={[]} today="2026-08-28" onToggleBreak={noop} onArchive={noop} />,
-    )
-    expect(screen.getByRole('button', { name: 'Archive habit' })).toBeInTheDocument()
-  })
-
-  it('labels the archive control as restoring for an archived habit', () => {
-    renderWithProviders(
-      <HabitCard habit={{ ...habit, active: false }} breaks={[]} today="2026-08-28" onToggleBreak={noop} onArchive={noop} />,
-    )
-    expect(screen.getByRole('button', { name: 'Restore habit' })).toBeInTheDocument()
+  it('counts the streak of clean days up to today', () => {
+    render()
+    expect(screen.getByTestId('habit-streak')).toHaveTextContent('11')
   })
 })

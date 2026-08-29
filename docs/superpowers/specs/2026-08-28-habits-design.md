@@ -16,12 +16,15 @@ Control lives mainly in Telegram, where the user already handles supplements.
 
 Settled during brainstorming; each closes an alternative that was considered.
 
-1. **A closed day with no break row is clean.** Today is `pending` until
-   midnight in the user's timezone -- never shown as a win in the morning.
+1. **A day with no break row is clean, today included.** Revised 2026-08-29
+   after the first build shipped: the user asked for the day to mark itself done
+   and to be unchecked by hand, so `pending` is gone -- a day is clean or broken.
 2. **Telegram is passive.** No daily ping. The user opens the habits menu or
    sends `/break` when a slip happens. A nightly nudge can be added later.
-3. **Marking reaches back one day.** Telegram offers today and yesterday; the
-   web page offers the same. Deeper history is not editable.
+3. **Telegram reaches back one day; the web page edits any past day.** Revised
+   2026-08-29: the page is a month calendar with month navigation, so limiting it
+   to today and yesterday would make paging through months pointless. Telegram
+   still offers only today and yesterday.
 4. **Unmarking is always allowed.** A break row can be removed (wrong habit,
    wrong day).
 5. **Habits reach the AI chat and the doctor report**, not just the page.
@@ -66,9 +69,8 @@ function both sets and clears the mark.
 `apps/web/src/lib/habits.ts` -- pure, no Supabase. Given
 `(habit, breaks[], today, timezone)` it returns a status per day in the window:
 
-- `clean` -- closed day, no break row
+- `clean` -- no break row
 - `broken` -- a break row exists
-- `pending` -- today, not yet closed
 
 Days before `start_date` fall outside the window entirely; they are not `clean`.
 Derived: current streak (consecutive `clean` days ending at the last closed
@@ -80,16 +82,16 @@ A new `habits` view in the "Дневник" nav group, next to supplements, with
 `#habits`. Not a tab inside supplements -- the mechanic is inverted and mixing
 them would confuse the two.
 
-`HabitCard` per active habit:
+`HabitCard` per active habit, revised 2026-08-29 to mirror the supplement
+calendar exactly, inverted:
 
-- header: name, current streak large, best streak small
-- grid: ~12 weeks of day cells by week. `clean` fills with `--ok-fill` (not
-  `--green`, which is tuned for text contrast and washes out on fills -- see
-  PR #238). `broken` is an accent dot. `pending` is an outlined cell. Days
-  before `start_date` are not drawn.
-- action: a single "Сорвался" button offering today/yesterday; it becomes
-  "Убрать отметку" for a day already marked. Clicking today's or yesterday's
-  cell does the same.
+- one month selector above the cards drives all of them
+- header: name, current streak, best streak, clean-day percentage
+- grid: the displayed month, Monday-first, in the same cells the supplement
+  calendar uses. A clean day is checked (the `taken` fill); a slip is an
+  unchecked cell; future days and days before `start_date` are disabled.
+- action: clicking a checked day unchecks it and records the slip; clicking an
+  unchecked day clears it. There are no separate buttons.
 - footer: breaks in 30 days, clean days out of the window.
 
 Archived habits sit in a collapsible "Завершённые" block, following goals.
