@@ -19,7 +19,7 @@ const localDate = (d: Date) =>
   new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
 
 export function HabitsScreen({ user }: { user: User }) {
-  const { t } = useT()
+  const { t, locale } = useT()
   const [habits, setHabits] = useState<Habit[]>([])
   const [breaks, setBreaks] = useState<HabitBreak[]>([])
   const [loadError, setLoadError] = useState(false)
@@ -37,8 +37,10 @@ export function HabitsScreen({ user }: { user: User }) {
     const now = new Date()
     return { year: now.getFullYear(), month: now.getMonth() }
   })
+  // Follow the interface language: a hardcoded ru-RU printed a Russian month
+  // above an English or Ukrainian page.
   const monthName = new Date(cursor.year, cursor.month, 1)
-    .toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })
+    .toLocaleDateString(locale, { month: 'long', year: 'numeric' })
 
   const reload = useCallback(async () => {
     try {

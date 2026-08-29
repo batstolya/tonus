@@ -66,8 +66,17 @@ describe('HabitCard', () => {
   })
 
   it('shows the whole month, including days outside the habit', () => {
-    render()
-    expect(screen.getAllByTestId('habit-day')).toHaveLength(31)
+    const { container } = render()
+    expect(container.querySelectorAll('[data-testid^="habit-day-"]')).toHaveLength(31)
+  })
+
+  it('puts each day cell directly in the grid, so the CSS can size it', () => {
+    // .supp-cell carries aspect-ratio and only sizes as a direct child of
+    // .supp-grid; a wrapper element collapses every cell to its text.
+    const { container } = render()
+    const cell = container.querySelector('[data-testid="habit-day-2026-08-14"]')!
+    expect(cell.parentElement).toHaveClass('supp-grid')
+    expect(cell).toHaveClass('supp-cell')
   })
 
   it('counts the streak of clean days up to today', () => {
