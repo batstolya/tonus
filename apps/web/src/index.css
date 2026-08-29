@@ -2904,3 +2904,14 @@ select.tt-input { appearance: none; -webkit-appearance: none; cursor: pointer; p
   .dr-toolbar, .dr-ai-error { display: none; }
   @page { size: A4; margin: 15mm; }
 }
+
+/* ── Select focus ──────────────────────────────────────────
+   No select in the app styled its focus state, so every dropdown fell back to
+   the browser's blue ring -- jarring next to the app's own palette. Mouse focus
+   gets the accent border the text inputs use; keyboard focus keeps a real ring,
+   because a dropdown a keyboard user cannot locate is worse than an ugly one.
+   These live at the end of the file on purpose: per-component select rules
+   (.metric-selectors select, .ins-select, select.settings-input) carry the same
+   specificity, so only source order lets the focus state win. */
+select:focus { outline: none; border-color: var(--accent); }
+select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
