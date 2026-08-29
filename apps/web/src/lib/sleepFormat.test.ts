@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { hoursToHM, effectiveWake } from './sleepFormat'
+import { hoursToHM, effectiveWake, circularMeanHours, averageTimeOfDay } from './sleepFormat'
 
 describe('hoursToHM', () => {
   it('обычные значения', () => {
@@ -39,5 +39,46 @@ describe('effectiveWake', () => {
   it('нет данных для вывода — возвращает как есть', () => {
     expect(effectiveWake(null, '2026-06-01T08:00:00Z', 7)).toBe('2026-06-01T08:00:00Z')
     expect(effectiveWake('2026-06-01T00:00:00Z', '2026-06-01T30:00:00Z', null)).toBe('2026-06-01T30:00:00Z')
+  })
+})
+
+describe('circularMeanHours', () => {
+  it('averages plain morning times linearly', () => {
+    expect(circularMeanHours([9, 10, 11])).toBeCloseTo(10, 5)
+  })
+  it('averages across midnight instead of landing at noon', () => {
+    // 23:00 and 01:00 average to midnight, not to 12:00
+    expect(circularMeanHours([23, 1])).toBeCloseTo(0, 5)
+  })
+  it('a single late wake-up shifts the mean forward, never backwards', () => {
+    // 27 mornings at 09:50 plus one at 12:10 must stay near 09:50 —
+    // the linear "hours from noon" mean fell to ~07:00 here.
+    const wakes = [...Array(27).fill(9 + 50 / 60), 12 + 10 / 60]
+    const mean = circularMeanHours(wakes)!
+    expect(mean).toBeGreaterThan(9 + 50 / 60)
+    expect(mean).toBeLessThan(10.1)
+  })
+  it('returns null for an empty sample', () => {
+    expect(circularMeanHours([])).toBeNull()
+  })
+  it('normalises the result into [0, 24)', () => {
+    const mean = circularMeanHours([23.5, 0.5])!
+    expect(mean).toBeGreaterThanOrEqual(0)
+    expect(mean).toBeLessThan(24)
+  })
+})
+
+describe('averageTimeOfDay', () => {
+  it('ignores missing timestamps instead of counting them as midnight', () => {
+    const withGap = averageTimeOfDay(['2026-08-28T09:00:00', undefined, '2026-08-29T11:00:00'])
+    const withoutGap = averageTimeOfDay(['2026-08-28T09:00:00', '2026-08-29T11:00:00'])
+    expect(withGap).toBeCloseTo(withoutGap!, 5)
+    expect(withGap).toBeCloseTo(10, 5)
+  })
+  it('returns null when nothing is measured', () => {
+    expect(averageTimeOfDay([undefined, null])).toBeNull()
+  })
+  it('averages bedtimes across midnight', () => {
+    expect(averageTimeOfDay(['2026-08-28T23:00:00', '2026-08-29T01:00:00'])).toBeCloseTo(0, 5)
   })
 })

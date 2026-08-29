@@ -41,3 +41,26 @@ describe('SleepScreen awake time', () => {
     expect(screen.getByText(/100%/)).toBeTruthy()
   })
 })
+
+describe('SleepScreen average clock stats', () => {
+  // Local-time strings on purpose: the stat reads local hours, so a Z-suffixed
+  // fixture would make this test depend on the runner's timezone.
+  const nightAt = (date: string, bed: string, wake: string): DailyMetrics => ({
+    date, sleepHours: 7.5, sleepBedtime: `${date}T${bed}:00`,
+    sleepWakeTime: `${date}T${wake}:00`,
+  } as DailyMetrics)
+
+  it('keeps the average wake-up near the typical morning despite a midday outlier', () => {
+    const days = Array.from({ length: 27 }, (_, i) =>
+      nightAt(`2026-08-${String(i + 1).padStart(2, '0')}`, '01:50', '09:50'))
+    days.push(nightAt('2026-08-28', '04:10', '12:10'))
+
+    const { container } = renderWithProviders(<SleepScreen daily={days} />)
+    const stats = [...container.querySelectorAll('.stat')]
+      .map(el => el.textContent ?? '')
+    const wakeStat = stats.find(s => /wake/i.test(s)) ?? ''
+
+    // Linear averaging on the "hours from noon" scale used to report ~07:00.
+    expect(wakeStat).toMatch(/^09:5\d/)
+  })
+})

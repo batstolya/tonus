@@ -5,7 +5,7 @@ import {
 } from 'recharts'
 import type { DailyMetrics } from '../../types'
 import { useT } from '../../lib/i18n'
-import { hoursToHM, effectiveWake } from '../../lib/sleepFormat'
+import { hoursToHM, effectiveWake, averageTimeOfDay } from '../../lib/sleepFormat'
 import { sleepEfficiencyPct } from '../../lib/sleepQuality'
 
 interface Props {
@@ -101,13 +101,16 @@ export function SleepScreen({ daily }: Props) {
     ? slice.reduce((a, d) => a + (d.sleepHours ?? 0), 0) / slice.length
     : null
 
-  const avgBed = slice.filter(d => d.sleepBedtime).length
-    ? slice.filter(d => d.sleepBedtime).reduce((a, d) => a + (bedtimeToChartVal(d.sleepBedtime) ?? 0), 0) / slice.filter(d => d.sleepBedtime).length
-    : null
+  // Clock times are circular: averaging them linearly on the "hours from noon"
+  // scale let a single midday wake-up drag the average backwards by hours
+  // (the seam sits at 12:00). averageTimeOfDay has no seam and drops the
+  // nights where the time is missing instead of counting them as noon.
+  const hoursToChartVal = (h: number) => Math.round(((h < 12 ? h + 24 : h) - 12) * 10) / 10
+  const avgBedHours = averageTimeOfDay(slice.map(d => d.sleepBedtime))
+  const avgBed = avgBedHours === null ? null : hoursToChartVal(avgBedHours)
 
-  const avgWake = slice.filter(d => d.sleepWakeTime).length
-    ? slice.filter(d => d.sleepWakeTime).reduce((a, d) => a + (bedtimeToChartVal(wakeOf(d)) ?? 0), 0) / slice.filter(d => d.sleepWakeTime).length
-    : null
+  const avgWakeHours = averageTimeOfDay(slice.map(d => wakeOf(d)))
+  const avgWake = avgWakeHours === null ? null : hoursToChartVal(avgWakeHours)
 
   // Before-midnight compliance: bedtimeToChartVal < 12 means before midnight
   const bedtimeDays = slice.filter(d => d.sleepBedtime)

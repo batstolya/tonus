@@ -28,3 +28,37 @@ export function effectiveWake(
   if (durationHours != null) return new Date(bed.getTime() + durationHours * 3600000).toISOString()
   return wakeIso ?? undefined
 }
+
+// Mean of times of day (hours in [0, 24)) on the clock circle.
+// A plain arithmetic mean is wrong for wrap-around values: one 12:10 wake-up
+// among 09:50 mornings used to drag the average *backwards* by hours, because
+// the linear "hours from noon" scale has its seam at midday. Averaging the
+// unit vectors of the angles has no seam.
+export function circularMeanHours(hours: number[]): number | null {
+  if (!hours.length) return null
+  let x = 0
+  let y = 0
+  for (const h of hours) {
+    const a = (h / 24) * 2 * Math.PI
+    x += Math.cos(a)
+    y += Math.sin(a)
+  }
+  // Fully opposed times (e.g. 00:00 and 12:00) have no meaningful mean.
+  if (Math.abs(x) < 1e-9 && Math.abs(y) < 1e-9) return null
+  const mean = (Math.atan2(y, x) / (2 * Math.PI)) * 24
+  return (mean + 24) % 24
+}
+
+// Circular mean of a list of timestamps, as a local time of day in [0, 24).
+// Missing or unparseable entries are dropped, not folded in as some default
+// hour. Returns null when nothing usable is left.
+export function averageTimeOfDay(isos: (string | null | undefined)[]): number | null {
+  const hours: number[] = []
+  for (const iso of isos) {
+    if (!iso) continue
+    const d = new Date(iso)
+    if (isNaN(d.getTime())) continue
+    hours.push(d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600)
+  }
+  return circularMeanHours(hours)
+}
