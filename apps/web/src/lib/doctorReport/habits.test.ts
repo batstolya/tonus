@@ -27,7 +27,8 @@ describe('buildHabitsSection', () => {
   it('handles a habit with no slips', () => {
     const rows = buildHabitsSection([habit], [], '2026-08-28', '2026-08-01')
     expect(rows[0].breakDates).toEqual([])
-    expect(rows[0].cleanDays).toBe(27)
+    // 2026-08-01 .. 2026-08-28 inclusive = 28 clean days.
+    expect(rows[0].cleanDays).toBe(28)
   })
 
   it('respects a period shorter than the default 84-day grid', () => {
@@ -44,7 +45,7 @@ describe('buildHabitsSection', () => {
     )
     expect(rows[0].windowDays).toBe(7)
     expect(rows[0].breakDates).toEqual(['2026-08-25'])
-    expect(rows[0].cleanDays).toBe(5)
+    expect(rows[0].cleanDays).toBe(6)
   })
 
   it('clamps the window to the habit start date when it is inside the period', () => {
@@ -52,6 +53,6 @@ describe('buildHabitsSection', () => {
     // must not claim clean days before the habit existed.
     const rows = buildHabitsSection([habit], [], '2026-08-28', '2026-06-01')
     expect(rows[0].startDate).toBe('2026-08-01')
-    expect(rows[0].cleanDays).toBe(27)
+    expect(rows[0].cleanDays).toBe(28)
   })
 })

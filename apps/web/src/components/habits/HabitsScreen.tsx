@@ -8,6 +8,7 @@ import { useT } from '../../lib/i18n'
 import { LoadError } from '../ui/LoadError'
 import { startEffect } from '../../lib/startEffect'
 import { HabitCard } from './HabitCard'
+import { shiftMonth } from '../../lib/monthGrid'
 
 // Screen owns the data: loads habits + breaks for the user and hands both
 // down to HabitCard, which is presentational only. `today` is resolved from
@@ -31,6 +32,13 @@ export function HabitsScreen({ user }: { user: User }) {
   const [breakError, setBreakError] = useState(false)
 
   const today = localDate(new Date())
+  // One month selector drives every card, like the supplement calendar.
+  const [cursor, setCursor] = useState(() => {
+    const now = new Date()
+    return { year: now.getFullYear(), month: now.getMonth() }
+  })
+  const monthName = new Date(cursor.year, cursor.month, 1)
+    .toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })
 
   const reload = useCallback(async () => {
     try {
@@ -140,6 +148,14 @@ export function HabitsScreen({ user }: { user: User }) {
         <p className="empty-hint" data-testid="habits-empty">{t('Привычек пока нет.')}</p>
       )}
 
+      {activeHabits.length > 0 && (
+        <div className="supp-month-nav">
+          <button className="preset" onClick={() => setCursor(c => shiftMonth(c.year, c.month, -1))}>‹</button>
+          <span className="supp-month-label" data-testid="habits-month">{monthName}</span>
+          <button className="preset" onClick={() => setCursor(c => shiftMonth(c.year, c.month, 1))}>›</button>
+        </div>
+      )}
+
       <div className="goals-list">
         {activeHabits.map(h => (
           <HabitCard
@@ -147,6 +163,8 @@ export function HabitsScreen({ user }: { user: User }) {
             habit={h}
             breaks={breaks}
             today={today}
+            year={cursor.year}
+            month={cursor.month}
             onToggleBreak={handleToggleBreak}
             onArchive={handleArchive}
           />
@@ -166,6 +184,8 @@ export function HabitsScreen({ user }: { user: User }) {
                   habit={h}
                   breaks={breaks}
                   today={today}
+                  year={cursor.year}
+                  month={cursor.month}
                   onToggleBreak={handleToggleBreak}
                   onArchive={handleArchive}
                 />

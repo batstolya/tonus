@@ -16,10 +16,10 @@ describe('addDays', () => {
 })
 
 describe('habitDays', () => {
-  it('marks today pending and closed days clean', () => {
+  it('counts today as clean, like every other day without a break', () => {
     const days = habitDays(habit('2026-08-25'), [], '2026-08-28')
     expect(days.map(d => d.date)).toEqual(['2026-08-25', '2026-08-26', '2026-08-27', '2026-08-28'])
-    expect(days.map(d => d.status)).toEqual(['clean', 'clean', 'clean', 'pending'])
+    expect(days.map(d => d.status)).toEqual(['clean', 'clean', 'clean', 'clean'])
   })
 
   it('never emits days before start_date', () => {
@@ -46,32 +46,32 @@ describe('habitDays', () => {
 })
 
 describe('habitStats', () => {
-  it('counts the streak of closed clean days, excluding pending today', () => {
+  it('counts the streak of clean days through today', () => {
     const s = habitStats(habitDays(habit('2026-08-25'), [], '2026-08-28'))
-    expect(s.currentStreak).toBe(3)
+    expect(s.currentStreak).toBe(4)
   })
 
   it('restarts the streak after a break', () => {
     const s = habitStats(habitDays(habit('2026-08-20'), [brk('2026-08-26')], '2026-08-28'))
-    expect(s.currentStreak).toBe(1)
+    expect(s.currentStreak).toBe(2)
     expect(s.bestStreak).toBe(6)
   })
 
-  it('reports a zero streak when yesterday was a break', () => {
+  it('restarts the streak at one when yesterday was a break', () => {
     const s = habitStats(habitDays(habit('2026-08-20'), [brk('2026-08-27')], '2026-08-28'))
-    expect(s.currentStreak).toBe(0)
+    expect(s.currentStreak).toBe(1)
   })
 
-  it('breaking on the very first day leaves no streak', () => {
+  it('breaking on the very first day starts the streak from the next one', () => {
     const s = habitStats(habitDays(habit('2026-08-27'), [brk('2026-08-27')], '2026-08-28'))
-    expect(s.currentStreak).toBe(0)
-    expect(s.bestStreak).toBe(0)
+    expect(s.currentStreak).toBe(1)
+    expect(s.bestStreak).toBe(1)
   })
 
   it('counts breaks and clean days over the window', () => {
     const s = habitStats(habitDays(habit('2026-08-20'), [brk('2026-08-22'), brk('2026-08-26')], '2026-08-28'))
     expect(s.breaks30).toBe(2)
-    expect(s.cleanDays).toBe(6)
+    expect(s.cleanDays).toBe(7)
     expect(s.windowDays).toBe(9)
   })
 })
