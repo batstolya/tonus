@@ -920,6 +920,74 @@ export type Database = {
           },
         ]
       }
+      habit_breaks: {
+        Row: {
+          created_at: string | null
+          date: string
+          habit_id: string
+          id: string
+          note: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          habit_id: string
+          id?: string
+          note?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          habit_id?: string
+          id?: string
+          note?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "habit_breaks_habit_id_fkey"
+            columns: ["habit_id"]
+            isOneToOne: false
+            referencedRelation: "habits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      habits: {
+        Row: {
+          active: boolean
+          created_at: string | null
+          id: string
+          name: string
+          note: string | null
+          sort_order: number | null
+          start_date: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string | null
+          id?: string
+          name: string
+          note?: string | null
+          sort_order?: number | null
+          start_date?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string | null
+          id?: string
+          name?: string
+          note?: string | null
+          sort_order?: number | null
+          start_date?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       hair_entries: {
         Row: {
           created_at: string | null
@@ -2178,6 +2246,15 @@ export type Database = {
         Returns: undefined
       }
       schedule_env_sync: { Args: { p_secret: string }; Returns: undefined }
+      set_habit_break: {
+        Args: {
+          p_broken: boolean
+          p_date: string
+          p_habit_id: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       football_reminder_status:
