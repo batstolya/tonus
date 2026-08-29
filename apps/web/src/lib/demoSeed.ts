@@ -195,6 +195,25 @@ export interface SeedResearchRun {
   created_at: string
 }
 
+export interface SeedHabit {
+  id: string
+  user_id: string
+  name: string
+  note: string | null
+  start_date: string
+  active: boolean
+  sort_order: number | null
+  created_at: string
+}
+
+export interface SeedHabitBreak {
+  id: string
+  user_id: string
+  habit_id: string
+  date: string
+  note: string | null
+}
+
 export interface DemoSeed {
   intake_events: SeedIntakeEvent[]
   supplements: SeedSupplement[]
@@ -211,6 +230,8 @@ export interface DemoSeed {
   health_alerts: SeedHealthAlert[]
   context_notes: SeedContextNote[]
   research_runs: SeedResearchRun[]
+  habits: SeedHabit[]
+  habit_breaks: SeedHabitBreak[]
 }
 
 // Детерминированный псевдорандом (тот же приём, что в demoFixture) — картинка
@@ -586,6 +607,23 @@ function makeContextNotes(): SeedContextNote[] {
   return out
 }
 
+// Abstinence habits: one long-running habit with a couple of past slips, so
+// the streak/calendar view has both clean and broken days to render.
+function makeHabits(): SeedHabit[] {
+  return [{
+    id: 'demo-habit-0', user_id: DEMO_USER, name: 'Без сахара',
+    note: 'Пробую отказаться от сладкого', start_date: dateStr(60),
+    active: true, sort_order: 0, created_at: at(60, 9),
+  }]
+}
+
+function makeHabitBreaks(): SeedHabitBreak[] {
+  return [21, 8].map((daysAgo, i) => ({
+    id: `demo-habit-break-${i}`, user_id: DEMO_USER, habit_id: 'demo-habit-0',
+    date: dateStr(daysAgo), note: null,
+  }))
+}
+
 // Свежий набор фикстур. demoDb сидится этим при первом обращении.
 export function makeDemoSeed(): DemoSeed {
   return {
@@ -604,6 +642,8 @@ export function makeDemoSeed(): DemoSeed {
     health_alerts: makeHealthAlerts(),
     context_notes: makeContextNotes(),
     research_runs: [],
+    habits: makeHabits(),
+    habit_breaks: makeHabitBreaks(),
   }
 }
 
@@ -627,5 +667,6 @@ export function demoSeedStrings(): string[] {
   for (const a of seed.health_alerts) for (const l of alertTranslatableLines(a.message)) strings.add(l)
   for (const n of seed.context_notes) strings.add(n.note)
   for (const o of seed.observations) strings.add(o.note)
+  for (const h of seed.habits) { strings.add(h.name); if (h.note) strings.add(h.note) }
   return [...strings]
 }

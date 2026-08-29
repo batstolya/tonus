@@ -11,6 +11,8 @@ import {
 } from '../api/settings'
 import type { Supplement } from '../supplements'
 import type { IntakeEvent } from '../api/intake'
+import { loadHabits, loadHabitBreaks } from '../api/habits'
+import type { Habit, HabitBreak } from '../habits'
 import type { JournalNote } from './journal'
 import { REPORTED_TYPES } from './intake'
 import { NUTRITION_TYPES, type NutritionEvent } from './nutrition'
@@ -141,6 +143,8 @@ export interface ReportSources {
   profile: ProfileBasics | null
   intake: IntakeEvent[]
   nutrition: NutritionEvent[]
+  habits: Habit[]
+  habitBreaks: HabitBreak[]
 }
 
 /**
@@ -150,7 +154,7 @@ export interface ReportSources {
 export async function loadReportSources(userId: string, since: string): Promise<ReportSources> {
   const [
     labs, supplements, supplementLogs, concerns, concernLogs, observations,
-    notes, profile, intake, nutrition,
+    notes, profile, intake, nutrition, habits, habitBreaks,
   ] = await Promise.all([
     loadLabResults(userId).catch(() => [] as LabResult[]),
     loadAllSupplements(userId).catch(() => [] as Supplement[]),
@@ -165,9 +169,13 @@ export async function loadReportSources(userId: string, since: string): Promise<
     loadProfileBasics(userId).catch(() => null),
     loadIntakeEvents(userId, since).catch(() => [] as IntakeEvent[]),
     loadNutritionEvents(userId, since).catch(() => [] as NutritionEvent[]),
+    // All habits are loaded; buildHabitsSection filters to active ones —
+    // archived habits are deliberately invisible to both the model and the report.
+    loadHabits(userId).catch(() => [] as Habit[]),
+    loadHabitBreaks(userId, since).catch(() => [] as HabitBreak[]),
   ])
   return {
     labs, supplements, supplementLogs, concerns, concernLogs, observations,
-    notes, profile, intake, nutrition,
+    notes, profile, intake, nutrition, habits, habitBreaks,
   }
 }

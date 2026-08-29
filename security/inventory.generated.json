@@ -7,9 +7,9 @@
     "security/inventory-classification.json"
   ],
   "counts": {
-    "tables": 56,
+    "tables": 58,
     "views": 2,
-    "rpcs": 12,
+    "rpcs": 13,
     "buckets": 1,
     "edgeFunctions": 25
   },
@@ -178,6 +178,20 @@
       },
       {
         "name": "goals",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "habit_breaks",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "habits",
         "ownerColumn": "user_id",
         "authOwner": "rls:user_id",
         "dataSensitivity": "health",
@@ -508,6 +522,13 @@
         "authOwner": "service-role",
         "credentialType": "service-role",
         "dataSensitivity": "credential"
+      },
+      {
+        "name": "set_habit_break",
+        "signature": "set_habit_break(uuid, uuid, date, boolean)",
+        "authOwner": "rls:user_id",
+        "credentialType": "user-jwt-or-service-role",
+        "dataSensitivity": "health"
       }
     ],
     "buckets": [

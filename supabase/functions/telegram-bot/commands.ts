@@ -5,8 +5,11 @@ import { fetchWithTimeout } from '../_shared/http.ts'
 import { daysSinceFreshData } from '../_shared/staleness.ts'
 import { localizeRoundName } from '../_shared/football.ts'
 import { metricLabel as expMetricLabel } from '../_shared/experiments.ts'
+import { localDate } from '../_shared/time.ts'
+import { loadUserTimezone } from '../_shared/userTimezone.ts'
+import { habitDays, habitStats, addDays, HABIT_WINDOW_DAYS, type Habit, type HabitBreak } from '../_shared/habits.ts'
 import { tgSend, tgTyping } from './tg.ts'
-import { REPORT_ACTIONS, STATUS_ACTIONS, BACK_MENU, FOOTBALL_MENU } from './menus.ts'
+import { REPORT_ACTIONS, STATUS_ACTIONS, BACK_MENU, FOOTBALL_MENU, HABITS_MENU, HABIT_DAY_MENU } from './menus.ts'
 import { AI_CONSENT_TELEGRAM_MESSAGE } from './ai.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -301,4 +304,88 @@ export async function handleExperimentSuggest(chatId: number | string, userId: s
       `🧪 <b>${s.hypothesis}</b>\n\nЧто менять: ${s.change_rule}\nМетрика: ${expMetricLabel(s.target_metric)}\n${s.rationale}`,
       { reply_markup: { inline_keyboard: [[{ text: '▶️ Запустить (14 дней)', callback_data: `expsug:${ev.id}` }]] } })
   }
+}
+
+// ── Habits: passive Telegram control (SPEC habits, task 6) ─────────────────
+// Deliberately no daily ping — the user opens this menu themselves via the
+// "Привычки" button or /срыв, /break when a slip actually happens. Streaks
+// come from the same pure logic the web app uses (_shared/habits.ts, also
+// re-exported from apps/web/src/lib/habits.ts), never reimplemented here. "Today"/"yesterday" are resolved from the user's
+// profile timezone (loadUserTimezone) — never current_date, never a bare
+// new Date(), since the callback itself carries no timezone.
+
+async function fetchActiveHabitsWithStreaks(
+  supabase: SupabaseClient, userId: string, today: string,
+): Promise<{ habit: Habit; streak: number }[]> {
+  const { data: habitRows } = await supabase
+    .from('habits')
+    .select('id, user_id, name, note, start_date, active, sort_order, created_at')
+    .eq('user_id', userId).eq('active', true)
+    .order('sort_order', { ascending: true })
+  const habits: Habit[] = habitRows ?? []
+  if (!habits.length) return []
+
+  const windowStart = addDays(today, -(HABIT_WINDOW_DAYS - 1))
+  const { data: breakRows } = await supabase
+    .from('habit_breaks')
+    .select('id, habit_id, date, note')
+    .eq('user_id', userId)
+    .in('habit_id', habits.map(h => h.id))
+    .gte('date', windowStart)
+  const breaks: HabitBreak[] = breakRows ?? []
+
+  return habits.map(habit => ({
+    habit,
+    streak: habitStats(habitDays(habit, breaks, today)).currentStreak,
+  }))
+}
+
+export async function handleHabits(chatId: number | string, userId: string, supabase: SupabaseClient) {
+  const tz = await loadUserTimezone(supabase, userId)
+  const today = localDate(tz)
+  const withStreaks = await fetchActiveHabitsWithStreaks(supabase, userId, today)
+
+  if (!withStreaks.length) {
+    await tgSend(chatId, '🚫 Привычек пока нет. Добавь их в приложении в разделе «Привычки».', { reply_markup: BACK_MENU })
+    return
+  }
+
+  const menu = HABITS_MENU(withStreaks.map(({ habit, streak }) => ({ id: habit.id, name: habit.name, streak })))
+  await tgSend(chatId, '🚫 Отметь срыв или посмотри стрик:', { reply_markup: menu })
+}
+
+export async function handleHabitMenu(chatId: number | string, userId: string, habitId: string, supabase: SupabaseClient) {
+  const { data: habit } = await supabase
+    .from('habits').select('id, name').eq('id', habitId).eq('user_id', userId).maybeSingle()
+
+  if (!habit) {
+    await tgSend(chatId, '⚠️ Привычка не найдена.', { reply_markup: BACK_MENU })
+    return
+  }
+
+  await tgSend(chatId, `🚫 <b>${habit.name}</b>\n\nОтметить срыв или снять отметку:`, {
+    parse_mode: 'HTML', reply_markup: HABIT_DAY_MENU(habitId),
+  })
+}
+
+export async function handleHabitBreak(
+  chatId: number | string, userId: string, habitId: string, dayOffset: number, broken: boolean,
+  supabase: SupabaseClient,
+) {
+  const tz = await loadUserTimezone(supabase, userId)
+  const today = localDate(tz)
+  const date = dayOffset === 1 ? addDays(today, -1) : today
+  const label = dayOffset === 1 ? 'вчера' : 'сегодня'
+
+  const { error } = await supabase.rpc('set_habit_break', {
+    p_user_id: userId, p_habit_id: habitId, p_date: date, p_broken: broken,
+  })
+
+  if (error) {
+    await tgSend(chatId, `⚠️ Не удалось сохранить (${date} может быть раньше старта привычки).`, { reply_markup: BACK_MENU })
+    return
+  }
+
+  const text = broken ? `💥 Отметил срыв ${label} (${date}).` : `✅ Снял отметку срыва за ${label} (${date}).`
+  await tgSend(chatId, text, { reply_markup: BACK_MENU })
 }

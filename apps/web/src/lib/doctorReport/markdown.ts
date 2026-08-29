@@ -493,6 +493,17 @@ export function toMarkdown(model: DoctorReportModel, lang: ReportLang): string {
     p()
   }
 
+  if (model.habits.length) {
+    p(`## ${t('Привычки отказа')}`)
+    p()
+    for (const h of model.habits) {
+      const period = `${t('с')} ${h.startDate} · ${t('чисто')} ${h.cleanDays} ${t('из')} ${h.windowDays} ${t('дней')}`
+      const slips = h.breakDates.length ? h.breakDates.join(', ') : t('без срывов')
+      p(`- **${h.name}** (${period}) — ${t('срывы')}: ${slips}`)
+    }
+    p()
+  }
+
   if (model.journal.wellbeingCount || model.journal.notes.length) {
     p(`## ${t('Самочувствие и дневник')}`)
     p()

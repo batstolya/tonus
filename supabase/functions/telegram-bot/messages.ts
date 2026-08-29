@@ -23,7 +23,7 @@ import {
 } from './ai.ts'
 import {
   handleReport, handleStatus, handleFootballMenu, handleFootballMatches,
-  setFootballReminders, checkStaleness,
+  setFootballReminders, checkStaleness, handleHabits,
 } from './commands.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -229,6 +229,11 @@ export async function handleMessage(msg: TelegramMessage, supabase: SupabaseClie
   }
   if (route.kind === 'football_off') {
     await setFootballReminders(chatId, userId, false, supabase)
+    return
+  }
+
+  if (route.kind === 'habits') {
+    await handleHabits(chatId, userId, supabase)
     return
   }
 

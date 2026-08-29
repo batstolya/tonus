@@ -5,6 +5,7 @@
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { plannedDaysInRange, attendance, scheduleWeekdays, type DayTimes } from './workoutPlan.ts'
 import { DEFAULT_TIMEZONE } from './userTimezone.ts'
+import { habitDays, habitStats, HABIT_WINDOW_DAYS, type Habit, type HabitBreak } from './habits.ts'
 
 export interface HealthContextOptions {
   periodDays?: number          // окно агрегации (по умолчанию 14)
@@ -73,6 +74,8 @@ export interface HealthContext {
   concerns: { name: string; category: string; status: string; lastLog: { date: string; severity: number | null; note: string | null } | null }[]
   /** Свободные записи пациента: тег + текст, без шкалы (spec 2026-08-23-observations). */
   observations: { date: string; at_time: string | null; tag: string; note: string }[]
+  /** Abstinence habits: clean-day streaks and slip dates (spec 2026-08-28-habits). */
+  habits: { name: string; startDate: string; streakDays: number; breaks: string[] }[]
   hairEntries: { date: string; shedding_level: number | null; density_rating: number | null; hairline_rating: number | null; scalp_note: string | null }[]
   alerts: { date: string | null; level: 'yellow' | 'red'; message: string }[]
   recommendations: { metric: string; text: string; status: string; created_at: string }[]
@@ -136,12 +139,24 @@ export async function buildHealthContext(
   opts: HealthContextOptions = {},
 ): Promise<HealthContext> {
   const periodDays = opts.periodDays ?? 14
+  const timezone = opts.timezone && isValidTimezone(opts.timezone) ? opts.timezone : DEFAULT_TIMEZONE
   const since = new Date(); since.setDate(since.getDate() - periodDays)
   const sinceStr = since.toISOString().slice(0, 10)
 
   const since7 = new Date(); since7.setDate(since7.getDate() - 7)
   const since7Str = since7.toISOString().slice(0, 10)
-  const [profRes, scoreRes, mRes, sRes, labRes, supRes, intakeRes, logRes, notesRes, calRes, goalRes, expRes, envRes, concernRes, concernLogRes, obsRes, hairRes, alertRes, recRes, wsRes, exminRes] = await Promise.all([
+  const since30 = new Date(); since30.setDate(since30.getDate() - 29)
+  const since30Str = since30.toISOString().slice(0, 10)
+  // Streak must match the page/bot window (HABIT_WINDOW_DAYS), so the breaks
+  // query has to reach back that far too — the 30-day `breaks` list handed to
+  // the model is filtered out of this wider result below.
+  const sinceHabitWindow = new Date(); sinceHabitWindow.setDate(sinceHabitWindow.getDate() - (HABIT_WINDOW_DAYS - 1))
+  const sinceHabitWindowStr = sinceHabitWindow.toISOString().slice(0, 10)
+  // The user's own "today", same as the page (browser local) and the bot
+  // (localDate(tz)) resolve it — not UTC, or a Kyiv user past midnight loses
+  // a day of streak.
+  const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
+  const [profRes, scoreRes, mRes, sRes, labRes, supRes, intakeRes, logRes, notesRes, calRes, goalRes, expRes, envRes, concernRes, concernLogRes, obsRes, hairRes, alertRes, recRes, wsRes, exminRes, habitsRes, habitBreaksRes] = await Promise.all([
     opts.includeCoachProfile
       ? supabase.from('coach_profile').select('summary, facts').eq('user_id', userId).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -210,6 +225,13 @@ export async function buildHealthContext(
     supabase.from('metrics_daily')
       .select('date, sum_val')
       .eq('user_id', userId).eq('metric', 'exerciseMinutes').gte('date', since7Str),
+    // Archived habits are deliberately invisible to the model.
+    supabase.from('habits')
+      .select('id, user_id, name, note, start_date, active, sort_order, created_at')
+      .eq('user_id', userId).eq('active', true).order('sort_order', { ascending: true }),
+    supabase.from('habit_breaks')
+      .select('id, habit_id, date, note')
+      .eq('user_id', userId).gte('date', sinceHabitWindowStr),
   ])
 
   // Последовательный follow-up: тренд goal_progress зависит от только что
@@ -254,10 +276,24 @@ export async function buildHealthContext(
   const intakeRows: CtxIntakeRow[] = intakeRes.data ?? []
   for (const e of intakeRows) if (e.type === 'workout' && e.ts >= `${since7Str}T00:00:00Z`) workoutDone.add(e.ts.slice(0, 10))
 
+  const habitsRaw: Habit[] = habitsRes.data ?? []
+  const habitBreaksRaw: HabitBreak[] = habitBreaksRes.data ?? []
+  const habits = habitsRaw.map((h) => {
+    const days = habitDays(h, habitBreaksRaw, todayStr, HABIT_WINDOW_DAYS)
+    return {
+      name: h.name,
+      startDate: h.start_date,
+      streakDays: habitStats(days).currentStreak,
+      breaks: habitBreaksRaw
+        .filter((b) => b.habit_id === h.id && b.date >= since30Str)
+        .map((b) => b.date).sort(),
+    }
+  })
+
   const prof: { summary: string | null; facts: unknown } | null = profRes.data
   return {
     periodDays,
-    timezone: opts.timezone && isValidTimezone(opts.timezone) ? opts.timezone : DEFAULT_TIMEZONE,
+    timezone,
     coachProfile: prof?.summary ? { summary: prof.summary, facts: Array.isArray(prof.facts) ? prof.facts : [] } : null,
     scores: scoreRes.data ?? null,
     metrics: mRes.data ?? [],
@@ -273,6 +309,7 @@ export async function buildHealthContext(
     environment: envRes.data ?? [],
     concerns,
     observations: obsRes.data ?? [],
+    habits,
     hairEntries: hairRes.data ?? [],
     alerts,
     recommendations: recRes.data ?? [],
@@ -514,6 +551,15 @@ export function healthContextToText(ctx: HealthContext): string {
     for (const o of ctx.observations) {
       const at = o.at_time ? ` ${o.at_time.slice(0, 5)}` : ''
       parts.push(`— ${o.date}${at} [${OBSERVATION_TAG_RU[o.tag] ?? o.tag}]: ${o.note}`)
+    }
+  }
+
+  if (ctx.habits?.length) {
+    // Active habits only: an archived habit never reaches this text.
+    parts.push('\nПривычки отказа (clean-streak, только активные):')
+    for (const h of ctx.habits) {
+      const breaks = h.breaks.length ? `, срывы: ${h.breaks.join(', ')}` : ', без срывов за последние 30 дн.'
+      parts.push(`— ${h.name} (с ${h.startDate}): streak ${h.streakDays} дн. подряд без срыва${breaks}`)
     }
   }
 

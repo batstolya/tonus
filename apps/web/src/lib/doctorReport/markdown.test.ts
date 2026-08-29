@@ -12,7 +12,7 @@ const daily: DailyMetrics[] = Array.from({ length: 30 }, (_, i) => ({
 }))
 const sources = {
   labs: [], supplements: [], supplementLogs: [], concerns: [], concernLogs: [], observations: [], notes: [], intake: [],
-  nutrition: [],
+  nutrition: [], habits: [], habitBreaks: [],
   profile: null,
 }
 const model = buildReportModel({ daily, sources, periodDays: 30, today })

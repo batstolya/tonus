@@ -5,6 +5,9 @@
 import type { Translation } from './index'
 
 export const demo: Record<string, Translation> = {
+  // Демо-привычка отказа (spec 2026-08-28-habits-design.md)
+  'Без сахара': { uk: 'Без цукру', en: 'No sugar' },
+  'Пробую отказаться от сладкого': { uk: 'Намагаюся відмовитися від солодкого', en: 'Trying to cut out sweets' },
   // Демо-наблюдения (spec 2026-08-23-observations-design.md)
   'Долго не мог уснуть, в голове крутились задачи': {
     uk: 'Довго не міг заснути, у голові крутилися задачі',

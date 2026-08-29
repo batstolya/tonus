@@ -6,6 +6,7 @@ import { onboarding } from './onboarding'
 import { dashboard } from './dashboard'
 import { settings } from './settings'
 import { health } from './health'
+import { habits } from './habits'
 import { ai_insights } from './ai-insights'
 import { metrics } from './metrics'
 import { landing } from './landing'
@@ -19,6 +20,7 @@ export const translations: Record<string, Translation> = {
   ...dashboard,
   ...settings,
   ...health,
+  ...habits,
   ...ai_insights,
   ...metrics,
   ...landing,
