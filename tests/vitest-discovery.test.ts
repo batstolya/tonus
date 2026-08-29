@@ -15,6 +15,7 @@ const OWNERS: { prefix: string; owner: string }[] = [
   { prefix: 'apps/mobile/', owner: 'apps/mobile (тестов пока нет — логика живёт в packages/shared)' },
   { prefix: 'packages/shared/src/', owner: 'packages/shared/vitest.config.ts' },
   { prefix: 'tests/', owner: 'vitest.config.ts → project "repo"' },
+  { prefix: 'scripts/', owner: 'vitest.config.ts → project "repo"' },
   { prefix: 'supabase/functions/', owner: 'vitest.config.ts → project "functions"' },
 ]
 
@@ -47,5 +48,10 @@ describe('Vitest discovery', () => {
     // Именно этот проект и потерялся — без него 28 файлов лежали мёртвым грузом.
     const config = fs.readFileSync('vitest.config.ts', 'utf8')
     expect(config).toContain("supabase/functions/**/*.test.ts")
+  })
+
+  it('runs the TypeScript script tests from the root repo project', () => {
+    const config = fs.readFileSync('vitest.config.ts', 'utf8')
+    expect(config).toContain("scripts/**/*.test.ts")
   })
 })

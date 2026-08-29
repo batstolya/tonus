@@ -103,6 +103,70 @@ describe('parseHAE', () => {
     expect(metrics.find(m => m.metric === 'oxygenSaturation')?.avg_val).toBeCloseTo(0.97)
   })
 
+  it.each([
+    ['m', 50, 0.05],
+    [' meters ', 100, 0.1],
+    ['METRE', 50, 0.05],
+    ['metres', 100, 0.1],
+  ])('uses explicit metre unit %j before the distance magnitude heuristic', (units, qty, expectedKm) => {
+    const { metrics } = parseHAE(USER, {
+      data: { metrics: [{ name: 'distance_walking_running', units, data: [{ date: DAY, qty }] }] },
+    })
+    expect(metrics.find(m => m.metric === 'distance')?.sum_val).toBeCloseTo(expectedKm)
+  })
+
+  it.each(['km', ' kilometer ', 'kilometers', 'KILOMETRE', 'kilometres'])(
+    'keeps distance in explicit kilometre unit %j even above the legacy threshold',
+    units => {
+      const { metrics } = parseHAE(USER, {
+        data: { metrics: [{ name: 'distance_walking_running', units, data: [{ date: DAY, qty: 5400 }] }] },
+      })
+      expect(metrics.find(m => m.metric === 'distance')?.sum_val).toBe(5400)
+    },
+  )
+
+  it.each([
+    [undefined, 50, 50],
+    [undefined, 5400, 5.4],
+    ['legacy-distance-unit', 50, 50],
+    ['legacy-distance-unit', 5400, 5.4],
+  ])('keeps the legacy distance heuristic for unit %j and quantity %s', (units, qty, expectedKm) => {
+    const { metrics } = parseHAE(USER, {
+      data: { metrics: [{ name: 'distance_walking_running', units, data: [{ date: DAY, qty }] }] },
+    })
+    expect(metrics.find(m => m.metric === 'distance')?.sum_val).toBeCloseTo(expectedKm)
+  })
+
+  it.each([
+    ['%', 1, 0.01],
+    [' percent ', 1.5, 0.015],
+    ['PERCENTAGE', 1, 0.01],
+  ])('uses explicit percent unit %j before the saturation magnitude heuristic', (units, avg, expectedFraction) => {
+    const { metrics } = parseHAE(USER, {
+      data: { metrics: [{ name: 'blood_oxygen_saturation', units, data: [{ date: DAY, Avg: avg }] }] },
+    })
+    expect(metrics.find(m => m.metric === 'oxygenSaturation')?.avg_val).toBeCloseTo(expectedFraction)
+  })
+
+  it.each(['fraction', ' ratio '])('keeps saturation in explicit fraction unit %j above the legacy threshold', units => {
+    const { metrics } = parseHAE(USER, {
+      data: { metrics: [{ name: 'blood_oxygen_saturation', units, data: [{ date: DAY, Avg: 97 }] }] },
+    })
+    expect(metrics.find(m => m.metric === 'oxygenSaturation')?.avg_val).toBe(97)
+  })
+
+  it.each([
+    [undefined, 1.5, 1.5],
+    [undefined, 97, 0.97],
+    ['legacy-saturation-unit', 1.5, 1.5],
+    ['legacy-saturation-unit', 97, 0.97],
+  ])('keeps the legacy saturation heuristic for unit %j and average %s', (units, avg, expectedFraction) => {
+    const { metrics } = parseHAE(USER, {
+      data: { metrics: [{ name: 'blood_oxygen_saturation', units, data: [{ date: DAY, Avg: avg }] }] },
+    })
+    expect(metrics.find(m => m.metric === 'oxygenSaturation')?.avg_val).toBeCloseTo(expectedFraction)
+  })
+
   it('treats a large distance as metres and converts to km', () => {
     const { metrics } = parseHAE(USER, {
       data: { metrics: [{ name: 'distance_walking_running', units: 'm', data: [{ date: DAY, qty: 5400 }] }] },

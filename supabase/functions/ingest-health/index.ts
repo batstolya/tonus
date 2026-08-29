@@ -5,7 +5,7 @@ import { detectAnomaly, shouldSendAlert, buildAlertMessage, type AnomalyDay } fr
 import { withObservability } from '../_shared/observability.ts'
 import { consumeRateLimit, hashRateLimitSubject, rateLimitedResponse } from '../_shared/rateLimit.ts'
 import { sendTelegram } from '../_shared/telegram.ts'
-import { parseHAE, parseHRSamples, type HaePayload } from '../_shared/hae.ts'
+import { processHealthPayload } from './normalize.ts'
 
 // Приём данных Apple Health от Health Auto Export (SPEC-AUTOSYNC).
 // Изолировано: пишет в *_staging; в боевые таблицы — только при mode='live'.
@@ -37,45 +37,41 @@ const handler = async (req: Request) => {
     if (!tok) return new Response('Invalid token', { status: 401, headers: CORS })
     const userId = tok.user_id
 
-    const payload: HaePayload | null = await req.json().catch(() => null)
+    const payload: unknown = await req.json().catch(() => null)
     if (!payload) return new Response('Bad JSON', { status: 400, headers: CORS })
 
-    // 1) всегда сохраняем сырой JSON
-    await supabase.from('ingest_raw').insert({ user_id: userId, payload })
+    // Store original JSON, normalize supported formats, then write parsed rows.
+    const { metrics, sleep, mErr, sErr, promoted } = await processHealthPayload(userId, payload, tok.mode, {
+      storeRaw: async value => {
+        await supabase.from('ingest_raw').insert({ user_id: userId, payload: value })
+      },
+      loadTimezone: async () => {
+        const { data: profile } = await supabase.from('profiles').select('timezone').eq('id', userId).maybeSingle()
+        return profile?.timezone
+      },
+      writeMetricsStaging: async rows => {
+        const { error } = await supabase.from('metrics_daily_staging').upsert(rows, { onConflict: 'user_id,date,metric' })
+        return error?.message ?? null
+      },
+      writeSleepStaging: async rows => {
+        const { error } = await supabase.from('sleep_sessions_staging').upsert(rows, { onConflict: 'user_id,date' })
+        return error?.message ?? null
+      },
+      writeMetricsLive: async rows => {
+        const { error } = await supabase.from('metrics_daily').upsert(rows, { onConflict: 'user_id,date,metric' })
+        return !error
+      },
+      writeSleepLive: async rows => {
+        const { error } = await supabase.from('sleep_sessions').upsert(rows, { onConflict: 'user_id,date' })
+        return !error
+      },
+      writeHeartRateSamples: async rows => {
+        await supabase.from('heart_rate_samples').upsert(rows, { onConflict: 'user_id,ts' })
+      },
+    })
 
-    // 2) разбор → staging
-    const { metrics, sleep } = parseHAE(userId, payload)
-    let mErr: string | null = null, sErr: string | null = null
-    if (metrics.length) {
-      const { error } = await supabase.from('metrics_daily_staging').upsert(
-        metrics.map(r => ({ ...r, updated_at: new Date().toISOString() })), { onConflict: 'user_id,date,metric' })
-      mErr = error?.message ?? null
-    }
-    if (sleep.length) {
-      const { error } = await supabase.from('sleep_sessions_staging').upsert(
-        sleep.map(r => ({ ...r, updated_at: new Date().toISOString() })), { onConflict: 'user_id,date' })
-      sErr = error?.message ?? null
-    }
-
-    // 3) промоут в боевые таблицы ТОЛЬКО при mode='live'
-    let promoted = 0
+    // Recompute scores and detect anomalies only after a live ingest.
     if (tok.mode === 'live') {
-      if (metrics.length) {
-        const { error } = await supabase.from('metrics_daily').upsert(
-          metrics.map(r => ({ ...r })), { onConflict: 'user_id,date,metric' })
-        if (!error) promoted += metrics.length
-      }
-      if (sleep.length) {
-        const { error } = await supabase.from('sleep_sessions').upsert(
-          sleep.map(r => ({ ...r })), { onConflict: 'user_id,date' })
-        if (!error) promoted += sleep.length
-      }
-      // сырой пульс для карты стресса (если HAE прислал сэмплы, а не дневной агрегат)
-      const hrSamples = parseHRSamples(userId, payload)
-      for (let i = 0; i < hrSamples.length; i += 500) {
-        await supabase.from('heart_rate_samples').upsert(hrSamples.slice(i, i + 500), { onConflict: 'user_id,ts' })
-      }
-
       // Пересчёт дневных оценок (readiness/recovery/stress/baseline) из автосинка,
       // чтобы они не отставали, когда веб-приложение не открывают. Best-effort —
       // ошибка здесь не должна валить приём данных. Зеркало src/lib/scores.ts.

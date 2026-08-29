@@ -23,6 +23,10 @@ export const METRIC_MAP: Record<string, string> = {
 }
 // Метрики-суммы: дедуп = сумма внутри источника, максимум по источникам
 export const SUM_METRICS = new Set(['steps', 'distance', 'activeEnergy', 'exerciseMinutes', 'flightsClimbed'])
+const DISTANCE_METRE_UNITS = new Set(['m', 'meter', 'meters', 'metre', 'metres'])
+const DISTANCE_KILOMETRE_UNITS = new Set(['km', 'kilometer', 'kilometers', 'kilometre', 'kilometres'])
+const OXYGEN_PERCENT_UNITS = new Set(['%', 'percent', 'percentage'])
+const OXYGEN_FRACTION_UNITS = new Set(['fraction', 'ratio'])
 // HAE дистанцию даёт в км или метрах в зависимости от настроек — приведём к км если похоже на метры
 // "2024-01-15 00:00:00 +0000" → "2024-01-15"; не-строки (мусор в payload) → ''
 export const dayOf = (s: unknown) => typeof s === 'string' ? s.slice(0, 10) : ''
@@ -112,6 +116,7 @@ export function parseHAE(userId: string, payload: HaePayload): { metrics: Metric
 
     const key = METRIC_MAP[name]
     if (!key) continue
+    const units = String(m?.units ?? '').trim().toLowerCase()
 
     if (SUM_METRICS.has(key)) {
       // сумма-внутри-источника → максимум-по-источникам (iPhone+Watch не задваиваем)
@@ -123,10 +128,12 @@ export function parseHAE(userId: string, payload: HaePayload): { metrics: Metric
         const src = p.source ?? 'unknown'
         ;(perDay[date] ??= {})[src] = (perDay[date][src] ?? 0) + q
       }
-      const units = String(m?.units ?? '').toLowerCase()
       for (const [date, bySrc] of Object.entries(perDay)) {
         let v = Math.max(...Object.values(bySrc))
-        if (key === 'distance' && v > 100) v = v / 1000 // метры → км
+        if (key === 'distance') {
+          if (DISTANCE_METRE_UNITS.has(units)) v = v / 1000
+          else if (!DISTANCE_KILOMETRE_UNITS.has(units) && v > 100) v = v / 1000
+        }
         // активная энергия: HAE отдаёт в кДж, у нас в ккал
         if (key === 'activeEnergy' && (units.includes('kj') || units.includes('кдж'))) v = v / 4.184
         // целочисленные метрики округляем (HAE может слать дроби при агрегации)
@@ -148,7 +155,11 @@ export function parseHAE(userId: string, payload: HaePayload): { metrics: Metric
       for (const [date, a] of Object.entries(perDay)) {
         let avg = a.sum / a.n, mn = a.min, mx = a.max
         if (key === 'oxygenSaturation') { // храним как долю (×100 при показе)
-          const norm = (x: number) => x > 1.5 ? x / 100 : x
+          const norm = (x: number) => OXYGEN_PERCENT_UNITS.has(units)
+            ? x / 100
+            : OXYGEN_FRACTION_UNITS.has(units)
+            ? x
+            : x > 1.5 ? x / 100 : x
           avg = norm(avg); mn = norm(mn); mx = norm(mx)
         }
         metrics.push({ user_id: userId, date, metric: key, avg_val: avg, min_val: mn, max_val: mx })
