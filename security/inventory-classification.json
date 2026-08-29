@@ -108,6 +108,12 @@
       "authOwner": "service-role",
       "credentialType": "service-role",
       "dataSensitivity": "credential"
+    },
+    "set_habit_break": {
+      "signature": "set_habit_break(uuid, uuid, date, boolean)",
+      "authOwner": "rls:user_id",
+      "credentialType": "user-jwt-or-service-role",
+      "dataSensitivity": "health"
     }
   },
   "rpcRemediations": {},
