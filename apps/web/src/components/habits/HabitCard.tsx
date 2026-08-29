@@ -75,7 +75,7 @@ export function HabitCard({
       </div>
 
       <div className="supp-grid">
-        {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'].map(d => (
+        {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(d => (
           <div key={d} className="supp-dow">{t(d)}</div>
         ))}
         {Array.from({ length: grid.leadingBlanks }, (_, i) => (
@@ -85,25 +85,27 @@ export function HabitCard({
           const status = statusOf(date)
           const clean = status === 'clean'
           const locked = status === 'future' || status === 'outside'
+          // The button is the grid item itself: .supp-cell carries aspect-ratio
+          // and only sizes correctly as a direct child of .supp-grid. Wrapping
+          // it collapses every cell to its text.
           return (
-            <div data-testid="habit-day" key={date} className="habit-day-slot">
-              <button
-                type="button"
-                data-testid={`habit-day-${date}`}
-                data-status={status}
-                className={`supp-cell${clean ? ' taken' : ''}${date === today ? ' today' : ''}${status === 'future' ? ' future' : ''}${status === 'outside' ? ' habit-outside' : ''}`}
-                title={date}
-                disabled={locked}
-                onClick={locked ? undefined : () => onToggleBreak(habit.id, date, clean)}
-              >
-                <span className="supp-day-num">{Number(date.slice(8, 10))}</span>
-                {clean && (
-                  <svg className="supp-check" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                )}
-              </button>
-            </div>
+            <button
+              key={date}
+              type="button"
+              data-testid={`habit-day-${date}`}
+              data-status={status}
+              className={`supp-cell${clean ? ' taken' : ''}${date === today ? ' today' : ''}${status === 'future' ? ' future' : ''}${status === 'outside' ? ' habit-outside' : ''}`}
+              title={date}
+              disabled={locked}
+              onClick={locked ? undefined : () => onToggleBreak(habit.id, date, clean)}
+            >
+              <span className="supp-day-num">{Number(date.slice(8, 10))}</span>
+              {clean && (
+                <svg className="supp-check" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              )}
+            </button>
           )
         })}
       </div>
