@@ -20,9 +20,13 @@ export const METRIC_MAP: Record<string, string> = {
   respiratory_rate: 'respiratoryRate',
   apple_sleeping_wrist_temperature: 'wristTemperature',
   vo2_max: 'vo2max',
+  // Per-night value (events/hour), dated in the early morning of the wake-up day.
+  breathing_disturbances: 'breathingDisturbances',
+  // Per-minute points with qty 0..1 (fraction of the minute in daylight).
+  time_in_daylight: 'daylightMinutes',
 }
 // Метрики-суммы: дедуп = сумма внутри источника, максимум по источникам
-export const SUM_METRICS = new Set(['steps', 'distance', 'activeEnergy', 'exerciseMinutes', 'flightsClimbed'])
+export const SUM_METRICS = new Set(['steps', 'distance', 'activeEnergy', 'exerciseMinutes', 'flightsClimbed', 'daylightMinutes'])
 // HAE дистанцию даёт в км или метрах в зависимости от настроек — приведём к км если похоже на метры
 // "2024-01-15 00:00:00 +0000" → "2024-01-15"; не-строки (мусор в payload) → ''
 export const dayOf = (s: unknown) => typeof s === 'string' ? s.slice(0, 10) : ''
@@ -130,7 +134,7 @@ export function parseHAE(userId: string, payload: HaePayload): { metrics: Metric
         // активная энергия: HAE отдаёт в кДж, у нас в ккал
         if (key === 'activeEnergy' && (units.includes('kj') || units.includes('кдж'))) v = v / 4.184
         // целочисленные метрики округляем (HAE может слать дроби при агрегации)
-        if (key === 'steps' || key === 'flightsClimbed' || key === 'exerciseMinutes') v = Math.round(v)
+        if (key === 'steps' || key === 'flightsClimbed' || key === 'exerciseMinutes' || key === 'daylightMinutes') v = Math.round(v)
         metrics.push({ user_id: userId, date, metric: key, sum_val: v })
       }
     } else {
