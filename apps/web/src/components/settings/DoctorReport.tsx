@@ -15,6 +15,7 @@ import { translations } from '../../lib/translations'
 import { useT } from '../../lib/i18n'
 import { Icon } from '../../lib/icons'
 import type { MetricSummary } from '../../lib/doctorReport'
+import { HEART_EVENT_LABEL, heartEventLine } from '../../lib/doctorReport/heartEvents'
 
 // «Отчёт для врача» (SPEC-DOCTOR-REPORT, ревизия v2): экран подготовки +
 // печатное представление. Тело отчёта — только измеренные значения; ИИ-блок
@@ -31,7 +32,7 @@ interface Props {
 
 const EMPTY_SOURCES: ReportSources = {
   labs: [], supplements: [], supplementLogs: [], concerns: [], concernLogs: [], observations: [], notes: [],
-  profile: null, intake: [], nutrition: [], habits: [], habitBreaks: [],
+  profile: null, intake: [], nutrition: [], habits: [], habitBreaks: [], heartEvents: [],
 }
 
 const STATUS_TEXT: Record<string, string> = {
@@ -186,7 +187,7 @@ export function DoctorReport({ user, daily, onClose }: Props) {
   }
 
   // ── Печатное представление ──────────────────────────────────────────────────
-  const { scores, metrics, weekly, sleep, coverage, deviations, labs, supplements, intake, nutrition, concerns, journal } = model
+  const { scores, metrics, weekly, sleep, coverage, deviations, labs, supplements, intake, nutrition, concerns, journal, heartEvents } = model
   const mainMetrics = metrics.filter(m => !m.group)
   const extraMetrics = metrics.filter(m => m.group === 'extra')
   const metricHead = (
@@ -433,6 +434,20 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                 </ul>
               </div>
             ))}
+          </section>
+        )}
+
+        {sections.metrics && heartEvents.total > 0 && (
+          <section>
+            <h2>{rt('Сердечные события (уведомления Apple Watch и ЭКГ)')}</h2>
+            <p>
+              {rt('Всего')}: {heartEvents.total}. {rt('По типам')}:{' '}
+              {heartEvents.byKind.map(g => `${rt(HEART_EVENT_LABEL[g.kind])} — ${g.count}`).join(', ')}.
+            </p>
+            <ul>
+              {heartEvents.entries.map(e => <li key={`${e.kind}-${e.startIso}`}>{heartEventLine(e, rt)}</li>)}
+            </ul>
+            <p className="dr-note">{rt('Уведомления и ЭКГ — записи Apple Watch как есть, без интерпретации; классификацию ЭКГ даёт приложение Apple.')}</p>
           </section>
         )}
 
