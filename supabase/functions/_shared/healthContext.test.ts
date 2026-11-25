@@ -502,3 +502,31 @@ describe('healthContextToText: full coverage', () => {
     }
   })
 })
+
+describe('new metrics in the AI context', () => {
+  it('loads the new metrics from metrics_daily into the context', async () => {
+    const sb = stubSupabase({
+      metrics_daily: [
+        { date: '2026-11-24', metric: 'breathingDisturbances', avg_val: 0.4, sum_val: null },
+        { date: '2026-11-25', metric: 'breathingDisturbances', avg_val: 0.6, sum_val: null },
+        { date: '2026-11-24', metric: 'basalEnergy', avg_val: null, sum_val: 1818 },
+      ],
+    })
+    const ctx = await buildHealthContext(sb, 'user-1')
+    expect(ctx.extraMetrics.map(m => m.key)).toEqual(['breathingDisturbances', 'basalEnergy'])
+    expect(ctx.extraMetrics[0]).toMatchObject({ avg: 0.5, latest: 0.6, latestDate: '2026-11-25' })
+  })
+
+  it('renders them as a section with averages and the latest value', () => {
+    const text = healthContextToText({
+      ...emptyCtx,
+      extraMetrics: [{ key: 'walkingSpeed', label: 'Скорость ходьбы, км/ч', digits: 1, avg: 4.73, days: 12, latest: 4.7, latestDate: '2026-11-24' }],
+    })
+    expect(text).toContain('=== ДОПОЛНИТЕЛЬНЫЕ ПОКАЗАТЕЛИ')
+    expect(text).toContain('Скорость ходьбы, км/ч: средн 4.7 (дней с данными: 12), последнее 4.7 (2026-11-24)')
+  })
+
+  it('omits the section when there are none', () => {
+    expect(healthContextToText(emptyCtx)).not.toContain('ДОПОЛНИТЕЛЬНЫЕ ПОКАЗАТЕЛИ')
+  })
+})

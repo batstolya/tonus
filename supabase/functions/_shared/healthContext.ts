@@ -6,6 +6,7 @@ import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { plannedDaysInRange, attendance, scheduleWeekdays, type DayTimes } from './workoutPlan.ts'
 import { DEFAULT_TIMEZONE } from './userTimezone.ts'
 import { habitDays, habitStats, HABIT_WINDOW_DAYS, type Habit, type HabitBreak } from './habits.ts'
+import { EXTRA_METRIC_KEYS, extraMetricsLines, summarizeExtraMetrics, type ExtraMetricRow, type ExtraMetricSummary } from './extraMetrics.ts'
 
 export interface HealthContextOptions {
   periodDays?: number          // окно агрегации (по умолчанию 14)
@@ -82,6 +83,8 @@ export interface HealthContext {
   // расписание тренировок + дни-факты за 7 дней (exerciseMinutes ≥ 30 ∪ workout intake)
   workoutSchedule: { day_times: DayTimes; enabled: boolean } | null
   workoutDoneDays: string[]
+  /** Metrics added after the core set (breathing, daylight, catalog), summarized over the window. */
+  extraMetrics: ExtraMetricSummary[]
 }
 
 // Теги наблюдений хранятся кодом; в контекст уходят словами — модель отвечает
@@ -156,7 +159,7 @@ export async function buildHealthContext(
   // (localDate(tz)) resolve it — not UTC, or a Kyiv user past midnight loses
   // a day of streak.
   const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
-  const [profRes, scoreRes, mRes, sRes, labRes, supRes, intakeRes, logRes, notesRes, calRes, goalRes, expRes, envRes, concernRes, concernLogRes, obsRes, hairRes, alertRes, recRes, wsRes, exminRes, habitsRes, habitBreaksRes] = await Promise.all([
+  const [profRes, scoreRes, mRes, sRes, labRes, supRes, intakeRes, logRes, notesRes, calRes, goalRes, expRes, envRes, concernRes, concernLogRes, obsRes, hairRes, alertRes, recRes, wsRes, exminRes, habitsRes, habitBreaksRes, extraRes] = await Promise.all([
     opts.includeCoachProfile
       ? supabase.from('coach_profile').select('summary, facts').eq('user_id', userId).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -232,6 +235,10 @@ export async function buildHealthContext(
     supabase.from('habit_breaks')
       .select('id, habit_id, date, note')
       .eq('user_id', userId).gte('date', sinceHabitWindowStr),
+    // New metrics live only in the EAV table (not in the daily_metrics view).
+    supabase.from('metrics_daily')
+      .select('date, metric, avg_val, sum_val')
+      .eq('user_id', userId).in('metric', [...EXTRA_METRIC_KEYS]).gte('date', sinceStr),
   ])
 
   // Последовательный follow-up: тренд goal_progress зависит от только что
@@ -315,6 +322,7 @@ export async function buildHealthContext(
     recommendations: recRes.data ?? [],
     workoutSchedule: wsRes.data ?? null,
     workoutDoneDays: [...workoutDone],
+    extraMetrics: summarizeExtraMetrics((extraRes.data ?? []) as ExtraMetricRow[]),
   }
 }
 
@@ -397,6 +405,13 @@ export function healthContextToText(ctx: HealthContext): string {
     if (rows.length >= 14) parts.push(`Предыдущие 7 дней: ${fmtMetricsWeek(rows.slice(-14, -7))}`)
   } else {
     parts.push('Нет данных за период.')
+  }
+
+  // Tests and older callers may build a context without this field.
+  const extra = ctx.extraMetrics ?? []
+  if (extra.length) {
+    parts.push(`\n=== ДОПОЛНИТЕЛЬНЫЕ ПОКАЗАТЕЛИ (Apple Watch / iPhone, ${ctx.periodDays} дней) ===`)
+    parts.push(...extraMetricsLines(extra))
   }
 
   if (ctx.sleep.length) {
