@@ -77,6 +77,7 @@ export function detectDeviations(
       const z = spread ? Math.abs(w.mean - med) / spread : Infinity
       const relPct = ((w.mean - med) / med) * 100
       if (z < MIN_Z || Math.abs(relPct) < m.minRel) continue
+      if (m.minAbs != null && Math.abs(w.mean - med) < m.minAbs) continue
       found.push({
         key: m.key,
         label: m.label,
