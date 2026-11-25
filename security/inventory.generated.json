@@ -7,7 +7,7 @@
     "security/inventory-classification.json"
   ],
   "counts": {
-    "tables": 58,
+    "tables": 59,
     "views": 2,
     "rpcs": 13,
     "buckets": 1,
@@ -213,6 +213,13 @@
       },
       {
         "name": "health_concerns",
+        "ownerColumn": "user_id",
+        "authOwner": "rls:user_id",
+        "dataSensitivity": "health",
+        "exposure": "user-owned"
+      },
+      {
+        "name": "heart_events",
         "ownerColumn": "user_id",
         "authOwner": "rls:user_id",
         "dataSensitivity": "health",
