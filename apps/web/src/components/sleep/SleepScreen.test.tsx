@@ -74,9 +74,8 @@ describe('SleepScreen breathing disturbances', () => {
       night('2026-11-20', { breathingDisturbances: 1 }),
       night('2026-11-21'),
       night('2026-11-22', { breathingDisturbances: 2 }),
-      night('2026-11-23'),
     ]} />)
-    // Last measured night is 2.0; the average skips the two empty nights: 1.5, not 0.75.
+    // Last night is 2.0; the average skips the empty night: 1.5, not 1.0.
     expect(statText(container)).toContain('2.0 · avg 1.5breathing disturbances per hour')
   })
 
@@ -86,6 +85,17 @@ describe('SleepScreen breathing disturbances', () => {
       night('2026-11-24', { breathingDisturbances: 0.48 }),
     ]} />)
     expect(statText(container)).toContain('0.5 · avg 0.9breathing disturbances per hour')
+  })
+
+  it('does not pass an older reading off as last night', () => {
+    const { container } = renderWithProviders(<SleepScreen daily={[
+      night('2026-11-01', { breathingDisturbances: 1 }),
+      night('2026-11-02', { breathingDisturbances: 2 }),
+      night('2026-11-24'),
+    ]} />)
+    const stats = statText(container)
+    expect(stats).toContain('avg 1.5breathing disturbances per hour')
+    expect(stats.join(' ')).not.toContain('2.0 ·')
   })
 
   it('shows no breathing stat when no night in range has a value', () => {
