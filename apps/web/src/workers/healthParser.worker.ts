@@ -1,6 +1,6 @@
 import JSZip from 'jszip'
 import type { HealthRecord, HeartRateSample, DailyMetrics, ParseProgress } from '../types'
-import { aggregateByDay } from '../lib/healthAggregate'
+import { aggregateByDay, recordValue } from '../lib/healthAggregate'
 
 
 type WorkerMessage =
@@ -76,24 +76,8 @@ function parseXML(xml: string): { records: HealthRecord[]; heartRateSamples: Hea
 
     if (!valueStr || !startDate) continue
 
-    // Sleep analysis values are strings, not numbers
-    let value: number
-    if (type === 'HKCategoryTypeIdentifierSleepAnalysis') {
-      const sleepMap: Record<string, number> = {
-        HKCategoryValueSleepAnalysisInBed: 0,
-        HKCategoryValueSleepAnalysisAsleep: 1,
-        HKCategoryValueSleepAnalysisAsleepCore: 1,
-        HKCategoryValueSleepAnalysisAsleepDeep: 2,
-        HKCategoryValueSleepAnalysisAsleepREM: 3,
-        HKCategoryValueSleepAnalysisAwake: 4,
-      }
-      const mapped = sleepMap[valueStr]
-      if (mapped === undefined) continue
-      value = mapped
-    } else {
-      value = parseFloat(valueStr)
-      if (isNaN(value)) continue
-    }
+    const value = recordValue(type, valueStr)
+    if (value === null) continue
 
     const record: HealthRecord = {
       type,

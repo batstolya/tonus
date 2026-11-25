@@ -8,6 +8,7 @@ import type { GroupedEventMarker } from '../../lib/chartEvents'
 import { eventMarkers, groupMarkersByDate, markersByDate, CHART_EVENT_TYPES } from '../../lib/chartEvents'
 import { useT } from '../../lib/i18n'
 import { Icon } from '../../lib/icons'
+import { METRIC_CATALOG, type CatalogKey } from '../../../../../supabase/functions/_shared/metricCatalog'
 
 // Одна метка на дату, а не по точке на каждое событие дня. Точка на тип
 // работала, только пока у типов были разные цвета; теперь они одинаково
@@ -54,7 +55,11 @@ function ChartTooltip({ active, payload, label, markers, t }: {
   )
 }
 
+// Catalog metrics bring their own labels (Russian i18n keys).
+const CATALOG_LABELS = Object.fromEntries(METRIC_CATALOG.map(e => [e.key, e.label])) as Record<CatalogKey, string>
+
 const METRIC_LABELS: Record<MetricKey, string> = {
+  ...CATALOG_LABELS,
   heartRate: 'Пульс (средний)',
   restingHeartRate: 'Пульс покоя',
   hrv: 'HRV',

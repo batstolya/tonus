@@ -1,3 +1,5 @@
+import type { CatalogKey } from '../../../../supabase/functions/_shared/metricCatalog'
+
 export interface HealthRecord {
   type: string
   value: number
@@ -7,7 +9,10 @@ export interface HealthRecord {
   sourceName: string
 }
 
-export interface DailyMetrics {
+/** Catalog metrics (docs/superpowers/specs/2026-11-25-metric-catalog-design.md), one optional number each. */
+export type CatalogMetrics = Partial<Record<CatalogKey, number>>
+
+export interface DailyMetrics extends CatalogMetrics {
   date: string // YYYY-MM-DD
   heartRate?: { avg: number; min: number; max: number }
   restingHeartRate?: number
