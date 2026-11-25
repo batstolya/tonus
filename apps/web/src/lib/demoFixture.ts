@@ -257,3 +257,22 @@ export function makeDemoWorkoutSchedule() {
     enabled: true,
   }
 }
+
+/** Demo heart events: a few night-time low-HR notifications over a year and two ECGs. */
+export function makeDemoHeartEvents(): import('./doctorReport/heartEvents').HeartEvent[] {
+  const out: import('./doctorReport/heartEvents').HeartEvent[] = []
+  const now = new Date()
+  for (let i = 0; i < 18; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 12 - i * 19, 3 + (i % 4), 10 + (i * 7) % 50)
+    out.push({
+      kind: 'low_hr', start_ts: d.toISOString(), end_ts: null, threshold: 40,
+      hr_min: 35 + (i % 5), hr_max: 44 + (i % 9), hr_avg: 39 + (i % 4), classification: 'low_heart_rate_notification',
+    })
+  }
+  const ecg = (daysAgo: number, minute: number, avg: number | null, cls: string) => ({
+    kind: 'ecg' as const, start_ts: new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysAgo, 19, minute).toISOString(),
+    end_ts: null, threshold: null, hr_min: null, hr_max: null, hr_avg: avg, classification: cls,
+  })
+  out.push(ecg(40, 59, 72, 'Sinus Rhythm'), ecg(40, 58, null, 'Inconclusive Poor Recording'))
+  return out
+}

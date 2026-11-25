@@ -294,7 +294,7 @@ export default function App() {
             </aside>
           </div>
         ) : state.view === 'heart-rate' ? (
-          <HeartRateScreen daily={state.daily} intakeEvents={intakeEvents} />
+          <HeartRateScreen daily={state.daily} intakeEvents={intakeEvents} userId={user?.id ?? null} />
         ) : state.view === 'metrics' ? (
           <MetricsScreen daily={state.daily} intakeEvents={intakeEvents} />
         ) : state.view === 'stress-map' ? (
