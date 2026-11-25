@@ -5,6 +5,7 @@ import { demoList } from '../demoDb'
 import { loadAllConcerns, compareLogsAsc, type ConcernLog, type HealthConcern } from '../concerns'
 import { loadLabResults, type LabResult } from '../labs'
 import { type Observation } from '../observations'
+import type { HeartEvent } from './heartEvents'
 import {
   getSupplementLogsSince, loadProfileBasics,
   type SupplementAdherenceLog, type ProfileBasics,
@@ -118,6 +119,20 @@ export async function loadNutritionEvents(userId: string, since: string): Promis
     .range(from, to))
 }
 
+/** Apple Watch heart-rate notifications and ECG readings since `since` (demo: none). */
+export async function loadHeartEvents(userId: string, since: string): Promise<HeartEvent[]> {
+  if (isDemoActive()) return []
+  return await fetchAllPages<HeartEvent>((from, to) => supabase
+    .from('heart_events')
+    .select('kind, start_ts, end_ts, threshold, hr_min, hr_max, hr_avg, classification')
+    .eq('user_id', userId)
+    // A day of slack: `since` is a local date and UTC midnight can be up to a
+    // day off; buildHeartEvents applies the exact local-date filter.
+    .gte('start_ts', new Date(Date.parse(`${since}T00:00:00Z`) - 86400000).toISOString())
+    .order('start_ts')
+    .range(from, to))
+}
+
 export async function loadAllObservations(userId: string, since: string): Promise<Observation[]> {
   if (isDemoActive()) {
     return (demoList('observations') as Observation[]).filter(o => o.date >= since)
@@ -145,6 +160,7 @@ export interface ReportSources {
   nutrition: NutritionEvent[]
   habits: Habit[]
   habitBreaks: HabitBreak[]
+  heartEvents: HeartEvent[]
 }
 
 /**
@@ -154,7 +170,7 @@ export interface ReportSources {
 export async function loadReportSources(userId: string, since: string): Promise<ReportSources> {
   const [
     labs, supplements, supplementLogs, concerns, concernLogs, observations,
-    notes, profile, intake, nutrition, habits, habitBreaks,
+    notes, profile, intake, nutrition, habits, habitBreaks, heartEvents,
   ] = await Promise.all([
     loadLabResults(userId).catch(() => [] as LabResult[]),
     loadAllSupplements(userId).catch(() => [] as Supplement[]),
@@ -173,9 +189,10 @@ export async function loadReportSources(userId: string, since: string): Promise<
     // archived habits are deliberately invisible to both the model and the report.
     loadHabits(userId).catch(() => [] as Habit[]),
     loadHabitBreaks(userId, since).catch(() => [] as HabitBreak[]),
+    loadHeartEvents(userId, since).catch(() => [] as HeartEvent[]),
   ])
   return {
     labs, supplements, supplementLogs, concerns, concernLogs, observations,
-    notes, profile, intake, nutrition, habits, habitBreaks,
+    notes, profile, intake, nutrition, habits, habitBreaks, heartEvents,
   }
 }

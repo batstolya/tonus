@@ -12,7 +12,7 @@ const daily: DailyMetrics[] = Array.from({ length: 30 }, (_, i) => ({
 }))
 const sources = {
   labs: [], supplements: [], supplementLogs: [], concerns: [], concernLogs: [], observations: [], notes: [], intake: [],
-  nutrition: [], habits: [], habitBreaks: [],
+  nutrition: [], habits: [], habitBreaks: [], heartEvents: [],
   profile: null,
 }
 const model = buildReportModel({ daily, sources, periodDays: 30, today })
@@ -721,5 +721,34 @@ describe('toMarkdown: header and coverage wording match the new sections', () =>
   it('scopes the "no gaps" sentence to the main table', () => {
     const md = toMarkdown(model, 'ru')
     expect(md).toContain('каждая метрика основной таблицы покрывает не менее 90% дней периода')
+  })
+})
+
+describe('toMarkdown: heart events', () => {
+  const withEvents = buildReportModel({
+    daily, periodDays: 30, today,
+    sources: { ...sources, heartEvents: [
+      { kind: 'low_hr', start_ts: addDays(today, -3) + 'T02:10:00Z', end_ts: null, threshold: 40, hr_min: 36, hr_max: 38, hr_avg: 37, classification: null },
+      { kind: 'ecg', start_ts: addDays(today, -2) + 'T09:00:00Z', end_ts: null, threshold: null, hr_min: null, hr_max: null, hr_avg: 72, classification: 'Sinus Rhythm' },
+    ] },
+  })
+
+  it('lists notifications and ECG with counts, thresholds and classification', () => {
+    const md = toMarkdown(withEvents, 'ru')
+    expect(md).toContain('## Сердечные события (уведомления Apple Watch и ЭКГ)')
+    expect(md).toContain('Уведомление о низком пульсе — 1')
+    expect(md).toMatch(/Уведомление о низком пульсе: пульс 36–38 уд\/мин \(порог 40\)/)
+    expect(md).toMatch(/ЭКГ: Sinus Rhythm, средний пульс 72 уд\/мин/)
+  })
+
+  it('prints no section when there are no events', () => {
+    expect(toMarkdown(model, 'ru')).not.toContain('Сердечные события')
+  })
+
+  it('translates the section in the English report', () => {
+    const md = toMarkdown(withEvents, 'en')
+    expect(md).toContain('## Heart events (Apple Watch notifications and ECG)')
+    expect(md).toContain('Low heart rate notification')
+    expect(md).toContain('Total: 2. By type: ECG — 1, Low heart rate notification — 1.')
   })
 })

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { num, parseHAE, parseHRSamples } from './hae.ts'
+import { haeTimestamp, num, parseHAE, parseHeartEvents, parseHRSamples, stripEcgWaveforms } from './hae.ts'
 
 // Характеризационные тесты: фиксируют поведение, которое уже крутится в проде.
 // Если тест разошёлся с реализацией — прав тест только тогда, когда реализация
@@ -321,5 +321,81 @@ describe('parseHAE: catalog metrics', () => {
   it('drops points without a numeric value instead of storing zero', () => {
     const rows = parseHAE(USER, { data: { metrics: [{ name: 'walking_speed', units: 'km/hr', data: [{ date: '2026-11-24 10:00:00 +0100', qty: null }] }] } }).metrics
     expect(rows).toEqual([])
+  })
+})
+
+describe('parseHeartEvents', () => {
+  it('maps heart-rate notifications by type and summarizes their heart-rate samples', () => {
+    const rows = parseHeartEvents(USER, { data: { heartRateNotifications: [
+      { heartNotification: 'low_heart_rate_notification', start: '2026-01-29 03:10:00 +0100', end: '2026-01-29 03:20:00 +0100', threshold: 40,
+        source: { name: 'Apple Watch', identifier: 'x' },
+        heartRateData: [{ qty: 38, units: 'count/min', start: 1, end: 2 }, { qty: 36, units: 'count/min', start: 3, end: 4 }] },
+      { heartNotification: 'high_heart_rate_notification', start: '2026-02-01 12:00:00 +0100', end: '2026-02-01 12:05:00 +0100', threshold: 120, heartRateData: [] },
+      { heartNotification: 'irregular_rhythm_notification', start: '2026-02-02 01:00:00 +0100', end: '2026-02-02 02:00:00 +0100' },
+    ] } })
+    expect(rows).toEqual([
+      { user_id: USER, kind: 'low_hr', start_ts: '2026-01-29T02:10:00.000Z', end_ts: '2026-01-29T02:20:00.000Z', threshold: 40, hr_min: 36, hr_max: 38, hr_avg: 37, classification: 'low_heart_rate_notification', source: 'Apple Watch' },
+      { user_id: USER, kind: 'high_hr', start_ts: '2026-02-01T11:00:00.000Z', end_ts: '2026-02-01T11:05:00.000Z', threshold: 120, hr_min: null, hr_max: null, hr_avg: null, classification: 'high_heart_rate_notification', source: null },
+      { user_id: USER, kind: 'irregular_rhythm', start_ts: '2026-02-02T00:00:00.000Z', end_ts: '2026-02-02T01:00:00.000Z', threshold: null, hr_min: null, hr_max: null, hr_avg: null, classification: 'irregular_rhythm_notification', source: null },
+    ])
+  })
+
+  it('keeps ECG classification and average heart rate, never the voltage samples', () => {
+    const rows = parseHeartEvents(USER, { data: { ecg: [
+      { start: '2026-03-10 09:00:00 +0100', end: '2026-03-10 09:00:30 +0100', classification: 'Sinus Rhythm', averageHeartRate: 72,
+        numberOfVoltageMeasurements: 15360, voltageMeasurements: [{ date: 1, voltage: 123, units: 'mcV' }], samplingFrequency: 512, source: 'Apple Watch' },
+    ] } })
+    expect(rows).toEqual([
+      { user_id: USER, kind: 'ecg', start_ts: '2026-03-10T08:00:00.000Z', end_ts: '2026-03-10T08:00:30.000Z', threshold: null, hr_min: null, hr_max: null, hr_avg: 72, classification: 'Sinus Rhythm', source: 'Apple Watch' },
+    ])
+  })
+
+  it('skips entries without a parsable start and payloads without these arrays', () => {
+    expect(parseHeartEvents(USER, { data: { heartRateNotifications: [{ heartNotification: 'low_heart_rate_notification', start: 'nonsense' }] } })).toEqual([])
+    expect(parseHeartEvents(USER, { data: { metrics: [] } })).toEqual([])
+  })
+})
+
+describe('parseHeartEvents: review fixes', () => {
+  const notif = (heartNotification: string, start = '2026-01-29 03:10:00 -0800') => ({ heartNotification, start })
+
+  it('maps kinds by the heart-rate phrase, keeps the raw type and sends unknown types to other', () => {
+    const rows = parseHeartEvents(USER, { data: { heartRateNotifications: [
+      notif('low_heart_rate_notification'),
+      notif('lowCardioFitnessEvent', '2026-01-29 04:00:00 -0800'),
+    ] } })
+    expect(rows.map(r => r.kind)).toEqual(['low_hr', 'other'])
+    expect(rows[1].classification).toBe('lowCardioFitnessEvent')
+    // -0800 offset honoured.
+    expect(rows[0].start_ts).toBe('2026-01-29T11:10:00.000Z')
+  })
+
+  it('drops duplicates of the same kind and start so one upsert batch cannot fail', () => {
+    const rows = parseHeartEvents(USER, { data: { heartRateNotifications: [
+      notif('low_heart_rate_notification'), notif('low_heart_rate_notification'),
+    ] } })
+    expect(rows).toHaveLength(1)
+  })
+
+  it('rejects timestamps without an explicit offset instead of guessing', () => {
+    expect(haeTimestamp('1')).toBeNull()
+    expect(haeTimestamp('2026-01-29 03:10:00')).toBeNull()
+    expect(haeTimestamp('2026-01-29T03:10:00Z')).toBe('2026-01-29T03:10:00.000Z')
+  })
+})
+
+describe('stripEcgWaveforms', () => {
+  it('removes voltage samples from ECG entries before the raw payload is archived', () => {
+    const p = { data: { ecg: [{ start: 'x', classification: 'Sinus Rhythm', voltageMeasurements: [{ date: 1, voltage: 2 }], numberOfVoltageMeasurements: 15360 }], metrics: [] } }
+    const out = stripEcgWaveforms(p)
+    expect(out.data?.ecg?.[0]).toEqual({ start: 'x', classification: 'Sinus Rhythm', numberOfVoltageMeasurements: 15360 })
+    expect(out.data?.metrics).toEqual([])
+    // Input left untouched.
+    expect(p.data.ecg[0].voltageMeasurements).toHaveLength(1)
+  })
+
+  it('returns payloads without ECG unchanged', () => {
+    const p = { data: { metrics: [] } }
+    expect(stripEcgWaveforms(p)).toBe(p)
   })
 })

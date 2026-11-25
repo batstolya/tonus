@@ -3,6 +3,7 @@ import { formatLogTime } from '../concerns'
 import { OBSERVATION_TAG_LABEL } from '../observations'
 import { METRIC_DEFS, type MetricSummary } from './metrics'
 import { BAND_TEXT, POSITION_TEXT } from './reliability'
+import { HEART_EVENT_LABEL, heartEventLine } from './heartEvents'
 import {
   LAB_STATUS_TEXT, LAB_FLAG_SUFFIX, LAB_UNIT_CAVEAT, LAB_DATE_CAVEAT,
   LAB_ORDER_UNKNOWN, LAB_UNIDENTIFIED, labDateCell, type LabLine,
@@ -310,6 +311,19 @@ export function toMarkdown(model: DoctorReportModel, lang: ReportLang): string {
       }
       p()
     }
+  }
+
+  if (model.heartEvents.total) {
+    p(`## ${t('Сердечные события (уведомления Apple Watch и ЭКГ)')}`)
+    p()
+    p(`${t('Всего')}: ${model.heartEvents.total}. ${t('По типам')}: ${model.heartEvents.byKind
+      .map(g => `${t(HEART_EVENT_LABEL[g.kind])} — ${g.count}`)
+      .join(', ')}.`)
+    p()
+    for (const e of model.heartEvents.entries) p(`- ${heartEventLine(e, t)}`)
+    p()
+    p(t('Уведомления и ЭКГ — записи Apple Watch как есть, без интерпретации; классификацию ЭКГ даёт приложение Apple.'))
+    p()
   }
 
   if (model.labs.lines.length) {
