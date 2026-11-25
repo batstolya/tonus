@@ -84,6 +84,19 @@ describe('coverage', () => {
     expect(gaps[0].missingPct).toBe(50)
   })
 
+  it('leaves sparse additional metrics out of the gap list but still flags main ones', () => {
+    // A six-minute walk estimate arrives about weekly; listing it as a "gap"
+    // would bury real gaps in noise. Its own table row prints the coverage.
+    const daily = Array.from({ length: 10 }, (_, i) =>
+      day(addDays(today, -9 + i), {
+        steps: 1000,
+        ...(i < 5 ? { restingHeartRate: 55 } : {}),
+        ...(i === 3 ? { sixMinuteWalk: 500 } : {}),
+      }))
+    const { gaps } = coverage(daily, periodFrame(daily, 10, today))
+    expect(gaps.map(g => g.key)).toEqual(['rhr'])
+  })
+
   it('lists days with no record at all', () => {
     const daily = [day(addDays(today, -2), { steps: 1 }), day(today, { steps: 1 })]
     const { missingDates } = coverage(daily, periodFrame(daily, 3, today))

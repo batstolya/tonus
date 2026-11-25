@@ -76,6 +76,8 @@ export function coverage(
   const slice = frameSlice(daily, frame)
   const gaps: CoverageGap[] = []
   for (const m of METRIC_DEFS) {
+    // Additional metrics print their own "days with data"; many are event-like.
+    if (m.group === 'extra') continue
     const withData = slice.filter(d => typeof m.get(d) === 'number').length
     if (!withData) continue
     const missingPct = Math.round((1 - withData / frame.calendarDays) * 100)
