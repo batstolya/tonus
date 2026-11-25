@@ -16,6 +16,8 @@ export const metrics: Record<string, Translation> = {
   'среднее засыпание': { uk: 'середнє засинання', en: 'avg bedtime' },
   'среднее пробуждение': { uk: 'середнє пробудження', en: 'avg wake-up' },
   'эффективность сна': { uk: 'ефективність сну', en: 'sleep efficiency' },
+  'нарушений дыхания в час': { uk: 'порушень дихання за годину', en: 'breathing disturbances per hour' },
+  'ср.': { uk: 'сер.', en: 'avg' },
   'до/после полуночи': { uk: 'до/після опівночі', en: 'before/after midnight' },
   'Длительность сна': { uk: 'Тривалість сну', en: 'Sleep duration' },
   'Глубокий': { uk: 'Глибокий', en: 'Deep' },

@@ -64,3 +64,32 @@ describe('SleepScreen average clock stats', () => {
     expect(wakeStat).toMatch(/^09:5\d/)
   })
 })
+
+describe('SleepScreen breathing disturbances', () => {
+  const statText = (container: HTMLElement) =>
+    [...container.querySelectorAll('.stat')].map(el => el.textContent ?? '')
+
+  it('shows last night and the average over measured nights only', () => {
+    const { container } = renderWithProviders(<SleepScreen daily={[
+      night('2026-11-20', { breathingDisturbances: 1 }),
+      night('2026-11-21'),
+      night('2026-11-22', { breathingDisturbances: 2 }),
+      night('2026-11-23'),
+    ]} />)
+    // Last measured night is 2.0; the average skips the two empty nights: 1.5, not 0.75.
+    expect(statText(container)).toContain('2.0 · avg 1.5breathing disturbances per hour')
+  })
+
+  it('formats the latest value and average to one decimal', () => {
+    const { container } = renderWithProviders(<SleepScreen daily={[
+      night('2026-11-23', { breathingDisturbances: 1.32 }),
+      night('2026-11-24', { breathingDisturbances: 0.48 }),
+    ]} />)
+    expect(statText(container)).toContain('0.5 · avg 0.9breathing disturbances per hour')
+  })
+
+  it('shows no breathing stat when no night in range has a value', () => {
+    renderWithProviders(<SleepScreen daily={[night('2026-11-24')]} />)
+    expect(screen.queryByText(/breathing disturbances/i)).toBeNull()
+  })
+})
