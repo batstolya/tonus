@@ -59,7 +59,6 @@ function ChartTooltip({ active, payload, label, markers, t }: {
 const CATALOG_LABELS = Object.fromEntries(METRIC_CATALOG.map(e => [e.key, e.label])) as Record<CatalogKey, string>
 
 const METRIC_LABELS: Record<MetricKey, string> = {
-  ...CATALOG_LABELS,
   heartRate: 'Пульс (средний)',
   restingHeartRate: 'Пульс покоя',
   hrv: 'HRV',
@@ -82,6 +81,8 @@ const METRIC_LABELS: Record<MetricKey, string> = {
   activeEnergy: 'Активная энергия (ккал)',
   exerciseMinutes: 'Минуты тренировки',
   flightsClimbed: 'Этажи',
+  // Last, so the screen still opens on heart rate and older metrics list first.
+  ...CATALOG_LABELS,
 }
 
 function getValue(d: DailyMetrics, key: MetricKey): number | null {

@@ -72,7 +72,7 @@
 
 ### Task 6: Backfill script uses the catalog
 
-**Files:** `scripts/backfill-hae-metrics.ts` — use `isSumMetric` instead of `SUM_METRICS`; `--metrics all-catalog` shorthand.
+**Files:** `scripts/backfill-hae-metrics.ts` — use `isSumMetric` instead of `SUM_METRICS`; `--metrics catalog` shorthand.
 
 - [ ] Dry-run against prod → counts per catalog key > 0 for metrics present in payloads → commit.
 
