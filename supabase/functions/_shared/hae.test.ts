@@ -205,7 +205,7 @@ describe('parseHAE', () => {
 
   it('ignores metrics the server does not map', () => {
     const { metrics } = parseHAE(USER, {
-      data: { metrics: [{ name: 'handwashing', data: [{ date: DAY, qty: 3 }] }] },
+      data: { metrics: [{ name: 'number_of_times_fallen', data: [{ date: DAY, qty: 3 }] }] },
     })
     expect(metrics).toEqual([])
   })
@@ -281,5 +281,45 @@ describe('parseHRSamples', () => {
 
   it('returns nothing when the payload carries no heart rate', () => {
     expect(parseHRSamples(USER, { data: { metrics: [{ name: 'step_count', data: [] }] } })).toEqual([])
+  })
+})
+
+describe('parseHAE: catalog metrics', () => {
+  const W = 'Apple Watch'
+  const one = (name: string, units: string, data: { date: string; qty: number; source?: string }[]) =>
+    parseHAE(USER, { data: { metrics: [{ name, units, data }] } }).metrics
+
+  it('stores basal energy sent in kJ as kcal', () => {
+    const rows = one('basal_energy_burned', 'kJ', [
+      { date: '2026-11-24 00:03:00 +0100', qty: 41.84, source: W },
+      { date: '2026-11-24 00:04:00 +0100', qty: 41.84, source: W },
+    ])
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({ date: '2026-11-24', metric: 'basalEnergy' })
+    expect(rows[0].sum_val).toBeCloseTo(20)
+  })
+
+  it('keeps walking asymmetry percent as sent', () => {
+    const rows = one('walking_asymmetry_percentage', '%', [{ date: '2026-11-24 14:49:00 +0100', qty: 28.9, source: 'iPhone' }])
+    expect(rows[0]).toMatchObject({ metric: 'walkingAsymmetry', avg_val: 28.9, min_val: 28.9, max_val: 28.9 })
+  })
+
+  it('counts handwashing events instead of summing their seconds', () => {
+    const rows = one('handwashing', 's', [7, 22, 9].map((qty, i) => ({ date: `2026-11-24 0${i + 1}:00:00 +0100`, qty, source: W })))
+    expect(rows[0]).toMatchObject({ metric: 'handwashing', sum_val: 3 })
+  })
+
+  it('averages audio exposure as sound energy and keeps the peak', () => {
+    const rows = one('environmental_audio_exposure', 'dBASPL', [
+      { date: '2026-11-24 10:00:00 +0100', qty: 50, source: W },
+      { date: '2026-11-24 11:00:00 +0100', qty: 80, source: W },
+    ])
+    expect(rows[0].avg_val).toBeCloseTo(77.0, 1)
+    expect(rows[0].max_val).toBe(80)
+  })
+
+  it('drops points without a numeric value instead of storing zero', () => {
+    const rows = parseHAE(USER, { data: { metrics: [{ name: 'walking_speed', units: 'km/hr', data: [{ date: '2026-11-24 10:00:00 +0100', qty: null }] }] } }).metrics
+    expect(rows).toEqual([])
   })
 })

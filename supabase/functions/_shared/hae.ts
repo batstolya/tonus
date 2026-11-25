@@ -4,6 +4,8 @@
 // поэтому его данные проходят тот же парсер и тот же дедуп — сравнивать двух
 // отправителей имеет смысл только через одну реализацию.
 
+import { CATALOG_BY_HAE, CATALOG_BY_KEY, aggregateDay, haeValue, isCatalogSum } from './metricCatalog.ts'
+
 // Имена метрик HAE → наши ключи (camelCase, как в боевой metrics_daily)
 export const METRIC_MAP: Record<string, string> = {
   step_count: 'steps',
@@ -115,7 +117,24 @@ export function parseHAE(userId: string, payload: HaePayload): { metrics: Metric
     }
 
     const key = METRIC_MAP[name]
-    if (!key) continue
+    if (!key) {
+      // Metrics added through the catalog (docs/superpowers/specs/2026-11-25-metric-catalog-design.md)
+      const entry = CATALOG_BY_HAE.get(name)
+      if (!entry) continue
+      const units = String(m?.units ?? '')
+      const perDay: Record<string, { v: number; src: string }[]> = {}
+      for (const p of points) {
+        const date = dayOf(p.date)
+        const q = num(p.Avg ?? p.avg ?? p.qty ?? p.value)
+        if (!date || q == null) continue
+        ;(perDay[date] ??= []).push({ v: haeValue(entry, q, units), src: p.source ?? 'unknown' })
+      }
+      for (const [date, pts] of Object.entries(perDay)) {
+        const agg = aggregateDay(entry, pts)
+        if (agg) metrics.push({ user_id: userId, date, metric: entry.key, ...agg })
+      }
+      continue
+    }
 
     if (SUM_METRICS.has(key)) {
       // сумма-внутри-источника → максимум-по-источникам (iPhone+Watch не задваиваем)
@@ -176,4 +195,11 @@ export function parseHRSamples(userId: string, payload: HaePayload): { user_id: 
     byTs.set(ts, { user_id: userId, ts, bpm: Math.round(bpm), source: p.source ?? 'Apple' })
   }
   return [...byTs.values()]
+}
+
+/** Stored as sum_val (merge rule: max) — legacy sum metrics and catalog sum/count metrics. */
+export function isSumMetric(key: string): boolean {
+  if (SUM_METRICS.has(key)) return true
+  const entry = CATALOG_BY_KEY.get(key)
+  return entry ? isCatalogSum(entry) : false
 }

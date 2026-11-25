@@ -1,4 +1,27 @@
 import type { HealthRecord, DailyMetrics } from '../types'
+import { CATALOG_BY_HK, METRIC_CATALOG, aggregateDay } from '../../../../supabase/functions/_shared/metricCatalog'
+
+const SLEEP_VALUES: Record<string, number> = {
+  HKCategoryValueSleepAnalysisInBed: 0,
+  HKCategoryValueSleepAnalysisAsleep: 1,
+  HKCategoryValueSleepAnalysisAsleepCore: 1,
+  HKCategoryValueSleepAnalysisAsleepDeep: 2,
+  HKCategoryValueSleepAnalysisAsleepREM: 3,
+  HKCategoryValueSleepAnalysisAwake: 4,
+}
+
+/**
+ * export.xml `value` attribute → number. Category types carry strings: sleep
+ * stages and the catalog's category metrics are mapped; anything else must be
+ * numeric. null = skip the record.
+ */
+export function recordValue(type: string, valueStr: string): number | null {
+  if (type === 'HKCategoryTypeIdentifierSleepAnalysis') return SLEEP_VALUES[valueStr] ?? null
+  const category = CATALOG_BY_HK.get(type)?.zipCategory
+  if (category) return category[valueStr] ?? null
+  const v = parseFloat(valueStr)
+  return isNaN(v) ? null : v
+}
 
 // Day-level aggregation of parsed Apple Health records (ZIP import). Lives
 // outside the worker so it can be unit-tested: the worker assigns
@@ -65,6 +88,7 @@ export function aggregateByDay(records: HealthRecord[]): DailyMetrics[] {
     flights: number[]
     breathing: number[]
     daylight: { v: number; src: string }[]
+    catalog: Map<string, { v: number; src: string }[]>
   }
 
   const days = new Map<string, DayBucket>()
@@ -79,7 +103,7 @@ export function aggregateByDay(records: HealthRecord[]): DailyMetrics[] {
       days.set(key, {
         hrValues: [], restingHR: [], hrv: [], walkingHR: [], o2: [], rr: [],
         wristTemp: [], vo2max: [], sleepIntervals: [], steps: [], distance: [],
-        energy: [], exerciseMin: [], flights: [], breathing: [], daylight: [],
+        energy: [], exerciseMin: [], flights: [], breathing: [], daylight: [], catalog: new Map(),
       })
     }
     return days.get(key)!
@@ -94,6 +118,13 @@ export function aggregateByDay(records: HealthRecord[]): DailyMetrics[] {
     }
     const b = bucket(r.startDate)
     const src = r.sourceName
+    const catalogEntry = CATALOG_BY_HK.get(r.type)
+    if (catalogEntry) {
+      const list = b.catalog.get(catalogEntry.key) ?? []
+      list.push({ v: r.value * (catalogEntry.zipScale ?? 1), src })
+      b.catalog.set(catalogEntry.key, list)
+      continue
+    }
     switch (r.type) {
       case 'HKQuantityTypeIdentifierHeartRate': b.hrValues.push({ v: r.value, src }); break
       case 'HKQuantityTypeIdentifierRestingHeartRate': b.restingHR.push(r.value); break
@@ -161,8 +192,19 @@ export function aggregateByDay(records: HealthRecord[]): DailyMetrics[] {
       flightsClimbed: sum(b.flights),
       breathingDisturbances: avg(b.breathing),
       daylightMinutes: daylightTotal == null ? undefined : Math.round(daylightTotal),
+      ...catalogValues(b.catalog),
     })
   }
 
   return result
+}
+
+/** Catalog metrics of one day → DailyMetrics fields (sum/count → total, avg → mean). */
+function catalogValues(byKey: Map<string, { v: number; src: string }[]>): Partial<DailyMetrics> {
+  const out: Partial<DailyMetrics> = {}
+  for (const entry of METRIC_CATALOG) {
+    const agg = aggregateDay(entry, byKey.get(entry.key) ?? [])
+    if (agg) out[entry.key] = 'sum_val' in agg ? agg.sum_val : agg.avg_val
+  }
+  return out
 }

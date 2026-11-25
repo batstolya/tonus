@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { aggregateByDay } from './healthAggregate'
+import { aggregateByDay, recordValue } from './healthAggregate'
 import type { HealthRecord } from '../types'
 
 const rec = (type: string, value: number, start: string, end = start, sourceName = 'Apple Watch'): HealthRecord => ({
@@ -35,5 +35,54 @@ describe('aggregateByDay: breathing disturbances and time in daylight', () => {
     const days = aggregateByDay([rec('HKQuantityTypeIdentifierStepCount', 100, '2026-11-17T09:00:00Z')])
     expect(days[0].breathingDisturbances).toBeUndefined()
     expect(days[0].daylightMinutes).toBeUndefined()
+  })
+})
+
+describe('recordValue', () => {
+  it('maps stand-hour categories to stood=1 and idle=0', () => {
+    expect(recordValue('HKCategoryTypeIdentifierAppleStandHour', 'HKCategoryValueAppleStandHourStood')).toBe(1)
+    expect(recordValue('HKCategoryTypeIdentifierAppleStandHour', 'HKCategoryValueAppleStandHourIdle')).toBe(0)
+  })
+
+  it('counts a handwashing event as 1', () => {
+    expect(recordValue('HKCategoryTypeIdentifierHandwashingEvent', 'HKCategoryValueNotApplicable')).toBe(1)
+  })
+
+  it('keeps the sleep mapping and numeric parsing as before', () => {
+    expect(recordValue('HKCategoryTypeIdentifierSleepAnalysis', 'HKCategoryValueSleepAnalysisAsleepREM')).toBe(3)
+    expect(recordValue('HKCategoryTypeIdentifierSleepAnalysis', 'nonsense')).toBeNull()
+    expect(recordValue('HKQuantityTypeIdentifierStepCount', '120')).toBe(120)
+    expect(recordValue('HKQuantityTypeIdentifierStepCount', 'abc')).toBeNull()
+  })
+})
+
+describe('aggregateByDay: catalog metrics', () => {
+  it('turns export.xml asymmetry fractions into percent', () => {
+    const [d] = aggregateByDay([rec('HKQuantityTypeIdentifierWalkingAsymmetryPercentage', 0.25, '2026-11-17T09:00:00Z')])
+    expect(d.walkingAsymmetry).toBeCloseTo(25)
+  })
+
+  it('sums basal energy already in kcal', () => {
+    const [d] = aggregateByDay([
+      rec('HKQuantityTypeIdentifierBasalEnergyBurned', 20, '2026-11-17T09:00:00Z'),
+      rec('HKQuantityTypeIdentifierBasalEnergyBurned', 20, '2026-11-17T10:00:00Z'),
+    ])
+    expect(d.basalEnergy).toBe(40)
+  })
+
+  it('counts stood hours only, idle hours add zero', () => {
+    const [d] = aggregateByDay([
+      rec('HKCategoryTypeIdentifierAppleStandHour', 1, '2026-11-17T09:00:00Z'),
+      rec('HKCategoryTypeIdentifierAppleStandHour', 0, '2026-11-17T10:00:00Z'),
+    ])
+    expect(d.standHours).toBe(1)
+  })
+
+  it('counts handwashing events', () => {
+    const [d] = aggregateByDay([
+      rec('HKCategoryTypeIdentifierHandwashingEvent', 1, '2026-11-17T09:00:00Z'),
+      rec('HKCategoryTypeIdentifierHandwashingEvent', 1, '2026-11-17T12:00:00Z'),
+    ])
+    expect(d.handwashing).toBe(2)
   })
 })
