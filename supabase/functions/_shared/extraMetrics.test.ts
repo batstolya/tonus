@@ -45,6 +45,6 @@ describe('text helpers', () => {
   it('compares two periods with code-computed deltas, only for metrics present in both', () => {
     const cur = summarizeExtraMetrics([row('2026-11-21', 'walkingSpeed', { avg_val: 4.8 }), row('2026-11-21', 'daylightMinutes', { sum_val: 30 })])
     const prev = summarizeExtraMetrics([row('2026-11-07', 'walkingSpeed', { avg_val: 4.2 })])
-    expect(compareExtraLines(cur, prev)).toEqual(['Скорость ходьбы, км/ч: 4.8 (было 4.2, +0.6)'])
+    expect(compareExtraLines(cur, prev)).toEqual(['Скорость ходьбы, км/ч: 4.8 (было 4.2, +0.6; дней с данными 1 и 1)'])
   })
 })

@@ -35,6 +35,11 @@ export const EXTRA_METRIC_KEYS: readonly string[] = [
   'breathingDisturbances', 'daylightMinutes', ...METRIC_CATALOG.map(e => e.key),
 ]
 
+/** Display precision of a newer metric; values go to the model rounded to it. */
+export function extraDigits(key: string): number | null {
+  return EXTRA_DEFS[key]?.digits ?? null
+}
+
 export interface ExtraMetricRow { date: string; metric: string; avg_val: number | null; sum_val: number | null }
 
 export interface ExtraMetricSummary {
@@ -89,6 +94,8 @@ export function compareExtraLines(current: ExtraMetricSummary[], previous: Extra
     const cur = +c.avg.toFixed(c.digits), was = +p.avg.toFixed(c.digits)
     const delta = cur - was
     const sign = delta > 0 ? '+' : delta < 0 ? '−' : '±'
-    return [`${c.label}: ${cur.toFixed(c.digits)} (было ${was.toFixed(c.digits)}, ${sign}${Math.abs(delta).toFixed(c.digits)})`]
+    // Day counts travel with the comparison: a weekly or rare metric (1 day vs
+    // 14) must not read like two equivalent periods.
+    return [`${c.label}: ${cur.toFixed(c.digits)} (было ${was.toFixed(c.digits)}, ${sign}${Math.abs(delta).toFixed(c.digits)}; дней с данными ${c.days} и ${p.days})`]
   })
 }
