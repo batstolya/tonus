@@ -12,7 +12,7 @@ import type { ReportSources } from '../../lib/doctorReport'
 const ui = (ru: string) => translations[ru]?.en ?? ru
 
 // loadReportSources talks to Supabase, which the jsdom project stubs to
-// return nothing — there is no other way to get a lab fixture into the
+// return nothing — there is no other way to get a heart-event fixture into the
 // printed page, so the barrel this component imports from is mocked here,
 // with every other export passed through untouched.
 vi.mock('../../lib/doctorReport', async importOriginal => {

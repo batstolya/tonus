@@ -5,7 +5,8 @@ import { detectAnomaly, shouldSendAlert, buildAlertMessage, type AnomalyDay } fr
 import { withObservability } from '../_shared/observability.ts'
 import { consumeRateLimit, hashRateLimitSubject, rateLimitedResponse } from '../_shared/rateLimit.ts'
 import { sendTelegram } from '../_shared/telegram.ts'
-import { parseHAE, parseHeartEvents, parseHRSamples, type HaePayload } from '../_shared/hae.ts'
+import { parseHAE, parseHeartEvents, parseHRSamples, stripEcgWaveforms, type HaePayload } from '../_shared/hae.ts'
+import { ingestStatus } from '../_shared/ingestStatus.ts'
 
 // Приём данных Apple Health от Health Auto Export (SPEC-AUTOSYNC).
 // Изолировано: пишет в *_staging; в боевые таблицы — только при mode='live'.
@@ -41,11 +42,13 @@ const handler = async (req: Request) => {
     if (!payload) return new Response('Bad JSON', { status: 400, headers: CORS })
 
     // 1) всегда сохраняем сырой JSON
-    await supabase.from('ingest_raw').insert({ user_id: userId, payload })
+    // ECG voltage samples are dropped before archiving (spec 2026-11-25-heart-events-ecg).
+    await supabase.from('ingest_raw').insert({ user_id: userId, payload: stripEcgWaveforms(payload) })
 
     // 2) разбор → staging
     const { metrics, sleep } = parseHAE(userId, payload)
-    let mErr: string | null = null, sErr: string | null = null
+    const heartEvents = parseHeartEvents(userId, payload)
+    let mErr: string | null = null, sErr: string | null = null, hErr: string | null = null
     if (metrics.length) {
       const { error } = await supabase.from('metrics_daily_staging').upsert(
         metrics.map(r => ({ ...r, updated_at: new Date().toISOString() })), { onConflict: 'user_id,date,metric' })
@@ -78,10 +81,10 @@ const handler = async (req: Request) => {
 
       // Heart-rate notifications / ECG come from their own HAE automations
       // (spec 2026-11-25-heart-events-ecg). Re-sends upsert on (kind, start).
-      const heartEvents = parseHeartEvents(userId, payload)
       if (heartEvents.length) {
         const { error } = await supabase.from('heart_events').upsert(heartEvents, { onConflict: 'user_id,kind,start_ts' })
-        if (!error) promoted += heartEvents.length
+        if (error) hErr = error.message
+        else promoted += heartEvents.length
       }
 
       // Пересчёт дневных оценок (readiness/recovery/stress/baseline) из автосинка,
@@ -154,10 +157,16 @@ const handler = async (req: Request) => {
       } catch { /* страж не критичен для приёма данных */ }
     }
 
-    const status = `metrics:${metrics.length} sleep:${sleep.length} mode:${tok.mode}${mErr ? ` mErr:${mErr}` : ''}${sErr ? ` sErr:${sErr}` : ''}`
-    await supabase.from('ingest_tokens').update({ last_ingest_at: new Date().toISOString(), last_status: status }).eq('user_id', userId)
+    const { status, freshData } = ingestStatus({
+      metrics: metrics.length, sleep: sleep.length, hearts: heartEvents.length, mode: tok.mode, mErr, sErr, hErr,
+    })
+    // Only health-data payloads move the freshness signal; an ECG/notification
+    // automation must not mask a dead metrics automation.
+    if (freshData) {
+      await supabase.from('ingest_tokens').update({ last_ingest_at: new Date().toISOString(), last_status: status }).eq('user_id', userId)
+    }
 
-    return new Response(JSON.stringify({ ok: true, metrics: metrics.length, sleep: sleep.length, mode: tok.mode, promoted }), {
+    return new Response(JSON.stringify({ ok: true, metrics: metrics.length, sleep: sleep.length, hearts: heartEvents.length, mode: tok.mode, promoted, ...(hErr ? { hErr } : {}) }), {
       headers: { ...CORS, 'Content-Type': 'application/json' },
     })
   } catch (e) {

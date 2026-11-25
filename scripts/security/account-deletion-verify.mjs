@@ -27,6 +27,8 @@ const SEED_OVERRIDES = {
   imports: { status: 'done' },
   research_runs: { status: 'done' },
   health_alerts: { level: 'info', type: 'anomaly' },
+  // kind has a CHECK; start_ts is a timestamptz the name-based date guess misses.
+  heart_events: { kind: 'other', start_ts: '2026-01-01T00:00:00Z' },
 }
 
 function fail(message) {

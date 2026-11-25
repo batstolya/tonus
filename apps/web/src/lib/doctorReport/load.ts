@@ -126,7 +126,9 @@ export async function loadHeartEvents(userId: string, since: string): Promise<He
     .from('heart_events')
     .select('kind, start_ts, end_ts, threshold, hr_min, hr_max, hr_avg, classification')
     .eq('user_id', userId)
-    .gte('start_ts', `${since}T00:00:00Z`)
+    // A day of slack: `since` is a local date and UTC midnight can be up to a
+    // day off; buildHeartEvents applies the exact local-date filter.
+    .gte('start_ts', new Date(Date.parse(`${since}T00:00:00Z`) - 86400000).toISOString())
     .order('start_ts')
     .range(from, to))
 }

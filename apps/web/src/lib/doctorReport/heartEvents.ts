@@ -48,10 +48,11 @@ export const HEART_EVENT_LABEL: Record<HeartEventKind, string> = {
 const round = (v: number | null) => (v == null ? null : Math.round(v))
 
 export function buildHeartEvents(events: HeartEvent[], periodStartDate: string): HeartEventsSection {
-  // Compare on the calendar date of the instant: an event on the first day of
-  // the period belongs to it whatever the hour.
+  // Compare on the reader's LOCAL calendar date — the same clock localStamp
+  // prints and the period frame uses. The UTC date would move events near
+  // midnight across the period boundary.
   const own = events
-    .filter(e => e.start_ts.slice(0, 10) >= periodStartDate)
+    .filter(e => localStamp(e.start_ts).slice(0, 10) >= periodStartDate)
     .slice()
     .sort((a, b) => a.start_ts.localeCompare(b.start_ts))
 

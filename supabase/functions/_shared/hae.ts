@@ -235,18 +235,44 @@ export interface HeartEventRow {
 export function haeTimestamp(v: unknown): string | null {
   if (typeof v !== 'string') return null
   const m = v.match(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) ([+-]\d{2})(\d{2})$/)
-  const d = new Date(m ? `${m[1]}T${m[2]}${m[3]}:${m[4]}` : v)
+  // Fallback only for ISO with an explicit offset or Z: anything else ("1",
+  // offset-less local time) would be guessed by the runtime.
+  const iso = m ? `${m[1]}T${m[2]}${m[3]}:${m[4]}` : (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})$/.test(v) ? v : null)
+  if (!iso) return null
+  const d = new Date(iso)
   return isNaN(d.getTime()) ? null : d.toISOString()
 }
 
 // HAE documents only the high value ('high_heart_rate_notification'); match by
 // substring so the low and irregular-rhythm variants land correctly too.
+// Match the heart-rate phrase, not a bare "low"/"high": other HealthKit events
+// (e.g. lowCardioFitness) must not be reported as heart-rate notifications.
 function notificationKind(v: unknown): HeartEventRow['kind'] {
-  const s = typeof v === 'string' ? v.toLowerCase() : ''
+  const s = typeof v === 'string' ? v.toLowerCase().replace(/[\s-]+/g, '_') : ''
   if (s.includes('irregular')) return 'irregular_rhythm'
-  if (s.includes('low')) return 'low_hr'
-  if (s.includes('high')) return 'high_hr'
+  if (s.includes('low_heart')) return 'low_hr'
+  if (s.includes('high_heart')) return 'high_hr'
   return 'other'
+}
+
+/**
+ * The raw payload is archived in ingest_raw; ECG voltage samples (~15k points
+ * per recording, re-sent on every run of a "last N days" automation) would make
+ * that archive grow without bound. Returns the input itself when there is no ECG.
+ */
+export function stripEcgWaveforms<T extends HaePayload>(payload: T): T {
+  const ecg = payload?.data?.ecg
+  if (!Array.isArray(ecg) || !ecg.length) return payload
+  return {
+    ...payload,
+    data: {
+      ...payload.data,
+      ecg: ecg.map(e => {
+        const { voltageMeasurements: _drop, ...rest } = e
+        return rest
+      }),
+    },
+  }
 }
 
 /** Heart-rate notifications and ECG readings → heart_events rows. Voltage samples are dropped. */
@@ -266,7 +292,8 @@ export function parseHeartEvents(userId: string, payload: HaePayload): HeartEven
       hr_min: hr.length ? Math.min(...hr) : null,
       hr_max: hr.length ? Math.max(...hr) : null,
       hr_avg: hr.length ? hr.reduce((a, b) => a + b, 0) / hr.length : null,
-      classification: null,
+      // The raw notification type, so 'other' rows can be reclassified later.
+      classification: typeof n.heartNotification === 'string' ? n.heartNotification : null,
       source: typeof src === 'string' ? src : null,
     })
   }
@@ -286,5 +313,7 @@ export function parseHeartEvents(userId: string, payload: HaePayload): HeartEven
       source: typeof e.source === 'string' ? e.source : null,
     })
   }
-  return out
+  // Postgres rejects an upsert batch that touches the same conflict key twice,
+  // which would drop the whole batch; keep the last copy of each event.
+  return [...new Map(out.map(r => [`${r.kind}|${r.start_ts}`, r])).values()]
 }

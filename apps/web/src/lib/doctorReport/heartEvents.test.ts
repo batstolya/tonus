@@ -28,3 +28,17 @@ describe('buildHeartEvents', () => {
     expect(buildHeartEvents([], '2026-11-01')).toEqual({ total: 0, byKind: [], entries: [] })
   })
 })
+
+describe('buildHeartEvents: period boundary in local time', () => {
+  it('keeps an event that falls on the first local day even when its UTC date is the day before', () => {
+    // Pick an instant at 00:30 local on the period's first day, whatever the runner's zone.
+    const local = new Date(2026, 10, 1, 0, 30)
+    const s = buildHeartEvents([ev({ start_ts: local.toISOString() })], '2026-11-01')
+    expect(s.total).toBe(1)
+  })
+
+  it('drops an event at 23:30 local on the day before the period', () => {
+    const local = new Date(2026, 9, 31, 23, 30)
+    expect(buildHeartEvents([ev({ start_ts: local.toISOString() })], '2026-11-01').total).toBe(0)
+  })
+})

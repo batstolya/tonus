@@ -312,6 +312,7 @@ export const settings: Record<string, Translation> = {
   'пульс': { uk: 'пульс', en: 'heart rate' },
   'порог': { uk: 'поріг', en: 'threshold' },
   'Всего': { uk: 'Усього', en: 'Total' },
+  'По типам': { uk: 'За типами', en: 'By type' },
   'Уведомления и ЭКГ — записи Apple Watch как есть, без интерпретации; классификацию ЭКГ даёт приложение Apple.': { uk: 'Сповіщення та ЕКГ — записи Apple Watch як є, без інтерпретації; класифікацію ЕКГ дає застосунок Apple.', en: 'Notifications and ECG are Apple Watch records as-is, without interpretation; the ECG classification comes from the Apple app.' },
   'Нарушения дыхания во сне, в час': { uk: 'Порушення дихання уві сні, за годину', en: 'Breathing disturbances during sleep, per hour' },
   'Скорость ходьбы, км/ч': { uk: 'Швидкість ходьби, км/год', en: 'Walking speed, km/h' },

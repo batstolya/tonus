@@ -749,5 +749,6 @@ describe('toMarkdown: heart events', () => {
     const md = toMarkdown(withEvents, 'en')
     expect(md).toContain('## Heart events (Apple Watch notifications and ECG)')
     expect(md).toContain('Low heart rate notification')
+    expect(md).toContain('Total: 2. By type: ECG — 1, Low heart rate notification — 1.')
   })
 })
