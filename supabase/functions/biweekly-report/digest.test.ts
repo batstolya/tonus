@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { coverage, lateBedtimes, lateComparisonLine, localHHMM, lowHrvDays, median } from './digest.ts'
+import { coverage, extraMetricsBlock, lateBedtimes, lateComparisonLine, localHHMM, lowHrvDays, median } from './digest.ts'
 
 describe('localHHMM', () => {
   it('renders an instant in the given timezone', () => {
@@ -81,5 +81,23 @@ describe('lateComparisonLine', () => {
     expect(lateComparisonLine(10, 12)).toBe(
       'Поздние засыпания (после 01:00 локального): текущий период 10, предыдущий 12',
     )
+  })
+})
+
+describe('extraMetricsBlock', () => {
+  const r = (date: string, metric: string, avg_val: number | null, sum_val: number | null = null) => ({ date, metric, avg_val, sum_val })
+
+  it('compares periods for metrics present in both and lists current-only ones', () => {
+    const block = extraMetricsBlock(
+      [r('2026-11-20', 'walkingSpeed', 4.8), r('2026-11-21', 'breathingDisturbances', 0.6)],
+      [r('2026-11-06', 'walkingSpeed', 4.2)],
+    )
+    expect(block).toContain('ДОПОЛНИТЕЛЬНЫЕ ПОКАЗАТЕЛИ')
+    expect(block).toContain('- Скорость ходьбы, км/ч: 4.8 (было 4.2, +0.6; дней с данными 1 и 1)')
+    expect(block).toContain('- Нарушения дыхания во сне, в час: средн 0.6 (дней с данными: 1), последнее 0.6 (2026-11-21); в прошлом периоде данных нет')
+  })
+
+  it('is empty when the current period has none of those metrics', () => {
+    expect(extraMetricsBlock([], [r('2026-11-06', 'walkingSpeed', 4.2)])).toBe('')
   })
 })

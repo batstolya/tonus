@@ -4,11 +4,13 @@ import { METRIC_CATALOG, CATALOG_BY_HAE, CATALOG_BY_HK, aggregateDay, haeValue }
 const entry = (key: string) => METRIC_CATALOG.find(e => e.key === key)!
 
 describe('METRIC_CATALOG', () => {
-  it('has 15 entries with unique keys, HAE names and HealthKit types', () => {
-    expect(METRIC_CATALOG).toHaveLength(15)
-    expect(new Set(METRIC_CATALOG.map(e => e.key)).size).toBe(15)
+  it('has 16 entries with unique keys and HealthKit types; 15 also come from HAE', () => {
+    expect(METRIC_CATALOG).toHaveLength(16)
+    expect(new Set(METRIC_CATALOG.map(e => e.key)).size).toBe(16)
+    expect(CATALOG_BY_HK.size).toBe(16)
+    // Walking steadiness is not offered by Health Auto Export: ZIP import only.
     expect(CATALOG_BY_HAE.size).toBe(15)
-    expect(CATALOG_BY_HK.size).toBe(15)
+    expect([...CATALOG_BY_HAE.values()].some(e => e.key === 'walkingSteadiness')).toBe(false)
   })
 })
 

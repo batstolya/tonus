@@ -8,8 +8,9 @@ import { sendTelegram as sendTelegramWithToken } from '../_shared/telegram.ts'
 import { aiConsentRequiredResponse, fetchGeminiWithConsent, isAiConsentRequired } from '../_shared/aiConsent.ts'
 import { corsHeadersFor } from '../_shared/cors.ts'
 import { loadUserTimezone } from '../_shared/userTimezone.ts'
-import { coverage, lateBedtimes, lateComparisonLine, lowHrvDays, median } from './digest.ts'
+import { coverage, extraMetricsBlock, lateBedtimes, lateComparisonLine, lowHrvDays, median } from './digest.ts'
 import { buildReportPrompt } from './prompt.ts'
+import { EXTRA_METRIC_KEYS, type ExtraMetricRow } from '../_shared/extraMetrics.ts'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -162,7 +163,7 @@ serve(async (req) => {
     }
 
     // Load metrics + sleep + nutrition + supplements + labs for both periods
-    const [r1, r2, s1, s2, intake, supLogs, supList, labs, noteRowsRes, wsRes, exminRes] = await Promise.all([
+    const [r1, r2, s1, s2, intake, supLogs, supList, labs, noteRowsRes, wsRes, exminRes, ex1, ex2] = await Promise.all([
       supabase.from('daily_summary').select('*').eq('user_id', user.id).gte('date', fmt(p1Start)).lte('date', fmt(p1End)),
       supabase.from('daily_summary').select('*').eq('user_id', user.id).gte('date', fmt(p2Start)).lte('date', fmt(p2End)),
       supabase.from('sleep_sessions').select('date, bedtime, wake_time, duration_hours, deep_hours, rem_hours, core_hours').eq('user_id', user.id).gte('date', fmt(p1Start)).lte('date', fmt(p1End)).order('date'),
@@ -175,7 +176,11 @@ serve(async (req) => {
       supabase.from('workout_schedule').select('day_times, enabled').eq('user_id', user.id).maybeSingle(),
       // exerciseMinutes есть только в EAV (нет в daily_summary/daily_metrics view)
       supabase.from('metrics_daily').select('date, sum_val').eq('user_id', user.id).eq('metric', 'exerciseMinutes').gte('date', fmt(p1Start)).lte('date', fmt(p1End)),
+      // Newer metrics (breathing, daylight, catalog) — EAV only, both periods.
+      supabase.from('metrics_daily').select('date, metric, avg_val, sum_val').eq('user_id', user.id).in('metric', [...EXTRA_METRIC_KEYS]).gte('date', fmt(p1Start)).lte('date', fmt(p1End)),
+      supabase.from('metrics_daily').select('date, metric, avg_val, sum_val').eq('user_id', user.id).in('metric', [...EXTRA_METRIC_KEYS]).gte('date', fmt(p2Start)).lte('date', fmt(p2End)),
     ])
+    const newMetricsBlock = extraMetricsBlock((ex1.data ?? []) as ExtraMetricRow[], (ex2.data ?? []) as ExtraMetricRow[])
 
     const rows1: DailyRow[] = r1.data ?? []
     const rows2: DailyRow[] = r2.data ?? []
@@ -309,7 +314,7 @@ serve(async (req) => {
       digest1,
       digest2,
       lateFact,
-      extraBlocks: `${spo2Block}${sleepStagesBlock}${nutritionBlock}${workoutBlock}${safeAdherenceBlock}${safeLabsBlock}${notesBlock}`,
+      extraBlocks: `${spo2Block}${newMetricsBlock}${sleepStagesBlock}${nutritionBlock}${workoutBlock}${safeAdherenceBlock}${safeLabsBlock}${notesBlock}`,
       detail: detail === 'short' || detail === 'medium' ? detail : 'full',
       sensitive,
     })

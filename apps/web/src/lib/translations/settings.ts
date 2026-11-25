@@ -318,6 +318,7 @@ export const settings: Record<string, Translation> = {
   'Шум вокруг, дБ': { uk: 'Шум навколо, дБ', en: 'Environmental sound, dB' },
   'Громкость в наушниках, дБ': { uk: 'Гучність у навушниках, дБ', en: 'Headphone audio, dB' },
   'Мытьё рук, раз в день': { uk: 'Миття рук, разів на день', en: 'Handwashing, times per day' },
+  'Устойчивость ходьбы (оценка iPhone), %': { uk: 'Стійкість ходи (оцінка iPhone), %', en: 'Walking steadiness (iPhone estimate), %' },
   'Дополнительные показатели (Apple Watch / iPhone)': { uk: 'Додаткові показники (Apple Watch / iPhone)', en: 'Additional metrics (Apple Watch / iPhone)' },
   'Походка, лестница и наушники измеряет iPhone — данные есть только в дни, когда телефон был с собой. Тест 6-минутной ходьбы — оценка iPhone, появляется примерно раз в неделю.': { uk: 'Ходу, сходи й навушники вимірює iPhone — дані є лише в дні, коли телефон був із собою. Тест 6-хвилинної ходьби — оцінка iPhone, з’являється приблизно раз на тиждень.', en: 'Gait, stairs and headphone levels are measured by the iPhone, so they exist only on days the phone was carried. The six-minute walk is an iPhone estimate that appears about once a week.' },
   'HRV, мс': { uk: 'HRV, мс', en: 'HRV, ms' },

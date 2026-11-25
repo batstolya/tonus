@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { executeChatTool, CHAT_TOOL_DECLARATIONS, toLocalDateTime, effectiveWakeIso, numericAverages, formatHoursDuration, type SupabaseLike } from './chatTools'
+import { EXTRA_METRIC_KEYS } from './extraMetrics'
 
 function stubSupabase(dataByTable: Record<string, unknown[]>): SupabaseLike {
   return {
@@ -29,6 +30,30 @@ describe('executeChatTool', () => {
     const sb = stubSupabase({ daily_metrics: [{ date: '2026-06-01', sleep_hours: 7.1 }] })
     const result: Record<string, unknown> = await executeChatTool(sb, 'user-1', 'get_metrics_range', { start_date: '2026-06-01', end_date: '2026-06-10' })
     expect(result.rows).toHaveLength(1)
+  })
+
+  it('adds the new metrics to metrics rows and server-computed averages', async () => {
+    const sb = stubSupabase({
+      daily_metrics: [{ date: '2026-11-24', sleep_hours: 7.1 }],
+      metrics_daily: [
+        { date: '2026-11-24', metric: 'walkingSpeed', avg_val: 4.7312, sum_val: null },
+        { date: '2026-11-25', metric: 'walkingSpeed', avg_val: 4.3, sum_val: null },
+        { date: '2026-11-24', metric: 'basalEnergy', avg_val: null, sum_val: 1818 },
+      ],
+    })
+    const result = await executeChatTool(sb, 'user-1', 'get_metrics_range', { start_date: '2026-11-24', end_date: '2026-11-25' }) as {
+      rows: Record<string, unknown>[]; summary: { averages: Record<string, { avg: number; n: number }> }
+    }
+    // Rounded to the metric's own precision: raw floats cost tokens and invite false precision.
+    expect(result.rows.find(r => r.date === '2026-11-24')).toMatchObject({ sleep_hours: 7.1, walkingSpeed: 4.7, basalEnergy: 1818 })
+    // A day present only in the new metrics still appears.
+    expect(result.rows.find(r => r.date === '2026-11-25')).toMatchObject({ walkingSpeed: 4.3 })
+    expect(result.summary.averages.walkingSpeed).toEqual({ avg: 4.5, n: 2 })
+  })
+
+  it('describes every newer metric key to the model, including walking steadiness', () => {
+    const desc = CHAT_TOOL_DECLARATIONS.find(t => t.name === 'get_metrics_range')!.description
+    for (const k of EXTRA_METRIC_KEYS) expect(desc, k).toContain(k)
   })
 
   it('rejects a metrics range longer than 60 days without throwing', async () => {

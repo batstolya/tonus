@@ -11,9 +11,11 @@ export interface AnomalyDay {
   hrv: number | null
   respiratoryRate: number | null
   spo2: number | null
+  /** Breathing disturbances during sleep, events per hour (Series 9+). */
+  breathing?: number | null
 }
 
-export type AnomalyMetric = 'rhr' | 'wristTemp' | 'hrv' | 'respiratoryRate' | 'spo2'
+export type AnomalyMetric = 'rhr' | 'wristTemp' | 'hrv' | 'respiratoryRate' | 'spo2' | 'breathing'
 
 export interface AnomalyFinding {
   metric: AnomalyMetric
@@ -34,6 +36,13 @@ const BAD_DIRECTION: Record<AnomalyMetric, 1 | -1> = {
   respiratoryRate: 1,
   hrv: -1,
   spo2: -1,
+  breathing: 1,
+}
+
+// Absolute floor in the metric's own unit. Breathing disturbances sit near zero
+// with a tiny spread, so z alone would call 0.5 → 1.0 per hour an anomaly.
+const MIN_ABS: Partial<Record<AnomalyMetric, number>> = {
+  breathing: 1,
 }
 
 const MIN_BASELINE_DAYS = 10
@@ -64,6 +73,8 @@ export function detectAnomaly(days: AnomalyDay[]): AnomalyResult | null {
     if (base.length < MIN_BASELINE_DAYS) continue
     const { mean, std } = meanStd(base)
     if (std === 0) continue // константная метрика — судить не о чем
+    const floor = MIN_ABS[metric]
+    if (floor != null && Math.abs(value - mean) < floor) continue
     const z = (value - mean) / std
     const badness = z * BAD_DIRECTION[metric]
     if (badness > 0) deviations.push({ metric, value, baseline: mean, z, badness })
@@ -100,6 +111,7 @@ const METRIC_LABELS: Record<AnomalyMetric, { name: string; fmt: (v: number) => s
   hrv: { name: 'HRV', fmt: v => `${Math.round(v)} мс` },
   respiratoryRate: { name: 'Частота дыхания', fmt: v => `${v.toFixed(1)}/мин` },
   spo2: { name: 'SpO₂', fmt: v => `${Math.round(v * 100)}%` },
+  breathing: { name: 'Нарушения дыхания во сне', fmt: v => `${v.toFixed(1)} в час` },
 }
 
 export function buildAlertMessage(result: AnomalyResult): string {

@@ -2,6 +2,7 @@
 // node project tests this directly (same pattern as telegram-bot/router.ts).
 // Everything here is a precomputed fact for the prompt: the model must never
 // derive cross-period comparisons or timezone math itself.
+import { compareExtraLines, extraMetricsLines, summarizeExtraMetrics, type ExtraMetricRow } from '../_shared/extraMetrics.ts'
 
 export interface SleepBedtime {
   date: string
@@ -53,4 +54,20 @@ export function coverage(periodDays: number, metricDays: number, sleepNights: nu
 
 export function lateComparisonLine(currentCount: number, prevCount: number): string {
   return `Поздние засыпания (после 01:00 локального): текущий период ${currentCount}, предыдущий ${prevCount}`
+}
+
+/**
+ * The newer metrics (breathing, daylight, catalog) for the current period,
+ * compared with the previous one by code. Empty when the period has none.
+ */
+export function extraMetricsBlock(current: ExtraMetricRow[], previous: ExtraMetricRow[]): string {
+  const cur = summarizeExtraMetrics(current)
+  if (!cur.length) return ''
+  const prev = summarizeExtraMetrics(previous)
+  const compared = new Set(prev.map(p => p.key))
+  const lines = [
+    ...compareExtraLines(cur, prev),
+    ...extraMetricsLines(cur.filter(c => !compared.has(c.key))).map(l => `${l}; в прошлом периоде данных нет`),
+  ]
+  return `\nДОПОЛНИТЕЛЬНЫЕ ПОКАЗАТЕЛИ (Apple Watch / iPhone), текущий период против предыдущего, посчитано кодом:\n${lines.map(l => `- ${l}`).join('\n')}\n`
 }

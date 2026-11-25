@@ -116,3 +116,27 @@ describe('buildAlertMessage', () => {
     expect(msg).toContain('не диагноз')
   })
 })
+
+describe('detectAnomaly: breathing disturbances', () => {
+  // Baseline around 0.5/h with small noise.
+  const withBreathing = (n: number, last: number, over: Partial<AnomalyDay> = {}) =>
+    series(n, over).map((d, i, arr) => ({
+      ...d,
+      breathing: i === arr.length - 1 ? last : 0.5 + (i % 2 ? 0.1 : -0.1),
+    }))
+
+  it('flags a real jump together with another bad metric as red', () => {
+    const r = detectAnomaly(withBreathing(30, 3.0, { respiratoryRate: 17 }))
+    expect(r?.level).toBe('red')
+    expect(r?.findings.map(f => f.metric)).toContain('breathing')
+  })
+
+  it('ignores a statistically large but tiny absolute rise (0.5 → 1.0 per hour)', () => {
+    expect(detectAnomaly(withBreathing(30, 1.0))).toBeNull()
+  })
+
+  it('describes breathing in the alert in events per hour', () => {
+    const msg = buildAlertMessage({ level: 'yellow', findings: [{ metric: 'breathing', value: 3, baseline: 0.5, z: 25 }] })
+    expect(msg).toContain('Нарушения дыхания во сне: 3.0 в час при твоей норме 0.5 в час')
+  })
+})

@@ -86,3 +86,10 @@ describe('aggregateByDay: catalog metrics', () => {
     expect(d.handwashing).toBe(2)
   })
 })
+
+describe('aggregateByDay: walking steadiness', () => {
+  it('turns the weekly steadiness fraction into percent', () => {
+    const [d] = aggregateByDay([rec('HKQuantityTypeIdentifierAppleWalkingSteadiness', 0.997, '2026-06-01T00:00:00Z', '2026-06-08T00:00:00Z', 'iPhone')])
+    expect(d.walkingSteadiness).toBeCloseTo(99.7)
+  })
+})

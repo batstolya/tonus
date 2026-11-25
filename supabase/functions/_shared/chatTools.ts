@@ -4,11 +4,12 @@
 // RLS-гарантии, что и у остального контекста.
 
 import { computeLagCorrelations, type CorrDailyRow, type EnvDay } from './correlations.ts'
+import { EXTRA_METRIC_KEYS, extraDigits } from './extraMetrics.ts'
 
 export const CHAT_TOOL_DECLARATIONS = [
   {
     name: 'get_metrics_range',
-    description: 'Вернуть ежедневные метрики (пульс покоя, HRV, сон, шаги, ккал, SpO2) за произвольный диапазон дат, максимум 60 дней. Результат содержит rows (по дням) и summary.averages — уже посчитанные на сервере средние. Для любого «среднее …» бери число из summary.averages, НЕ считай сам.',
+    description: 'Вернуть ежедневные метрики (пульс покоя, HRV, сон, шаги, ккал, SpO2, а также breathingDisturbances — нарушения дыхания во сне в час, daylightMinutes — минуты на дневном свете, physicalEffort — нагрузка в MET, basalEnergy — энергия покоя ккал, standHours/standMinutes — стояние, environmentalAudio/headphoneAudio — шум и громкость в дБ, walkingSpeed км/ч, walkingStepLength см, walkingAsymmetry %, walkingDoubleSupport %, stairSpeedUp/stairSpeedDown м/с, sixMinuteWalk м, cyclingDistance км, handwashing раз, walkingSteadiness — устойчивость ходьбы % (еженедельная оценка iPhone)) за произвольный диапазон дат, максимум 60 дней. Результат содержит rows (по дням) и summary.averages — уже посчитанные на сервере средние. Для любого «среднее …» бери число из summary.averages, НЕ считай сам.',
     parameters: {
       type: 'OBJECT',
       properties: {
@@ -212,11 +213,33 @@ export async function executeChatTool(
       }
       return { rows, summary }
     }
-    const summary = {
-      days: (data ?? []).length,
-      averages: numericAverages(data ?? [], ['sleep_hours', 'hrv', 'resting_heart_rate', 'steps', 'active_energy', 'oxygen_saturation']),
+    // The newer metrics (breathing, daylight, catalog) live only in the EAV
+    // table; merge them into the per-day rows so the model sees one table.
+    const { data: extra, error: extraErr } = await supabase.from('metrics_daily')
+      .select('date, metric, avg_val, sum_val')
+      .eq('user_id', userId).in('metric', [...EXTRA_METRIC_KEYS])
+      .gte('date', start_date).lte('date', end_date)
+      // 61 days × 18 metrics can pass PostgREST's default 1000-row page; an
+      // explicit limit and order keep a truncation from silently dropping days.
+      .order('date', { ascending: true }).limit(2000)
+    if (extraErr) return { error: extraErr.message ?? 'Ошибка запроса данных' }
+    const byDate = new Map<string, Record<string, unknown>>()
+    for (const r of (data ?? []) as Record<string, unknown>[]) byDate.set(r.date as string, { ...r })
+    for (const e of (extra ?? []) as { date: string; metric: string; avg_val: number | null; sum_val: number | null }[]) {
+      const raw = e.avg_val ?? e.sum_val
+      if (raw == null) continue
+      const digits = extraDigits(e.metric)
+      const v = digits == null ? raw : +raw.toFixed(digits)
+      const row = byDate.get(e.date) ?? { date: e.date }
+      row[e.metric] = v
+      byDate.set(e.date, row)
     }
-    return { rows: data ?? [], summary }
+    const rows = [...byDate.values()].sort((a, b) => String(a.date).localeCompare(String(b.date)))
+    const summary = {
+      days: rows.length,
+      averages: numericAverages(rows, ['sleep_hours', 'hrv', 'resting_heart_rate', 'steps', 'active_energy', 'oxygen_saturation', ...EXTRA_METRIC_KEYS]),
+    }
+    return { rows, summary }
   }
 
   if (name === 'get_lab_history') {

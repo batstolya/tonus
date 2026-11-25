@@ -74,6 +74,7 @@ export const metrics: Record<string, Translation> = {
   'Тест 6-минутной ходьбы (м)': { uk: 'Тест 6-хвилинної ходьби (м)', en: 'Six-minute walk (m)' },
   'Велосипед (км)': { uk: 'Велосипед (км)', en: 'Cycling distance (km)' },
   'Мытьё рук (раз)': { uk: 'Миття рук (разів)', en: 'Handwashing (times)' },
+  'Устойчивость ходьбы (%)': { uk: 'Стійкість ходи (%)', en: 'Walking steadiness (%)' },
   'Температура запястья': { uk: 'Температура запʼястя', en: 'Wrist temperature' },
   'Сон (ч)': { uk: 'Сон (год)', en: 'Sleep (h)' },
   'Глубокий сон (ч)': { uk: 'Глибокий сон (год)', en: 'Deep sleep (h)' },

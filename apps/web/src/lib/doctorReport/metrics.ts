@@ -14,7 +14,7 @@ export type MetricKey =
   // Additional section (Apple Watch / iPhone, spec 2026-11-25-doctor-report-extra-metrics)
   | 'walkSpeed' | 'stepLen' | 'asym' | 'dblSupport' | 'stairUp' | 'stairDown' | 'sixMin'
   | 'effort' | 'basal' | 'standH' | 'standM' | 'cycling' | 'daylight'
-  | 'envAudio' | 'phoneAudio' | 'handwash'
+  | 'envAudio' | 'phoneAudio' | 'handwash' | 'steady'
 
 export interface MetricDef {
   key: MetricKey
@@ -73,6 +73,9 @@ export const METRIC_DEFS: MetricDef[] = [
   { key: 'envAudio', label: 'Шум вокруг, дБ', get: d => d.environmentalAudio, digits: 0, minRel: 8, group: 'extra' },
   { key: 'phoneAudio', label: 'Громкость в наушниках, дБ', get: d => d.headphoneAudio, digits: 0, minRel: 8, group: 'extra' },
   { key: 'handwash', label: 'Мытьё рук, раз в день', get: d => d.handwashing, digits: 0, minRel: 50, minAbs: 3, group: 'extra' },
+  // Weekly iPhone estimate, ZIP import only; near 100% for most people, so only a
+  // drop of 10+ points is worth flagging.
+  { key: 'steady', label: 'Устойчивость ходьбы (оценка iPhone), %', get: d => d.walkingSteadiness, digits: 0, minRel: 10, minAbs: 10, group: 'extra' },
 ]
 
 export interface MetricSummary {
