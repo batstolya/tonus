@@ -37,6 +37,10 @@ describe('buildReportPrompt contract', () => {
     expect(buildReportPrompt(base)).toContain('ПОДРОБНО')
   })
 
+  it('asks the full report to cover the additional watch/iPhone metrics when present', () => {
+    expect(buildReportPrompt(base)).toContain('🚶 Подвижность, нагрузка и среда')
+  })
+
   it('mentions meds/labs sections only in sensitive full mode', () => {
     expect(buildReportPrompt({ ...base, sensitive: true })).toContain('💊 Препараты')
     expect(buildReportPrompt(base)).not.toContain('💊 Препараты')
