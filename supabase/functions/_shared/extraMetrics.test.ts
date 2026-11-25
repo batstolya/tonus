@@ -5,8 +5,8 @@ const row = (date: string, metric: string, v: { avg_val?: number | null; sum_val
   ({ date, metric, avg_val: null, sum_val: null, ...v })
 
 describe('EXTRA_METRIC_KEYS', () => {
-  it('covers breathing, daylight and all 15 catalog metrics', () => {
-    expect(EXTRA_METRIC_KEYS).toHaveLength(17)
+  it('covers breathing, daylight and all 16 catalog metrics', () => {
+    expect(EXTRA_METRIC_KEYS).toHaveLength(18)
     expect(EXTRA_METRIC_KEYS).toContain('breathingDisturbances')
     expect(EXTRA_METRIC_KEYS).toContain('daylightMinutes')
     expect(EXTRA_METRIC_KEYS).toContain('walkingSpeed')

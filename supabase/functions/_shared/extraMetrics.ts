@@ -28,6 +28,7 @@ const EXTRA_DEFS: Record<string, ExtraDef> = {
   sixMinuteWalk: { label: 'Тест 6-минутной ходьбы (оценка iPhone), м', digits: 0 },
   cyclingDistance: { label: 'Велосипед, км', digits: 1 },
   handwashing: { label: 'Мытьё рук, раз в день', digits: 0 },
+  walkingSteadiness: { label: 'Устойчивость ходьбы (оценка iPhone), %', digits: 0 },
 }
 
 export const EXTRA_METRIC_KEYS: readonly string[] = [

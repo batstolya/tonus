@@ -17,8 +17,8 @@ export type CatalogAgg = 'sum' | 'count' | 'avg' | 'energyAvg'
 
 export interface CatalogEntry {
   key: string
-  /** Metric name in a Health Auto Export payload. */
-  hae: string
+  /** Metric name in a Health Auto Export payload; absent when HAE does not offer it (ZIP import only). */
+  hae?: string
   /** HealthKit type in an Apple Health export.xml. */
   hk: string
   agg: CatalogAgg
@@ -52,11 +52,16 @@ export const METRIC_CATALOG = [
     key: 'handwashing', hae: 'handwashing', hk: 'HKCategoryTypeIdentifierHandwashingEvent', agg: 'count', label: 'Мытьё рук (раз)',
     zipCategory: { HKCategoryValueNotApplicable: 1 },
   },
+  // Not offered by Health Auto Export — arrives only through the ZIP import.
+  // Weekly iPhone estimate stored as a fraction; 100% = OK.
+  { key: 'walkingSteadiness', hk: 'HKQuantityTypeIdentifierAppleWalkingSteadiness', agg: 'avg', label: 'Устойчивость ходьбы (%)', zipScale: 100 },
 ] as const satisfies readonly CatalogEntry[]
 
 export type CatalogKey = typeof METRIC_CATALOG[number]['key']
 
-export const CATALOG_BY_HAE: ReadonlyMap<string, CatalogEntry> = new Map(METRIC_CATALOG.map(e => [e.hae, e]))
+export const CATALOG_BY_HAE: ReadonlyMap<string, CatalogEntry> = new Map(
+  METRIC_CATALOG.flatMap((e): [string, CatalogEntry][] => ('hae' in e && e.hae ? [[e.hae, e]] : [])),
+)
 export const CATALOG_BY_HK: ReadonlyMap<string, CatalogEntry> = new Map(METRIC_CATALOG.map(e => [e.hk, e]))
 export const CATALOG_BY_KEY: ReadonlyMap<string, CatalogEntry> = new Map(METRIC_CATALOG.map(e => [e.key, e]))
 

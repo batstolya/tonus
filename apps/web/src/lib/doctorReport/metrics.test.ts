@@ -14,13 +14,13 @@ describe('METRIC_DEFS', () => {
       // Additional section: mobility, activity, environment, hygiene.
       'walkSpeed', 'stepLen', 'asym', 'dblSupport', 'stairUp', 'stairDown', 'sixMin',
       'effort', 'basal', 'standH', 'standM', 'cycling', 'daylight',
-      'envAudio', 'phoneAudio', 'handwash',
+      'envAudio', 'phoneAudio', 'handwash', 'steady',
     ])
   })
 
-  it('marks exactly the 16 secondary metrics as extra, breathing stays in the main table', () => {
+  it('marks exactly the 17 secondary metrics as extra, breathing stays in the main table', () => {
     const extra = METRIC_DEFS.filter(m => m.group === 'extra').map(m => m.key)
-    expect(extra).toHaveLength(16)
+    expect(extra).toHaveLength(17)
     expect(extra).not.toContain('breath')
   })
 
