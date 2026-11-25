@@ -104,15 +104,16 @@ const handler = async (req: Request) => {
           .from('metrics_daily')
           .select('date, metric, avg_val')
           .eq('user_id', userId).gte('date', since35)
-          .in('metric', ['restingHeartRate', 'wristTemperature', 'hrv', 'respiratoryRate', 'oxygenSaturation'])
+          .in('metric', ['restingHeartRate', 'wristTemperature', 'hrv', 'respiratoryRate', 'oxygenSaturation', 'breathingDisturbances'])
         if (am?.length) {
           const KEY: Record<string, keyof Omit<AnomalyDay, 'date'>> = {
             restingHeartRate: 'rhr', wristTemperature: 'wristTemp', hrv: 'hrv',
             respiratoryRate: 'respiratoryRate', oxygenSaturation: 'spo2',
+            breathingDisturbances: 'breathing',
           }
           const byDate: Record<string, AnomalyDay> = {}
           for (const r of am) {
-            const d = byDate[r.date] ??= { date: r.date, rhr: null, wristTemp: null, hrv: null, respiratoryRate: null, spo2: null }
+            const d = byDate[r.date] ??= { date: r.date, rhr: null, wristTemp: null, hrv: null, respiratoryRate: null, spo2: null, breathing: null }
             const k = KEY[r.metric]
             if (k && r.avg_val != null) d[k] = Number(r.avg_val)
           }
