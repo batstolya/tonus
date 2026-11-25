@@ -58,6 +58,7 @@ export const ai_insights: Record<string, Translation> = {
   'Перепад давления': { uk: 'Перепад тиску', en: 'Pressure swing' },
   'Температура за окном': { uk: 'Температура надворі', en: 'Outdoor temperature' },
   'Световой день': { uk: 'Світловий день', en: 'Daylight hours' },
+  'Время на свету': { uk: 'Час на світлі', en: 'Time in daylight' },
   'Магнитные бури': { uk: 'Магнітні бурі', en: 'Geomagnetic storms' },
   'Соблюдение': { uk: 'Дотримання', en: 'Adherence' },
   'В среднем': { uk: 'У середньому', en: 'On average' },
