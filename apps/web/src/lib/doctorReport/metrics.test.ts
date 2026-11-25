@@ -9,9 +9,19 @@ const day = (date: string, over: Partial<DailyMetrics> = {}): DailyMetrics => ({
 describe('METRIC_DEFS', () => {
   it('covers every numeric field of DailyMetrics', () => {
     expect(METRIC_DEFS.map(m => m.key)).toEqual([
-      'rhr', 'hrv', 'hrAvg', 'hrMin', 'hrMax', 'walkHr', 'spo2', 'resp', 'temp',
+      'rhr', 'hrv', 'hrAvg', 'hrMin', 'hrMax', 'walkHr', 'spo2', 'resp', 'breath', 'temp',
       'vo2', 'sleep', 'deep', 'rem', 'core', 'steps', 'dist', 'kcal', 'exer', 'floors',
+      // Additional section: mobility, activity, environment, hygiene.
+      'walkSpeed', 'stepLen', 'asym', 'dblSupport', 'stairUp', 'stairDown', 'sixMin',
+      'effort', 'basal', 'standH', 'standM', 'cycling', 'daylight',
+      'envAudio', 'phoneAudio', 'handwash',
     ])
+  })
+
+  it('marks exactly the 16 secondary metrics as extra, breathing stays in the main table', () => {
+    const extra = METRIC_DEFS.filter(m => m.group === 'extra').map(m => m.key)
+    expect(extra).toHaveLength(16)
+    expect(extra).not.toContain('breath')
   })
 
   it('gives every metric its own deviation threshold', () => {
@@ -31,6 +41,14 @@ describe('summarizeMetrics', () => {
     expect(s.min).toBe(58)
     expect(s.max).toBe(62)
     expect(s.daysWithData).toBe(3)
+  })
+
+  it('carries the group so renderers can split the tables', () => {
+    const daily = [day(today, { restingHeartRate: 60, walkingSpeed: 4.7, breathingDisturbances: 0.5 })]
+    const out = summarizeMetrics(daily, periodFrame(daily, 30, today))
+    expect(out.find(m => m.key === 'walkSpeed')?.group).toBe('extra')
+    expect(out.find(m => m.key === 'breath')?.group).toBeUndefined()
+    expect(out.find(m => m.key === 'rhr')?.group).toBeUndefined()
   })
 
   it('omits metrics with no data instead of returning empty rows', () => {
