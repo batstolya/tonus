@@ -1,6 +1,7 @@
 import { supabase } from './supabase'
-import type { DailyMetrics, HeartRateSample } from '../types'
+import type { CatalogMetrics, DailyMetrics, HeartRateSample } from '../types'
 import type { Database, Json } from './database.types'
+import { CATALOG_BY_KEY, METRIC_CATALOG, isCatalogSum } from '../../../../supabase/functions/_shared/metricCatalog'
 
 type MetricsDailyRow = Database['public']['Tables']['metrics_daily']['Row']
 type SleepSessionRow = Database['public']['Tables']['sleep_sessions']['Row']
@@ -52,6 +53,13 @@ export function metricRowsOf(userId: string, d: DailyMetrics): MetricRowOut[] {
   if (d.flightsClimbed != null) rows.push({ user_id: userId, date, metric: 'flightsClimbed', sum_val: d.flightsClimbed })
   if (d.breathingDisturbances != null) rows.push({ user_id: userId, date, metric: 'breathingDisturbances', avg_val: d.breathingDisturbances })
   if (d.daylightMinutes != null) rows.push({ user_id: userId, date, metric: 'daylightMinutes', sum_val: d.daylightMinutes })
+  for (const entry of METRIC_CATALOG) {
+    const v = d[entry.key]
+    if (v == null) continue
+    rows.push(isCatalogSum(entry)
+      ? { user_id: userId, date, metric: entry.key, sum_val: v }
+      : { user_id: userId, date, metric: entry.key, avg_val: v })
+  }
   return rows
 }
 
@@ -85,6 +93,12 @@ export function applyMetricRow(d: DailyMetrics, row: MetricRowLike): void {
     case 'flightsClimbed': d.flightsClimbed = maxSum(d.flightsClimbed, row.sum_val); break
     case 'breathingDisturbances': d.breathingDisturbances = keepAvg(d.breathingDisturbances, row.avg_val); break
     case 'daylightMinutes': d.daylightMinutes = maxSum(d.daylightMinutes, row.sum_val); break
+    default: {
+      const entry = CATALOG_BY_KEY.get(row.metric)
+      if (!entry) break
+      const key = entry.key as keyof CatalogMetrics
+      d[key] = isCatalogSum(entry) ? maxSum(d[key], row.sum_val) : keepAvg(d[key], row.avg_val)
+    }
   }
 }
 

@@ -54,3 +54,24 @@ describe('breathing disturbances and daylight minutes', () => {
     expect(metricRowsOf('u', { date: '2026-11-20' })).toEqual([])
   })
 })
+
+describe('catalog metrics in sync', () => {
+  const row = (metric: string, v: { avg_val?: number | null; sum_val?: number | null }) =>
+    ({ metric, avg_val: null, min_val: null, max_val: null, sum_val: null, ...v })
+
+  it('loads sum metrics from sum_val and avg metrics from avg_val', () => {
+    const d: DailyMetrics = { date: '2026-11-24' }
+    applyMetricRow(d, row('basalEnergy', { sum_val: 1650 }))
+    applyMetricRow(d, row('walkingSpeed', { avg_val: 4.2 }))
+    applyMetricRow(d, row('handwashing', { sum_val: 3 }))
+    expect(d).toMatchObject({ basalEnergy: 1650, walkingSpeed: 4.2, handwashing: 3 })
+  })
+
+  it('saves catalog fields as rows only when set', () => {
+    const rows = metricRowsOf('u', { date: '2026-11-24', basalEnergy: 1650, walkingAsymmetry: 0 })
+    expect(rows).toEqual([
+      { user_id: 'u', date: '2026-11-24', metric: 'basalEnergy', sum_val: 1650 },
+      { user_id: 'u', date: '2026-11-24', metric: 'walkingAsymmetry', avg_val: 0 },
+    ])
+  })
+})
