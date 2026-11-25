@@ -45,7 +45,21 @@ export interface HaePoint {
   sleepStart?: unknown; sleepEnd?: unknown; startDate?: unknown
 }
 export interface HaeMetric { name?: string; units?: unknown; data?: HaePoint[] }
-export interface HaePayload { data?: { metrics?: HaeMetric[] }; metrics?: HaeMetric[] }
+// Heart-rate notifications and ECG arrive through their own HAE automations
+// (one data type per automation) — spec 2026-11-25-heart-events-ecg-design.
+export interface HaeHeartNotification {
+  heartNotification?: unknown; start?: unknown; end?: unknown; threshold?: unknown
+  source?: { name?: unknown } | unknown
+  heartRateData?: { qty?: unknown }[]
+}
+export interface HaeEcg {
+  start?: unknown; end?: unknown; classification?: unknown; averageHeartRate?: unknown; source?: unknown
+  [k: string]: unknown
+}
+export interface HaePayload {
+  data?: { metrics?: HaeMetric[]; heartRateNotifications?: HaeHeartNotification[]; ecg?: HaeEcg[] }
+  metrics?: HaeMetric[]
+}
 
 /**
  * `Number(null)` is 0 and `Number('')` is 0, so the plain coercion stored a
@@ -202,4 +216,75 @@ export function isSumMetric(key: string): boolean {
   if (SUM_METRICS.has(key)) return true
   const entry = CATALOG_BY_KEY.get(key)
   return entry ? isCatalogSum(entry) : false
+}
+
+export interface HeartEventRow {
+  user_id: string
+  kind: 'high_hr' | 'low_hr' | 'irregular_rhythm' | 'ecg' | 'other'
+  start_ts: string
+  end_ts: string | null
+  threshold: number | null
+  hr_min: number | null
+  hr_max: number | null
+  hr_avg: number | null
+  classification: string | null
+  source: string | null
+}
+
+/** "2026-01-29 03:10:00 +0100" → ISO UTC; anything unparsable → null. */
+export function haeTimestamp(v: unknown): string | null {
+  if (typeof v !== 'string') return null
+  const m = v.match(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) ([+-]\d{2})(\d{2})$/)
+  const d = new Date(m ? `${m[1]}T${m[2]}${m[3]}:${m[4]}` : v)
+  return isNaN(d.getTime()) ? null : d.toISOString()
+}
+
+// HAE documents only the high value ('high_heart_rate_notification'); match by
+// substring so the low and irregular-rhythm variants land correctly too.
+function notificationKind(v: unknown): HeartEventRow['kind'] {
+  const s = typeof v === 'string' ? v.toLowerCase() : ''
+  if (s.includes('irregular')) return 'irregular_rhythm'
+  if (s.includes('low')) return 'low_hr'
+  if (s.includes('high')) return 'high_hr'
+  return 'other'
+}
+
+/** Heart-rate notifications and ECG readings → heart_events rows. Voltage samples are dropped. */
+export function parseHeartEvents(userId: string, payload: HaePayload): HeartEventRow[] {
+  const out: HeartEventRow[] = []
+  for (const n of payload?.data?.heartRateNotifications ?? []) {
+    const start_ts = haeTimestamp(n.start)
+    if (!start_ts) continue
+    const hr = (n.heartRateData ?? []).map(p => num(p?.qty)).filter((v): v is number => v != null)
+    const src = (n.source as { name?: unknown } | undefined)?.name
+    out.push({
+      user_id: userId,
+      kind: notificationKind(n.heartNotification),
+      start_ts,
+      end_ts: haeTimestamp(n.end),
+      threshold: num(n.threshold),
+      hr_min: hr.length ? Math.min(...hr) : null,
+      hr_max: hr.length ? Math.max(...hr) : null,
+      hr_avg: hr.length ? hr.reduce((a, b) => a + b, 0) / hr.length : null,
+      classification: null,
+      source: typeof src === 'string' ? src : null,
+    })
+  }
+  for (const e of payload?.data?.ecg ?? []) {
+    const start_ts = haeTimestamp(e.start)
+    if (!start_ts) continue
+    out.push({
+      user_id: userId,
+      kind: 'ecg',
+      start_ts,
+      end_ts: haeTimestamp(e.end),
+      threshold: null,
+      hr_min: null,
+      hr_max: null,
+      hr_avg: num(e.averageHeartRate),
+      classification: typeof e.classification === 'string' ? e.classification : null,
+      source: typeof e.source === 'string' ? e.source : null,
+    })
+  }
+  return out
 }

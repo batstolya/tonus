@@ -5,7 +5,7 @@ import { detectAnomaly, shouldSendAlert, buildAlertMessage, type AnomalyDay } fr
 import { withObservability } from '../_shared/observability.ts'
 import { consumeRateLimit, hashRateLimitSubject, rateLimitedResponse } from '../_shared/rateLimit.ts'
 import { sendTelegram } from '../_shared/telegram.ts'
-import { parseHAE, parseHRSamples, type HaePayload } from '../_shared/hae.ts'
+import { parseHAE, parseHeartEvents, parseHRSamples, type HaePayload } from '../_shared/hae.ts'
 
 // Приём данных Apple Health от Health Auto Export (SPEC-AUTOSYNC).
 // Изолировано: пишет в *_staging; в боевые таблицы — только при mode='live'.
@@ -74,6 +74,14 @@ const handler = async (req: Request) => {
       const hrSamples = parseHRSamples(userId, payload)
       for (let i = 0; i < hrSamples.length; i += 500) {
         await supabase.from('heart_rate_samples').upsert(hrSamples.slice(i, i + 500), { onConflict: 'user_id,ts' })
+      }
+
+      // Heart-rate notifications / ECG come from their own HAE automations
+      // (spec 2026-11-25-heart-events-ecg). Re-sends upsert on (kind, start).
+      const heartEvents = parseHeartEvents(userId, payload)
+      if (heartEvents.length) {
+        const { error } = await supabase.from('heart_events').upsert(heartEvents, { onConflict: 'user_id,kind,start_ts' })
+        if (!error) promoted += heartEvents.length
       }
 
       // Пересчёт дневных оценок (readiness/recovery/stress/baseline) из автосинка,
