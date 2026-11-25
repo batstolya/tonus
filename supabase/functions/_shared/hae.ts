@@ -308,7 +308,9 @@ export function parseHeartEvents(userId: string, payload: HaePayload): HeartEven
       threshold: null,
       hr_min: null,
       hr_max: null,
-      hr_avg: num(e.averageHeartRate),
+      // Apple reports 0 when it could not measure (e.g. 'Inconclusive Poor
+      // Recording'): that is unknown, not a heart rate of zero.
+      hr_avg: (() => { const v = num(e.averageHeartRate); return v != null && v > 0 ? v : null })(),
       classification: typeof e.classification === 'string' ? e.classification : null,
       source: typeof e.source === 'string' ? e.source : null,
     })

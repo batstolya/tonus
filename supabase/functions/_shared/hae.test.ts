@@ -399,3 +399,14 @@ describe('stripEcgWaveforms', () => {
     expect(stripEcgWaveforms(p)).toBe(p)
   })
 })
+
+describe('parseHeartEvents: ECG without a heart rate', () => {
+  it('stores a zero average heart rate (poor recording) as unknown, not 0 bpm', () => {
+    // Real HAE payload 2026-11-25: 'Inconclusive Poor Recording' arrives with averageHeartRate 0.
+    const [row] = parseHeartEvents(USER, { data: { ecg: [
+      { start: '2026-06-17 10:37:03 +0200', end: '2026-06-17 10:37:33 +0200', classification: 'Inconclusive Poor Recording', averageHeartRate: 0, source: 'ECG' },
+    ] } })
+    expect(row.hr_avg).toBeNull()
+    expect(row.classification).toBe('Inconclusive Poor Recording')
+  })
+})
