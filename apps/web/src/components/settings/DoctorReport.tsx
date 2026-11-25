@@ -14,6 +14,7 @@ import { callFunction } from '../../lib/edgeFunctions'
 import { translations } from '../../lib/translations'
 import { useT } from '../../lib/i18n'
 import { Icon } from '../../lib/icons'
+import type { MetricSummary } from '../../lib/doctorReport'
 
 // «Отчёт для врача» (SPEC-DOCTOR-REPORT, ревизия v2): экран подготовки +
 // печатное представление. Тело отчёта — только измеренные значения; ИИ-блок
@@ -186,6 +187,29 @@ export function DoctorReport({ user, daily, onClose }: Props) {
 
   // ── Печатное представление ──────────────────────────────────────────────────
   const { scores, metrics, weekly, sleep, coverage, deviations, labs, supplements, intake, nutrition, concerns, journal } = model
+  const mainMetrics = metrics.filter(m => !m.group)
+  const extraMetrics = metrics.filter(m => m.group === 'extra')
+  const metricHead = (
+    <thead><tr>
+      <th>{rt('Метрика')}</th><th>{rt('Среднее')}</th><th>{rt('Мин')}</th>
+      <th>{rt('Макс')}</th><th>{rt('Личная норма (медиана и обычный диапазон)')}</th><th>{rt('Дней с данными')}</th>
+      <th>{rt('Надёжность')}</th>
+    </tr></thead>
+  )
+  const metricRow = (m: MetricSummary) => (
+    <tr key={m.key}>
+      <td>{rt(m.label)}</td>
+      <td>{m.avg.toFixed(m.digits)}</td>
+      <td>{m.min.toFixed(m.digits)}</td>
+      <td>{m.max.toFixed(m.digits)}</td>
+      <td>{baselineCell(m, rt)}</td>
+      <td>{m.daysWithData} {rt('из')} {m.daysInPeriod}</td>
+      <td>
+        {rt(BAND_TEXT[m.reliability.band])}
+        {m.reliability.maxGap > 1 ? `, ${rt('макс. пробел')} ${m.reliability.maxGap} ${rt('дн.')}` : ''}
+      </td>
+    </tr>
+  )
 
   return (
     <div className="dr-print-root">
@@ -249,30 +273,13 @@ export function DoctorReport({ user, daily, onClose }: Props) {
           </section>
         )}
 
-        {sections.metrics && metrics.length > 0 && (
+        {sections.metrics && mainMetrics.length > 0 && (
           <section>
             <h2>{rt('Метрики за период')}</h2>
             <table>
-              <thead><tr>
-                <th>{rt('Метрика')}</th><th>{rt('Среднее')}</th><th>{rt('Мин')}</th>
-                <th>{rt('Макс')}</th><th>{rt('Личная норма (медиана и обычный диапазон)')}</th><th>{rt('Дней с данными')}</th>
-                <th>{rt('Надёжность')}</th>
-              </tr></thead>
+              {metricHead}
               <tbody>
-                {metrics.map(m => (
-                  <tr key={m.key}>
-                    <td>{rt(m.label)}</td>
-                    <td>{m.avg.toFixed(m.digits)}</td>
-                    <td>{m.min.toFixed(m.digits)}</td>
-                    <td>{m.max.toFixed(m.digits)}</td>
-                    <td>{baselineCell(m, rt)}</td>
-                    <td>{m.daysWithData} {rt('из')} {m.daysInPeriod}</td>
-                    <td>
-                      {rt(BAND_TEXT[m.reliability.band])}
-                      {m.reliability.maxGap > 1 ? `, ${rt('макс. пробел')} ${m.reliability.maxGap} ${rt('дн.')}` : ''}
-                    </td>
-                  </tr>
-                ))}
+                {mainMetrics.map(metricRow)}
                 {sleep?.bedtime && (
                   <tr><td>{rt('Время отбоя (медиана)')}</td><td>{sleep.bedtime.median}</td>
                     <td>{rt('половина ночей')} {sleep.bedtime.q1}–{sleep.bedtime.q3}</td>
@@ -289,8 +296,22 @@ export function DoctorReport({ user, daily, onClose }: Props) {
             </table>
             <p className="dr-note">{rt('«Личная норма» — медиана за 28 дней до начала периода и её межквартильный диапазон. Считается только при покрытии от 60% и минимум 14 днях в этом окне. Оценки Tonus выше используют другую базу — скользящее среднее за 30 дней.')}</p>
 
-            {weekly.rows.length > 1 && (
-              <>
+          </section>
+        )}
+
+        {sections.metrics && extraMetrics.length > 0 && (
+          <section>
+            <h2>{rt('Дополнительные показатели (Apple Watch / iPhone)')}</h2>
+            <table>
+              {metricHead}
+              <tbody>{extraMetrics.map(metricRow)}</tbody>
+            </table>
+            <p className="dr-note">{rt('Походка, лестница и наушники измеряет iPhone — данные есть только в дни, когда телефон был с собой. Тест 6-минутной ходьбы — оценка iPhone, появляется примерно раз в неделю.')}</p>
+          </section>
+        )}
+
+        {sections.metrics && weekly.rows.length > 1 && (
+          <section>
                 <h3>{rt('Динамика по неделям')}</h3>
                 <table>
                   <thead><tr>
@@ -310,8 +331,6 @@ export function DoctorReport({ user, daily, onClose }: Props) {
                   </tbody>
                 </table>
                 <p className="dr-note">{rt('В скобках — сколько дней этой метрики стоит за средним: недели различаются по покрытию, и одно число на всю строку вводило бы в заблуждение. Пустая ячейка — данных меньше трёх дней.')}</p>
-              </>
-            )}
           </section>
         )}
 
