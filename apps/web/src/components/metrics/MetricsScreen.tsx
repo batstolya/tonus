@@ -63,6 +63,8 @@ const METRIC_LABELS: Record<MetricKey, string> = {
   respiratoryRate: 'Частота дыхания',
   wristTemperature: 'Температура запястья',
   vo2max: 'VO₂max',
+  breathingDisturbances: 'Нарушения дыхания (в час)',
+  daylightMinutes: 'Время на дневном свете (мин)',
   sleepHours: 'Сон (ч)',
   sleepBedtime: 'Засыпание',
   sleepWakeTime: 'Пробуждение',

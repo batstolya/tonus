@@ -97,6 +97,17 @@ export function SleepScreen({ daily }: Props) {
     ? Math.round(efficiencies.reduce((a, v) => a + v, 0) / efficiencies.length)
     : null
 
+  // Breathing disturbances (events/hour): nights without a value are unknown,
+  // not zero, so both "last night" and the average use measured nights only.
+  // Shown neutrally — Apple does not publish the threshold it calls elevated.
+  const breathingNights = slice.filter(d => d.breathingDisturbances != null)
+  // "Last night" only if the most recent night actually has a reading; an older
+  // value would otherwise be shown as if it were current.
+  const lastBreathing = slice.at(-1)?.breathingDisturbances ?? null
+  const avgBreathing = breathingNights.length
+    ? breathingNights.reduce((a, d) => a + (d.breathingDisturbances ?? 0), 0) / breathingNights.length
+    : null
+
   const avgSleep = slice.length
     ? slice.reduce((a, d) => a + (d.sleepHours ?? 0), 0) / slice.length
     : null
@@ -149,6 +160,12 @@ export function SleepScreen({ daily }: Props) {
               {avgEfficiency}%
             </span>
             {t('эффективность сна')}
+          </div>
+        )}
+        {avgBreathing !== null && (
+          <div className="stat">
+            <span>{lastBreathing !== null && `${lastBreathing.toFixed(1)} · `}{t('ср.')} {avgBreathing.toFixed(1)}</span>
+            {t('нарушений дыхания в час')}
           </div>
         )}
         {bedtimeDays.length > 0 && (

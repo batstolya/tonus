@@ -8,7 +8,8 @@ import type { DailyMetrics } from '../types'
 
 export type CorrFactor =
   | 'coffee' | 'alcohol' | 'exerciseMinutes' | 'steps' | 'bedtime'
-  | 'pressure' | 'pressureDelta' | 'temp' | 'daylight' | 'magneticStorm' // среда (F5)
+  | 'pressure' | 'pressureDelta' | 'temp' | 'daylight' | 'magneticStorm'
+  | 'sunlight' // personal time in daylight (watch), not weather day length // среда (F5)
 export type CorrOutcome = 'sleepHours' | 'hrv' | 'restingHeartRate' | 'readiness'
 
 export interface EnvDay {
@@ -104,6 +105,7 @@ export function computeLagCorrelations(input: CorrelationsInput): CorrelationsRe
       case 'alcohol': return alcohol.get(d.date) ?? 0
       case 'exerciseMinutes': return d.exerciseMinutes ?? null
       case 'steps': return d.steps ?? null
+      case 'sunlight': return d.daylightMinutes ?? null
       case 'bedtime': return bedtimeMinutes(d.sleepBedtime)
       case 'pressure': return envByDay.get(d.date)?.pressure_hpa ?? null
       case 'pressureDelta': {
@@ -128,7 +130,7 @@ export function computeLagCorrelations(input: CorrelationsInput): CorrelationsRe
 
   const factors: CorrFactor[] = [
     'coffee', 'alcohol', 'exerciseMinutes', 'steps', 'bedtime',
-    'pressure', 'pressureDelta', 'temp', 'daylight', 'magneticStorm',
+    'pressure', 'pressureDelta', 'temp', 'daylight', 'magneticStorm', 'sunlight',
   ]
   const outcomes: CorrOutcome[] = ['sleepHours', 'hrv', 'restingHeartRate', 'readiness']
   const lags: (0 | 1)[] = [0, 1]

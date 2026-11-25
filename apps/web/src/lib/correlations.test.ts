@@ -197,3 +197,28 @@ describe('computeLagCorrelations', () => {
     expect(hit!.r).toBeLessThan(-0.5)
   })
 })
+
+describe('computeLagCorrelations: personal time in daylight', () => {
+  it('finds sunlight → longer sleep the next night', () => {
+    const light = (i: number) => (i % 2 === 0 ? 90 : 15)
+    const daily = makeDaily(30, i => ({
+      daylightMinutes: light(i),
+      sleepHours: i > 0 && light(i - 1) > 50 ? 7.8 + (i % 3) * 0.1 : 6.4 + (i % 3) * 0.1,
+    }))
+    const res = found(computeLagCorrelations({ daily, scores: [], intake: [] }))
+    const hit = res.find(c => c.factor === 'sunlight' && c.outcome === 'sleepHours' && c.lag === 1)
+    expect(hit, 'sunlight → sleep (lag 1) not found').toBeDefined()
+    expect(hit!.direction).toBe('up')
+  })
+
+  it('skips sunlight without zero-filling when only a few days have it', () => {
+    const daily = makeDaily(30, i => ({
+      daylightMinutes: i < 5 ? 60 : undefined,
+      sleepHours: 6 + (i % 4) * 0.5,
+      steps: 5000 + (i % 4) * 2000,
+    }))
+    const res = computeLagCorrelations({ daily, scores: [], intake: [] })
+    const list = 'correlations' in res ? res.correlations : []
+    expect(list.some(c => c.factor === 'sunlight')).toBe(false)
+  })
+})

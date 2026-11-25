@@ -26,6 +26,7 @@ const FACTOR_LABELS: Record<CorrFactor, { icon: IconName; label: string }> = {
   temp: { icon: 'temperature', label: 'Температура за окном' },
   daylight: { icon: 'sun', label: 'Световой день' },
   magneticStorm: { icon: 'magnet', label: 'Магнитные бури' },
+  sunlight: { icon: 'sun', label: 'Время на свету' },
 }
 
 const OUTCOME_LABELS: Record<CorrOutcome, string> = {

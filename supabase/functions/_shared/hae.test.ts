@@ -220,6 +220,46 @@ describe('parseHAE', () => {
   })
 })
 
+describe('parseHAE: breathing disturbances and time in daylight', () => {
+  const WATCH = 'Apple Watch'
+  const metricsOf = (name: string, data: { date: string; qty: number; source?: string }[]) =>
+    parseHAE(USER, { data: { metrics: [{ name, units: 'x', data }] } }).metrics
+
+  it('maps breathing_disturbances to a per-night avg row on the wake-up date', () => {
+    const rows = metricsOf('breathing_disturbances', [{ date: '2026-11-20 02:36:00 +0100', qty: 2.285, source: WATCH }])
+    expect(rows).toEqual([{
+      user_id: USER, date: '2026-11-20', metric: 'breathingDisturbances',
+      avg_val: 2.285, min_val: 2.285, max_val: 2.285,
+    }])
+  })
+
+  it('keeps a measured zero breathing value instead of dropping it', () => {
+    const rows = metricsOf('breathing_disturbances', [{ date: '2026-11-17 02:19:00 +0100', qty: 0, source: WATCH }])
+    expect(rows.map(r => r.avg_val)).toEqual([0])
+  })
+
+  it('sums time_in_daylight per day and rounds to whole minutes', () => {
+    const rows = metricsOf('time_in_daylight', [
+      { date: '2026-11-17 09:06:00 +0100', qty: 0.6, source: WATCH },
+      { date: '2026-11-17 09:07:00 +0100', qty: 1, source: WATCH },
+      { date: '2026-11-17 09:08:00 +0100', qty: 1, source: WATCH },
+      { date: '2026-11-17 09:09:00 +0100', qty: 0.9999, source: WATCH },
+      { date: '2026-11-24 14:40:00 +0100', qty: 1, source: WATCH },
+    ])
+    expect(rows).toEqual([
+      { user_id: USER, date: '2026-11-17', metric: 'daylightMinutes', sum_val: 4 },
+      { user_id: USER, date: '2026-11-24', metric: 'daylightMinutes', sum_val: 1 },
+    ])
+  })
+
+  it('takes the max across sources for daylight, not their sum', () => {
+    const pts = (n: number, source: string) =>
+      Array.from({ length: n }, (_, i) => ({ date: `2026-11-17 09:${String(i).padStart(2, '0')}:00 +0100`, qty: 1, source }))
+    const rows = metricsOf('time_in_daylight', [...pts(10, 'A'), ...pts(6, 'B')])
+    expect(rows.map(r => r.sum_val)).toEqual([10])
+  })
+})
+
 describe('parseHRSamples', () => {
   it('dedups heart-rate samples by timestamp', () => {
     const samples = parseHRSamples(USER, {

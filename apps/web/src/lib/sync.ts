@@ -25,6 +25,69 @@ export function applySleepRow(d: DailyMetrics, row: SleepSessionRowLike): void {
   d.sleepAwake = row.awake_hours ?? undefined
 }
 
+type MetricRowOut = {
+  user_id: string; date: string; metric: string;
+  avg_val?: number | null; min_val?: number | null; max_val?: number | null;
+  sum_val?: number | null; count_val?: number | null; json_val?: Json | null;
+}
+
+/** metrics_daily rows for one day of the daily model. Unset fields produce no row. */
+export function metricRowsOf(userId: string, d: DailyMetrics): MetricRowOut[] {
+  const date = d.date
+  const rows: MetricRowOut[] = []
+  if (d.heartRate) {
+    rows.push({ user_id: userId, date, metric: 'heartRate', avg_val: d.heartRate.avg, min_val: d.heartRate.min, max_val: d.heartRate.max })
+  }
+  if (d.restingHeartRate != null) rows.push({ user_id: userId, date, metric: 'restingHeartRate', avg_val: d.restingHeartRate })
+  if (d.hrv != null) rows.push({ user_id: userId, date, metric: 'hrv', avg_val: d.hrv })
+  if (d.walkingHeartRate != null) rows.push({ user_id: userId, date, metric: 'walkingHeartRate', avg_val: d.walkingHeartRate })
+  if (d.oxygenSaturation != null) rows.push({ user_id: userId, date, metric: 'oxygenSaturation', avg_val: d.oxygenSaturation })
+  if (d.respiratoryRate != null) rows.push({ user_id: userId, date, metric: 'respiratoryRate', avg_val: d.respiratoryRate })
+  if (d.wristTemperature != null) rows.push({ user_id: userId, date, metric: 'wristTemperature', avg_val: d.wristTemperature })
+  if (d.vo2max != null) rows.push({ user_id: userId, date, metric: 'vo2max', avg_val: d.vo2max })
+  if (d.steps != null) rows.push({ user_id: userId, date, metric: 'steps', sum_val: d.steps })
+  if (d.distance != null) rows.push({ user_id: userId, date, metric: 'distance', sum_val: d.distance })
+  if (d.activeEnergy != null) rows.push({ user_id: userId, date, metric: 'activeEnergy', sum_val: d.activeEnergy })
+  if (d.exerciseMinutes != null) rows.push({ user_id: userId, date, metric: 'exerciseMinutes', sum_val: d.exerciseMinutes })
+  if (d.flightsClimbed != null) rows.push({ user_id: userId, date, metric: 'flightsClimbed', sum_val: d.flightsClimbed })
+  if (d.breathingDisturbances != null) rows.push({ user_id: userId, date, metric: 'breathingDisturbances', avg_val: d.breathingDisturbances })
+  if (d.daylightMinutes != null) rows.push({ user_id: userId, date, metric: 'daylightMinutes', sum_val: d.daylightMinutes })
+  return rows
+}
+
+type MetricRowLike = Pick<MetricsDailyRow, 'metric' | 'avg_val' | 'min_val' | 'max_val' | 'sum_val'>
+
+// При дублях (две выгрузки на один день) берём более полное значение:
+// максимум для сумм (шаги/дистанция/калории), и не затираем непустое для средних.
+const maxSum = (cur: number | undefined, v: number | null): number | undefined =>
+  v == null ? cur : (cur == null ? v : Math.max(cur, v))
+const keepAvg = (cur: number | undefined, v: number | null): number | undefined =>
+  cur != null ? cur : (v ?? undefined)
+
+/** One metrics_daily row onto the daily model. */
+export function applyMetricRow(d: DailyMetrics, row: MetricRowLike): void {
+  switch (row.metric) {
+    case 'heartRate':
+      if (row.avg_val != null && !d.heartRate)
+        d.heartRate = { avg: row.avg_val, min: row.min_val ?? row.avg_val, max: row.max_val ?? row.avg_val }
+      break
+    case 'restingHeartRate': d.restingHeartRate = keepAvg(d.restingHeartRate, row.avg_val); break
+    case 'hrv': d.hrv = keepAvg(d.hrv, row.avg_val); break
+    case 'walkingHeartRate': d.walkingHeartRate = keepAvg(d.walkingHeartRate, row.avg_val); break
+    case 'oxygenSaturation': d.oxygenSaturation = keepAvg(d.oxygenSaturation, row.avg_val); break
+    case 'respiratoryRate': d.respiratoryRate = keepAvg(d.respiratoryRate, row.avg_val); break
+    case 'wristTemperature': d.wristTemperature = keepAvg(d.wristTemperature, row.avg_val); break
+    case 'vo2max': d.vo2max = keepAvg(d.vo2max, row.avg_val); break
+    case 'steps': d.steps = maxSum(d.steps, row.sum_val); break
+    case 'distance': d.distance = maxSum(d.distance, row.sum_val); break
+    case 'activeEnergy': d.activeEnergy = maxSum(d.activeEnergy, row.sum_val); break
+    case 'exerciseMinutes': d.exerciseMinutes = maxSum(d.exerciseMinutes, row.sum_val); break
+    case 'flightsClimbed': d.flightsClimbed = maxSum(d.flightsClimbed, row.sum_val); break
+    case 'breathingDisturbances': d.breathingDisturbances = keepAvg(d.breathingDisturbances, row.avg_val); break
+    case 'daylightMinutes': d.daylightMinutes = maxSum(d.daylightMinutes, row.sum_val); break
+  }
+}
+
 export async function syncMetricsToSupabase(
   userId: string,
   daily: DailyMetrics[],
@@ -71,21 +134,7 @@ export async function syncMetricsToSupabase(
     const uid = userId
     const date = d.date
 
-    if (d.heartRate) {
-      metricsRows.push({ user_id: uid, date, metric: 'heartRate', avg_val: d.heartRate.avg, min_val: d.heartRate.min, max_val: d.heartRate.max })
-    }
-    if (d.restingHeartRate != null) metricsRows.push({ user_id: uid, date, metric: 'restingHeartRate', avg_val: d.restingHeartRate })
-    if (d.hrv != null) metricsRows.push({ user_id: uid, date, metric: 'hrv', avg_val: d.hrv })
-    if (d.walkingHeartRate != null) metricsRows.push({ user_id: uid, date, metric: 'walkingHeartRate', avg_val: d.walkingHeartRate })
-    if (d.oxygenSaturation != null) metricsRows.push({ user_id: uid, date, metric: 'oxygenSaturation', avg_val: d.oxygenSaturation })
-    if (d.respiratoryRate != null) metricsRows.push({ user_id: uid, date, metric: 'respiratoryRate', avg_val: d.respiratoryRate })
-    if (d.wristTemperature != null) metricsRows.push({ user_id: uid, date, metric: 'wristTemperature', avg_val: d.wristTemperature })
-    if (d.vo2max != null) metricsRows.push({ user_id: uid, date, metric: 'vo2max', avg_val: d.vo2max })
-    if (d.steps != null) metricsRows.push({ user_id: uid, date, metric: 'steps', sum_val: d.steps })
-    if (d.distance != null) metricsRows.push({ user_id: uid, date, metric: 'distance', sum_val: d.distance })
-    if (d.activeEnergy != null) metricsRows.push({ user_id: uid, date, metric: 'activeEnergy', sum_val: d.activeEnergy })
-    if (d.exerciseMinutes != null) metricsRows.push({ user_id: uid, date, metric: 'exerciseMinutes', sum_val: d.exerciseMinutes })
-    if (d.flightsClimbed != null) metricsRows.push({ user_id: uid, date, metric: 'flightsClimbed', sum_val: d.flightsClimbed })
+    metricsRows.push(...metricRowsOf(uid, d))
 
     if (d.sleepHours != null) {
       sleepRows.push({
@@ -179,34 +228,10 @@ export async function loadMetricsFromSupabase(
 
   const byDate = new Map<string, DailyMetrics>()
 
-  // При дублях (две выгрузки на один день) берём более полное значение:
-  // максимум для сумм (шаги/дистанция/калории), и не затираем непустое для средних.
-  const maxSum = (cur: number | undefined, v: number | null): number | undefined =>
-    v == null ? cur : (cur == null ? v : Math.max(cur, v))
-  const keepAvg = (cur: number | undefined, v: number | null): number | undefined =>
-    cur != null ? cur : (v ?? undefined)
-
   for (const row of metricsRes.data ?? []) {
     if (!byDate.has(row.date)) byDate.set(row.date, { date: row.date })
     const d = byDate.get(row.date)!
-    switch (row.metric) {
-      case 'heartRate':
-        if (row.avg_val != null && !d.heartRate)
-          d.heartRate = { avg: row.avg_val, min: row.min_val ?? row.avg_val, max: row.max_val ?? row.avg_val }
-        break
-      case 'restingHeartRate': d.restingHeartRate = keepAvg(d.restingHeartRate, row.avg_val); break
-      case 'hrv': d.hrv = keepAvg(d.hrv, row.avg_val); break
-      case 'walkingHeartRate': d.walkingHeartRate = keepAvg(d.walkingHeartRate, row.avg_val); break
-      case 'oxygenSaturation': d.oxygenSaturation = keepAvg(d.oxygenSaturation, row.avg_val); break
-      case 'respiratoryRate': d.respiratoryRate = keepAvg(d.respiratoryRate, row.avg_val); break
-      case 'wristTemperature': d.wristTemperature = keepAvg(d.wristTemperature, row.avg_val); break
-      case 'vo2max': d.vo2max = keepAvg(d.vo2max, row.avg_val); break
-      case 'steps': d.steps = maxSum(d.steps, row.sum_val); break
-      case 'distance': d.distance = maxSum(d.distance, row.sum_val); break
-      case 'activeEnergy': d.activeEnergy = maxSum(d.activeEnergy, row.sum_val); break
-      case 'exerciseMinutes': d.exerciseMinutes = maxSum(d.exerciseMinutes, row.sum_val); break
-      case 'flightsClimbed': d.flightsClimbed = maxSum(d.flightsClimbed, row.sum_val); break
-    }
+    applyMetricRow(d, row)
   }
 
   // При дублях/фрагментах sleep_sessions берём ОСНОВНОЙ сон — с макс. длительностью

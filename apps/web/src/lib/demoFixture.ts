@@ -60,6 +60,8 @@ export function makeDemoDaily(days = 90): DailyMetrics[] {
       oxygenSaturation: (96 + r(10) * 3) / 100,
       respiratoryRate: 14 + r(11) * 3,
       wristTemperature: 36.2 + r(12) * 0.8,
+      breathingDisturbances: Math.round((0.2 + r(31) * 2.3) * 100) / 100,
+      daylightMinutes: Math.round(10 + r(32) * 110),
       vo2max: 42 + r(13) * 4,
       sleepHours,
       sleepBedtime: bed.toISOString(),
