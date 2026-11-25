@@ -24,6 +24,10 @@ export interface MetricDef {
   digits: number
   /** Minimum relative shift worth reporting as a deviation, in percent. */
   minRel: number
+  /** Minimum absolute shift (in the metric's unit) worth reporting. Needed for
+   *  metrics whose median sits near zero, where any relative threshold either
+   *  never fires or turns a sub-unit wobble into "+600%". */
+  minAbs?: number
   /** Secondary metrics printed in the "Additional metrics" section and left
    *  out of the coverage-gap list (many are event-like or phone-dependent). */
   group?: 'extra'
@@ -38,7 +42,7 @@ export const METRIC_DEFS: MetricDef[] = [
   { key: 'walkHr', label: 'Пульс при ходьбе, уд/мин', get: d => d.walkingHeartRate, digits: 0, minRel: 6 },
   { key: 'spo2', label: 'SpO₂, %', get: d => (d.oxygenSaturation != null ? d.oxygenSaturation * 100 : undefined), digits: 1, minRel: 2 },
   { key: 'resp', label: 'Частота дыхания, /мин', get: d => d.respiratoryRate, digits: 1, minRel: 8 },
-  { key: 'breath', label: 'Нарушения дыхания во сне, в час', get: d => d.breathingDisturbances, digits: 1, minRel: 50 },
+  { key: 'breath', label: 'Нарушения дыхания во сне, в час', get: d => d.breathingDisturbances, digits: 1, minRel: 50, minAbs: 0.5 },
   { key: 'temp', label: 'Температура запястья, °C', get: d => d.wristTemperature, digits: 2, minRel: 1 },
   { key: 'vo2', label: 'VO₂max, мл/кг/мин', get: d => d.vo2max, digits: 1, minRel: 8 },
   { key: 'sleep', label: 'Сон общий, ч', get: d => d.sleepHours, digits: 1, minRel: 10 },
@@ -55,7 +59,7 @@ export const METRIC_DEFS: MetricDef[] = [
   // full of "deviations" would bury the ones that matter.
   { key: 'walkSpeed', label: 'Скорость ходьбы, км/ч', get: d => d.walkingSpeed, digits: 1, minRel: 10, group: 'extra' },
   { key: 'stepLen', label: 'Длина шага, см', get: d => d.walkingStepLength, digits: 0, minRel: 8, group: 'extra' },
-  { key: 'asym', label: 'Асимметрия ходьбы, %', get: d => d.walkingAsymmetry, digits: 1, minRel: 100, group: 'extra' },
+  { key: 'asym', label: 'Асимметрия ходьбы, %', get: d => d.walkingAsymmetry, digits: 1, minRel: 100, minAbs: 3, group: 'extra' },
   { key: 'dblSupport', label: 'Двойная опора при ходьбе, %', get: d => d.walkingDoubleSupport, digits: 1, minRel: 8, group: 'extra' },
   { key: 'stairUp', label: 'Скорость подъёма по лестнице, м/с', get: d => d.stairSpeedUp, digits: 2, minRel: 15, group: 'extra' },
   { key: 'stairDown', label: 'Скорость спуска по лестнице, м/с', get: d => d.stairSpeedDown, digits: 2, minRel: 15, group: 'extra' },
@@ -64,11 +68,11 @@ export const METRIC_DEFS: MetricDef[] = [
   { key: 'basal', label: 'Энергия покоя, ккал', get: d => d.basalEnergy, digits: 0, minRel: 10, group: 'extra' },
   { key: 'standH', label: 'Часы стояния', get: d => d.standHours, digits: 0, minRel: 25, group: 'extra' },
   { key: 'standM', label: 'Минуты стояния', get: d => d.standMinutes, digits: 0, minRel: 30, group: 'extra' },
-  { key: 'cycling', label: 'Велосипед, км', get: d => d.cyclingDistance, digits: 1, minRel: 60, group: 'extra' },
-  { key: 'daylight', label: 'Время на дневном свете, мин', get: d => d.daylightMinutes, digits: 0, minRel: 50, group: 'extra' },
+  { key: 'cycling', label: 'Велосипед, км', get: d => d.cyclingDistance, digits: 1, minRel: 60, minAbs: 3, group: 'extra' },
+  { key: 'daylight', label: 'Время на дневном свете, мин', get: d => d.daylightMinutes, digits: 0, minRel: 50, minAbs: 15, group: 'extra' },
   { key: 'envAudio', label: 'Шум вокруг, дБ', get: d => d.environmentalAudio, digits: 0, minRel: 8, group: 'extra' },
   { key: 'phoneAudio', label: 'Громкость в наушниках, дБ', get: d => d.headphoneAudio, digits: 0, minRel: 8, group: 'extra' },
-  { key: 'handwash', label: 'Мытьё рук, раз в день', get: d => d.handwashing, digits: 0, minRel: 50, group: 'extra' },
+  { key: 'handwash', label: 'Мытьё рук, раз в день', get: d => d.handwashing, digits: 0, minRel: 50, minAbs: 3, group: 'extra' },
 ]
 
 export interface MetricSummary {

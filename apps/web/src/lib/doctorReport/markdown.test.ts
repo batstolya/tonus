@@ -710,3 +710,16 @@ describe('toMarkdown: additional metrics', () => {
     expect(md).toContain('Breathing disturbances during sleep, per hour')
   })
 })
+
+describe('toMarkdown: header and coverage wording match the new sections', () => {
+  it('no longer tells the reader gait metrics are not imported', () => {
+    const md = toMarkdown(model, 'ru')
+    expect(md).not.toContain('метрики походки не импортируются')
+    expect(md).toContain('Тренировки, события пульса и ЭКГ не импортируются.')
+  })
+
+  it('scopes the "no gaps" sentence to the main table', () => {
+    const md = toMarkdown(model, 'ru')
+    expect(md).toContain('каждая метрика основной таблицы покрывает не менее 90% дней периода')
+  })
+})

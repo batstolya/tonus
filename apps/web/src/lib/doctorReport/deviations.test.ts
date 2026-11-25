@@ -76,3 +76,25 @@ describe('detectDeviations', () => {
     expect(gated.some(w => w.items.some(i => i.key === 'hrv'))).toBe(false)
   })
 })
+
+describe('detectDeviations: near-zero metrics', () => {
+  it('does not report a sub-point move in walking asymmetry as a huge percentage', () => {
+    // Mostly 0% with a 0.1% median: a 1.1% week is +1000% relative, but one
+    // percentage point of asymmetry is noise, not a finding.
+    const daily = fixture(i => ({ walkingAsymmetry: i >= 58 && i < 65 ? 1.1 : (i % 7 === 0 ? 0.7 : 0) }))
+    const weeks = detectDeviations(daily, periodFrame(daily, 90, today), ALL_KEYS)
+    expect(weeks.flatMap(w => w.items).map(x => x.key)).not.toContain('asym')
+  })
+
+  it('still reports a real asymmetry jump past the absolute floor', () => {
+    const daily = fixture(i => ({ walkingAsymmetry: i >= 58 && i < 65 ? 8 : 1 }))
+    const weeks = detectDeviations(daily, periodFrame(daily, 90, today), ALL_KEYS)
+    expect(weeks.flatMap(w => w.items).map(x => x.key)).toContain('asym')
+  })
+
+  it('does not flag a tiny absolute change in breathing disturbances', () => {
+    const daily = fixture(i => ({ breathingDisturbances: i >= 58 && i < 65 ? 0.3 : 0.1 }))
+    const weeks = detectDeviations(daily, periodFrame(daily, 90, today), ALL_KEYS)
+    expect(weeks.flatMap(w => w.items).map(x => x.key)).not.toContain('breath')
+  })
+})

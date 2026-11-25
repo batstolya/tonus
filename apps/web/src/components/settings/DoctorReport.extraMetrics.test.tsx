@@ -28,6 +28,13 @@ describe('DoctorReport additional metrics', () => {
     expect(container.textContent).toContain('Пульс покоя, уд/мин')
   })
 
+  it('gives the weekly trend its own top-level heading, not a sub-heading of the additional section', async () => {
+    renderWithProviders(<DoctorReport user={user} daily={daily} onClose={() => {}} />)
+    fireEvent.click(screen.getByText(ui('Сформировать')))
+    await waitFor(() => expect(screen.getByText('Динамика по неделям')).toBeTruthy())
+    expect(screen.getByText('Динамика по неделям').tagName).toBe('H2')
+  })
+
   it('has uk + en for every report metric label and the section title', () => {
     const keys = [...METRIC_DEFS.map(m => m.label), 'Дополнительные показатели (Apple Watch / iPhone)']
     for (const k of keys) {
