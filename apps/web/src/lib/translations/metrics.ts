@@ -55,6 +55,8 @@ export const metrics: Record<string, Translation> = {
   'Пульс (средний)': { uk: 'Пульс (середній)', en: 'Heart rate (avg)' },
   'Пульс при ходьбе': { uk: 'Пульс при ходьбі', en: 'Walking HR' },
   'Частота дыхания': { uk: 'Частота дихання', en: 'Respiratory rate' },
+  'Нарушения дыхания (в час)': { uk: 'Порушення дихання (за годину)', en: 'Breathing disturbances (per hour)' },
+  'Время на дневном свете (мин)': { uk: 'Час на денному світлі (хв)', en: 'Time in daylight (min)' },
   'Температура запястья': { uk: 'Температура запʼястя', en: 'Wrist temperature' },
   'Сон (ч)': { uk: 'Сон (год)', en: 'Sleep (h)' },
   'Глубокий сон (ч)': { uk: 'Глибокий сон (год)', en: 'Deep sleep (h)' },

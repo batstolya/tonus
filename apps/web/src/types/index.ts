@@ -17,6 +17,8 @@ export interface DailyMetrics {
   respiratoryRate?: number
   wristTemperature?: number
   vo2max?: number
+  breathingDisturbances?: number // per night, events per hour (Apple Watch)
+  daylightMinutes?: number       // personal time in daylight, minutes per day
   sleepHours?: number
   sleepBedtime?: string   // ISO time string
   sleepWakeTime?: string  // ISO time string
