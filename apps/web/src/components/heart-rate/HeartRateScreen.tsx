@@ -7,6 +7,7 @@ import type { DailyMetrics } from '../../types'
 import { useT } from '../../lib/i18n'
 import { Icon, type IconName } from '../../lib/icons'
 import { computePeriodStats } from './periodStats'
+import { HeartEventsBlock } from './HeartEventsBlock'
 
 interface IntakeEvent {
   id: string
@@ -20,6 +21,8 @@ interface IntakeEvent {
 interface Props {
   daily: DailyMetrics[]
   intakeEvents?: IntakeEvent[]
+  /** Loads heart events (notifications, ECG) for the block at the bottom. */
+  userId?: string | null
 }
 
 type Preset = '7d' | '30d' | '90d' | 'all'
@@ -64,7 +67,7 @@ function filterDays(daily: DailyMetrics[], preset: Preset): DailyMetrics[] {
   return withData.slice(-days)
 }
 
-export function HeartRateScreen({ daily, intakeEvents = [] }: Props) {
+export function HeartRateScreen({ daily, intakeEvents = [], userId = null }: Props) {
   const { t } = useT()
   const [preset, setPreset] = useState<Preset>('30d')
   const [shown, setShown] = useState<Set<string>>(new Set())
@@ -227,6 +230,8 @@ export function HeartRateScreen({ daily, intakeEvents = [] }: Props) {
           </div>
         </div>
       )}
+
+      <HeartEventsBlock userId={userId} />
     </div>
   )
 }
