@@ -31,6 +31,24 @@ describe('executeChatTool', () => {
     expect(result.rows).toHaveLength(1)
   })
 
+  it('adds the new metrics to metrics rows and server-computed averages', async () => {
+    const sb = stubSupabase({
+      daily_metrics: [{ date: '2026-11-24', sleep_hours: 7.1 }],
+      metrics_daily: [
+        { date: '2026-11-24', metric: 'walkingSpeed', avg_val: 4.7, sum_val: null },
+        { date: '2026-11-25', metric: 'walkingSpeed', avg_val: 4.3, sum_val: null },
+        { date: '2026-11-24', metric: 'basalEnergy', avg_val: null, sum_val: 1818 },
+      ],
+    })
+    const result = await executeChatTool(sb, 'user-1', 'get_metrics_range', { start_date: '2026-11-24', end_date: '2026-11-25' }) as {
+      rows: Record<string, unknown>[]; summary: { averages: Record<string, { avg: number; n: number }> }
+    }
+    expect(result.rows.find(r => r.date === '2026-11-24')).toMatchObject({ sleep_hours: 7.1, walkingSpeed: 4.7, basalEnergy: 1818 })
+    // A day present only in the new metrics still appears.
+    expect(result.rows.find(r => r.date === '2026-11-25')).toMatchObject({ walkingSpeed: 4.3 })
+    expect(result.summary.averages.walkingSpeed).toEqual({ avg: 4.5, n: 2 })
+  })
+
   it('rejects a metrics range longer than 60 days without throwing', async () => {
     const sb = stubSupabase({ daily_metrics: [] })
     const result: Record<string, unknown> = await executeChatTool(sb, 'user-1', 'get_metrics_range', { start_date: '2026-01-01', end_date: '2026-06-01' })
