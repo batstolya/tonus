@@ -676,3 +676,37 @@ describe('toMarkdown — observations', () => {
     expect(toMarkdown(model, 'ru')).not.toContain('## Наблюдения')
   })
 })
+
+describe('toMarkdown: additional metrics', () => {
+  const extraDaily: DailyMetrics[] = Array.from({ length: 30 }, (_, i) => ({
+    date: addDays(today, -29 + i),
+    restingHeartRate: 58, sleepHours: 7, steps: 9000,
+    breathingDisturbances: 0.5, walkingSpeed: 4.7, basalEnergy: 1800,
+  }))
+  const extraModel = buildReportModel({ daily: extraDaily, sources, periodDays: 30, today })
+  const section = (md: string, title: string) => {
+    const start = md.indexOf(`## ${title}`)
+    return start < 0 ? '' : md.slice(start, md.indexOf('\n## ', start + 3))
+  }
+
+  it('keeps breathing in the main table and moves the rest to their own section', () => {
+    const md = toMarkdown(extraModel, 'ru')
+    const main = section(md, 'Метрики за период')
+    const extra = section(md, 'Дополнительные показатели (Apple Watch / iPhone)')
+    expect(main).toContain('Нарушения дыхания во сне, в час')
+    expect(main).not.toContain('Скорость ходьбы, км/ч')
+    expect(extra).toContain('Скорость ходьбы, км/ч | 4.7')
+    expect(extra).toContain('Энергия покоя, ккал | 1800')
+  })
+
+  it('prints no additional section when the period has none of those metrics', () => {
+    expect(toMarkdown(model, 'ru')).not.toContain('Дополнительные показатели')
+  })
+
+  it('translates the new labels in the English report', () => {
+    const md = toMarkdown(extraModel, 'en')
+    expect(md).toContain('## Additional metrics (Apple Watch / iPhone)')
+    expect(md).toContain('Walking speed, km/h')
+    expect(md).toContain('Breathing disturbances during sleep, per hour')
+  })
+})

@@ -178,15 +178,20 @@ export function toMarkdown(model: DoctorReportModel, lang: ReportLang): string {
     p()
   }
 
-  if (model.metrics.length) {
+  const metricRow = (m: MetricSummary): string[] => [
+    t(m.label), m.avg.toFixed(m.digits), m.min.toFixed(m.digits), m.max.toFixed(m.digits),
+    baselineCell(m, t),
+    `${m.daysWithData} ${t('из')} ${m.daysInPeriod}`,
+    `${t(BAND_TEXT[m.reliability.band])}${m.reliability.maxGap > 1 ? `, ${t('макс. пробел')} ${m.reliability.maxGap} ${t('дн.')}` : ''}`,
+  ]
+  const metricHeader = [t('Метрика'), t('Среднее'), t('Мин'), t('Макс'), t('Личная норма (медиана и обычный диапазон)'), t('Дней с данными'), t('Надёжность')]
+  const mainMetrics = model.metrics.filter(m => !m.group)
+  const extraMetrics = model.metrics.filter(m => m.group === 'extra')
+
+  if (mainMetrics.length) {
     p(`## ${t('Метрики за период')}`)
     p()
-    const rows = model.metrics.map(m => [
-      t(m.label), m.avg.toFixed(m.digits), m.min.toFixed(m.digits), m.max.toFixed(m.digits),
-      baselineCell(m, t),
-      `${m.daysWithData} ${t('из')} ${m.daysInPeriod}`,
-      `${t(BAND_TEXT[m.reliability.band])}${m.reliability.maxGap > 1 ? `, ${t('макс. пробел')} ${m.reliability.maxGap} ${t('дн.')}` : ''}`,
-    ])
+    const rows = mainMetrics.map(metricRow)
     if (model.sleep?.bedtime) {
       const b = model.sleep.bedtime
       rows.push([t('Время отбоя (медиана)'), b.median, `${t('половина ночей')} ${b.q1}–${b.q3}`, dash, dash,
@@ -197,8 +202,16 @@ export function toMarkdown(model: DoctorReportModel, lang: ReportLang): string {
       rows.push([t('Время подъёма (медиана)'), w.median, `${t('половина ночей')} ${w.q1}–${w.q3}`, dash, dash,
         `${w.count} ${t('из')} ${model.period.calendarDays}`, dash])
     }
-    table([t('Метрика'), t('Среднее'), t('Мин'), t('Макс'), t('Личная норма (медиана и обычный диапазон)'), t('Дней с данными'), t('Надёжность')], rows)
+    table(metricHeader, rows)
     p(t('«Личная норма» — медиана за 28 дней до начала периода и её межквартильный диапазон. Считается только при покрытии от 60% и минимум 14 днях в этом окне. Оценки Tonus выше используют другую базу — скользящее среднее за 30 дней.'))
+    p()
+  }
+
+  if (extraMetrics.length) {
+    p(`## ${t('Дополнительные показатели (Apple Watch / iPhone)')}`)
+    p()
+    table(metricHeader, extraMetrics.map(metricRow))
+    p(t('Походка, лестница и наушники измеряет iPhone — данные есть только в дни, когда телефон был с собой. Тест 6-минутной ходьбы — оценка iPhone, появляется примерно раз в неделю.'))
     p()
   }
 
